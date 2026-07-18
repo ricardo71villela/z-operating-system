@@ -4,7 +4,7 @@
 Defines how data is governed, modeled and kept trustworthy across the ecosystem.
 
 ## Scope
-Data governance, data model overview, data quality standards. Does not define the property record model itself — see `20-registry`.
+Data governance, data model overview, data quality standards. Does not define entity identity or authoritative state — see `20-registry` and the Registry/Data boundary formalized in `00-foundation/DOMAIN-MODEL.md`.
 
 ## Table of Contents
 [No documents yet.]
