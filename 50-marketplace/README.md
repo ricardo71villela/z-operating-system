@@ -1,0 +1,21 @@
+# Marketplace
+
+## Purpose
+Defines how properties, partners and private sellers meet inside the ecosystem, and how listings behave from creation to closing. Built on top of Registry and Trust Engine.
+
+## Scope
+Listing lifecycle, deduplication rules, partner onboarding flow. Does not define where the canonical property record lives — see `20-registry`.
+
+## Table of Contents
+[No documents yet.]
+
+## Status
+Draft
+
+## Last Updated
+2026-07-16
+
+## Related Domains
+- `20-registry`
+- `40-partner-quality-score`
+- `30-trust-engine`
