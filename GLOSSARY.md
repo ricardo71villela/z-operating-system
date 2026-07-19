@@ -198,6 +198,26 @@ Cross-domain terminology only. Domain-specific technical terms used nowhere else
 
 **Avoid confusing with:** *History*, which is the record of states over time; provenance is specifically about origin and trust in that record.
 
+### Canonical Record
+
+**Definition:** The single, authoritative Registry entry for a given Entity's Identity — the record every other domain references when it needs "the" version of that Entity. See `20-registry/ENTITY-ASSET-MODEL.md`.
+
+**Related concepts:** Entity, Identity, Registry, Source of Truth.
+
+**Canonical usage:** "A Listing references the Asset's Canonical Record by Identity; it does not duplicate it."
+
+**Avoid confusing with:** *Listing*, which is Marketplace's published, discoverable instance of an active Representation, and *Marketing Content*, which is descriptions and media created by a Representation — both reference the Canonical Record rather than being one.
+
+### External Reference
+
+**Definition:** A pointer from a Registry Entity to an identifier or record in a system outside the Registry's authority — a cadastral registry number, a government business registration ID, a third-party data provider's ID.
+
+**Related concepts:** Provenance, Source of Truth, Registry.
+
+**Canonical usage:** "A cadastral reference is an External Reference used as evidence for identity resolution, not as the Entity's Source of Truth."
+
+**Avoid confusing with:** *Source of Truth* — an External Reference is evidence usable for identity resolution and Provenance; it is never itself authoritative. The Registry's own Identity remains the Source of Truth even when an External Reference changes or becomes unavailable.
+
 ### Property
 
 **Definition:** A real estate Asset — residential, commercial, or land — represented as an Entity in the Registry.

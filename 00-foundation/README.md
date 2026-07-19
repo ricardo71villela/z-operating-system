@@ -4,7 +4,7 @@
 Defines why Z exists, what it believes, and the non-negotiable principles every other domain must respect.
 
 ## Scope
-Mission, vision, philosophy, and core principles (e.g. One Asset, One Record). Does not hold the glossary — see the root `GLOSSARY.md`. Does not cover how principles are implemented — implementation lives in the relevant domain.
+Mission, vision, philosophy, and core principles (e.g. One Asset, One Canonical Record). Does not hold the glossary — see the root `GLOSSARY.md`. Does not cover how principles are implemented — implementation lives in the relevant domain.
 
 ## Table of Contents
 - [PRINCIPLES.md](./PRINCIPLES.md) — the non-negotiable operating principles.

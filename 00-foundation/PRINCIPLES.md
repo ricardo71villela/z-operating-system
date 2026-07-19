@@ -21,6 +21,7 @@ System-wide operating principles. Does not cover domain-specific rules (e.g. ded
 - [Documentation as Infrastructure](#documentation-as-infrastructure)
 - [Data Quality Before Intelligence](#data-quality-before-intelligence)
 - [Trust as a System Property](#trust-as-a-system-property)
+- [One Asset, One Canonical Record](#one-asset-one-canonical-record)
 
 ## Principles
 
@@ -66,11 +67,14 @@ Intelligence (recommendations, scores, predictions) is only as trustworthy as th
 ### Trust as a System Property
 Trust is not a feature bolted onto one domain — it is an emergent property that depends on Registry correctness, Data quality, Provenance, and explainability working together. No single domain can manufacture Trust in isolation.
 
+### One Asset, One Canonical Record
+Each Asset has exactly one canonical Registry record — its Identity, per `20-registry/ENTITY-ASSET-MODEL.md`. Multiple systems, Representations, observations, Documents and External References may all refer to the same Asset without conflict; what they must never do is create a second, competing canonical identity for it. The Registry is the sole authority for canonical Asset identity — every other domain that references an Asset (Data, Trust Engine, Marketplace, Intelligence) resolves to this one record rather than maintaining its own. This is the concrete mechanism behind the Registry/Data boundary and the Representation invariant already defined in `00-foundation/DOMAIN-MODEL.md` and `20-registry/ENTITY-ASSET-MODEL.md` — this entry states the principle; those documents state the mechanism.
+
 ## Status
 Draft
 
 ## Last Updated
-2026-07-18
+2026-07-19
 
 ## Related Domains
 - All domains (every domain's decisions should trace back to one or more principles here)

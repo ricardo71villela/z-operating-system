@@ -1,7 +1,7 @@
 # Security
 
 ## Purpose
-Defines the security and data-protection principles the ecosystem must uphold as it handles sensitive property, partner and financial data.
+Defines the security and data-protection principles the ecosystem must uphold as it handles sensitive Asset, partner and financial data.
 
 ## Scope
 Security principles, data protection. Does not define data modeling — see `60-data`.
@@ -13,7 +13,7 @@ Security principles, data protection. Does not define data modeling — see `60-
 Draft
 
 ## Last Updated
-2026-07-16
+2026-07-19
 
 ## Related Domains
 - `60-data`

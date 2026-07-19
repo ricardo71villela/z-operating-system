@@ -4,7 +4,7 @@
 Defines how properties, partners and private sellers meet inside the ecosystem, and how listings behave from creation to closing. Built on top of Registry and Trust Engine.
 
 ## Scope
-Listing lifecycle, deduplication rules, partner onboarding flow. Does not define where the canonical property record lives — see `20-registry`.
+Listing lifecycle, deduplication rules, partner onboarding flow. Does not define where the canonical Asset record lives — see `20-registry`.
 
 ## Table of Contents
 [No documents yet.]
@@ -13,7 +13,7 @@ Listing lifecycle, deduplication rules, partner onboarding flow. Does not define
 Draft
 
 ## Last Updated
-2026-07-16
+2026-07-19
 
 ## Related Domains
 - `20-registry`

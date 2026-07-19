@@ -59,6 +59,7 @@ Registry is the model: `Entity → Identity → Relationships → State → Hist
 ## Open Architectural Questions
 
 - **Trust Engine vs. Partner Quality Score:** Whether Partner Quality Score remains an independent domain, becomes a Capability of Trust Engine, or is absorbed into it, is an open question. **Status: Open Architectural Question.** Provisional relationship: Trust Engine defines trust models, signals, evidence and evaluation in general; Partner Quality Score is a specific scoring framework applied to partners, built on top of it. No ADR has been created for this; none should be until real scoring content exists to test the boundary against.
+- **Classification of "Private Collection" (Coleção Privada):** Whether Z Imobiliária's "Private Collection" is a Brand, a Product, or another Registry Entity type in the Organization → Company → Brand → Product model is not yet resolved. **Status: Open Architectural Question.** It is referenced provisionally in `GLOSSARY.md#company` and `architecture/DESIGN-SYSTEM.md` §11 as an unclassified example, not as a settled case. No document should classify it definitively until this question is resolved.
 
 ## Status
 Draft

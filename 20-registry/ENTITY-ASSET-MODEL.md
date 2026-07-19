@@ -76,13 +76,13 @@ Principles:
 
 ### Canonical Record
 
-*(New concept, not yet in `GLOSSARY.md` — candidate for future addition.)*
+*(Now canonical in `GLOSSARY.md#canonical-record`.)*
 
 **Definition:** The single, authoritative Registry entry for a given Entity's Identity — the record all other domains reference when they need "the" version of this Entity. Distinct from a **Listing** (Marketplace's published, discoverable instance of an active Representation) and from **Marketing Content** (descriptions and media created by a Representation) — both of which reference the Canonical Record by Identity rather than duplicating it.
 
 ### External Reference
 
-*(New concept, not yet in `GLOSSARY.md` — candidate for future addition.)*
+*(Now canonical in `GLOSSARY.md#external-reference`.)*
 
 **Definition:** A pointer from a Registry Entity to an identifier or record in a system outside the Registry's authority — a cadastral registry number, a government business registration ID, a third-party data provider's ID. An External Reference is evidence usable for identity resolution and Provenance; it is never itself the Source of Truth for the Entity — the Registry's own Identity remains authoritative even when an External Reference changes or becomes unavailable.
 
