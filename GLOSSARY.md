@@ -160,7 +160,7 @@ Cross-domain terminology only. Domain-specific technical terms used nowhere else
 
 ### Asset
 
-**Definition:** An Entity that has ownership, value and is tracked as property — real estate, developments, and similar holdings.
+**Definition:** An Entity that has ownership and economic/transactional value, and can be represented and transacted within the ecosystem. Property and Development are today's Asset subtypes; the category is not limited to real estate — see `20-registry/ENTITY-ASSET-MODEL.md`.
 
 **Related concepts:** Entity, Ownership, Registry.
 
