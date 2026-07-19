@@ -54,6 +54,7 @@ Registry is the model: `Entity → Identity → Relationships → State → Hist
 - **Foundation vs. Company:** Foundation defines what the Z Operating System *is* as a system (ontology, principles, model). Company defines how a specific business (Organization, Company, Brand, Product) is represented and operates within that system. Foundation is never restated inside Company; Company references Foundation instead of redefining it.
 - **Knowledge Hub vs. Research vs. Intelligence:** Knowledge Hub is curated output for external/product audiences. Research is internal strategic study (benchmarks, competitive analysis, white papers). Intelligence is the systematic/algorithmic capability that produces recommendations, scores or predictions from Data and Knowledge. The same underlying study can inform more than one of these, but each domain's *output* has a different audience and form.
 - **Standards vs. Governance:** Standards defines the convention (e.g. how an ADR is formatted). Governance defines the process for approving a change to that convention. A disagreement about *what* the naming convention should be is a Standards question; a disagreement about *who gets to change it* is a Governance question.
+- **Design and its neighbors:** Design owns visual language, design principles, experience principles, design tokens, interaction patterns at the conceptual level, and visual expression foundations — see `130-design` and `architecture/DESIGN-SYSTEM.md`. It does not own: brand identity, company positioning, or business identity (that's `10-company`); product requirements, product-specific workflows, or domain-specific user journeys (that's the relevant product domain, e.g. `50-marketplace`); content or knowledge itself (that's `70-knowledge-hub` — Design owns how content is presented, never authority over the content); technical implementation, component code, frontend infrastructure, performance, or technical accessibility implementation (that's `90-platform-engineering`); or approval of exceptions and decision authority regarding deviations from established design standards (that's `110-governance`).
 
 ## Open Architectural Questions
 
@@ -63,7 +64,7 @@ Registry is the model: `Entity → Identity → Relationships → State → Hist
 Draft
 
 ## Last Updated
-2026-07-18
+2026-07-19
 
 ## Related Domains
 - `20-registry`
@@ -73,3 +74,6 @@ Draft
 - `40-partner-quality-score`
 - `110-governance`
 - `150-standards`
+- `130-design`
+- `90-platform-engineering`
+- `70-knowledge-hub`

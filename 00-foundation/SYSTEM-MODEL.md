@@ -60,7 +60,7 @@ Some domains do not sit at a stage in the network at all — they apply as const
 - **Legal & Compliance** — applies to every domain handling licensing, personal data, or financial regulation.
 - **Governance** — applies wherever a cross-domain Decision needs to be made, at any point in the network.
 - **Standards** — applies to how every domain documents itself, regardless of subject matter.
-- **Design** — applies wherever a domain's output reaches a human interface, across Company, Marketplace, and Knowledge Hub alike.
+- **Design** — applies wherever a domain's output reaches a human interface, across Company, Marketplace, and Knowledge Hub alike. Design is a cross-cutting **translation layer** between internal system models and human-facing experiences — it does not sit downstream in the network above, and it is not itself the system architecture: `System architecture` (models, entities, data, rules, workflows, defined by each owning domain) is distinct from `Design` (translates the relevant system meaning into visual and interaction terms), which is distinct from `Product experience` (the actual human-facing interaction, implemented by `90-platform-engineering`). This is a three-way distinction, not a pipeline — Design does not become a mandatory linear stage every domain must pass through; it applies only where a domain genuinely produces something a human will see or use.
 
 These five are drawn *around* the network above, not *within* it — no domain is "downstream" of them; all domains are inside their scope at all times.
 
@@ -89,7 +89,7 @@ These five are drawn *around* the network above, not *within* it — no domain i
 Draft
 
 ## Last Updated
-2026-07-18
+2026-07-19
 
 ## Related Domains
 - All domains

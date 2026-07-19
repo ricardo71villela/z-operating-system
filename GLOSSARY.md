@@ -13,6 +13,7 @@ Cross-domain terminology only. Domain-specific technical terms used nowhere else
 - [Data & knowledge terms](#data--knowledge-terms)
 - [Trust & marketplace terms](#trust--marketplace-terms)
 - [Governance & decision terms](#governance--decision-terms)
+- [Design & experience terms](#design--experience-terms)
 - [Technical terms](#technical-terms)
 
 ---
@@ -48,6 +49,16 @@ Cross-domain terminology only. Domain-specific technical terms used nowhere else
 **Canonical usage:** "The zimobiliaria.pt platform implements the Marketplace domain for the Z Imobiliária company."
 
 **Avoid confusing with:** The Z Operating System itself, which is conceptual/architectural infrastructure, not code.
+
+### Interface
+
+**Definition:** The point of interaction between a human (or another system) and a Capability, Product, or Service — the surface presented to the user, not the logic or infrastructure behind it.
+
+**Related concepts:** Platform, Product, Capability, User Experience.
+
+**Canonical usage:** "The valuation tool's Interface is one surface built on the Platform layer."
+
+**Avoid confusing with:** *Platform*, which is the broader technical implementation layer; an Interface is one surface a Platform presents, not the Platform itself.
 
 ### Domain
 
@@ -99,7 +110,7 @@ Cross-domain terminology only. Domain-specific technical terms used nowhere else
 
 **Related concepts:** Organization, Brand, Product.
 
-**Canonical usage:** "Z Imobiliária is a Company represented in the Registry."
+**Canonical usage:** "Z Imobiliária is a Company represented in the Registry." A Company may have one or more Brands; Brand expression is not identical to the Company itself. Products and market-facing experiences may be associated with the Company and/or with one of its Brands — e.g. Z Imobiliária (Company) expresses itself through its visual Brand and through specific real-estate Products and experiences, without those being interchangeable with "Z Imobiliária" as a Company entity. (Which of Z Imobiliária's specific sub-brands are Brands versus Products in this model is not yet fully mapped — see `architecture/DESIGN-SYSTEM.md` §11 for the open limitation.)
 
 **Avoid confusing with:** The *Z Operating System*, which is not itself a Company (see System-level terms above).
 
@@ -315,6 +326,36 @@ Cross-domain terminology only. Domain-specific technical terms used nowhere else
 
 **Avoid confusing with:** *Score*, which is one mechanism for expressing Trust, not Trust itself.
 
+### Evidence
+
+**Definition:** A Claim, Observation, or Document that has been judged relevant to assessing a Trust Subject, and carries sufficient Provenance to be weighed by a Trust Model.
+
+**Related concepts:** Trust, Provenance, Source of Truth.
+
+**Canonical usage:** "Not every Data point is Evidence — only those judged relevant and sufficiently provenanced."
+
+**Avoid confusing with:** *Data*, which is the raw observation; Evidence is Data (or a Claim/Document) once judged relevant to a specific trust question.
+
+### Signal
+
+**Definition:** A discrete, typed unit derived from Evidence, carrying polarity, weight and freshness, that feeds into a Trust Assessment.
+
+**Related concepts:** Evidence, Trust, Score.
+
+**Canonical usage:** "Identity verification is one Signal among several that combine into a Trust Assessment."
+
+**Avoid confusing with:** *Score*, which is one possible numeric output of combining multiple Signals; a Signal is an input, a Score can be an output.
+
+### Transparency
+
+**Definition:** The property of making the origin, reasoning and limitations of a fact, claim or assessment visible and inspectable, rather than presenting a bare conclusion.
+
+**Related concepts:** Provenance, Evidence, Trust.
+
+**Canonical usage:** "Transparency requires showing why a Trust Level was assigned, not just the Trust Level itself."
+
+**Avoid confusing with:** *Provenance*, which is the traceable origin of a specific piece of information; Transparency is the broader practice of surfacing that origin and reasoning to the user rather than hiding it.
+
 ### Partner
 
 **Definition:** An external agency, developer, or private seller participating in the Marketplace under the ecosystem's standards, represented as an Entity in the Registry.
@@ -420,6 +461,38 @@ Cross-domain terminology only. Domain-specific technical terms used nowhere else
 **Avoid confusing with:** *Service*, which is the running implementation; a Workflow is the defined sequence it executes.
 
 ---
+
+## Design & experience terms
+
+### Design System
+
+**Definition:** The documented set of visual tokens, principles and rules of use that keep an interface's expression consistent and coherent across the ecosystem — see `architecture/DESIGN-SYSTEM.md`.
+
+**Related concepts:** Visual Identity, Standard, Interface.
+
+**Canonical usage:** "The Design System defines the token architecture; a specific brand's visual identity is one expression of it."
+
+**Avoid confusing with:** *Visual Identity*, which is a specific Brand's concrete implementation, and *Brand*, which is the public-facing identity itself, not its visual rules.
+
+### Visual Identity
+
+**Definition:** The concrete visual expression of a Brand or Company — specific colors, typography and imagery as actually implemented — distinct from the underlying Design System principles that govern it.
+
+**Related concepts:** Brand, Design System.
+
+**Canonical usage:** "Z Imobiliária's visual identity is the Z Imobiliária Brand Expression layer of the Design System."
+
+**Avoid confusing with:** *Design System*, which defines the transversal principles and token architecture; Visual Identity is one Brand's specific implementation of it.
+
+### User Experience
+
+**Definition:** How a person perceives and moves through an interaction with an Interface or Product — the outcome Design and the relevant product domain jointly shape.
+
+**Related concepts:** Interface, Product, Design System.
+
+**Canonical usage:** "User experience principles are defined by Design; product-specific user journeys are defined by the owning product domain."
+
+**Avoid confusing with:** *Interface*, which is the surface itself; User Experience is the quality of interacting with that surface.
 
 ## Technical terms
 
