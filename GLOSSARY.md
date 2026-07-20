@@ -272,6 +272,16 @@ Cross-domain terminology only. Domain-specific technical terms used nowhere else
 
 **Avoid confusing with:** *Registry*, which holds identity and authoritative state, not observations.
 
+### Observation
+
+**Definition:** The fundamental Data object — a single recorded fact about a Registry Entity, for a given Metric, at a point in time, from a Source. See `60-data/DATA-MODEL.md`.
+
+**Related concepts:** Data, Metric, Dataset, Source.
+
+**Canonical usage:** "A Property's asking price is a Metric; each recorded value of it over time is an Observation."
+
+**Avoid confusing with:** *Evidence* — an Observation becomes Evidence only once Trust Engine judges it relevant to a specific trust question; not every Observation is Evidence.
+
 ### Dataset
 
 **Definition:** A defined, bounded collection of Data with a known source, schema and quality level.
