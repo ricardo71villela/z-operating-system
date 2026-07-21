@@ -7,13 +7,13 @@ Defines the principles governing every form of intelligence the ecosystem uses �
 Intelligence principles, transparency requirements, and use cases across AI/ML, recommendations, knowledge graph, and geospatial/investment/market intelligence. Does not define trust scoring mechanics — see `30-trust-engine`.
 
 ## Table of Contents
-[No documents yet.]
+- [INTELLIGENCE-MODEL.md](./INTELLIGENCE-MODEL.md) — Intelligence's authority, inputs/outputs, and boundaries with Data, Trust Engine, Partner Quality Score, Marketplace, Research and Registry.
 
 ## Status
 Draft
 
 ## Last Updated
-2026-07-16
+2026-07-20
 
 ## Related Domains
 - `30-trust-engine`
