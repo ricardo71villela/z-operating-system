@@ -4,14 +4,18 @@
   "private": true,
   "description": "ZOS Platform monorepo — Z Mobility, Z Jobs, Z Find and shared platform capabilities.",
   "workspaces": [
-    "apps/*",
+    "apps/jobs/apps/*",
+    "apps/jobs/packages/*",
+    "apps/jobs/tools",
     "domains/*",
     "packages/*",
     "tooling/*"
   ],
   "scripts": {
-    "check": "echo \"ZOS workspace checks will be enabled as applications are migrated\"",
-    "test": "echo \"ZOS workspace tests will be enabled as applications are migrated\"",
-    "build": "echo \"ZOS workspace builds will be enabled as applications are migrated\""
+    "jobs:typecheck": "npm run typecheck --workspace=@zjobs/domain && npm run typecheck --workspace=@zjobs/api",
+    "jobs:test": "npm run test --workspace=@zjobs/domain",
+    "check": "npm run jobs:typecheck",
+    "test": "npm run jobs:test",
+    "build": "echo ZOS-build-pending"
   }
 }
