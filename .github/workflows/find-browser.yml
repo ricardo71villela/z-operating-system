@@ -1,0 +1,43 @@
+name: Z Find Browser
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/find/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/find-browser.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/find/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/find-browser.yml"
+
+jobs:
+  browser:
+    name: Playwright browser suite
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install monorepo dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build Z Find
+        run: npm run build:zfind --workspace=z-find-platform
+
+      - name: Run Z Find browser tests
+        run: npm run test:browser --workspace=z-find-platform
