@@ -1,25 +1,27 @@
 /**
- * Compatibility boundary between Z Jobs and the future shared ZOS Registry.
+ * Compatibility boundary between Z Jobs and the shared ZOS Registry.
  *
  * Z Jobs owns employment semantics. ZOS owns canonical cross-vertical identity.
- * These references let the Jobs domain point at ZOS identities without copying
- * the whole Registry implementation into this repository.
+ * This module preserves the existing Z Jobs API while delegating the shared
+ * canonical reference contract to @zos/registry-contracts.
  */
-export interface RegistryReference<TEntityType extends string = string> {
-  registryId: string;
-  entityType: TEntityType;
-}
+import {
+  canonicalRegistryReference,
+} from "@zos/registry-contracts";
+import type {
+  CanonicalRegistryReference,
+} from "@zos/registry-contracts";
 
-export type PersonRegistryReference = RegistryReference<'person'>;
-export type OrganizationRegistryReference = RegistryReference<'organization'>;
-export type LocationRegistryReference = RegistryReference<'location'>;
+export type RegistryReference<TEntityType extends string = string> =
+  CanonicalRegistryReference<TEntityType>;
+
+export type PersonRegistryReference = RegistryReference<"person">;
+export type OrganizationRegistryReference = RegistryReference<"organization">;
+export type LocationRegistryReference = RegistryReference<"location">;
 
 export function registryReference<TEntityType extends string>(
   registryId: string,
   entityType: TEntityType,
 ): RegistryReference<TEntityType> {
-  const id = registryId.trim();
-  if (!id) throw new Error('registryId is required');
-  if (!entityType.trim()) throw new Error('entityType is required');
-  return { registryId: id, entityType };
+  return canonicalRegistryReference(registryId, entityType);
 }
