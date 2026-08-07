@@ -7,6 +7,8 @@
  * to existing Z Find identities so the vertical can later bind them to a shared
  * ZOS Registry without changing local UUIDs.
  */
+const { localRegistryIdentity } = require('@zos/registry-contracts');
+
 const REGISTRY_ENTITY_TYPES = Object.freeze([
   'organisation',
   'partner',
@@ -19,7 +21,9 @@ function registryRef(entityType, id) {
     throw new Error(`Unsupported registry entity type: ${entityType}`);
   }
   if (!id || typeof id !== 'string') throw new Error('Registry reference requires a non-empty id');
-  return Object.freeze({ entityType, id });
+
+  const identity = localRegistryIdentity(id, entityType);
+  return Object.freeze({ entityType: identity.entityType, id: identity.id });
 }
 
 function isRegistryRef(value) {

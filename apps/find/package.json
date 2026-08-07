@@ -31,10 +31,11 @@
     "check": "npm run test && npm run test:seo-pages && npm run test:zos-alignment && npm run check:syntax && npm run check:migrations && npm run check:zos"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.110.8"
+    "@supabase/supabase-js": "^2.110.8",
+    "@zos/registry-contracts": "0.1.0"
   },
   "devDependencies": {
-    "playwright": "^1.0.0",
-    "dotenv": "^16.0.0"
+    "dotenv": "^16.0.0",
+    "playwright": "^1.0.0"
   }
 }
