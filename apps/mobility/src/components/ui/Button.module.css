@@ -1,0 +1,38 @@
+.button {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 22px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-weight: 700;
+  transition:
+    transform var(--transition-fast),
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.button:hover {
+  transform: translateY(-2px);
+}
+
+.primary {
+  background: var(--color-gold);
+  color: #080808;
+}
+
+.primary:hover {
+  background: var(--color-gold-light);
+}
+
+.secondary {
+  background: transparent;
+  color: var(--color-text);
+  border-color: rgba(200, 155, 82, 0.7);
+}
+
+.secondary:hover {
+  background: rgba(200, 155, 82, 0.08);
+  border-color: var(--color-gold);
+}

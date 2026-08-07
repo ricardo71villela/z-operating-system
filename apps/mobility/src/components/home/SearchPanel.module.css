@@ -1,0 +1,112 @@
+.wrap {
+  position: relative;
+  z-index: 10;
+  margin-top: -43px;
+}
+
+.panel {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  gap: 24px;
+  padding: 25px 28px;
+  border: 1px solid var(--line-gold);
+  border-radius: var(--radius-md);
+  background: rgba(10, 11, 12, 0.96);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(22px) saturate(120%);
+}
+
+.panel label {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+  color: var(--gold-light);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.panel select {
+  width: 100%;
+  min-height: 58px;
+  padding: 0 42px 0 16px;
+  color: var(--text);
+  background: #0b0c0d;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.panel select:hover {
+  border-color: var(--line-strong);
+  background: #0e0f11;
+}
+
+.panel select:focus-visible {
+  outline: 0;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(213, 164, 79, 0.11);
+}
+
+.panel button {
+  align-self: end;
+  min-height: 58px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 25px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--gold);
+  color: #080808;
+  font-weight: 800;
+  white-space: nowrap;
+  transition:
+    transform var(--transition-fast),
+    background var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.panel button svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+.panel button:hover {
+  transform: translateY(-2px);
+  background: var(--gold-light);
+  box-shadow: 0 14px 34px rgba(213, 164, 79, 0.14);
+}
+
+@media (max-width: 1050px) {
+  .panel {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .panel button {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .wrap {
+    margin-top: -72px;
+  }
+
+  .panel {
+    grid-template-columns: 1fr;
+    gap: 15px;
+    padding: 20px;
+  }
+
+  .panel button {
+    grid-column: auto;
+  }
+}
