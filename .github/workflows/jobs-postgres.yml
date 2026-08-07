@@ -1,0 +1,81 @@
+name: Z Jobs PostgreSQL
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/jobs/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/jobs-postgres.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/jobs/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/jobs-postgres.yml"
+
+jobs:
+  postgres:
+    name: PostgreSQL + RLS + vertical slice
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: zjobs_dev_pw
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install monorepo dependencies
+        run: npm ci
+
+      - name: Create database
+        env:
+          PGPASSWORD: zjobs_dev_pw
+        run: |
+          psql -h localhost -U postgres -c "CREATE DATABASE zjobs;"
+          psql -h localhost -U postgres -d zjobs -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+          psql -h localhost -U postgres -d zjobs -f apps/jobs/local-dev/00_supabase_stub.sql
+
+      - name: Apply migrations in order
+        env:
+          PGPASSWORD: zjobs_dev_pw
+        run: |
+          for f in $(ls apps/jobs/migrations/*.sql | sort); do
+            echo "--- $f ---"
+            psql -h localhost -U postgres -d zjobs -v ON_ERROR_STOP=1 -f "$f"
+          done
+
+      - name: Apply development seeds
+        env:
+          PGPASSWORD: zjobs_dev_pw
+        run: |
+          for f in apps/jobs/seeds/dev_seed_*.sql; do
+            echo "--- $f ---"
+            psql -h localhost -U postgres -d zjobs -v ON_ERROR_STOP=1 -f "$f"
+          done
+
+      - name: Run full vertical slice
+        env:
+          DATABASE_URL: postgresql://zjobs_app:zjobs_app_dev_pw@localhost:5432/zjobs
+        run: npx tsx apps/jobs/apps/api/scripts/verify-vertical-slice.ts
+
+      - name: Verify Supabase JWT cryptography
+        run: npx tsx apps/jobs/apps/api/src/supabaseAuth.test.ts
