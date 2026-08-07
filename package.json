@@ -1,0 +1,17 @@
+{
+  "name": "zos-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ZOS Platform monorepo — Z Mobility, Z Jobs, Z Find and shared platform capabilities.",
+  "workspaces": [
+    "apps/*",
+    "domains/*",
+    "packages/*",
+    "tooling/*"
+  ],
+  "scripts": {
+    "check": "echo \"ZOS workspace checks will be enabled as applications are migrated\"",
+    "test": "echo \"ZOS workspace tests will be enabled as applications are migrated\"",
+    "build": "echo \"ZOS workspace builds will be enabled as applications are migrated\""
+  }
+}
