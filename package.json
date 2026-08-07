@@ -9,13 +9,17 @@
     "apps/jobs/tools",
     "domains/*",
     "packages/*",
-    "tooling/*"
+    "tooling/*",
+    "apps/find"
   ],
   "scripts": {
     "jobs:typecheck": "npm run typecheck --workspace=@zjobs/domain && npm run typecheck --workspace=@zjobs/api",
     "jobs:test": "npm run test --workspace=@zjobs/domain",
     "check": "npm run jobs:typecheck",
     "test": "npm run jobs:test",
-    "build": "echo ZOS-build-pending"
+    "build": "echo ZOS-build-pending",
+    "find:check": "npm run check --workspace=z-find-platform",
+    "find:test": "npm run test --workspace=z-find-platform",
+    "find:build": "npm run build:zfind --workspace=z-find-platform && npm run build:admin --workspace=z-find-platform && npm run build:partner --workspace=z-find-platform"
   }
 }
