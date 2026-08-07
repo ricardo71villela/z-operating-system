@@ -1,0 +1,9 @@
+{
+  "name": "@zjobs/tools",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "pdf-parse": "^1.1.1"
+  }
+}

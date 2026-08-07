@@ -1,0 +1,12 @@
+export function setAuthToken(token: string | null): void;
+export function signupCandidate(input: { fullName: string; email: string; password: string; termsAccepted: boolean }): Promise<any>;
+export function createOrganization(input: { legalName: string; displayName: string; createdBy: string; type?: string }): Promise<any>;
+export function bootstrapAdmin(): Promise<any>;
+export function requestOrganizationVerification(id: string): Promise<any>;
+export function approveOrganizationVerification(id: string): Promise<any>;
+export function createJobOffer(input: Record<string, unknown>): Promise<any>;
+export function submitOfferForReview(id: string): Promise<any>;
+export function reviewOffer(id: string): Promise<any>;
+export function publishOffer(id: string): Promise<any>;
+export function listPublishedOffers(): Promise<any[]>;
+export function applyToOffer(input: { jobOfferId: string; candidateId: string }): Promise<any>;

@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Z Jobs — O salário faz parte da oferta.</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --ink:#100E0A;
+    --surface:#1B1811;
+    --surface-2:#221E15;
+    --gold:#DDA846;
+    --gold-bright:#F0C878;
+    --paper:#F3EEE0;
+    --paper-surface:#EAE3D0;
+    --trust:#4FA085;
+    --trust-soft:#25352E;
+    --ash:#948a76;
+    --redact:#2A2620;
+    --line: rgba(221,168,70,0.22);
+
+    /* Variantes escurecidas para texto sobre --paper — as versões acima
+       falham WCAG AA em fundo claro (dourado normal dá 1.86:1). Cada uma
+       verificada por cálculo, não a olho: gold-on-light 5.32:1,
+       ash-on-light 6.38:1, trust-on-light 5.10:1. */
+    --gold-on-light:#7A5D18;
+    --ash-on-light:#5C5544;
+    --trust-on-light:#2E6F5E;
+    --line-on-light: rgba(122,93,24,0.25);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0; background:var(--ink); color:var(--paper);
+    font-family:'Inter',sans-serif; font-size:16px; line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{ font-family:'Fraunces',serif; font-weight:600; margin:0; letter-spacing:-0.01em; }
+  .mono{ font-family:'IBM Plex Mono',monospace; }
+  a{color:inherit;}
+  img{display:block; max-width:100%;}
+  .wrap{ max-width:1120px; margin:0 auto; padding:0 28px; }
+
+  /* ---------- nav ---------- */
+  nav{ position:sticky; top:0; z-index:20; background:#000000; border-bottom:1px solid var(--line); }
+  nav .nav-top{ display:flex; align-items:center; justify-content:space-between; height:72px; }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand img{ width:46px; height:46px; }
+  .brand span{ font-family:'Fraunces',serif; font-weight:600; font-size:20px; letter-spacing:0.01em; }
+  .locales{ display:flex; gap:6px; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.06em; }
+  .locales span{ padding:5px 9px; border:1px solid var(--line); border-radius:999px; color:var(--ash); cursor:pointer; user-select:none; }
+  .locales span:hover{ border-color:var(--gold); color:var(--gold-bright); }
+  .locales span.is-active{ color:var(--ink); background:var(--gold); border-color:var(--gold); font-weight:600; }
+  .nav-cta{ font-family:'Inter',sans-serif; font-size:14px; font-weight:600; color:var(--paper); border:1px solid var(--line); padding:9px 18px; border-radius:999px; white-space:nowrap; }
+  .nav-cta:hover{ border-color:var(--gold); color:var(--gold-bright); }
+  .navlinks{ display:flex; gap:24px; height:44px; align-items:center; border-top:1px solid rgba(221,168,70,0.12); font-size:13.5px; }
+  .navlinks a{ color:var(--ash); text-decoration:none; }
+  .navlinks a:hover{ color:var(--gold-bright); }
+  @media (max-width:640px){ .navlinks{ gap:14px; overflow-x:auto; white-space:nowrap; } }
+
+  /* ---------- hero ---------- */
+  header.hero{ padding:96px 0 80px; position:relative; overflow:hidden; }
+  header.hero::before{
+    content:""; position:absolute; inset:-20% -10% auto -10%; height:520px;
+    background:radial-gradient(ellipse at 50% 0%, rgba(221,168,70,0.14), transparent 65%);
+    pointer-events:none;
+  }
+  .hero-grid{ display:grid; grid-template-columns:1.05fr 1fr; gap:64px; align-items:center; }
+  @media (max-width:900px){ .hero-grid{ grid-template-columns:1fr; gap:48px; } }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--gold); display:inline-flex; align-items:center; gap:10px; margin-bottom:22px;
+  }
+  .eyebrow::before{ content:""; width:22px; height:1px; background:var(--gold); }
+  h1.headline{ font-size:clamp(38px,4.6vw,58px); line-height:1.05; }
+  h1.headline em{ font-style:italic; color:var(--gold-bright); }
+  .sub{ font-size:18px; color:var(--ash); max-width:480px; margin:24px 0 0; }
+  .hero-points{ list-style:none; margin:36px 0 0; padding:0; display:flex; flex-direction:column; gap:14px; }
+  .hero-points li{ display:flex; align-items:baseline; gap:12px; font-size:14.5px; color:var(--ash); }
+  .hero-points li::before{ content:"—"; color:var(--gold); flex-shrink:0; }
+
+  /* ---------- reveal card: the signature, now the right column ---------- */
+  .stage{ position:relative; }
+  .reveal-card{
+    background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:36px;
+    width:100%; position:relative; box-shadow:0 40px 80px -40px rgba(0,0,0,0.6);
+  }
+  .reveal-card .kicker{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ash); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:14px; }
+  .reveal-card h3{ font-size:26px; color:var(--paper); margin-bottom:22px; }
+  .field{ display:flex; align-items:center; gap:14px; padding:12px 0; border-top:1px solid rgba(255,255,255,0.06); }
+  .field:first-of-type{ border-top:none; }
+  .field .label{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ash); width:110px; flex-shrink:0; letter-spacing:0.04em; }
+  .redact-bar{
+    height:16px; border-radius:4px; background:var(--redact);
+    background-image:repeating-linear-gradient(115deg, rgba(255,255,255,0.02) 0 2px, transparent 2px 6px);
+    transition:all 0.7s cubic-bezier(.2,.8,.2,1);
+    flex:1;
+  }
+  .revealed .redact-bar{ background:transparent; height:auto; }
+  .reveal-value{ font-family:'IBM Plex Mono',monospace; font-size:15px; color:var(--paper); opacity:0; transform:translateY(4px); transition:opacity 0.5s ease, transform 0.5s ease; display:none; }
+  .revealed .reveal-value{ opacity:1; transform:none; display:block; }
+  .revealed .redact-bar{ display:none; }
+
+  .verify-btn{
+    margin-top:26px; width:100%; padding:15px; border-radius:10px; border:1px solid var(--gold);
+    background:transparent; color:var(--gold-bright); font-family:'Inter',sans-serif; font-weight:600; font-size:15px;
+    cursor:pointer; transition:background 0.25s ease, color 0.25s ease;
+    display:flex; align-items:center; justify-content:center; gap:10px;
+  }
+  .verify-btn:hover{ background:var(--gold); color:var(--ink); }
+  .revealed .verify-btn{ display:none; }
+
+  .stamp{
+    position:absolute; top:-18px; right:-14px; width:96px; height:96px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, var(--gold-bright), var(--gold) 70%);
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:600; color:var(--ink); letter-spacing:0.04em;
+    transform:scale(0) rotate(-18deg); transition:transform 0.5s cubic-bezier(.34,1.56,.64,1) 0.15s;
+    box-shadow:0 12px 24px -8px rgba(221,168,70,0.5);
+    line-height:1.25;
+  }
+  .revealed .stamp{ transform:scale(1) rotate(-12deg); }
+
+  .source-note{ margin-top:18px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--ash); opacity:0; transition:opacity 0.4s ease 0.3s; }
+  .revealed .source-note{ opacity:1; }
+
+  @media (prefers-reduced-motion: reduce){
+    .redact-bar, .reveal-value, .stamp, .source-note { transition:none !important; }
+  }
+
+  /* ---------- proof strip ---------- */
+  section.proof{ padding:80px 0; border-top:1px solid var(--line); }
+  .proof-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:16px; overflow:hidden; }
+  .proof-cell{ background:var(--surface); padding:36px 30px; }
+  .seal{
+    width:44px; height:44px; border-radius:50%; border:1.5px solid var(--gold); color:var(--gold);
+    display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-size:18px; margin-bottom:20px;
+  }
+  .proof-cell h3{ font-size:19px; margin-bottom:10px; }
+  .proof-cell p{ color:var(--ash); font-size:14.5px; margin:0; }
+  .proof-cell .cite{ display:block; margin-top:14px; font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--trust); }
+
+  @media (max-width:820px){ .proof-grid{ grid-template-columns:1fr; } }
+
+  /* ---------- comparison ---------- */
+  section.compare{ padding:80px 0; }
+  .compare h2{ font-size:clamp(26px,4vw,36px); max-width:520px; margin-bottom:44px; }
+  .compare-grid{ display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+  .compare-card{ border-radius:16px; padding:28px; }
+  .compare-card.dim{ background:var(--surface-2); border:1px solid var(--line); opacity:0.72; }
+  .compare-card.bright{ background:var(--paper); color:var(--ink); border:1px solid var(--gold); }
+  .compare-tag{ font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:16px; display:inline-block; }
+  .compare-card.dim .compare-tag{ color:var(--ash); }
+  .compare-card.bright .compare-tag{ color:var(--trust); }
+  .mock-line{ height:13px; border-radius:3px; margin-bottom:10px; }
+  .compare-card.dim .mock-line{ background:var(--redact); }
+  .compare-card.dim .mock-line.short{ width:55%; }
+  .compare-card.bright .mock-title{ font-family:'Fraunces',serif; font-weight:600; font-size:19px; margin-bottom:12px; }
+  .compare-card.bright .mock-row{ display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:13px; padding:8px 0; border-top:1px solid rgba(16,14,10,0.1); }
+  .compare-card.bright .mock-row:first-of-type{ border-top:none; }
+  .compare-card.bright .mock-row b{ color:var(--trust); }
+
+  @media (max-width:720px){ .compare-grid{ grid-template-columns:1fr; } }
+
+  /* ---------- legislação / simulador / empregadores ---------- */
+  .section-kicker{ font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--gold); }
+  .legal h2, .simulator h2, .employers h2{ font-size:clamp(24px,3.4vw,32px); max-width:640px; margin:14px 0 12px; }
+  .section-sub{ color:var(--ash); font-size:15px; max-width:600px; margin:0 0 30px; }
+  .legal, .simulator{ padding:72px 0; border-top:1px solid var(--line); }
+  .employers{ padding:72px 0; border-top:1px solid var(--line); }
+
+  .legal-grid{ display:flex; flex-direction:column; border:1px solid var(--line); border-radius:14px; overflow:hidden; max-width:640px; }
+  .legal-row{ display:flex; justify-content:space-between; padding:16px 20px; border-top:1px solid var(--line); font-family:'IBM Plex Mono',monospace; font-size:14px; }
+  .legal-row:first-child{ border-top:none; }
+  .legal-value{ color:var(--gold-bright); font-weight:600; }
+  .legal-value.muted{ color:var(--ash); font-weight:400; font-size:12.5px; }
+  .legal-cite{ display:block; margin-top:16px; font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--trust); }
+
+  .econ-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:24px; }
+  .econ-card{ background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:22px; }
+  .econ-card h3{ font-size:15px; margin-bottom:16px; }
+  .econ-card .legal-cite{ margin-top:12px; }
+  @media (max-width:900px){ .econ-grid{ grid-template-columns:1fr; } }
+
+  .sim-card{ background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:28px; max-width:560px; }
+  .sim-input-row{ display:flex; align-items:end; gap:14px; flex-wrap:wrap; }
+  .sim-input-row label{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ash); display:block; margin-bottom:8px; letter-spacing:0.04em; }
+  .sim-input-row input{
+    background:var(--ink); border:1px solid var(--line); border-radius:8px; padding:11px 14px; color:var(--paper);
+    font-family:'IBM Plex Mono',monospace; font-size:15px; width:160px;
+  }
+  .sim-input-row input:focus{ outline:none; border-color:var(--gold); }
+  #simBtn{
+    padding:11px 20px; border-radius:8px; border:1px solid var(--gold); background:var(--gold); color:var(--ink);
+    font-family:'Inter',sans-serif; font-weight:600; font-size:14px; cursor:pointer;
+  }
+  #simBtn:hover{ background:var(--gold-bright); }
+  .sim-result{ margin-top:24px; padding-top:20px; border-top:1px solid rgba(255,255,255,0.08); }
+  .sim-line{ display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:14px; padding:8px 0; color:var(--ash); }
+  .sim-line b{ color:var(--paper); font-weight:500; }
+  .sim-line.is-total{ border-top:1px solid rgba(255,255,255,0.08); margin-top:6px; padding-top:14px; color:var(--paper); }
+  .sim-line.is-total b{ color:var(--gold-bright); font-size:18px; }
+
+  .employer-cta{
+    display:inline-block; margin-top:6px; padding:13px 24px; border-radius:999px; border:1px solid var(--gold);
+    color:var(--gold-bright); text-decoration:none; font-weight:600; font-size:14.5px;
+  }
+  .employer-cta:hover{ background:var(--gold); color:var(--paper); }
+
+
+  /* ---------- footer ---------- */
+  footer{ border-top:1px solid var(--line); padding:44px 0; }
+  footer .wrap{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; }
+  .flags{ display:flex; gap:10px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ash); letter-spacing:0.04em; }
+  .flags span{ padding:4px 0; border-bottom:1px solid transparent; }
+  footer .fine{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--ash); }
+
+  /* ---------- barra de pesquisa ---------- */
+  .search-bar{ padding:0 0 56px; }
+  .search-card{
+    display:flex; align-items:end; gap:16px; flex-wrap:wrap;
+    background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:24px 28px;
+    box-shadow:0 30px 60px -36px rgba(0,0,0,0.55);
+  }
+  .search-field{ flex:1; min-width:180px; }
+  .search-field label{ display:block; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ash); letter-spacing:0.04em; margin-bottom:8px; }
+  .search-field input, .search-field select{
+    width:100%; background:var(--ink); border:1px solid var(--line); border-radius:8px; padding:11px 14px;
+    color:var(--paper); font-family:'Inter',sans-serif; font-size:14.5px;
+  }
+  .search-field input:focus, .search-field select:focus{ outline:none; border-color:var(--gold); }
+  #searchBtn{
+    padding:12px 28px; border-radius:8px; border:1px solid var(--gold); background:var(--gold); color:var(--ink);
+    font-family:'Inter',sans-serif; font-weight:600; font-size:14.5px; cursor:pointer; white-space:nowrap;
+  }
+  #searchBtn:hover{ background:var(--gold-bright); }
+  .search-note{ margin:14px 2px 0; font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--ash); }
+  @media (max-width:640px){ .search-card{ flex-direction:column; align-items:stretch; } #searchBtn{ width:100%; } }
+  .reveal-card.is-highlighted{ animation:highlightPulse 1.6s ease; }
+  @keyframes highlightPulse{
+    0%{ box-shadow:0 0 0 0 rgba(221,168,70,0.55), 0 40px 80px -40px rgba(0,0,0,0.6); }
+    100%{ box-shadow:0 0 0 14px rgba(221,168,70,0), 0 40px 80px -40px rgba(0,0,0,0.6); }
+  }
+  @media (prefers-reduced-motion: reduce){ .reveal-card.is-highlighted{ animation:none; } }
+
+  :focus-visible{ outline:2px solid var(--gold-bright); outline-offset:3px; }
+
+  /* ---------- alternância clara/escura, para dar ritmo e leveza à página ---------- */
+  .section-light{
+    background:var(--paper);
+    color:var(--ink);
+    --gold: var(--gold-on-light);
+    --gold-bright: var(--gold-on-light);
+    --ash: var(--ash-on-light);
+    --trust: var(--trust-on-light);
+    --surface: var(--paper-surface);
+    --surface-2: var(--paper-surface);
+    --line: var(--line-on-light);
+  }
+  .section-light :focus-visible{ outline-color:var(--gold-on-light); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap nav-top">
+    <div class="brand">
+      <img src="data:image/png;base64,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" alt="Z Jobs" />
+      <span>Z Jobs</span>
+    </div>
+    <div class="locales">
+      <span class="is-active" data-locale="pt">PT</span><span data-locale="it">IT</span><span data-locale="es">ES</span><span data-locale="fr">FR</span><span data-locale="de">DE</span>
+    </div>
+    <a class="nav-cta" href="#stage" data-i18n="nav_cta">Ver uma oferta verificada</a>
+  </div>
+  <div class="wrap navlinks">
+    <a href="#stage">Ofertas</a>
+    <a href="candidatos.html">Para candidatos</a>
+    <a href="empregadores.html">Para empregadores</a>
+    <a href="ferramentas.html">Legislação e ferramentas</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-text">
+      <div class="eyebrow" data-i18n="eyebrow">Portal de emprego · à escala europeia</div>
+      <h1 class="headline" data-i18n-html="headline">O salário faz parte<br>da oferta.</h1>
+      <p class="sub" data-i18n="sub">Recomendamos remuneração e empregador sempre visíveis em cada oferta — mais confiança, mais candidaturas. A escolha final é sempre do empregador.</p>
+      <ul class="hero-points">
+        <li data-i18n="point1">Empregador identificado e verificado, nunca anónimo.</li>
+        <li data-i18n="point2">Salário comparado com tabelas oficiais de convenções coletivas.</li>
+        <li data-i18n="point3">Sempre gratuito para quem procura emprego.</li>
+      </ul>
+    </div>
+
+    <div class="stage" id="stage">
+      <div class="reveal-card" id="revealCard">
+        <div class="kicker" data-i18n="kicker">Oferta publicada · Zeta Tech</div>
+        <h3 data-i18n="job_title">Engenheiro/a de Software Backend</h3>
+
+        <div class="field">
+          <span class="label" data-i18n="label_company">EMPRESA</span>
+          <div class="redact-bar" style="max-width:180px"></div>
+          <span class="reveal-value" data-i18n="val_company">Zeta Tech Lda — verificada</span>
+        </div>
+        <div class="field">
+          <span class="label" data-i18n="label_location">LOCAL</span>
+          <div class="redact-bar" style="max-width:140px"></div>
+          <span class="reveal-value" data-i18n="val_location">Lisboa · remoto</span>
+        </div>
+        <div class="field">
+          <span class="label" data-i18n="label_salary">SALÁRIO</span>
+          <div class="redact-bar" style="max-width:220px"></div>
+          <span class="reveal-value" data-i18n="val_salary">€2.200 – €2.600 / mês · efetivo</span>
+        </div>
+
+        <button class="verify-btn" id="verifyBtn" data-i18n="verify_btn">
+          Verificar oferta
+        </button>
+
+        <p class="source-note" data-i18n="source_note">Confirmado com a organização verificada e com a tabela salarial oficial da profissão — Boletim do Trabalho e Emprego n.º 2, 15 jan. 2025.</p>
+
+        <div class="stamp" data-i18n-html="stamp">VERIFI<br>CADO</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="search-bar">
+  <div class="wrap">
+    <div class="search-card">
+      <div class="search-field">
+        <label for="searchKeyword" data-i18n="search_label_keyword">Palavra-chave</label>
+        <input type="text" id="searchKeyword" placeholder="ex: engenheiro, vendas, marketing" data-i18n-placeholder="search_placeholder" />
+      </div>
+      <div class="search-field">
+        <label for="searchCountry" data-i18n="search_label_country">País</label>
+        <select id="searchCountry">
+          <option data-i18n="flag_pt">Portugal</option>
+          <option data-i18n="flag_it">Itália</option>
+          <option data-i18n="flag_es">Espanha</option>
+          <option data-i18n="flag_fr">França</option>
+          <option data-i18n="flag_de">Alemanha</option>
+        </select>
+      </div>
+      <div class="search-field">
+        <label for="searchSector" data-i18n="search_label_sector">Setor</label>
+        <select id="searchSector">
+          <option data-i18n="sector_all">Todos os setores</option>
+          <option data-i18n="sector_tech">Informação e comunicação</option>
+          <option data-i18n="sector_hospitality">Alojamento e restauração</option>
+        </select>
+      </div>
+      <button id="searchBtn" data-i18n="search_btn">Procurar</button>
+    </div>
+    <p class="search-note" data-i18n="search_note">O catálogo de ofertas ainda não está aberto ao público — a pesquisa mostra-te já a experiência com a oferta de exemplo acima.</p>
+    <span class="legal-cite" data-i18n="sector_cite">Setores classificados por NACE Rev. 2 (Eurostat) — a mesma norma oficial usada para classificar empresas na plataforma.</span>
+  </div>
+</section>
+
+<section class="proof section-light">
+  <div class="wrap">
+    <div class="proof-grid">
+      <div class="proof-cell">
+        <div class="seal">€</div>
+        <h3 data-i18n="proof1_title">Salário oficial, não estimado</h3>
+        <p data-i18n="proof1_body">Comparamos cada oferta com tabelas de convenções coletivas reais, publicadas em boletins oficiais — nunca um algoritmo a adivinhar.</p>
+        <span class="cite">BTE N.º 2 · 15.01.2025</span>
+      </div>
+      <div class="proof-cell">
+        <div class="seal">✓</div>
+        <h3 data-i18n="proof2_title">Empregador verificado</h3>
+        <p data-i18n="proof2_body">O selo de verificação nunca é comprável. É calculado a partir de dados observáveis — taxa de resposta, denúncias confirmadas, histórico real.</p>
+        <span class="cite">Índice de Responsabilidade</span>
+      </div>
+      <div class="proof-cell">
+        <div class="seal">0€</div>
+        <h3 data-i18n="proof3_title">Sempre gratuito para candidatos</h3>
+        <p data-i18n="proof3_body">Nunca há subscrição, nem taxa, nem funcionalidade paga do lado de quem procura emprego. Quem paga é o empregador.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="compare">
+  <div class="wrap">
+    <h2 data-i18n="compare_h2">Uma oferta completa — não um resumo vago.</h2>
+    <div class="compare-grid">
+      <div class="compare-card dim">
+        <span class="compare-tag" data-i18n="tag_common">Portal comum</span>
+        <div class="mock-line" style="width:80%"></div>
+        <div class="mock-line short"></div>
+        <div class="mock-line" style="width:35%"></div>
+        <div class="mock-line" style="width:60%"></div>
+      </div>
+      <div class="compare-card bright">
+        <span class="compare-tag">Z Jobs</span>
+        <div class="mock-title" data-i18n="job_title">Engenheiro/a de Software Backend</div>
+        <div class="mock-row"><span data-i18n="row_company">Empresa</span><b>Zeta Tech Lda</b></div>
+        <div class="mock-row"><span data-i18n="row_salary">Salário</span><b>€2.200–€2.600</b></div>
+        <div class="mock-row"><span data-i18n="row_contract">Contrato</span><b data-i18n="row_contract_val">Efetivo</b></div>
+        <div class="mock-row"><span data-i18n="row_verification">Verificação</span><b data-i18n="row_verification_val">Confirmada</b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="legal section-light" id="legislacao">
+  <div class="wrap">
+    <span class="section-kicker" data-i18n="legal_kicker">Legislação laboral</span>
+    <h2 data-i18n="legal_title">Cinco países, dados oficiais — nenhum em destaque sobre os outros.</h2>
+    <p class="section-sub" data-i18n="legal_sub">Salário mínimo nacional, fonte Eurostat, em vigor a partir de 1 de janeiro de 2026. A Itália não tem salário mínimo estatutário — é definido por convenção coletiva, não por lei, o que também mostramos, em vez de esconder.</p>
+    <div class="legal-grid">
+      <div class="legal-row"><span class="legal-country">🇩🇪 <span data-i18n="flag_de">Alemanha</span></span><span class="legal-value">2.343 €/mês</span></div>
+      <div class="legal-row"><span class="legal-country">🇫🇷 <span data-i18n="flag_fr">França</span></span><span class="legal-value">1.823 €/mês</span></div>
+      <div class="legal-row"><span class="legal-country">🇪🇸 <span data-i18n="flag_es">Espanha</span></span><span class="legal-value">1.381 €/mês</span></div>
+      <div class="legal-row"><span class="legal-country">🇵🇹 <span data-i18n="flag_pt">Portugal</span></span><span class="legal-value">1.073 €/mês</span></div>
+      <div class="legal-row"><span class="legal-country">🇮🇹 <span data-i18n="flag_it">Itália</span></span><span class="legal-value muted" data-i18n="legal_it_note">sem mínimo nacional — só por convenção</span></div>
+    </div>
+    <span class="cite" data-i18n="legal_cite" style="display:block;margin:16px 0 36px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--trust);">Eurostat, Minimum wage statistics · dados a 1 jan. 2026</span>
+
+    <h3 data-i18n="holidays_heading" style="font-size:17px;margin-bottom:14px;">Feriados nacionais (2026)</h3>
+    <div class="legal-grid">
+      <div class="legal-row"><span class="legal-country">🇫🇷 <span data-i18n="flag_fr">França</span></span><span class="legal-value">11</span></div>
+      <div class="legal-row"><span class="legal-country">🇮🇹 <span data-i18n="flag_it">Itália</span></span><span class="legal-value">11</span></div>
+      <div class="legal-row"><span class="legal-country">🇵🇹 <span data-i18n="flag_pt">Portugal</span></span><span class="legal-value">13</span></div>
+      <div class="legal-row"><span class="legal-country">🇩🇪 <span data-i18n="flag_de">Alemanha</span></span><span class="legal-value muted" data-i18n="holidays_de_note">9 federais + 4-6 por Land</span></div>
+      <div class="legal-row"><span class="legal-country">🇪🇸 <span data-i18n="flag_es">Espanha</span></span><span class="legal-value muted" data-i18n="holidays_es_note">14 no total — nacionais+regionais, teto legal</span></div>
+    </div>
+    <span class="cite" data-i18n="holidays_cite" style="display:block;margin-top:16px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--trust);">Agência Europeia de Medicamentos (EMA), lista oficial de feriados na UE, EMA/240605/2025</span>
+  </div>
+</section>
+
+<section class="econ section-light" id="economia">
+  <div class="wrap">
+    <span class="section-kicker" data-i18n="econ_kicker">Indicadores económicos</span>
+    <h2 data-i18n="econ_h2">Inflação, desemprego e crescimento salarial — os cinco países, lado a lado.</h2>
+    <p class="section-sub" data-i18n="econ_sub">Valores mais recentes disponíveis à data da consulta, não uma série uniforme — cada barra tem a sua própria data, indicada na legenda. O teu país (conforme o idioma escolhido) fica sempre destacado.</p>
+    <div class="econ-grid">
+      <div class="econ-card">
+        <h3 data-i18n="econ_inflation_title">Inflação (variação anual)</h3>
+        <canvas id="chartInflation" height="220"></canvas>
+        <span class="legal-cite" data-i18n="econ_inflation_cite">Trading Economics / Eurostat · junho de 2026</span>
+      </div>
+      <div class="econ-card">
+        <h3 data-i18n="econ_unemployment_title">Taxa de desemprego</h3>
+        <canvas id="chartUnemployment" height="220"></canvas>
+        <span class="legal-cite" data-i18n="econ_unemployment_cite">Eurostat · Alemanha/França/Itália/Espanha jun. 2026, Portugal mar. 2026 (INE)</span>
+      </div>
+      <div class="econ-card">
+        <h3 data-i18n="econ_wages_title">Crescimento salarial nominal (anual)</h3>
+        <canvas id="chartWages" height="220"></canvas>
+        <span class="legal-cite" data-i18n="econ_wages_cite">Eurostat, negotiated/compensation wages, T4 2025 · Portugal: projeção OCDE 2026</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="simulator" id="simulador">
+  <div class="wrap">
+    <span class="section-kicker" data-i18n="sim_kicker">Simulador de salário líquido</span>
+    <h2 data-i18n="sim_title">Bruto para líquido, com o escalão fiscal real — não uma média.</h2>
+    <p class="section-sub" data-i18n="sim_sub_multi">Cinco países, cada fórmula verificada individualmente contra fonte oficial. Uma estimativa simplificada — pessoa solteira, sem dependentes — nunca substitui o simulador oficial nem aconselhamento fiscal.</p>
+    <div class="sim-card">
+      <div class="sim-input-row">
+        <div><label for="simCountry" data-i18n="sim_label_country">País</label>
+          <select id="simCountry" style="background:var(--ink); border:1px solid var(--line); border-radius:8px; padding:11px 14px; color:var(--paper); font-family:'IBM Plex Mono',monospace; font-size:15px;">
+            <option value="fr" data-i18n="flag_fr">França</option><option value="de" data-i18n="flag_de">Alemanha</option><option value="it" data-i18n="flag_it">Itália</option>
+            <option value="es" data-i18n="flag_es">Espanha</option><option value="pt" data-i18n="flag_pt">Portugal</option>
+          </select>
+        </div>
+        <div><label for="simGross" data-i18n="sim_label">Salário bruto anual (€)</label>
+        <input type="number" id="simGross" value="35000" min="0" step="500" /></div>
+        <button id="simBtn" data-i18n="sim_btn">Calcular</button>
+      </div>
+      <div class="sim-result" id="simResult">
+        <div class="sim-line"><span data-i18n="sim_social">Contribuições sociais</span><b id="simSocial">—</b></div>
+        <div class="sim-line"><span data-i18n="sim_tax">Imposto sobre o rendimento</span><b id="simTax">—</b></div>
+        <div class="sim-line is-total"><span data-i18n="sim_net">Líquido mensal estimado</span><b id="simNet">—</b></div>
+      </div>
+      <p id="simScopeNote" style="margin-top:16px; font-size:12.5px; color:var(--ash); line-height:1.6;"></p>
+
+    </div>
+  </div>
+</section>
+
+<section class="employers section-light" id="empregadores">
+  <div class="wrap">
+    <span class="section-kicker">Para empregadores</span>
+    <h2>Verificação real tem custo zero até à primeira contratação.</h2>
+    <p class="section-sub">O primeiro anúncio é sempre gratuito para uma organização verificada. Sem selo comprável, sem impulsionamento pago a esconder ofertas fracas — a visibilidade vem de dados observáveis, não de orçamento de marketing.</p>
+    <a class="employer-cta" href="#stage">Saber como funciona a verificação</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="flags">
+      <span data-i18n="flag_pt">Portugal</span><span data-i18n="flag_it">Itália</span><span data-i18n="flag_es">Espanha</span><span data-i18n="flag_fr">França</span><span data-i18n="flag_de">Alemanha</span>
+    </div>
+    <div class="fine" data-i18n="footer_fine">Z Jobs — candidatos, sempre gratuito. Esta montra e o portal funcional partilham a mesma identidade — dourado real, amostrado do próprio logótipo.</div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('verifyBtn').addEventListener('click', function () {
+    document.getElementById('revealCard').classList.add('revealed');
+  });
+
+  document.getElementById('searchBtn').addEventListener('click', function () {
+    var card = document.getElementById('revealCard');
+    document.getElementById('stage').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.classList.add('revealed');
+    card.classList.remove('is-highlighted');
+    void card.offsetWidth; // reinicia a animação mesmo que já tivesse corrido antes
+    card.classList.add('is-highlighted');
+  });
+
+  // ============================================================================
+  // Simulador de salário líquido — cinco países, cada fórmula verificada
+  // individualmente contra fonte oficial ou cruzada entre múltiplas fontes
+  // independentes. Pessoa solteira, sem dependentes, sem deduções específicas
+  // além das explicitamente modeladas (ver nota de âmbito por país abaixo).
+  // ============================================================================
+
+  function computeProgressiveTax(taxableIncome, brackets) {
+    var tax = 0;
+    for (var i = 0; i < brackets.length; i++) {
+      var b = brackets[i];
+      if (taxableIncome <= b.from) break;
+      var upper = b.to === null ? taxableIncome : Math.min(taxableIncome, b.to);
+      tax += Math.max(0, upper - b.from) * b.rate;
+    }
+    return tax;
+  }
+
+  var FR_BRACKETS_2026 = [
+    { from: 0, to: 11600, rate: 0.00 }, { from: 11600, to: 29579, rate: 0.11 },
+    { from: 29579, to: 84580, rate: 0.30 }, { from: 84580, to: 181916, rate: 0.41 },
+    { from: 181916, to: null, rate: 0.45 },
+  ];
+  function frCalc(gross) {
+    var social = gross * 0.22;
+    var taxable = Math.max(0, gross - social);
+    var tax = computeProgressiveTax(taxable, FR_BRACKETS_2026);
+    return { social: social, tax: tax, net: gross - social - tax };
+  }
+
+  function deIncomeTax(zve) {
+    zve = Math.floor(zve);
+    if (zve <= 12348) return 0;
+    if (zve <= 17799) { var y = (zve - 12348) / 10000; return (914.51 * y + 1400) * y; }
+    if (zve <= 69878) { var z = (zve - 17799) / 10000; return (173.10 * z + 2397) * z + 1034.87; }
+    if (zve <= 277825) return 0.42 * zve - 11135.63;
+    return 0.45 * zve - 19470.38;
+  }
+  function deCalc(gross) {
+    var rvCap = 101400, kvCap = 69750;
+    var social = 0.093 * Math.min(gross, rvCap) + 0.013 * Math.min(gross, rvCap)
+               + 0.0875 * Math.min(gross, kvCap) + 0.024 * Math.min(gross, kvCap);
+    var zve = Math.max(0, gross - social);
+    var tax = deIncomeTax(zve);
+    return { social: social, tax: tax, net: gross - social - tax };
+  }
+
+  function itCalc(gross) {
+    var social = 0.0919 * gross;
+    var taxable = Math.max(0, gross - social);
+    var tax = computeProgressiveTax(taxable, [
+      { from: 0, to: 28000, rate: 0.23 }, { from: 28000, to: 50000, rate: 0.33 }, { from: 50000, to: null, rate: 0.43 },
+    ]);
+    return { social: social, tax: tax, net: gross - social - tax };
+  }
+
+  function esCalc(gross) {
+    var social = 0.0648 * gross;
+    var minimoPersonal = 5550;
+    var taxable = Math.max(0, gross - social - minimoPersonal);
+    var tax = computeProgressiveTax(taxable, [
+      { from: 0, to: 12450, rate: 0.19 }, { from: 12450, to: 20200, rate: 0.24 }, { from: 20200, to: 35200, rate: 0.30 },
+      { from: 35200, to: 60000, rate: 0.37 }, { from: 60000, to: 300000, rate: 0.45 }, { from: 300000, to: null, rate: 0.47 },
+    ]);
+    return { social: social, tax: tax, net: gross - social - tax };
+  }
+
+  var PT_BRACKETS = [
+    [0,8342,0.125,0],[8342,12587,0.157,266.94],[12587,17838,0.212,959.23],
+    [17838,23089,0.241,1474.53],[23089,29397,0.311,3090.76],[29397,43090,0.349,4207.85],
+    [43090,46566,0.431,7741.23],[46566,86634,0.446,8441.72],[86634,Infinity,0.48,11387.28],
+  ];
+  function ptCalc(gross) {
+    var social = 0.11 * gross;
+    var taxable = Math.max(0, gross - social);
+    var rate = 0.125, abater = 0;
+    for (var i = 0; i < PT_BRACKETS.length; i++) {
+      if (taxable > PT_BRACKETS[i][0]) { rate = PT_BRACKETS[i][2]; abater = PT_BRACKETS[i][3]; }
+    }
+    var tax = Math.max(0, taxable * rate - abater);
+    return { social: social, tax: tax, net: gross - social - tax };
+  }
+
+  var SIM_CALCULATORS = { fr: frCalc, de: deCalc, it: itCalc, es: esCalc, pt: ptCalc };
+
+  function formatEUR(n) {
+    return n.toLocaleString('pt-PT', { maximumFractionDigits: 0 }) + ' €';
+  }
+
+  function runSimulation() {
+    var gross = Number(document.getElementById('simGross').value) || 0;
+    var country = document.getElementById('simCountry').value;
+    var calc = SIM_CALCULATORS[country] || frCalc;
+    var r = calc(gross);
+    document.getElementById('simSocial').textContent = '-' + formatEUR(r.social);
+    document.getElementById('simTax').textContent = '-' + formatEUR(r.tax);
+    document.getElementById('simNet').textContent = formatEUR(r.net / 12) + ' / mês';
+    var dict = TRANSLATIONS[window.CURRENT_LOCALE || 'pt'] || TRANSLATIONS.pt;
+    document.getElementById('simScopeNote').textContent = dict['sim_scope_' + country] || '';
+  }
+  document.getElementById('simBtn').addEventListener('click', runSimulation);
+  document.getElementById('simCountry').addEventListener('change', runSimulation);
+  // Cálculo inicial disparado no fim do ficheiro, depois de TRANSLATIONS
+  // e renderEconCharts estarem definidas — ver runSimulation() mais abaixo.
+
+  var TRANSLATIONS = {
+    pt: {
+      legal_kicker: "Legislação laboral",
+      legal_title: "Cinco países, dados oficiais — nenhum em destaque sobre os outros.",
+      legal_sub: "Salário mínimo nacional, fonte Eurostat, em vigor a partir de 1 de janeiro de 2026. A Itália não tem salário mínimo estatutário — é definido por convenção coletiva, não por lei, o que também mostramos, em vez de esconder.",
+      legal_it_note: "sem mínimo nacional — só por convenção",
+      legal_cite: "Eurostat, Minimum wage statistics · dados a 1 jan. 2026",
+      holidays_heading: "Feriados nacionais (2026)",
+      holidays_de_note: "9 federais + 4-6 por Land",
+      holidays_es_note: "14 no total — nacionais+regionais, teto legal",
+      holidays_cite: "Agência Europeia de Medicamentos (EMA), lista oficial de feriados na UE, EMA/240605/2025",
+      sim_kicker: "Simulador de salário líquido",
+      sim_title: "Bruto para líquido, com o escalão fiscal real — não uma média.",
+      sim_sub_multi: "Cinco países, cada fórmula verificada individualmente contra fonte oficial. Uma estimativa simplificada — pessoa solteira, sem dependentes — nunca substitui o simulador oficial nem aconselhamento fiscal.",
+      sim_label_country: "País",
+      sim_label: "Salário bruto anual (€)",
+      sim_btn: "Calcular",
+      sim_social: "Contribuições sociais",
+      sim_tax: "Imposto sobre o rendimento",
+      sim_net: "Líquido mensal estimado",
+      sim_scope_fr: "França — Loi de finances pour 2026, barème progressif. Contribuições sociais agregadas a 22% (não-quadro). Sem abatimento de 10% para despesas profissionais.",
+      sim_scope_de: "Alemanha — §32a EStG, tarifário oficial em vigor desde 1 jan. 2026. Segurança social inclui Rentenversicherung, Krankenversicherung, Pflegeversicherung (sem filhos) e Arbeitslosenversicherung, cada uma com o seu teto de contribuição de 2026. Sem o Arbeitnehmer-Pauschbetrag nem outras deduções.",
+      sim_scope_it: "Itália — Legge di Bilancio 2026 (L. 199/2025), confirmada pelo Ministério das Finanças (MEF). INPS a 9,19% fixo, sem teto modelado. Sem adicional regional/municipal (varia por residência) nem detrazioni.",
+      sim_scope_es: "Espanha — escala estatal + autonómica supletória (inalterada desde 2021), com o mínimo pessoal de 5.550€ (solteiro, sem dependentes). O valor real varia por comunidade autónoma.",
+      sim_scope_pt: "Portugal (Continente) — artigo 68.º do CIRS, tabela 2026. Segurança Social a 11%. Sem dedução específica adicional nem mínimo de existência.",
+      econ_kicker: "Indicadores económicos",
+      econ_h2: "Inflação, desemprego e crescimento salarial — os cinco países, lado a lado.",
+      econ_sub: "Valores mais recentes disponíveis à data da consulta, não uma série uniforme — cada barra tem a sua própria data, indicada na legenda. O teu país (conforme o idioma escolhido) fica sempre destacado.",
+      econ_inflation_title: "Inflação (variação anual)",
+      econ_inflation_cite: "Trading Economics / Eurostat · junho de 2026",
+      econ_unemployment_title: "Taxa de desemprego",
+      econ_unemployment_cite: "Eurostat · Alemanha/França/Itália/Espanha jun. 2026, Portugal mar. 2026 (INE)",
+      econ_wages_title: "Crescimento salarial nominal (anual)",
+      econ_wages_cite: "Eurostat, negotiated/compensation wages, T4 2025 · Portugal: projeção OCDE 2026",
+      search_label_sector: "Setor",
+      sector_all: "Todos os setores",
+      sector_tech: "Informação e comunicação",
+      sector_hospitality: "Alojamento e restauração",
+      sector_cite: "Setores classificados por NACE Rev. 2 (Eurostat) — a mesma norma oficial usada para classificar empresas na plataforma.",
+      search_label_keyword: "Palavra-chave",
+      search_placeholder: "ex: engenheiro, vendas, marketing",
+      search_label_country: "País",
+      search_btn: "Procurar",
+      search_note: "O catálogo de ofertas ainda não está aberto ao público — a pesquisa mostra-te já a experiência com a oferta de exemplo acima.",
+      point1: "Empregador identificado e verificado, nunca anónimo.",
+      point2: "Salário comparado com tabelas oficiais de convenções coletivas.",
+      point3: "Sempre gratuito para quem procura emprego.",
+      nav_cta: "Ver uma oferta verificada",
+      eyebrow: "Portal de emprego · à escala europeia",
+      headline: "O salário faz parte<br>da oferta.",
+      sub: "Recomendamos remuneração e empregador sempre visíveis em cada oferta — mais confiança, mais candidaturas. A escolha final é sempre do empregador.",
+      kicker: "Oferta publicada · Zeta Tech",
+      job_title: "Engenheiro/a de Software Backend",
+      label_company: "EMPRESA", label_location: "LOCAL", label_salary: "SALÁRIO",
+      val_company: "Zeta Tech Lda — verificada", val_location: "Lisboa · remoto", val_salary: "€2.200 – €2.600 / mês · efetivo",
+      verify_btn: "Verificar oferta",
+      source_note: "Confirmado com a organização verificada e com a tabela salarial oficial da profissão — Boletim do Trabalho e Emprego n.º 2, 15 jan. 2025.",
+      stamp: "VERIFI<br>CADO",
+      proof1_title: "Salário oficial, não estimado",
+      proof1_body: "Comparamos cada oferta com tabelas de convenções coletivas reais, publicadas em boletins oficiais — nunca um algoritmo a adivinhar.",
+      proof2_title: "Empregador verificado",
+      proof2_body: "O selo de verificação nunca é comprável. É calculado a partir de dados observáveis — taxa de resposta, denúncias confirmadas, histórico real.",
+      proof3_title: "Sempre gratuito para candidatos",
+      proof3_body: "Nunca há subscrição, nem taxa, nem funcionalidade paga do lado de quem procura emprego. Quem paga é o empregador.",
+      compare_h2: "Uma oferta completa — não um resumo vago.",
+      tag_common: "Portal comum",
+      row_company: "Empresa", row_salary: "Salário", row_contract: "Contrato", row_contract_val: "Efetivo",
+      row_verification: "Verificação", row_verification_val: "Confirmada",
+      flag_pt: "Portugal", flag_it: "Itália", flag_es: "Espanha", flag_fr: "França", flag_de: "Alemanha",
+      footer_fine: "Z Jobs — candidatos, sempre gratuito. Esta montra e o portal funcional partilham a mesma identidade — dourado real, amostrado do próprio logótipo.",
+    },
+    en: {
+      legal_kicker: "Labour legislation",
+      legal_title: "Five countries, official data — none highlighted over the others.",
+      legal_sub: "National minimum wage, Eurostat source, in force from 1 January 2026.",
+      legal_it_note: "no national minimum — only via collective agreement",
+      legal_cite: "Eurostat, Minimum wage statistics · data as of 1 Jan 2026",
+      holidays_heading: "National holidays (2026)",
+      holidays_de_note: "9 federal + 4-6 per Land",
+      holidays_es_note: "14 in total — national+regional, legal cap",
+      holidays_cite: "European Medicines Agency (EMA), official EU holiday list, EMA/240605/2025",
+      sim_kicker: "Net salary simulator",
+      sim_title: "Gross to net, with the real tax bracket — not an average.",
+      sim_sub_multi: "Five countries, each formula individually verified against an official source. Simplified estimate — single person, no dependants — never a substitute for the official simulator or tax advice.",
+      sim_label_country: "Country",
+      sim_label: "Gross annual salary (€)",
+      sim_btn: "Calculate",
+      sim_social: "Social contributions",
+      sim_tax: "Income tax",
+      sim_net: "Estimated monthly net",
+      sim_scope_fr: "France — Loi de finances pour 2026, progressive scale. Social contributions aggregated at 22% (non-executive). Excludes the 10% standard professional-expense deduction.",
+      sim_scope_de: "Germany — §32a EStG, official tariff in force since 1 Jan 2026. Social insurance includes pension, health, long-term care (childless) and unemployment insurance, each with its own 2026 contribution ceiling. Excludes the standard employee allowance and other deductions.",
+      sim_scope_it: "Italy — 2026 Budget Law (L. 199/2025), confirmed by the Ministry of Finance (MEF). Flat 9.19% INPS rate, no ceiling modelled. Excludes regional/municipal surcharges (vary by residence) and tax credits.",
+      sim_scope_es: "Spain — state scale + default regional scale (unchanged since 2021), with the €5,550 personal allowance (single, no dependants). Actual figures vary by autonomous community.",
+      sim_scope_pt: "Portugal (mainland) — Article 68 of the CIRS, 2026 table. 11% social security. Excludes additional specific deductions and the minimum-subsistence protection.",
+      econ_kicker: "Economic indicators",
+      econ_h2: "Inflation, unemployment and wage growth — the five countries, side by side.",
+      econ_sub: "Latest available values at the time of research, not a uniform series — each bar has its own date, shown in the caption. Your country (based on the selected language) is always highlighted.",
+      econ_inflation_title: "Inflation (annual change)",
+      econ_inflation_cite: "Trading Economics / Eurostat · June 2026",
+      econ_unemployment_title: "Unemployment rate",
+      econ_unemployment_cite: "Eurostat · Germany/France/Italy/Spain Jun 2026, Portugal Mar 2026 (INE)",
+      econ_wages_title: "Nominal wage growth (annual)",
+      econ_wages_cite: "Eurostat, negotiated/compensation wages, Q4 2025 · Portugal: OECD 2026 projection",
+      search_label_sector: "Sector",
+      sector_all: "All sectors",
+      sector_tech: "Information and communication",
+      sector_hospitality: "Accommodation and food service",
+      sector_cite: "Sectors classified under NACE Rev. 2 (Eurostat) — the same official standard used to classify companies on the platform.",
+      search_label_keyword: "Keyword",
+      search_placeholder: "e.g. engineer, sales, marketing",
+      search_label_country: "Country",
+      search_btn: "Search",
+      search_note: "The listing catalogue isn't open to the public yet — search already shows you the experience with the example listing above.",
+      point1: "Employer identified and verified, never anonymous.",
+      point2: "Salary compared against official collective agreement tables.",
+      point3: "Always free for job seekers.",
+      nav_cta: "See a verified listing",
+      eyebrow: "Job platform · across Europe",
+      headline: "Salary is part<br>of the listing.",
+      sub: "We recommend visible salary and employer details on every listing — more trust, more applications. The final choice always belongs to the employer.",
+      kicker: "Published listing · Zeta Tech",
+      job_title: "Backend Software Engineer",
+      label_company: "COMPANY", label_location: "LOCATION", label_salary: "SALARY",
+      val_company: "Zeta Tech Lda — verified", val_location: "Lisbon · remote", val_salary: "€2,200 – €2,600 / month · permanent",
+      verify_btn: "Verify listing",
+      source_note: "Confirmed against the verified organization and the official salary table for the occupation — Labour Bulletin No. 2, 15 Jan. 2025.",
+      stamp: "VERI<br>FIED",
+      proof1_title: "Official salary, not estimated",
+      proof1_body: "We compare every listing with real collective agreement tables, published in official bulletins — never an algorithm guessing.",
+      proof2_title: "Verified employer",
+      proof2_body: "The verification seal can never be bought. It's calculated from observable data — response rate, confirmed complaints, real track record.",
+      proof3_title: "Always free for candidates",
+      proof3_body: "No subscription, no fee, no paid feature ever, on the job-seeker side. The employer pays.",
+      compare_h2: "A complete listing — not a vague summary.",
+      tag_common: "Typical platform",
+      row_company: "Company", row_salary: "Salary", row_contract: "Contract", row_contract_val: "Permanent",
+      row_verification: "Verification", row_verification_val: "Confirmed",
+      flag_pt: "Portugal", flag_it: "Italy", flag_es: "Spain", flag_fr: "France", flag_de: "Germany",
+      footer_fine: "Z Jobs — always free for candidates. This showcase and the working platform share the same identity — real gold, sampled from the logo itself.",
+    },
+    es: {
+      legal_kicker: "Legislación laboral",
+      legal_title: "Cinco países, datos oficiales — ninguno destacado sobre los demás.",
+      legal_sub: "Salario mínimo nacional, fuente Eurostat, vigente desde el 1 de enero de 2026.",
+      legal_it_note: "sin mínimo nacional — solo por convenio",
+      legal_cite: "Eurostat, Minimum wage statistics · datos a 1 ene. 2026",
+      holidays_heading: "Festivos nacionales (2026)",
+      holidays_de_note: "9 federales + 4-6 por Land",
+      holidays_es_note: "14 en total — nacionales+autonómicos, tope legal",
+      holidays_cite: "Agencia Europea de Medicamentos (EMA), lista oficial de festivos de la UE, EMA/240605/2025",
+      sim_kicker: "Simulador de salario neto",
+      sim_title: "De bruto a neto, con el tramo fiscal real — no una media.",
+      sim_sub_multi: "Cinco países, cada fórmula verificada individualmente contra fuente oficial. Estimación simplificada — persona soltera, sin dependientes — nunca sustituye al simulador oficial ni al asesoramiento fiscal.",
+      sim_label_country: "País",
+      sim_label: "Salario bruto anual (€)",
+      sim_btn: "Calcular",
+      sim_social: "Cotizaciones sociales",
+      sim_tax: "Impuesto sobre la renta",
+      sim_net: "Neto mensual estimado",
+      sim_scope_fr: "Francia — Loi de finances pour 2026, escala progresiva. Cotizaciones sociales agregadas al 22% (no ejecutivo). Sin la deducción forfetaria del 10% por gastos profesionales.",
+      sim_scope_de: "Alemania — §32a EStG, tarifa oficial vigente desde el 1 ene. 2026. La seguridad social incluye pensión, salud, cuidados de larga duración (sin hijos) y desempleo, cada una con su propio techo de cotización de 2026. Sin la deducción estándar del trabajador ni otras deducciones.",
+      sim_scope_it: "Italia — Ley de Presupuestos 2026 (L. 199/2025), confirmada por el Ministerio de Economía (MEF). INPS al 9,19% fijo, sin techo modelado. Sin recargo regional/municipal (varía según residencia) ni detrazioni.",
+      sim_scope_es: "España — escala estatal + autonómica supletoria (sin cambios desde 2021), con el mínimo personal de 5.550€ (soltero, sin dependientes). El valor real varía según la comunidad autónoma.",
+      sim_scope_pt: "Portugal (Continente) — artículo 68 del CIRS, tabla 2026. Seguridad Social al 11%. Sin deducción específica adicional ni mínimo de subsistencia.",
+      econ_kicker: "Indicadores económicos",
+      econ_h2: "Inflación, desempleo y crecimiento salarial — los cinco países, lado a lado.",
+      econ_sub: "Valores más recientes disponibles en el momento de la consulta, no una serie uniforme — cada barra tiene su propia fecha, indicada en la leyenda. Tu país (según el idioma elegido) siempre queda destacado.",
+      econ_inflation_title: "Inflación (variación anual)",
+      econ_inflation_cite: "Trading Economics / Eurostat · junio de 2026",
+      econ_unemployment_title: "Tasa de desempleo",
+      econ_unemployment_cite: "Eurostat · Alemania/Francia/Italia/España jun. 2026, Portugal mar. 2026 (INE)",
+      econ_wages_title: "Crecimiento salarial nominal (anual)",
+      econ_wages_cite: "Eurostat, negotiated/compensation wages, T4 2025 · Portugal: proyección OCDE 2026",
+      search_label_sector: "Sector",
+      sector_all: "Todos los sectores",
+      sector_tech: "Información y comunicación",
+      sector_hospitality: "Hostelería y restauración",
+      sector_cite: "Sectores clasificados según NACE Rev. 2 (Eurostat) — la misma norma oficial usada para clasificar empresas en la plataforma.",
+      search_label_keyword: "Palabra clave",
+      search_placeholder: "ej: ingeniero, ventas, marketing",
+      search_label_country: "País",
+      search_btn: "Buscar",
+      search_note: "El catálogo de ofertas aún no está abierto al público — la búsqueda ya te muestra la experiencia con la oferta de ejemplo de arriba.",
+      point1: "Empleador identificado y verificado, nunca anónimo.",
+      point2: "Salario comparado con tablas oficiales de convenios colectivos.",
+      point3: "Siempre gratuito para quien busca empleo.",
+      nav_cta: "Ver una oferta verificada",
+      eyebrow: "Portal de empleo · a escala europea",
+      headline: "El salario forma parte<br>de la oferta.",
+      sub: "Recomendamos que cada oferta muestre siempre la remuneración y el empleador — más confianza, más candidaturas. La decisión final es siempre del empleador.",
+      kicker: "Oferta publicada · Zeta Tech",
+      job_title: "Ingeniero/a de Software Backend",
+      label_company: "EMPRESA", label_location: "UBICACIÓN", label_salary: "SALARIO",
+      val_company: "Zeta Tech Lda — verificada", val_location: "Lisboa · remoto", val_salary: "2.200 € – 2.600 € / mes · indefinido",
+      verify_btn: "Verificar oferta",
+      source_note: "Confirmado con la organización verificada y con la tabla salarial oficial de la profesión — Boletín de Trabajo n.º 2, 15 ene. 2025.",
+      stamp: "VERIFI<br>CADA",
+      proof1_title: "Salario oficial, no estimado",
+      proof1_body: "Comparamos cada oferta con tablas de convenios colectivos reales, publicadas en boletines oficiales — nunca un algoritmo adivinando.",
+      proof2_title: "Empleador verificado",
+      proof2_body: "El sello de verificación nunca se compra. Se calcula a partir de datos observables — tasa de respuesta, denuncias confirmadas, historial real.",
+      proof3_title: "Siempre gratuito para candidatos",
+      proof3_body: "Nunca hay suscripción, ni tarifa, ni función de pago del lado de quien busca empleo. Paga el empleador.",
+      compare_h2: "Una oferta completa — no un resumen vago.",
+      tag_common: "Portal habitual",
+      row_company: "Empresa", row_salary: "Salario", row_contract: "Contrato", row_contract_val: "Indefinido",
+      row_verification: "Verificación", row_verification_val: "Confirmada",
+      flag_pt: "Portugal", flag_it: "Italia", flag_es: "España", flag_fr: "Francia", flag_de: "Alemania",
+      footer_fine: "Z Jobs — siempre gratuito para candidatos. Esta muestra y la plataforma funcional comparten la misma identidad — oro real, tomado del propio logotipo.",
+    },
+    fr: {
+      legal_kicker: "Législation du travail",
+      legal_title: "Cinq pays, données officielles — aucun mis en avant par rapport aux autres.",
+      legal_sub: "Salaire minimum national, source Eurostat, en vigueur depuis le 1er janvier 2026.",
+      legal_it_note: "pas de minimum national — seulement par convention",
+      legal_cite: "Eurostat, Minimum wage statistics · données au 1er janv. 2026",
+      holidays_heading: "Jours fériés nationaux (2026)",
+      holidays_de_note: "9 fédéraux + 4-6 selon le Land",
+      holidays_es_note: "14 au total — nationaux+régionaux, plafond légal",
+      holidays_cite: "Agence européenne des médicaments (EMA), liste officielle des jours fériés de l'UE, EMA/240605/2025",
+      sim_kicker: "Simulateur de salaire net",
+      sim_title: "Du brut au net, avec le vrai barème fiscal — pas une moyenne.",
+      sim_sub_multi: "Cinq pays, chaque formule vérifiée individuellement auprès d'une source officielle. Estimation simplifiée — personne célibataire, sans personne à charge — ne remplace jamais le simulateur officiel ni un conseil fiscal.",
+      sim_label_country: "Pays",
+      sim_label: "Salaire brut annuel (€)",
+      sim_btn: "Calculer",
+      sim_social: "Cotisations sociales",
+      sim_tax: "Impôt sur le revenu",
+      sim_net: "Net mensuel estimé",
+      sim_scope_fr: "France — Loi de finances pour 2026, barème progressif. Cotisations sociales agrégées à 22 % (non-cadre). Sans l'abattement forfaitaire de 10 % pour frais professionnels.",
+      sim_scope_de: "Allemagne — §32a EStG, barème officiel en vigueur depuis le 1er janv. 2026. La sécurité sociale comprend l'assurance retraite, maladie, dépendance (sans enfant) et chômage, chacune avec son propre plafond de cotisation 2026. Sans l'abattement forfaitaire salarié ni autres déductions.",
+      sim_scope_it: "Italie — Loi de finances 2026 (L. 199/2025), confirmée par le ministère des Finances (MEF). Taux INPS fixe de 9,19 %, sans plafond modélisé. Sans majoration régionale/municipale (variable selon la résidence) ni crédits d'impôt.",
+      sim_scope_es: "Espagne — barème national + barème régional par défaut (inchangé depuis 2021), avec l'abattement personnel de 5 550 € (célibataire, sans personne à charge). Le montant réel varie selon la communauté autonome.",
+      sim_scope_pt: "Portugal (continental) — article 68 du CIRS, barème 2026. Sécurité sociale à 11 %. Sans déduction spécifique supplémentaire ni protection du minimum de subsistance.",
+      econ_kicker: "Indicateurs économiques",
+      econ_h2: "Inflation, chômage et croissance salariale — les cinq pays, côte à côte.",
+      econ_sub: "Dernières valeurs disponibles au moment de la consultation, pas une série uniforme — chaque barre a sa propre date, indiquée dans la légende. Votre pays (selon la langue choisie) est toujours mis en évidence.",
+      econ_inflation_title: "Inflation (variation annuelle)",
+      econ_inflation_cite: "Trading Economics / Eurostat · juin 2026",
+      econ_unemployment_title: "Taux de chômage",
+      econ_unemployment_cite: "Eurostat · Allemagne/France/Italie/Espagne juin 2026, Portugal mars 2026 (INE)",
+      econ_wages_title: "Croissance salariale nominale (annuelle)",
+      econ_wages_cite: "Eurostat, negotiated/compensation wages, T4 2025 · Portugal : projection OCDE 2026",
+      search_label_sector: "Secteur",
+      sector_all: "Tous les secteurs",
+      sector_tech: "Information et communication",
+      sector_hospitality: "Hébergement et restauration",
+      sector_cite: "Secteurs classés selon la NACE Rév. 2 (Eurostat) — la même norme officielle utilisée pour classer les entreprises sur la plateforme.",
+      search_label_keyword: "Mot-clé",
+      search_placeholder: "ex : ingénieur, vente, marketing",
+      search_label_country: "Pays",
+      search_btn: "Rechercher",
+      search_note: "Le catalogue d'offres n'est pas encore ouvert au public — la recherche vous montre déjà l'expérience avec l'offre d'exemple ci-dessus.",
+      point1: "Employeur identifié et vérifié, jamais anonyme.",
+      point2: "Salaire comparé aux grilles officielles des conventions collectives.",
+      point3: "Toujours gratuit pour les chercheurs d'emploi.",
+      nav_cta: "Voir une offre vérifiée",
+      eyebrow: "Portail d'emploi · à l'échelle européenne",
+      headline: "Le salaire fait partie<br>de l'offre.",
+      sub: "Nous recommandons que chaque offre affiche toujours la rémunération et l'employeur — plus de confiance, plus de candidatures. La décision finale appartient toujours à l'employeur.",
+      kicker: "Offre publiée · Zeta Tech",
+      job_title: "Ingénieur·e Logiciel Backend",
+      label_company: "ENTREPRISE", label_location: "LIEU", label_salary: "SALAIRE",
+      val_company: "Zeta Tech Lda — vérifiée", val_location: "Lisbonne · télétravail", val_salary: "2 200 € – 2 600 € / mois · CDI",
+      verify_btn: "Vérifier l'offre",
+      source_note: "Confirmé auprès de l'organisation vérifiée et de la grille salariale officielle de la profession — Bulletin du Travail n° 2, 15 janv. 2025.",
+      stamp: "VÉRI<br>FIÉE",
+      proof1_title: "Salaire officiel, non estimé",
+      proof1_body: "Nous comparons chaque offre à de vraies grilles de conventions collectives, publiées dans des bulletins officiels — jamais un algorithme qui devine.",
+      proof2_title: "Employeur vérifié",
+      proof2_body: "Le label de vérification ne s'achète jamais. Il est calculé à partir de données observables — taux de réponse, plaintes confirmées, historique réel.",
+      proof3_title: "Toujours gratuit pour les candidats",
+      proof3_body: "Jamais d'abonnement, de frais, ni de fonctionnalité payante côté candidat. C'est l'employeur qui paie.",
+      compare_h2: "Une offre complète — pas un résumé vague.",
+      tag_common: "Portail courant",
+      row_company: "Entreprise", row_salary: "Salaire", row_contract: "Contrat", row_contract_val: "CDI",
+      row_verification: "Vérification", row_verification_val: "Confirmée",
+      flag_pt: "Portugal", flag_it: "Italie", flag_es: "Espagne", flag_fr: "France", flag_de: "Allemagne",
+      footer_fine: "Z Jobs — toujours gratuit pour les candidats. Cette vitrine et la plateforme fonctionnelle partagent la même identité — l'or réel, échantillonné à partir du logo lui-même.",
+    },
+    de: {
+      legal_kicker: "Arbeitsrecht",
+      legal_title: "Fünf Länder, offizielle Daten — keines gegenüber den anderen hervorgehoben.",
+      legal_sub: "Gesetzlicher Mindestlohn, Quelle Eurostat, gültig ab 1. Januar 2026.",
+      legal_it_note: "kein nationaler Mindestlohn — nur per Tarifvertrag",
+      legal_cite: "Eurostat, Minimum wage statistics · Stand 1. Jan. 2026",
+      holidays_heading: "Gesetzliche Feiertage (2026)",
+      holidays_de_note: "9 bundesweit + 4-6 je nach Land",
+      holidays_es_note: "14 insgesamt — national+regional, gesetzliche Obergrenze",
+      holidays_cite: "Europäische Arzneimittel-Agentur (EMA), offizielle EU-Feiertagsliste, EMA/240605/2025",
+      sim_kicker: "Nettolohn-Simulator",
+      sim_title: "Brutto zu netto, mit der echten Steuerstufe — kein Durchschnitt.",
+      sim_sub_multi: "Fünf Länder, jede Formel einzeln anhand einer offiziellen Quelle geprüft. Vereinfachte Schätzung — Alleinstehend, ohne unterhaltsberechtigte Personen — ersetzt nie den offiziellen Simulator oder eine Steuerberatung.",
+      sim_label_country: "Land",
+      sim_label: "Bruttojahresgehalt (€)",
+      sim_btn: "Berechnen",
+      sim_social: "Sozialabgaben",
+      sim_tax: "Einkommensteuer",
+      sim_net: "Geschätztes monatliches Netto",
+      sim_scope_fr: "Frankreich — Loi de finances pour 2026, progressiver Tarif. Sozialabgaben pauschal 22 % (Nicht-Führungskraft). Ohne die pauschale 10-%-Werbungskostenpauschale.",
+      sim_scope_de: "Deutschland — §32a EStG, offizieller Tarif seit 1. Jan. 2026. Die Sozialversicherung umfasst Renten-, Kranken-, Pflege- (kinderlos) und Arbeitslosenversicherung, jeweils mit eigener Beitragsbemessungsgrenze 2026. Ohne Arbeitnehmer-Pauschbetrag und sonstige Abzüge.",
+      sim_scope_it: "Italien — Haushaltsgesetz 2026 (L. 199/2025), bestätigt vom Wirtschafts- und Finanzministerium (MEF). Pauschaler INPS-Satz von 9,19 %, keine Obergrenze modelliert. Ohne regionalen/kommunalen Zuschlag (abhängig vom Wohnsitz) und Steuergutschriften.",
+      sim_scope_es: "Spanien — staatlicher Tarif + regionaler Standardtarif (unverändert seit 2021), mit persönlichem Freibetrag von 5.550 € (alleinstehend, ohne Angehörige). Der tatsächliche Betrag variiert je nach autonomer Region.",
+      sim_scope_pt: "Portugal (Festland) — Artikel 68 des CIRS, Tarif 2026. Sozialversicherung 11 %. Ohne zusätzlichen spezifischen Abzug und ohne Existenzminimum-Schutz.",
+      econ_kicker: "Wirtschaftsindikatoren",
+      econ_h2: "Inflation, Arbeitslosigkeit und Lohnwachstum — die fünf Länder im Vergleich.",
+      econ_sub: "Aktuellste verfügbare Werte zum Zeitpunkt der Recherche, keine einheitliche Reihe — jeder Balken hat sein eigenes Datum, siehe Bildunterschrift. Dein Land (je nach gewählter Sprache) wird immer hervorgehoben.",
+      econ_inflation_title: "Inflation (jährliche Veränderung)",
+      econ_inflation_cite: "Trading Economics / Eurostat · Juni 2026",
+      econ_unemployment_title: "Arbeitslosenquote",
+      econ_unemployment_cite: "Eurostat · Deutschland/Frankreich/Italien/Spanien Jun. 2026, Portugal Mär. 2026 (INE)",
+      econ_wages_title: "Nominales Lohnwachstum (jährlich)",
+      econ_wages_cite: "Eurostat, negotiated/compensation wages, Q4 2025 · Portugal: OECD-Prognose 2026",
+      search_label_sector: "Branche",
+      sector_all: "Alle Branchen",
+      sector_tech: "Information und Kommunikation",
+      sector_hospitality: "Beherbergung und Gastronomie",
+      sector_cite: "Branchen klassifiziert nach NACE Rev. 2 (Eurostat) — derselbe offizielle Standard, der zur Klassifizierung von Unternehmen auf der Plattform verwendet wird.",
+      search_label_keyword: "Stichwort",
+      search_placeholder: "z. B. Ingenieur, Vertrieb, Marketing",
+      search_label_country: "Land",
+      search_btn: "Suchen",
+      search_note: "Der Angebotskatalog ist noch nicht öffentlich zugänglich — die Suche zeigt dir schon jetzt das Erlebnis mit dem Beispielangebot oben.",
+      point1: "Arbeitgeber identifiziert und verifiziert, nie anonym.",
+      point2: "Gehalt mit offiziellen Tarifvertragstabellen verglichen.",
+      point3: "Für Arbeitsuchende immer kostenlos.",
+      nav_cta: "Verifiziertes Angebot ansehen",
+      eyebrow: "Stellenportal · europaweit",
+      headline: "Das Gehalt gehört<br>zum Angebot.",
+      sub: "Wir empfehlen, Gehalt und Arbeitgeber in jedem Angebot sichtbar zu zeigen — mehr Vertrauen, mehr Bewerbungen. Die endgültige Entscheidung liegt immer beim Arbeitgeber.",
+      kicker: "Veröffentlichtes Angebot · Zeta Tech",
+      job_title: "Backend-Softwareingenieur/in",
+      label_company: "UNTERNEHMEN", label_location: "ORT", label_salary: "GEHALT",
+      val_company: "Zeta Tech Lda — verifiziert", val_location: "Lissabon · remote", val_salary: "2.200 € – 2.600 € / Monat · unbefristet",
+      verify_btn: "Angebot verifizieren",
+      source_note: "Bestätigt anhand der verifizierten Organisation und der offiziellen Gehaltstabelle des Berufs — Arbeitsblatt Nr. 2, 15. Jan. 2025.",
+      stamp: "VERIFI<br>ZIERT",
+      proof1_title: "Offizielles Gehalt, nicht geschätzt",
+      proof1_body: "Wir vergleichen jedes Angebot mit echten Tarifvertragstabellen, veröffentlicht in offiziellen Amtsblättern — nie ein ratender Algorithmus.",
+      proof2_title: "Verifizierter Arbeitgeber",
+      proof2_body: "Das Verifizierungssiegel ist niemals käuflich. Es wird aus beobachtbaren Daten berechnet — Antwortquote, bestätigte Beschwerden, echte Erfolgsbilanz.",
+      proof3_title: "Immer kostenlos für Bewerbende",
+      proof3_body: "Nie ein Abonnement, keine Gebühr, keine kostenpflichtige Funktion auf Bewerberseite. Der Arbeitgeber zahlt.",
+      compare_h2: "Ein vollständiges Angebot — keine vage Zusammenfassung.",
+      tag_common: "Übliches Portal",
+      row_company: "Unternehmen", row_salary: "Gehalt", row_contract: "Vertrag", row_contract_val: "Unbefristet",
+      row_verification: "Verifizierung", row_verification_val: "Bestätigt",
+      flag_pt: "Portugal", flag_it: "Italien", flag_es: "Spanien", flag_fr: "Frankreich", flag_de: "Deutschland",
+      footer_fine: "Z Jobs — für Bewerbende immer kostenlos. Diese Vitrine und die funktionierende Plattform teilen dieselbe Identität — echtes Gold, direkt aus dem Logo entnommen.",
+    },
+    it: {
+      legal_kicker: "Legislazione del lavoro",
+      legal_title: "Cinque paesi, dati ufficiali — nessuno in risalto rispetto agli altri.",
+      legal_sub: "Salario minimo nazionale, fonte Eurostat, in vigore dal 1° gennaio 2026.",
+      legal_it_note: "nessun minimo nazionale — solo tramite contratto collettivo",
+      legal_cite: "Eurostat, Minimum wage statistics · dati al 1° gen. 2026",
+      holidays_heading: "Festività nazionali (2026)",
+      holidays_de_note: "9 federali + 4-6 per Land",
+      holidays_es_note: "14 in totale — nazionali+regionali, tetto legale",
+      holidays_cite: "Agenzia Europea per i Medicinali (EMA), elenco ufficiale delle festività UE, EMA/240605/2025",
+      sim_kicker: "Simulatore di stipendio netto",
+      sim_title: "Da lordo a netto, con lo scaglione fiscale reale — non una media.",
+      sim_sub_multi: "Cinque paesi, ogni formula verificata singolarmente rispetto a una fonte ufficiale. Stima semplificata — persona single, senza persone a carico — non sostituisce mai il simulatore ufficiale né una consulenza fiscale.",
+      sim_label_country: "Paese",
+      sim_label: "Stipendio lordo annuo (€)",
+      sim_btn: "Calcola",
+      sim_social: "Contributi sociali",
+      sim_tax: "Imposta sul reddito",
+      sim_net: "Netto mensile stimato",
+      sim_scope_fr: "Francia — Loi de finances pour 2026, scala progressiva. Contributi sociali aggregati al 22% (non dirigente). Senza la deduzione forfettaria del 10% per spese professionali.",
+      sim_scope_de: "Germania — §32a EStG, tariffa ufficiale in vigore dal 1° gen. 2026. La previdenza sociale comprende pensione, salute, assistenza a lungo termine (senza figli) e disoccupazione, ciascuna con il proprio massimale contributivo 2026. Senza la detrazione forfettaria del dipendente né altre deduzioni.",
+      sim_scope_it: "Italia — Legge di Bilancio 2026 (L. 199/2025), confermata dal Ministero dell'Economia e delle Finanze (MEF). Aliquota INPS fissa al 9,19%, senza massimale modellato. Senza addizionale regionale/comunale (varia in base alla residenza) né detrazioni.",
+      sim_scope_es: "Spagna — scala statale + scala regionale supplettiva (invariata dal 2021), con il minimo personale di 5.550€ (single, senza persone a carico). Il valore reale varia in base alla comunità autonoma.",
+      sim_scope_pt: "Portogallo (Continente) — articolo 68 del CIRS, tabella 2026. Previdenza sociale all'11%. Senza detrazione specifica aggiuntiva né protezione del minimo di sussistenza.",
+      econ_kicker: "Indicatori economici",
+      econ_h2: "Inflazione, disoccupazione e crescita salariale — i cinque paesi, a confronto.",
+      econ_sub: "Valori più recenti disponibili al momento della consultazione, non una serie uniforme — ogni barra ha la propria data, indicata nella didascalia. Il tuo paese (in base alla lingua scelta) è sempre evidenziato.",
+      econ_inflation_title: "Inflazione (variazione annua)",
+      econ_inflation_cite: "Trading Economics / Eurostat · giugno 2026",
+      econ_unemployment_title: "Tasso di disoccupazione",
+      econ_unemployment_cite: "Eurostat · Germania/Francia/Italia/Spagna giu. 2026, Portogallo mar. 2026 (INE)",
+      econ_wages_title: "Crescita salariale nominale (annua)",
+      econ_wages_cite: "Eurostat, negotiated/compensation wages, T4 2025 · Portogallo: proiezione OCSE 2026",
+      search_label_sector: "Settore",
+      sector_all: "Tutti i settori",
+      sector_tech: "Informazione e comunicazione",
+      sector_hospitality: "Alloggio e ristorazione",
+      sector_cite: "Settori classificati secondo la NACE Rev. 2 (Eurostat) — lo stesso standard ufficiale usato per classificare le aziende sulla piattaforma.",
+      search_label_keyword: "Parola chiave",
+      search_placeholder: "es: ingegnere, vendite, marketing",
+      search_label_country: "Paese",
+      search_btn: "Cerca",
+      search_note: "Il catalogo delle offerte non è ancora aperto al pubblico — la ricerca mostra già l'esperienza con l'offerta di esempio qui sopra.",
+      point1: "Datore di lavoro identificato e verificato, mai anonimo.",
+      point2: "Stipendio confrontato con tabelle ufficiali dei contratti collettivi.",
+      point3: "Sempre gratuito per chi cerca lavoro.",
+      nav_cta: "Vedi un'offerta verificata",
+      eyebrow: "Portale del lavoro · su scala europea",
+      headline: "Lo stipendio fa parte<br>dell'offerta.",
+      sub: "Raccomandiamo che ogni offerta mostri sempre retribuzione e datore di lavoro — più fiducia, più candidature. La decisione finale spetta sempre al datore di lavoro.",
+      kicker: "Offerta pubblicata · Zeta Tech",
+      job_title: "Ingegnere/a Software Backend",
+      label_company: "AZIENDA", label_location: "SEDE", label_salary: "STIPENDIO",
+      val_company: "Zeta Tech Lda — verificata", val_location: "Lisbona · remoto", val_salary: "2.200 € – 2.600 € / mese · tempo indeterminato",
+      verify_btn: "Verifica offerta",
+      source_note: "Confermato con l'organizzazione verificata e con la tabella salariale ufficiale della professione — Bollettino del Lavoro n. 2, 15 gen. 2025.",
+      stamp: "VERIFI<br>CATA",
+      proof1_title: "Stipendio ufficiale, non stimato",
+      proof1_body: "Confrontiamo ogni offerta con tabelle reali dei contratti collettivi, pubblicate in bollettini ufficiali — mai un algoritmo che indovina.",
+      proof2_title: "Datore di lavoro verificato",
+      proof2_body: "Il sigillo di verifica non è mai acquistabile. È calcolato a partire da dati osservabili — tasso di risposta, reclami confermati, storico reale.",
+      proof3_title: "Sempre gratuito per i candidati",
+      proof3_body: "Mai un abbonamento, una tariffa o una funzione a pagamento per chi cerca lavoro. Paga il datore di lavoro.",
+      compare_h2: "Un'offerta completa — non un riassunto vago.",
+      tag_common: "Portale comune",
+      row_company: "Azienda", row_salary: "Stipendio", row_contract: "Contratto", row_contract_val: "Tempo indeterminato",
+      row_verification: "Verifica", row_verification_val: "Confermata",
+      flag_pt: "Portogallo", flag_it: "Italia", flag_es: "Spagna", flag_fr: "Francia", flag_de: "Germania",
+      footer_fine: "Z Jobs — sempre gratuito per i candidati. Questa vetrina e la piattaforma funzionante condividono la stessa identità — oro reale, campionato dal logo stesso.",
+    },
+  };
+
+  function setLocale(locale) {
+    var dict = TRANSLATIONS[locale] || TRANSLATIONS.pt;
+    document.querySelectorAll('[data-i18n]').forEach(function (el) {
+      var key = el.getAttribute('data-i18n');
+      if (dict[key]) el.textContent = dict[key];
+    });
+    document.querySelectorAll('[data-i18n-html]').forEach(function (el) {
+      var key = el.getAttribute('data-i18n-html');
+      if (dict[key]) el.innerHTML = dict[key];
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+      var key = el.getAttribute('data-i18n-placeholder');
+      if (dict[key]) el.setAttribute('placeholder', dict[key]);
+    });
+    document.documentElement.lang = locale;
+    document.querySelectorAll('.locales span').forEach(function (el) {
+      el.classList.toggle('is-active', el.getAttribute('data-locale') === locale);
+    });
+    // A revelação (redigido -> revelado) fica sempre por clicar de novo após trocar de idioma,
+    // para nunca mostrar um estado inconsistente entre idiomas.
+    document.getElementById('revealCard').classList.remove('revealed');
+    window.CURRENT_LOCALE = locale;
+    renderEconCharts(locale);
+    if (typeof runSimulation === 'function') runSimulation();
+  }
+  window.CURRENT_LOCALE = 'pt';
+
+  document.querySelectorAll('.locales span').forEach(function (el) {
+    el.addEventListener('click', function () { setLocale(el.getAttribute('data-locale')); });
+  });
+
+  // Dados reais, cada um com a sua própria data — ver legendas nos
+  // próprios cartões. Não é uma série uniforme fingida; são os valores
+  // mais recentes verificados para cada indicador, à data da consulta.
+  var ECON_DATA = {
+    countryKeys: ['flag_de', 'flag_fr', 'flag_it', 'flag_es', 'flag_pt'],
+    localeToCountryKey: { pt: 'flag_pt', it: 'flag_it', es: 'flag_es', fr: 'flag_fr', de: 'flag_de', en: null },
+    inflation:    [2.4, 2.0, 3.1, 3.6, 3.1],
+    unemployment: [3.9, 8.2, 5.7, 10.1, 5.8],
+    wages:        [2.7, 1.1, 2.3, 3.8, 3.7],
+  };
+  var econCharts = {};
+
+  function buildBarConfig(values, labels, highlightIndex) {
+    var goldBright = '#F0C878';
+    var ash = '#5C5544';
+    var colors = labels.map(function (l, i) { return i === highlightIndex ? goldBright : ash; });
+    return {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{ data: values, backgroundColor: colors, borderRadius: 4, maxBarThickness: 42 }],
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { color: '#5C5544', font: { family: 'IBM Plex Mono' } }, grid: { color: 'rgba(122,93,24,0.12)' } },
+          x: { ticks: { color: '#100E0A', font: { family: 'Inter', size: 11 } }, grid: { display: false } },
+        },
+      },
+    };
+  }
+
+  function renderEconCharts(locale) {
+    if (typeof Chart === 'undefined') return; // rede indisponível — a página continua a funcionar sem o gráfico
+    var dict = TRANSLATIONS[locale] || TRANSLATIONS.pt;
+    var labels = ECON_DATA.countryKeys.map(function (k) { return dict[k]; });
+    var highlightKey = ECON_DATA.localeToCountryKey[locale] || null;
+    var highlightIndex = ECON_DATA.countryKeys.indexOf(highlightKey);
+    var specs = [
+      { id: 'chartInflation', values: ECON_DATA.inflation },
+      { id: 'chartUnemployment', values: ECON_DATA.unemployment },
+      { id: 'chartWages', values: ECON_DATA.wages },
+    ];
+    specs.forEach(function (spec) {
+      var canvas = document.getElementById(spec.id);
+      if (!canvas) return;
+      if (econCharts[spec.id]) econCharts[spec.id].destroy();
+      econCharts[spec.id] = new Chart(canvas.getContext('2d'), buildBarConfig(spec.values, labels, highlightIndex));
+    });
+  }
+
+  renderEconCharts('pt');
+  document.getElementById('simBtn').click();
+</script>
+
+</body>
+</html>

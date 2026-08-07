@@ -1,0 +1,18 @@
+node_modules/
+
+# Segredos reais — nunca versionar. .env.example fica, .env não.
+.env
+.env.local
+.env.*.local
+
+# Artefactos de build e logs
+dist/
+build/
+*.log
+npm-debug.log*
+
+# Sistema operativo / editores
+.DS_Store
+.vscode/
+*.swp
+*.bak
