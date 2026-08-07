@@ -1,0 +1,149 @@
+:root{
+  --gray-50:#F8F8F6; --gray-100:#F0EFE9; --gray-200:#E2E0D8;
+  --gray-300:#C8C6BC; --gray-400:#9E9C94; --gray-500:#6E6C64;
+  --gray-700:#3A3834; --gray-900:#1A1916;
+  --gold:#B8935A; --gold-light:#D4AF7A; --gold-dark:#8B6B3A; --gold-pale:#F5EDD8;
+  --white:#FFFFFF; --radius:6px;
+}
+*{ box-sizing:border-box; margin:0; padding:0; }
+body{ font-family:'DM Sans', sans-serif; font-weight:300; color:var(--gray-900); background:var(--white); -webkit-font-smoothing:antialiased; }
+h1,h2,h3,.serif{ font-family:'Cormorant Garamond', serif; font-weight:400; }
+button{ font-family:inherit; cursor:pointer; border:none; background:none; }
+a{ color:inherit; text-decoration:none; }
+input, select, textarea{ font-family:'DM Sans', sans-serif; }
+:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+
+/* ---------------- Signature element: the ledger line ----------------
+   A thin gold rule with a small uppercase label at one end — evokes
+   both an inventory ledger (a partner's real, itemised portfolio) and
+   fine stationery. Used sparingly, in exactly two places: the login
+   panel's identity marks, and the empty dashboard's "what's coming"
+   list — never as generic decoration elsewhere. */
+.ledger-line{ display:flex; align-items:center; gap:14px; margin:18px 0; }
+.ledger-line .label{ font-size:0.68rem; letter-spacing:0.16em; text-transform:uppercase; color:var(--gold-light); white-space:nowrap; }
+.ledger-line .rule{ flex:1; height:1px; background:linear-gradient(to right, var(--gold), transparent); }
+.ledger-line.on-light .label{ color:var(--gold-dark); }
+.ledger-line.on-light .rule{ background:linear-gradient(to right, var(--gold), var(--gray-200)); }
+
+/* ---------------- Login: split screen ---------------- */
+.login-screen{ display:grid; grid-template-columns:1fr 1fr; min-height:100vh; }
+
+.login-editorial{
+  background:var(--gray-900); color:var(--white);
+  display:flex; flex-direction:column; justify-content:center;
+  padding:80px 72px; position:relative; overflow:hidden;
+}
+.login-editorial::before{
+  /* Faint repeating ledger-line texture, ambient, never competing with the real content on top of it. */
+  content:''; position:absolute; inset:0; opacity:0.05;
+  background-image:repeating-linear-gradient(to bottom, transparent, transparent 63px, var(--gold) 64px);
+}
+.login-editorial .eyebrow{ font-size:0.72rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--gold-light); margin-bottom:22px; }
+.login-editorial h1{ font-size:3rem; line-height:1.15; font-weight:400; max-width:9.5em; }
+.login-editorial h1 em{ font-style:italic; color:var(--gold-light); }
+.login-editorial .sub{ font-size:1rem; color:var(--gray-300); margin-top:26px; max-width:26em; line-height:1.6; font-weight:300; }
+.login-editorial .marks{ margin-top:56px; }
+.login-editorial .mark-row{ display:flex; justify-content:space-between; align-items:baseline; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.08); }
+.login-editorial .mark-row .k{ font-size:0.82rem; color:var(--gray-400); }
+.login-editorial .mark-row .v{ font-family:'Cormorant Garamond', serif; font-size:1.15rem; color:var(--gold-light); }
+
+.login-form-panel{ display:flex; align-items:center; justify-content:center; padding:48px; background:var(--gray-50); }
+.login-form-card{ width:100%; max-width:380px; }
+.login-form-card .logo{ font-family:'Cormorant Garamond', serif; font-size:1.6rem; margin-bottom:8px; }
+.login-form-card .logo em{ font-style:normal; color:var(--gold); }
+.login-form-card .heading{ font-size:1.7rem; margin-bottom:8px; }
+.login-form-card .heading-sub{ color:var(--gray-500); font-size:0.9rem; margin-bottom:32px; }
+
+.field{ margin-bottom:18px; }
+.field label{ display:block; font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--gray-500); margin-bottom:7px; font-weight:500; }
+.field input{ width:100%; padding:13px 14px; border:1px solid var(--gray-200); border-radius:var(--radius); background:var(--white); font-size:0.95rem; color:var(--gray-900); transition:border-color 0.15s; }
+.field input:focus{ border-color:var(--gold); }
+
+.btn-login{ width:100%; padding:14px; background:var(--gray-900); color:var(--white); border-radius:var(--radius); font-size:0.9rem; font-weight:500; letter-spacing:0.02em; transition:background 0.15s, transform 0.15s; }
+.btn-login:hover{ background:var(--gold-dark); transform:translateY(-1px); }
+.btn-login:disabled{ opacity:0.5; cursor:default; transform:none; }
+
+.login-error{ margin-top:16px; padding:12px 14px; background:#FDF0EE; color:#A33; border-radius:var(--radius); font-size:0.85rem; }
+.login-error:empty{ display:none; }
+
+/* ---------------- Dashboard shell (empty state, for now) ---------------- */
+.dash-shell{ min-height:100vh; background:var(--gray-50); }
+.dash-header{ display:flex; justify-content:space-between; align-items:center; padding:22px 40px; border-bottom:1px solid var(--gray-200); background:var(--white); }
+.dash-header .logo{ font-family:'Cormorant Garamond', serif; font-size:1.5rem; }
+.dash-header .logo em{ font-style:normal; color:var(--gold); }
+.dash-nav{ display:flex; gap:28px; }
+.dash-nav a{ font-size:0.85rem; color:var(--gray-500); cursor:pointer; padding-bottom:4px; border-bottom:2px solid transparent; }
+.dash-nav a.active{ color:var(--gray-900); border-bottom-color:var(--gold); }
+.dash-nav a:hover{ color:var(--gray-900); }
+.dash-header .who{ font-size:0.85rem; color:var(--gray-500); display:flex; align-items:center; gap:16px; }
+.dash-header .signout{ font-size:0.78rem; color:var(--gray-500); text-decoration:underline; text-underline-offset:3px; }
+.dash-header .signout:hover{ color:var(--gray-900); }
+
+.lead-row{ padding:18px 0; border-bottom:1px solid var(--gray-200); }
+.lead-row .top{ display:flex; justify-content:space-between; align-items:baseline; }
+.lead-row .name{ font-family:'Cormorant Garamond', serif; font-size:1.15rem; }
+.lead-row .date{ font-size:0.75rem; color:var(--gray-400); }
+.lead-row .contact{ font-size:0.85rem; color:var(--gray-500); margin-top:3px; }
+.lead-row .message{ font-size:0.85rem; color:var(--gray-700); margin-top:8px; line-height:1.5; }
+.lead-status{ font-size:0.66rem; letter-spacing:0.1em; text-transform:uppercase; padding:3px 9px; border-radius:3px; }
+.lead-status.new{ background:var(--gold-pale); color:var(--gold-dark); }
+.lead-status.contacted{ background:var(--gray-100); color:var(--gray-500); }
+.lead-status.closed{ background:var(--gray-100); color:var(--gray-400); }
+
+.dash-body{ max-width:720px; margin:0 auto; padding:88px 32px; text-align:center; }
+.dash-body.wide{ max-width:920px; text-align:left; padding:56px 40px; }
+.dash-body .eyebrow{ font-size:0.72rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold-dark); margin-bottom:18px; }
+.dash-body h2{ font-size:2.3rem; margin-bottom:16px; }
+.dash-body h2 em{ font-style:italic; color:var(--gold); }
+.dash-body .sub{ color:var(--gray-500); font-size:1rem; max-width:34em; margin:0 auto; line-height:1.65; }
+
+.portfolio-top{ display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:40px; gap:24px; flex-wrap:wrap; }
+.new-buttons{ display:flex; gap:10px; }
+.btn-new{ padding:11px 18px; border:1px solid var(--gray-300); border-radius:var(--radius); font-size:0.83rem; color:var(--gray-900); background:var(--white); transition:border-color 0.15s; white-space:nowrap; }
+.btn-new:hover{ border-color:var(--gold); color:var(--gold-dark); }
+
+.new-asset-form{ background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius); padding:24px; margin-bottom:32px; max-width:420px; }
+.new-asset-actions{ display:flex; align-items:center; gap:18px; margin-top:6px; }
+
+.portfolio-row{ display:flex; justify-content:space-between; align-items:center; padding:18px 0; border-bottom:1px solid var(--gray-200); gap:16px; }
+.portfolio-row .name{ font-family:'Cormorant Garamond', serif; font-size:1.25rem; }
+.portfolio-row .meta{ font-size:0.8rem; color:var(--gray-500); margin-top:2px; }
+.portfolio-row .kind-tag{ font-size:0.66rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--gold-dark); background:var(--gold-pale); padding:4px 9px; border-radius:3px; white-space:nowrap; }
+.portfolio-empty{ padding:48px 0; text-align:center; color:var(--gray-500); font-size:0.9rem; }
+
+/* ---------------- Shared field-forms compatibility ----------------
+   apps/zfind-web/src/services/field-forms.js generates HTML using
+   these class names, styled here to match Partner's own palette —
+   written once, reused by both this app and Admin, never duplicated. */
+.page-title{ font-family:'Cormorant Garamond', serif; font-size:1.35rem; margin:36px 0 14px; color:var(--gray-900); }
+.detail-panel{ background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius); padding:22px; }
+.form-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:16px; }
+.form-field label{ display:block; font-size:0.72rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--gray-500); margin-bottom:6px; font-weight:500; }
+.form-field input, .form-field select, .form-field textarea{ width:100%; padding:10px 12px; border:1px solid var(--gray-200); border-radius:var(--radius); font-size:0.9rem; color:var(--gray-900); background:var(--white); }
+.form-field input:focus, .form-field select:focus, .form-field textarea:focus{ border-color:var(--gold); }
+.form-field textarea{ min-height:80px; resize:vertical; }
+.btn{ padding:10px 18px; border-radius:var(--radius); font-size:0.85rem; border:1px solid var(--gray-300); background:var(--white); color:var(--gray-900); }
+.btn-primary{ background:var(--gray-900); color:var(--white); border-color:var(--gray-900); }
+.btn-primary:hover{ background:var(--gold-dark); border-color:var(--gold-dark); }
+
+.detail-back{ font-size:0.82rem; color:var(--gray-500); text-decoration:underline; text-underline-offset:3px; display:inline-block; margin-bottom:8px; }
+.detail-back:hover{ color:var(--gray-900); }
+.detail-title{ font-family:'Cormorant Garamond', serif; font-size:1.9rem; }
+.portfolio-row{ cursor:pointer; }
+.portfolio-row:hover .name{ color:var(--gold-dark); }
+
+.toast-host{ position:fixed; bottom:24px; right:24px; z-index:100; display:flex; flex-direction:column; gap:8px; }
+.toast{ padding:12px 18px; border-radius:var(--radius); font-size:0.85rem; color:var(--white); background:var(--gray-900); box-shadow:0 8px 24px rgba(0,0,0,0.18); animation:toast-in 0.2s ease-out; }
+.toast.error{ background:#A33; }
+@keyframes toast-in{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:translateY(0); } }
+
+/* Placed last, deliberately — CSS cascade order matters here: this
+   needs to come after .login-editorial's own display:flex rule to
+   actually win at this breakpoint. A real bug caught by testing:
+   this media query previously sat before that rule, so the later
+   unconditional rule always won, and the editorial panel never
+   actually hid on mobile despite the code looking correct. */
+@media (max-width:860px){
+  .login-screen{ grid-template-columns:1fr; }
+  .login-editorial{ display:none; }
+}

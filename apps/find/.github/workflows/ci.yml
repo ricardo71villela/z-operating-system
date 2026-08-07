@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build Z Find prototype
+        run: npm run build:zfind
+
+      - name: Run Import Engine v2 integration tests
+        run: npm run test:import-engine
+
+      - name: Run archived Import Engine v1 tests (regression guard)
+        run: npm run test:import-engine-v1-archive
+
+      - name: Run Z Find browser test suite
+        run: npm run test:browser

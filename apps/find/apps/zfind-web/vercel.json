@@ -1,0 +1,9 @@
+{
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "buildCommand": "cd ../.. && node apps/zfind-web/scripts/build.js && (node apps/zfind-web/scripts/generate-seo-pages.js || true) && node apps/zfind-web/scripts/prepare-vercel-output.js",
+  "outputDirectory": "vercel-output",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

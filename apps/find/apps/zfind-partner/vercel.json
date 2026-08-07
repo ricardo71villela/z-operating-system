@@ -1,0 +1,7 @@
+{
+  "buildCommand": "cd ../.. && node apps/zfind-partner/scripts/build.js && mkdir -p apps/zfind-partner/vercel-output && cp apps/zfind-partner/dist/z-find-partner.html apps/zfind-partner/vercel-output/index.html",
+  "outputDirectory": "vercel-output",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
