@@ -165,7 +165,7 @@ function buildZonePage({ baseUrl, locale, zoneId, zoneName, cityName, countryIso
   const hasEnoughData = listingCount >= MIN_LISTINGS_FOR_STATS;
   const title = `${zoneName}, ${cityName} — Real Estate | Z Find`;
   const description = hasEnoughData
-    ? buildMetaDescription(`Explore ${listingCount} real estate opportunities in ${zoneName}, ${cityName}. Average price: ${Math.round(avgPrice).toLocaleString()} ${currencyIso}.`)
+    ? buildMetaDescription(`Explore ${listingCount} real estate opportunities in ${zoneName}, ${cityName}. Average price: ${Math.round(avgPrice).toLocaleString(locale)} ${currencyIso}.`)
     : buildMetaDescription(`Discover ${zoneName}, ${cityName} — a neighbourhood profile and current real estate opportunities from Z Find.`);
   const absoluteImageUrl = imageUrl ? (/^https?:\/\//.test(imageUrl) ? imageUrl : base + imageUrl) : null;
 
@@ -201,7 +201,7 @@ ${absoluteImageUrl ? `<meta property="og:image" content="${escapeAttr(absoluteIm
   <h1>${escapeHtml(zoneName)}, ${escapeHtml(cityName)}</h1>
   ${absoluteImageUrl ? `<img src="${escapeAttr(absoluteImageUrl)}" alt="${escapeAttr(zoneName + ', ' + cityName)}" width="1200" height="675">` : ''}
   ${hasEnoughData
-    ? `<p>${listingCount} opportunities currently listed. Average price: ${Math.round(avgPrice).toLocaleString()} ${currencyIso}.</p>`
+    ? `<p>${listingCount} opportunities currently listed. Average price: ${Math.round(avgPrice).toLocaleString(locale)} ${currencyIso}.</p>`
     : `<p>Z Find is actively adding opportunities in ${escapeHtml(zoneName)}. <a href="${base}/#/${locale}/search">See all current opportunities →</a></p>`}
   ${sampleListings && sampleListings.length ? '<ul>' + sampleListings.map(l => `<li><a href="${base}/${locale}/${l.kind}/${l.id}">${escapeHtml(l.title)}</a></li>`).join('') + '</ul>' : ''}
 </main>
