@@ -1,0 +1,12 @@
+node_modules/
+apps/zfind-web/dist/
+apps/zfind-admin/dist/
+apps/zfind-partner/dist/
+apps/zfind-web/vercel-output/
+apps/zfind-admin/vercel-output/
+apps/zfind-partner/vercel-output/
+*.log
+.DS_Store
+/tmp/
+.env
+test-results/

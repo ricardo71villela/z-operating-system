@@ -1,0 +1,27 @@
+{
+  "slug": "audi",
+  "displayName": "Audi",
+  "legalName": "Audi AG",
+  "countryCode": "DE",
+  "sourceCode": "audi_media",
+  "sourceName": "Audi MediaCenter",
+  "websiteUrl": "https://www.audi-mediacenter.com",
+  "models": [
+    { "slug": "a1-gb", "name": "A1 GB" },
+    { "slug": "a3-8y", "name": "A3 8Y" },
+    { "slug": "a5-b10", "name": "A5 B10" },
+    { "slug": "a6-c9", "name": "A6 C9" },
+    { "slug": "a7", "name": "A7" },
+    { "slug": "a8", "name": "A8" },
+    { "slug": "q2-ga", "name": "Q2 GA" },
+    { "slug": "q3-f3", "name": "Q3 F3" },
+    { "slug": "q4-e-tron", "name": "Q4 e-tron" },
+    { "slug": "q5-gu", "name": "Q5 GU" },
+    { "slug": "q6-e-tron", "name": "Q6 e-tron" },
+    { "slug": "q7-4m", "name": "Q7 4M" },
+    { "slug": "q8-4m", "name": "Q8 4M" },
+    { "slug": "e-tron-gt", "name": "e-tron GT" },
+    { "slug": "tt-fv", "name": "TT FV" },
+    { "slug": "r8-4s", "name": "R8 4S" }
+  ]
+}

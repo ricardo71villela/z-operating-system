@@ -1,0 +1,133 @@
+export type CuratedBodyStyle = {
+  code: string;
+  nameEn: string;
+  namePt: string;
+  nameFr: string;
+  nameDe: string;
+  nameEs: string;
+  nameIt: string;
+  position: number;
+};
+
+export const curatedBodyStyles: CuratedBodyStyle[] = [
+  {
+    code: "hatchback",
+    nameEn: "Hatchback",
+    namePt: "Hatchback",
+    nameFr: "Berline compacte",
+    nameDe: "Schrägheck",
+    nameEs: "Hatchback",
+    nameIt: "Hatchback",
+    position: 10,
+  },
+  {
+    code: "saloon",
+    nameEn: "Saloon",
+    namePt: "Berlina",
+    nameFr: "Berline",
+    nameDe: "Limousine",
+    nameEs: "Berlina",
+    nameIt: "Berlina",
+    position: 20,
+  },
+  {
+    code: "estate",
+    nameEn: "Estate",
+    namePt: "Carrinha",
+    nameFr: "Break",
+    nameDe: "Kombi",
+    nameEs: "Familiar",
+    nameIt: "Station wagon",
+    position: 30,
+  },
+  {
+    code: "coupe",
+    nameEn: "Coupé",
+    namePt: "Coupé",
+    nameFr: "Coupé",
+    nameDe: "Coupé",
+    nameEs: "Coupé",
+    nameIt: "Coupé",
+    position: 40,
+  },
+  {
+    code: "convertible",
+    nameEn: "Convertible",
+    namePt: "Cabriolet",
+    nameFr: "Cabriolet",
+    nameDe: "Cabriolet",
+    nameEs: "Descapotable",
+    nameIt: "Cabriolet",
+    position: 50,
+  },
+  {
+    code: "roadster",
+    nameEn: "Roadster",
+    namePt: "Roadster",
+    nameFr: "Roadster",
+    nameDe: "Roadster",
+    nameEs: "Roadster",
+    nameIt: "Roadster",
+    position: 60,
+  },
+  {
+    code: "targa",
+    nameEn: "Targa",
+    namePt: "Targa",
+    nameFr: "Targa",
+    nameDe: "Targa",
+    nameEs: "Targa",
+    nameIt: "Targa",
+    position: 70,
+  },
+  {
+    code: "suv",
+    nameEn: "SUV",
+    namePt: "SUV",
+    nameFr: "SUV",
+    nameDe: "SUV",
+    nameEs: "SUV",
+    nameIt: "SUV",
+    position: 80,
+  },
+  {
+    code: "crossover",
+    nameEn: "Crossover",
+    namePt: "Crossover",
+    nameFr: "Crossover",
+    nameDe: "Crossover",
+    nameEs: "Crossover",
+    nameIt: "Crossover",
+    position: 90,
+  },
+  {
+    code: "mpv",
+    nameEn: "MPV",
+    namePt: "Monovolume",
+    nameFr: "Monospace",
+    nameDe: "Van",
+    nameEs: "Monovolumen",
+    nameIt: "Monovolume",
+    position: 100,
+  },
+  {
+    code: "pickup",
+    nameEn: "Pickup",
+    namePt: "Pickup",
+    nameFr: "Pick-up",
+    nameDe: "Pickup",
+    nameEs: "Pickup",
+    nameIt: "Pickup",
+    position: 110,
+  },
+  {
+    code: "van",
+    nameEn: "Van",
+    namePt: "Furgão",
+    nameFr: "Fourgon",
+    nameDe: "Transporter",
+    nameEs: "Furgón",
+    nameIt: "Furgone",
+    position: 120,
+  },
+];

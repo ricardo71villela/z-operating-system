@@ -1,0 +1,35 @@
+{
+  "name": "zos-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ZOS Platform monorepo — Z Mobility, Z Jobs, Z Find and shared platform capabilities.",
+  "workspaces": [
+    "apps/jobs/apps/*",
+    "apps/jobs/packages/*",
+    "apps/jobs/tools",
+    "domains/*",
+    "packages/*",
+    "tooling/*",
+    "apps/find",
+    "apps/mobility",
+    "apps/mobility/packages/*"
+  ],
+  "scripts": {
+    "jobs:typecheck": "npm run typecheck --workspace=@zjobs/domain && npm run typecheck --workspace=@zjobs/api",
+    "jobs:test": "npm run test --workspace=@zjobs/domain",
+    "check": "npm run jobs:typecheck && npm run find:check && npm run mobility:typecheck",
+    "test": "npm run jobs:test && npm run find:test && npm run mobility:test",
+    "build": "npm run find:build && npm run mobility:build",
+    "find:check": "npm run check --workspace=z-find-platform",
+    "find:test": "npm run test --workspace=z-find-platform",
+    "find:build": "npm run build:zfind --workspace=z-find-platform && npm run build:admin --workspace=z-find-platform && npm run build:partner --workspace=z-find-platform",
+    "mobility:typecheck": "npm run typecheck --workspace=z-mobility-next",
+    "mobility:test": "npm run test:automotive --workspace=z-mobility-next",
+    "mobility:build": "npm run build --workspace=z-mobility-next"
+  },
+  "engines": {
+    "node": ">=22 <25",
+    "npm": ">=10 <12"
+  },
+  "packageManager": "npm@11.13.0"
+}

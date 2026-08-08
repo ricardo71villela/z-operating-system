@@ -1,0 +1,495 @@
+<svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+  <defs>
+    <linearGradient id="zfindGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F5D998"/>
+      <stop offset="22%" stop-color="#D4AF7A"/>
+      <stop offset="45%" stop-color="#B8935A"/>
+      <stop offset="60%" stop-color="#8B6B3A"/>
+      <stop offset="78%" stop-color="#D4AF7A"/>
+      <stop offset="100%" stop-color="#F5D998"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<header class="site">
+  <div class="wrap nav-row">
+    <div class="logo"><svg class="zf-mark" viewBox="0 0 1254 1254"><g transform="translate(0.000000,1254.000000) scale(0.100000,-0.100000)" fill="url(#zfindGold)"><path d="__PATH_D__"/></g></svg><em>Find</em></div>
+    <nav class="nav-links">
+      <button class="nav-btn active" data-view="home" data-i18n="navigation.home"></button>
+      <button class="nav-btn" data-view="search" data-i18n="navigation.search"></button>
+      <button class="nav-btn" data-view="partner" data-i18n="navigation.partner"></button>
+      <button class="nav-btn" data-view="simulator" data-i18n="navigation.simulator"></button>
+    </nav>
+    <div class="nav-actions">
+      <div class="lang-switch" role="group" aria-label="Language">
+        <button data-lang="pt">PT</button>
+        <button data-lang="en">EN</button>
+        <button data-lang="fr">FR</button>
+      </div>
+      <button class="btn btn-ghost" data-i18n="common.publish"></button>
+      <button class="btn btn-outline" data-i18n="common.signIn"></button>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- ============ HOME ============ -->
+<section class="view active" id="view-home">
+  <div class="hero">
+    <div class="wrap">
+      <span class="eyebrow" data-i18n="hero.eyebrow"></span>
+      <h1><span data-i18n="hero.titleLine1"></span><br><i data-i18n="hero.titleLineEm"></i></h1>
+      <p class="lead" data-i18n="hero.lead"></p>
+
+      <div class="searchbar">
+        <div class="searchbar-inner">
+          <div class="cat-tabs">
+            <button class="active" data-cat="residential" data-i18n="search.tabResidential"></button>
+            <button data-cat="developments" data-i18n="search.tabDevelopments"></button>
+            <button data-cat="land" data-i18n="search.tabLand"></button>
+            <button data-cat="offmarket" data-i18n="search.tabOffmarket"></button>
+          </div>
+          <div class="search-fields">
+            <input type="text" id="home-q" data-i18n-ph="search.locationPh">
+            <div class="divider"></div>
+            <select id="home-type">
+              <option value="" data-i18n="search.typeAny"></option>
+              <option value="apartment" data-i18n="search.typeApartment"></option>
+              <option value="villa" data-i18n="search.typeVilla"></option>
+              <option value="development" data-i18n="search.typeDevelopment"></option>
+              <option value="land" data-i18n="search.typeLand"></option>
+              <option value="offmarket" data-i18n="search.typeOffmarket"></option>
+            </select>
+            <div class="divider"></div>
+            <select id="home-budget">
+              <option value="" data-i18n="search.anyBudget"></option>
+              <option value="u400" data-i18n="search.budgetUnder400"></option>
+              <option value="400-700" data-i18n="search.budget400to700"></option>
+              <option value="o700" data-i18n="search.budgetOver700"></option>
+            </select>
+            <button class="go" data-i18n="common.search" onclick="submitHomeSearch()"></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="principle-strip">
+        <div class="p"><span class="num">I.</span><h4 data-i18n-html="hero.p1title"></h4><p data-i18n="hero.p1body"></p></div>
+        <div class="p"><span class="num">II.</span><h4 data-i18n-html="hero.p2title"></h4><p data-i18n="hero.p2body"></p></div>
+        <div class="p"><span class="num">III.</span><h4 data-i18n-html="hero.p3title"></h4><p data-i18n="hero.p3body"></p></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="home-status" style="display:none; text-align:center; padding:60px 20px; border:1px solid var(--gray-200); border-radius:var(--radius); background:var(--gray-50); max-width:1200px; margin:0 auto;">
+    <h3 id="home-status-title" style="font-size:1.4rem;"></h3>
+    <p id="home-status-body" style="color:var(--gray-500); margin-top:10px; font-size:0.9rem;"></p>
+  </div>
+
+  <div id="home-grids-wrap">
+  <section class="block wrap">
+    <div class="block-head">
+      <div><h2 data-i18n="home.curatedTitle"></h2><p data-i18n="home.curatedSub"></p></div>
+      <button class="btn btn-outline" data-i18n="common.viewAll" onclick="navigate('search')"></button>
+    </div>
+    <div class="grid" id="home-grid"></div>
+  </section>
+
+  <section class="block wrap" style="padding-top:0">
+    <div class="block-head">
+      <div><h2 data-i18n="home.landTitle"></h2><p data-i18n="home.landSub"></p></div>
+      <button class="btn btn-outline" data-i18n="home.exploreLand" onclick="navigate('search')"></button>
+    </div>
+    <div class="grid" id="home-land-grid"></div>
+  </section>
+  </div>
+</section>
+
+<!-- ============ SEARCH ============ -->
+<section class="view" id="view-search">
+  <div class="wrap" style="padding:44px 0 76px">
+    <div class="block-head">
+      <div><h2 id="search-results-title"></h2><p data-i18n="search.resultsSub"></p></div>
+    </div>
+
+    <div class="searchbar" style="max-width:100%; margin-bottom:26px;">
+      <div class="search-fields" style="padding:10px;">
+        <input type="text" id="search-q" data-i18n-ph="search.locationPh">
+        <div class="divider"></div>
+        <select id="search-budget">
+          <option value="" data-i18n="search.anyBudget"></option>
+          <option value="u400" data-i18n="search.budgetUnder400"></option>
+          <option value="400-700" data-i18n="search.budget400to700"></option>
+          <option value="o700" data-i18n="search.budgetOver700"></option>
+        </select>
+        <button class="go" data-i18n="search.applyFilters" onclick="applySearchBar()"></button>
+        <button class="btn btn-ghost" data-i18n="search.clearFilters" onclick="clearSearchFilters()"></button>
+      </div>
+    </div>
+
+    <div class="tabs-row">
+      <button class="pill active" data-filter="all" data-i18n="search.filterAll"></button>
+      <button class="pill" data-filter="apartment" data-i18n="search.filterApartments"></button>
+      <button class="pill" data-filter="villa" data-i18n="search.filterVillas"></button>
+      <button class="pill" data-filter="development" data-i18n="search.filterDevelopments"></button>
+      <button class="pill" data-filter="land" data-i18n="search.filterLand"></button>
+      <button class="pill" data-filter="offmarket" data-i18n="search.filterOffmarket"></button>
+    </div>
+    <div class="grid" id="search-grid"></div>
+    <div id="search-empty" style="display:none; text-align:center; padding:60px 20px; border:1px solid var(--gray-200); border-radius:var(--radius); background:var(--gray-50);">
+      <h3 id="search-empty-title" style="font-size:1.4rem;"></h3>
+      <p id="search-empty-body" style="color:var(--gray-500); margin-top:10px; font-size:0.9rem;"></p>
+      <button class="btn btn-outline" style="margin-top:20px;" data-i18n="search.clearFilters" onclick="clearSearchFilters()"></button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PROPERTY DETAIL (rendered) ============ -->
+<section class="view" id="view-property"><div id="property-root"></div></section>
+
+<!-- ============ DEVELOPMENT DETAIL (rendered) ============ -->
+<section class="view" id="view-development"><div id="development-root"></div></section>
+
+<!-- ============ LAND DETAIL (rendered) ============ -->
+<section class="view" id="view-land"><div id="land-root"></div></section>
+
+<!-- ============ PARTNER PROFILE (rendered) ============ -->
+<section class="view" id="view-partner"><div id="partner-root"></div></section>
+<section class="view" id="view-legal">
+  <div class="legal-page wrap">
+    <div class="legal-header">
+      <div class="eyebrow">GUIA LEGAL</div>
+      <h1>Comprar, vender e arrendar em Portugal</h1>
+      <p>Um guia de referência sobre o processo, os impostos e os direitos e deveres de quem compra, vende ou arrenda imóveis em Portugal.</p>
+      <div class="disclaimer">Esta informação é de carácter geral e não substitui aconselhamento jurídico ou fiscal profissional para o seu caso concreto.</div>
+    </div>
+
+    <div class="legal-layout">
+      <nav class="legal-toc">
+        <a href="#lg-comprar">Comprar um Imóvel</a>
+        <a href="#lg-vender">Vender um Imóvel</a>
+        <a href="#lg-maisvalias">Mais-Valias</a>
+        <a href="#lg-impostos">Impostos sobre Imóveis</a>
+        <a href="#lg-arrendamento">Arrendamento</a>
+        <a href="#lg-condominios">Condomínios</a>
+        <a href="#lg-investidor">Investidor Estrangeiro</a>
+        <a href="#lg-faq">Perguntas Frequentes</a>
+      </nav>
+
+      <div>
+        <div class="legal-section" id="lg-comprar">
+          <div class="section-num">Secção 1</div>
+          <h2>Comprar um Imóvel</h2>
+          <p class="section-intro">O processo de compra em Portugal segue, em regra, estas sete etapas — da procura à escritura.</p>
+          <div class="legal-card"><h3>1. Definir critérios e orçamento</h3><p>Zona, tipologia, orçamento máximo incluindo custos de aquisição (normalmente 6% a 10% acima do preço), e se vai recorrer a crédito habitação.</p></div>
+          <div class="legal-card"><h3>2. Procurar e visitar</h3><p>Compare imóveis semelhantes na mesma zona. Peça sempre o certificado energético antes da visita — é obrigatório desde 2013.</p></div>
+          <div class="legal-card"><h3>3. Obter o NIF</h3><p>Obrigatório para qualquer transação imobiliária em Portugal. Residentes e não residentes podem obtê-lo numa repartição de Finanças, ou não residentes através de procurador.</p></div>
+          <div class="legal-card"><h3>4. CPCV — Contrato-Promessa de Compra e Venda</h3><p>Vincula comprador e vendedor antes da escritura. O comprador paga um sinal (habitualmente 10% a 20%). Se o vendedor incumprir, devolve o dobro do sinal; se o comprador incumprir, perde o sinal.</p></div>
+          <div class="legal-card"><h3>5. Devida diligência</h3><p>Confirme a Certidão Permanente (histórico de proprietários, hipotecas, penhoras, ónus — consultada em predial.oa.pt), a Caderneta Predial, a Licença de Utilização e, se aplicável, a Ficha Técnica da Habitação (obrigatória para imóveis com licença pós-2004).</p></div>
+          <div class="legal-card"><h3>6. Crédito habitação (se aplicável)</h3><p>Os bancos financiam tipicamente até 90% do menor valor entre a avaliação bancária e o preço de compra, com taxa de esforço máxima de 35–40%. A Euribor (3, 6 ou 12 meses) é o indexante mais comum.</p></div>
+          <div class="legal-card"><h3>7. Escritura e registo</h3><p>O IMT e o Imposto do Selo devem estar pagos antes da escritura — sem comprovativo, a escritura não pode realizar-se. A <strong>Casa Pronta</strong> é um balcão único que permite escritura, pagamento de impostos e registo predial num único ato, geralmente mais rápido e económico.</p></div>
+        </div>
+
+        <div class="legal-section" id="lg-vender">
+          <div class="section-num">Secção 2</div>
+          <h2>Vender um Imóvel</h2>
+          <p class="section-intro">Documentos obrigatórios e o essencial do processo do lado do vendedor.</p>
+          <table class="legal-table">
+            <tr><th>Documento</th><th>Onde obter</th></tr>
+            <tr><td>Caderneta Predial</td><td>Portal das Finanças</td></tr>
+            <tr><td>Certidão Permanente</td><td>predial.oa.pt</td></tr>
+            <tr><td>Certificado Energético</td><td>Perito qualificado (ADENE)</td></tr>
+            <tr><td>Licença de Utilização</td><td>Câmara Municipal</td></tr>
+            <tr><td>Ficha Técnica da Habitação</td><td>Obrigatória para licenças pós-2004</td></tr>
+            <tr><td>Declaração do Condomínio</td><td>Administração do condomínio</td></tr>
+            <tr><td>Distrate de Hipoteca</td><td>Banco, se aplicável</td></tr>
+          </table>
+          <div class="legal-callout">Se o imóvel tiver hipoteca, o valor da venda liquida o crédito em simultâneo com a escritura — o comprador paga diretamente ao banco do vendedor, que emite o distrate.</div>
+        </div>
+
+        <div class="legal-section" id="lg-maisvalias">
+          <div class="section-num">Secção 3</div>
+          <h2>Mais-Valias na Venda</h2>
+          <p class="section-intro">A mais-valia é a diferença entre o valor de venda e o valor de compra, ajustada por despesas e desvalorização.</p>
+          <div class="legal-card"><h3>Fórmula</h3><p>Mais-Valia = Valor de Venda − (Valor de Compra × Coeficiente de Desvalorização) − Despesas de Aquisição − Despesas de Venda − Obras de Valorização.</p></div>
+          <div class="legal-card"><h3>Tributação</h3><p>Para residentes, apenas 50% da mais-valia é tributada em sede de IRS, à taxa progressiva do agregado. Para não residentes, a totalidade é tributada a uma taxa fixa.</p></div>
+          <div class="legal-card"><h3>Isenção por reinvestimento</h3><p>Isenção quando o valor de venda é reinvestido em habitação própria permanente em Portugal ou no Espaço Económico Europeu, no prazo de 36 meses. Para maiores de 65 anos, o reinvestimento pode ser feito em PPR, fundo de pensões ou seguro de vida.</p></div>
+        </div>
+
+        <div class="legal-section" id="lg-custos">
+          <div class="section-num">Secção 4</div>
+          <h2>Custos de Aquisição — IMT e Imposto do Selo</h2>
+          <div class="legal-callout link-out">Os escalões do IMT são actualizados anualmente pela Autoridade Tributária. Em vez de publicar uma tabela que fica desactualizada, use o nosso <a href="#" onclick="navigate('simulator');return false;">Simulador de Custos de Aquisição</a> — está sempre atualizado com os valores em vigor.</div>
+          <p style="color:var(--gray-500); font-size:0.9rem;">De forma geral: habitação própria e permanente até um limite tem taxa 0%, com taxas progressivas até 8% acima disso; segunda habitação ou investimento é tributado desde o primeiro euro. Para compradores não residentes fiscais, aplica-se desde maio de 2026 uma taxa fixa de 7,5% (ver <a href="#lg-investidor" style="color:var(--gold-dark);">Investidor Estrangeiro</a>). O Imposto do Selo é de 0,8% sobre o valor da transação, mais 0,6% sobre o valor do crédito (para empréstimos com prazo igual ou superior a 5 anos).</p>
+        </div>
+
+        <div class="legal-section" id="lg-impostos">
+          <div class="section-num">Secção 5</div>
+          <h2>Impostos sobre Imóveis</h2>
+          <div class="legal-card"><h3>IMI — Imposto Municipal sobre Imóveis</h3><p>Imposto anual pago pelo proprietário. Taxa entre 0,3% e 0,45% para prédios urbanos (definida por cada município), calculada sobre o Valor Patrimonial Tributário (VPT).</p></div>
+          <div class="legal-card"><h3>Isenção de IMI</h3><p>Habitação própria e permanente com VPT ≤ €125.000 e rendimento do agregado ≤ €153.300 pode beneficiar de isenção temporária de 3 anos, renovável. Imóveis em reabilitação urbana: isenção de 5 anos.</p></div>
+          <div class="legal-card"><h3>AIMI — Adicional ao IMI</h3><p>Incide sobre o VPT global de imóveis acima de €600.000 por titular: 0,7% até €1.000.000, 1% acima disso. Para pessoas coletivas, taxa de 0,4% sem mínimo isento.</p></div>
+          <div class="legal-card"><h3>VPT — Valor Patrimonial Tributário</h3><p>Valor fiscal do imóvel determinado pelas Finanças, com base na área, localização, qualidade e idade. Serve de base ao IMI, AIMI e IMT.</p></div>
+        </div>
+
+        <div class="legal-section" id="lg-arrendamento">
+          <div class="section-num">Secção 6</div>
+          <h2>Arrendamento — Senhorio e Inquilino</h2>
+          <div class="legal-card"><h3>Prazo e renovação</h3><p>O prazo mínimo legal para arrendamento habitacional é de 1 ano, com renovação automática, salvo oposição de qualquer das partes com pré-aviso adequado.</p></div>
+          <div class="legal-card"><h3>Rescisão pelo inquilino</h3><p>Pré-aviso entre 30 e 120 dias, consoante a duração do contrato. Nos primeiros 6 meses, o pré-aviso é sempre de 120 dias.</p></div>
+          <div class="legal-card"><h3>Caução</h3><p>A prática habitual é 1 a 2 rendas, sem limite legal máximo em Portugal. Deve ser formalizada por escrito e devolvida no final do contrato, deduzida de eventuais danos.</p></div>
+          <div class="legal-card"><h3>Direito de preferência</h3><p>Em caso de venda do imóvel arrendado, o inquilino tem direito de preferência na compra pelo mesmo preço, com notificação de 30 dias de antecedência por carta registada.</p></div>
+          <div class="legal-card"><h3>Obras</h3><p>Obras de conservação são responsabilidade do senhorio; pequenas reparações do uso normal, do inquilino. Qualquer acordo diferente deve constar do contrato.</p></div>
+          <div class="legal-card"><h3>Tributação das rendas</h3><p>Declaradas no Anexo F do IRS, taxa base de 28%. Com contrato registado nas Finanças, a taxa pode ser reduzida consoante a duração: 26% (2–5 anos), 23% (5–10 anos), 14% (10–20 anos), 10% (mais de 20 anos).</p><p style="font-size:0.8rem; color:var(--gray-500); margin-top:6px;">⚠ Este regime tem sido objeto de alterações recentes na legislação fiscal. Confirme sempre a taxa aplicável ao seu contrato com um contabilista antes de declarar.</p></div>
+        </div>
+
+        <div class="legal-section" id="lg-condominios">
+          <div class="section-num">Secção 7</div>
+          <h2>Condomínios</h2>
+          <p class="section-intro">A propriedade horizontal implica direitos e deveres perante o condomínio (Código Civil, art. 1414.º e seguintes).</p>
+          <div class="legal-card"><h3>Quotas e Fundo de Reserva</h3><p>Cada condómino contribui na proporção da sua fração (permilagem). O fundo de reserva é obrigatório por lei, com contribuição mínima de 10% das quotas ordinárias, depositado em conta separada.</p></div>
+          <div class="legal-card"><h3>Dívidas de condomínio</h3><p>As dívidas seguem o imóvel, não o proprietário — o comprador de um imóvel com dívidas de condomínio pode ficar responsável pelo seu pagamento. Exija sempre a declaração do condomínio antes de comprar.</p></div>
+          <div class="legal-card"><h3>Direitos dos condóminos</h3><p>Participar e votar em assembleia, consultar a documentação do condomínio, exigir prestação de contas, e impugnar judicialmente deliberações ilegais.</p></div>
+        </div>
+
+        <div class="legal-section" id="lg-investidor">
+          <div class="section-num">Secção 8</div>
+          <h2>Investidor Estrangeiro</h2>
+          <p class="section-intro">Portugal não tem restrições de nacionalidade para a compra de imóveis.</p>
+          <div class="legal-card"><h3>NIF Português</h3><p>Obrigatório para qualquer transação imobiliária. Pode ser obtido numa repartição de Finanças com passaporte, no consulado português, ou através de procurador.</p></div>
+          <div class="legal-card"><h3>Representante Fiscal</h3><p>Não residentes fora da UE/EEE são obrigados a nomear um representante fiscal em Portugal — pessoa singular ou coletiva que atua como intermediário junto da Autoridade Tributária.</p></div>
+          <div class="legal-card"><h3>Tributação de não residentes</h3><p>Rendimentos prediais (rendas): 25% para residentes UE/EEE, 28% para outros países. Mais-valias: 28% sobre a totalidade, sem a exclusão de 50% aplicável a residentes. Imposto do Selo: mesma taxa que para residentes.</p></div>
+          <div class="legal-callout link-out">Desde o Decreto-Lei n.º 97/2026 (20 de maio de 2026), a compra de habitação por não residentes fiscais está sujeita a uma taxa fixa de IMT de 7,5%, em vez da escala progressiva de residentes — com 3 exceções possíveis (tornar-se residente fiscal, tornar-se residente fiscal nos 2 anos seguintes, ou arrendamento de longa duração a renda moderada). Use o nosso <a href="#" onclick="navigate('simulator');return false;">Simulador de Custos de Aquisição</a> para calcular o valor exato.</div>
+          <div class="legal-card"><h3>Convenções de Dupla Tributação</h3><p>Portugal tem acordos com mais de 70 países — incluindo todos os da UE, EUA, Reino Unido, Brasil e China — que evitam a dupla tributação de rendimentos imobiliários.</p></div>
+          <div class="legal-callout">O programa Golden Visa (ARI) foi encerrado para aquisição de imóveis em outubro de 2023 (Lei n.º 56/2023). Continuam elegíveis outras modalidades de investimento qualificado para residência em Portugal.</div>
+        </div>
+
+        <div class="legal-section" id="lg-faq">
+          <div class="section-num">Secção 9</div>
+          <h2>Perguntas Frequentes</h2>
+          <div class="legal-faq">
+            <details><summary>O certificado energético é obrigatório?</summary><p>Sim, desde 2013, para venda e arrendamento. Sem este documento não é possível publicar anúncios nem realizar a escritura. A validade é de 10 anos (6 em caso de obras de remodelação significativas).</p></details>
+            <details><summary>Posso vender uma casa com hipoteca?</summary><p>Sim. O valor da venda liquida o crédito em simultâneo com a escritura. O banco emite o distrate de hipoteca e o comprador paga diretamente ao banco do vendedor.</p></details>
+            <details><summary>Quem paga a escritura?</summary><p>Por regra, o comprador suporta IMT, Imposto do Selo, notário e registo predial. O vendedor suporta o distrate de hipoteca e a mais-valia resultante da venda.</p></details>
+            <details><summary>Qual é o prazo mínimo de arrendamento?</summary><p>1 ano, com renovação automática, salvo oposição das partes com pré-aviso adequado.</p></details>
+            <details><summary>Um estrangeiro pode comprar imóveis em Portugal?</summary><p>Sim, sem restrições. É necessário um NIF português e, para não residentes fora da UE/EEE, nomear um representante fiscal. Desde maio de 2026, compradores não residentes fiscais pagam uma taxa fixa de IMT de 7,5% (ver <a href="#lg-investidor" style="color:var(--gold-dark); text-decoration:underline;">Investidor Estrangeiro</a>) — o resto do processo é idêntico ao de um comprador residente.</p></details>
+            <details><summary>Quais os custos totais na compra de um imóvel?</summary><p>Além do preço: IMT (variável), Imposto do Selo (0,8%), escritura e registo (tipicamente €750 a €2.000), Imposto do Selo sobre o crédito (0,6%, se aplicável). Use o nosso <a href="#" onclick="navigate('simulator');return false;" style="color:var(--gold-dark); text-decoration:underline;">Simulador de Custos</a> para uma estimativa exata.</p></details>
+            <details><summary>Posso deduzir juros do crédito habitação no IRS?</summary><p>Apenas para contratos celebrados até 31 de dezembro de 2011. Para contratos posteriores, não existe dedução dos juros no IRS.</p></details>
+            <details><summary>O que é o VPT?</summary><p>O Valor Patrimonial Tributário é o valor fiscal do imóvel determinado pelas Finanças, com base na área, localização, qualidade e idade. Serve de base ao IMI, AIMI e IMT.</p></details>
+            <details><summary>Quem paga as obras num imóvel arrendado?</summary><p>Obras de conservação são responsabilidade do senhorio. Pequenas reparações do uso normal são responsabilidade do inquilino. Qualquer acordo diferente deve constar do contrato.</p></details>
+            <details><summary>O que é o direito de preferência?</summary><p>Em caso de venda do imóvel arrendado, o inquilino tem direito de preferência na compra pelo mesmo preço, com notificação de 30 dias de antecedência por carta registada.</p></details>
+            <details><summary>Posso arrendar sem registar o contrato?</summary><p>Legalmente possível mas fortemente desaconselhado — implica coimas entre €200 e €1.650, perda de benefícios fiscais e impossibilidade de emitir recibos eletrónicos.</p></details>
+            <details><summary>Como funciona a Casa Pronta?</summary><p>Balcão único que permite escritura, pagamento de impostos e registo predial num único ato. Disponível em lojas de Registo Civil e Predial — geralmente mais rápido e económico.</p></details>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="legal-cta wrap">
+      <h3>Pronto para procurar?</h3>
+      <p>Explore oportunidades reais e verificadas em Portugal.</p>
+      <button class="btn btn-gold" onclick="navigate('search')">Pesquisar imóveis</button>
+    </div>
+  </div>
+</section>
+
+<section class="view" id="view-al-manual">
+  <div class="legal-page wrap">
+    <div class="legal-header">
+      <div class="eyebrow">GUIA DE ALOJAMENTO LOCAL</div>
+      <h1>Alojamento Local no Grande Porto</h1>
+      <p>Do licenciamento à fiscalidade — um guia de referência para proprietários e investidores que consideram o Alojamento Local (AL) em Porto, Matosinhos e Vila Nova de Gaia.</p>
+      <div class="disclaimer">A legislação do AL está sujeita a alterações frequentes. Este guia reflete o quadro legal em vigor em 2026, mas deve ser sempre confirmado junto da câmara municipal competente e de um contabilista certificado antes de qualquer decisão.</div>
+    </div>
+
+    <div class="legal-layout">
+      <nav class="legal-toc">
+        <a href="#al-oque">O que é o AL</a>
+        <a href="#al-elegibilidade">Elegibilidade</a>
+        <a href="#al-processo">Processo de Licenciamento</a>
+        <a href="#al-obrigacoes">Obrigações Legais</a>
+        <a href="#al-fiscalidade">Fiscalidade</a>
+        <a href="#al-rentabilidade">Rentabilidade</a>
+        <a href="#al-checklist">Checklist</a>
+        <a href="#al-faq">Perguntas Frequentes</a>
+        <a href="#al-glossario">Glossário</a>
+      </nav>
+
+      <div>
+        <div class="legal-section" id="al-oque">
+          <div class="section-num">01</div>
+          <h2>O que é o Alojamento Local</h2>
+          <p class="section-intro">O AL é o regime jurídico que permite prestar serviços de alojamento temporário a turistas, mediante remuneração, num imóvel mobilado — sem cumprir os requisitos exigidos a empreendimentos turísticos tradicionais. Distingue-se do arrendamento habitacional pela duração das estadias (normalmente inferior a 30 dias) e pelos serviços que costuma incluir, como limpeza e roupa de cama.</p>
+          <div class="legal-card"><h3>As quatro modalidades</h3><p><strong>Apartamento</strong> — fração autónoma, a modalidade mais comum. <strong>Moradia</strong> — edifício autónomo, a única isenta da placa "AL" obrigatória. <strong>Estabelecimento de Hospedagem</strong> — unidades por quarto, inclui o "Hostel". <strong>Quartos</strong> — até 3 quartos, na residência fiscal do titular.</p></div>
+          <table class="legal-table">
+            <tr><th>Critério</th><th>Alojamento Local</th><th>Arrendamento Tradicional</th></tr>
+            <tr><td>Duração típica</td><td>Dias a poucas semanas</td><td>12 meses ou mais</td></tr>
+            <tr><td>Registo exigido</td><td>RNAL</td><td>Nenhum registo específico</td></tr>
+            <tr><td>Categoria de IRS</td><td>B — atividade empresarial</td><td>F — rendimentos prediais</td></tr>
+            <tr><td>Seguro obrigatório</td><td>Responsabilidade civil específico</td><td>Não obrigatório por lei</td></tr>
+            <tr><td>Taxa turística municipal</td><td>Aplicável, por dormida</td><td>Não aplicável</td></tr>
+          </table>
+          <p class="section-intro" style="margin-top:16px;">O AL é adequado a quem aceita gestão ativa (própria ou delegada) e valoriza flexibilidade de uso pessoal do imóvel. Para quem procura rendimento estável e totalmente passivo, o arrendamento tradicional costuma ser mais adequado.</p>
+        </div>
+
+        <div class="legal-section" id="al-elegibilidade">
+          <div class="section-num">02</div>
+          <h2>É o Seu Imóvel Elegível?</h2>
+          <p class="section-intro">Três verificações determinam se um imóvel pode ser registado como AL — ignorar esta etapa é o motivo mais comum de pedidos rejeitados.</p>
+          <div class="legal-card"><h3>1. Licença de Utilização</h3><p>O imóvel precisa de licença de utilização válida para fins habitacionais, emitida pela Câmara Municipal. Imóveis construídos antes de 1951 estão dispensados, mas é preciso comprovar a antiguidade (caderneta predial, certidão de registo predial).</p></div>
+          <div class="legal-card"><h3>2. Áreas de Contenção</h3><p>Cada câmara pode declarar zonas com sobrecarga de AL, restringindo novos registos. No Porto, correspondem às freguesias de Santo Ildefonso, Sé, Miragaia, São Nicolau e Vitória. Nestas zonas, novos registos só em situações excecionais.</p></div>
+          <div class="legal-card"><h3>3. Regulamento de Condomínio</h3><p>Desde o Decreto-Lei n.º 76/2024, a autorização prévia da assembleia deixou de ser, em regra, obrigatória — exceto para hostels. <strong>Mas o condomínio mantém poder real:</strong> pode proibir a atividade por deliberação de dois terços da permilagem, ou opor-se a uma unidade específica por maioria de mais de metade, com fundamento em perturbação reiterada.</p></div>
+          <table class="legal-table">
+            <tr><th>Concelho</th><th>Áreas de contenção</th></tr>
+            <tr><td>Porto</td><td>Santo Ildefonso, Sé, Miragaia, São Nicolau, Vitória</td></tr>
+            <tr><td>Matosinhos</td><td>A confirmar junto da câmara municipal</td></tr>
+            <tr><td>Vila Nova de Gaia</td><td>Regulamento municipal em desenvolvimento — pode incluir suspensões temporárias</td></tr>
+          </table>
+        </div>
+
+        <div class="legal-section" id="al-processo">
+          <div class="section-num">03</div>
+          <h2>O Processo de Licenciamento</h2>
+          <p class="section-intro">Confirmada a elegibilidade, o registo é inteiramente eletrónico, através do Balcão Único Eletrónico.</p>
+          <div class="legal-card"><h3>1. Reunir a documentação</h3><p>Identificação do titular, comprovativo do direito de exploração do imóvel, licença de utilização ou comprovativo de antiguidade pré-1951.</p></div>
+          <div class="legal-card"><h3>2. Autenticar-se no eportugal.gov.pt</h3><p>Área "Iniciar Atividade". Autenticação via Chave Móvel Digital, Cartão de Cidadão ou certificado digital.</p></div>
+          <div class="legal-card"><h3>3. Submeter a Comunicação Prévia</h3><p>Morada, modalidade, capacidade em quartos e camas, com toda a documentação anexada.</p></div>
+          <div class="legal-card"><h3>4. Aguardar o período de oposição</h3><p>A câmara municipal tem 60 dias úteis para se opor (90 em área de contenção). Sem oposição, o registo é tacitamente deferido, gerando o número de RNAL.</p></div>
+          <div class="legal-callout">Depois do RNAL, faltam ainda 3 registos antes do primeiro hóspede: registo na Plataforma da Taxa Municipal Turística, submissão do comprovativo de seguro de responsabilidade civil (obrigatório desde março de 2025), e abertura de atividade nas Finanças em Categoria B.</div>
+          <p style="font-size:0.85rem; color:var(--gray-500);">A falta de comprovativo do seguro foi o principal motivo de anulação de registos em 2025/2026 a nível nacional — só em Lisboa, mais de 6.700 registos foram cancelados por este motivo até fevereiro de 2026.</p>
+        </div>
+
+        <div class="legal-section" id="al-obrigacoes">
+          <div class="section-num">04</div>
+          <h2>Obrigações Legais Contínuas</h2>
+          <div class="legal-card"><h3>Comunicação de hóspedes — SIBA</h3><p>Todos os hóspedes não nacionais devem ser comunicados no SIBA (Sistema de Informação de Boletins de Alojamento, operado pela PSP) até três dias após a entrada. Coimas entre €100 e €2.000 por hóspede não comunicado.</p></div>
+          <div class="legal-card"><h3>Placa de identificação "AL"</h3><p>Obrigatória em todos os estabelecimentos, exceto moradias, afixada no exterior em local visível. A omissão é contraordenação leve, com coima entre €50 e €750.</p></div>
+          <div class="legal-card"><h3>Seguro de responsabilidade civil</h3><p>Deve cobrir danos a hóspedes e terceiros. Prémios entre €100 e €300/ano em média. Sem comprovativo submetido, a câmara pode cancelar o registo em qualquer momento.</p></div>
+          <div class="legal-card"><h3>Requisitos de segurança</h3><p>Janela para o exterior com bloqueio de luz, porta com fechadura de privacidade, pelo menos uma casa de banho por cada 4 quartos, extintor e kit de primeiros socorros (até 10 hóspedes), número 112 visível, livro de reclamações físico e eletrónico.</p></div>
+        </div>
+
+        <div class="legal-section" id="al-fiscalidade">
+          <div class="section-num">05</div>
+          <h2>Fiscalidade do Alojamento Local</h2>
+          <p class="section-intro">O rendimento do AL é tributado como atividade empresarial (Categoria B), distinta do arrendamento tradicional (Categoria F).</p>
+          <div class="legal-card"><h3>Regime simplificado — obrigações regulares</h3><p>Abertura de atividade em Categoria B antes do primeiro recibo. Recibo emitido até 5 dias após pagamento ou check-in. Ficheiro SAF-T até dia 20 de cada mês, quando os recibos não são emitidos diretamente no Portal das Finanças. Declaração anual de IRS, Anexo B.</p></div>
+          <table class="legal-table">
+            <tr><th>Concelho</th><th>TMT por dormida</th><th>Limite</th></tr>
+            <tr><td>Porto</td><td>€3,00 (subida prevista para €4,00 em 2026)</td><td>7 noites consecutivas</td></tr>
+            <tr><td>Matosinhos</td><td>€2,00</td><td>Confirmar regulamento municipal</td></tr>
+            <tr><td>Vila Nova de Gaia</td><td>€2,50</td><td>7 noites</td></tr>
+          </table>
+          <p style="font-size:0.85rem; color:var(--gray-500);">Em Vila Nova de Gaia, o proprietário é responsável pela cobrança e entrega da TMT em todas as plataformas — não há parceria direta com a câmara. No Porto, existem acordos que permitem a algumas plataformas cobrar e entregar a taxa diretamente. Confirme sempre o regime da sua plataforma.</p>
+          <div class="legal-callout">A CEAL (Contribuição Extraordinária sobre o Alojamento Local) foi eliminada a partir do exercício fiscal de 2025.</div>
+        </div>
+
+        <div class="legal-section" id="al-rentabilidade">
+          <div class="section-num">06</div>
+          <h2>Quanto Pode Rentabilizar</h2>
+          <p class="section-intro">Não existe resposta universal — depende do imóvel, da zona e do perfil do proprietário.</p>
+          <table class="legal-table">
+            <tr><th>Critério</th><th>Favorece AL</th><th>Favorece Arrendamento</th></tr>
+            <tr><td>Localização</td><td>Zona turística central</td><td>Zona predominantemente residencial</td></tr>
+            <tr><td>Disponibilidade</td><td>Aceita gestão ativa ou delegada</td><td>Procura rendimento totalmente passivo</td></tr>
+            <tr><td>Uso pessoal</td><td>Quer usar o imóvel em períodos próprios</td><td>Não precisa de usar o imóvel</td></tr>
+            <tr><td>Tolerância a variação</td><td>Conforto com receita sazonal</td><td>Prefere receita fixa e previsível</td></tr>
+          </table>
+          <div class="legal-callout link-out">Compare os dois cenários para o seu imóvel — investimento, custos operacionais, financiamento e retorno — no nosso <a href="#" onclick="navigate('simulator');return false;">Simulador de Rentabilidade</a>.</div>
+        </div>
+
+        <div class="legal-section" id="al-checklist">
+          <div class="section-num">07</div>
+          <h2>Checklist de Conformidade</h2>
+          <p class="section-intro">Autoavaliação rápida. Se responder "não" a qualquer ponto, recomenda-se ação corretiva imediata.</p>
+          <div class="legal-card"><h3>Antes de abrir</h3><p>Imóvel fora de área de contenção (ou reúne exceção) · Licença de utilização válida ou antiguidade pré-1951 · Regulamento de condomínio revisto · Comunicação prévia submetida, número de RNAL recebido.</p></div>
+          <div class="legal-card"><h3>Antes do primeiro hóspede</h3><p>Registo na Plataforma da Taxa Municipal Turística · Seguro de responsabilidade civil submetido · Atividade aberta nas Finanças, Categoria B · Placa "AL" afixada (exceto moradias) · Livro de reclamações disponível · Equipamento de segurança confirmado.</p></div>
+          <div class="legal-card"><h3>Em cada estadia</h3><p>Hóspedes não nacionais comunicados no SIBA (3 dias) · Taxa Municipal Turística cobrada e registada · Recibo emitido dentro do prazo legal.</p></div>
+          <div class="legal-card"><h3>Periodicamente</h3><p>Ficheiro SAF-T enviado até dia 20 · Seguro renovado antes da expiração · Alterações comunicadas à câmara no prazo de 10 dias.</p></div>
+        </div>
+
+        <div class="legal-section" id="al-faq">
+          <div class="section-num">08</div>
+          <h2>Perguntas Frequentes</h2>
+          <div class="legal-faq">
+            <details><summary>Posso ter mais de um Alojamento Local?</summary><p>Sim. Não há limite ao número de registos, desde que cada unidade seja registada individualmente e cumpra todas as obrigações regulamentares e fiscais.</p></details>
+            <details><summary>O condomínio pode opor-se à minha atividade de AL?</summary><p>Em regra, não precisa de autorização prévia (exceto hostels). Mas a assembleia pode requerer o cancelamento por perturbação reiterada, com deliberação de mais de metade da permilagem — ou proibir a atividade por completo, com dois terços.</p></details>
+            <details><summary>O que acontece ao registo se eu vender o imóvel?</summary><p>A titularidade deve ser atualizada junto da câmara municipal no prazo de 10 dias. Em algumas áreas de contenção, a venda pode determinar a caducidade automática do registo — confirme sempre o regulamento municipal antes da transação.</p></details>
+            <details><summary>Quantos hóspedes posso receber em simultâneo?</summary><p>Máximo de 9 quartos e 30 hóspedes em simultâneo (exceto quartos singulares e hostels). O número total de utentes não deve exceder o dobro do número de quartos.</p></details>
+            <details><summary>O que acontece se eu não comunicar os hóspedes estrangeiros no SIBA?</summary><p>Constitui contraordenação, com coima entre €100 e €2.000 por hóspede não comunicado. Não há tolerância para esta obrigação.</p></details>
+            <details><summary>Preciso de um seguro específico, ou o seguro de habitação normal serve?</summary><p>Não. O seguro de responsabilidade civil para AL é distinto do seguro multirriscos comum, e deve cobrir especificamente danos a hóspedes e terceiros. Consulte um corretor especializado em AL.</p></details>
+            <details><summary>Quanto tempo demora, desde a decisão até ao primeiro hóspede?</summary><p>Em condições normais, sem oposição da câmara, o processo completo demora tipicamente entre 2 a 4 meses, dependendo do concelho e de eventuais obras de adequação.</p></details>
+          </div>
+        </div>
+
+        <div class="legal-section" id="al-glossario">
+          <div class="section-num">09</div>
+          <h2>Glossário de Termos</h2>
+          <table class="legal-table">
+            <tr><td><strong>AL</strong></td><td>Alojamento Local — regime jurídico de alojamento temporário a turistas, mediante remuneração.</td></tr>
+            <tr><td><strong>RNAL</strong></td><td>Registo Nacional de Alojamento Local, gerido pelo Turismo de Portugal.</td></tr>
+            <tr><td><strong>TMT</strong></td><td>Taxa Municipal Turística — encargo por dormida, definido por cada município.</td></tr>
+            <tr><td><strong>CEAL</strong></td><td>Contribuição Extraordinária sobre o Alojamento Local — eliminada a partir do exercício de 2025.</td></tr>
+            <tr><td><strong>SAF-T</strong></td><td>Standard Audit File for Tax — ficheiro normalizado submetido à Autoridade Tributária.</td></tr>
+            <tr><td><strong>Área de Contenção</strong></td><td>Zona com sobrecarga de AL, com restrições à instalação de novos estabelecimentos.</td></tr>
+            <tr><td><strong>SIBA</strong></td><td>Sistema de Informação de Boletins de Alojamento, para comunicação de hóspedes não nacionais.</td></tr>
+            <tr><td><strong>SIIAL</strong></td><td>Sistema de Informação Integrado do Alojamento Local — consulta o rácio de pressão por freguesia.</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="legal-cta wrap">
+      <h3>Pronto para procurar?</h3>
+      <p>Explore oportunidades reais e verificadas em Portugal.</p>
+      <button class="btn btn-gold" onclick="navigate('search')">Pesquisar imóveis</button>
+    </div>
+  </div>
+</section>
+
+<section class="view" id="view-simulator"><div id="simulator-root"></div></section>
+<section class="view" id="view-zone"><div id="zone-root"></div></section>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <div class="cols">
+      <div>
+        <div class="logo" style="color:#fff"><svg class="zf-mark" viewBox="0 0 1254 1254"><g transform="translate(0.000000,1254.000000) scale(0.100000,-0.100000)" fill="url(#zfindGold)"><path d="__PATH_D__"/></g></svg><em>Find</em></div>
+        <div class="tagline" data-i18n="footer.tagline"></div>
+      </div>
+      <div><h5 data-i18n="footer.discover"></h5>
+        <a href="#" onclick="navigate('search');return false;" data-i18n="search.filterApartments"></a>
+        <a href="#" onclick="navigate('search');return false;" data-i18n="search.filterDevelopments"></a>
+        <a href="#" onclick="navigate('search');return false;" data-i18n="search.tabLand"></a>
+        <a href="#" onclick="navigate('legal');return false;" data-i18n="footer.legalGuide"></a>
+        <a href="#" onclick="navigate('al-manual');return false;" data-i18n="footer.alManual"></a>
+      </div>
+      <div><h5 data-i18n="footer.partners"></h5>
+        <a href="#" data-i18n="common.publish"></a>
+        <a href="#" data-i18n="footer.servicesLevels"></a>
+        <a href="#" data-i18n="footer.partnerNetwork"></a>
+      </div>
+      <div><h5 data-i18n="footer.zos"></h5>
+        <a href="#" data-i18n="footer.trustProvenance"></a>
+        <a href="#" data-i18n="footer.howVerified"></a>
+      </div>
+      <div><h5 data-i18n="footer.contact"></h5>
+        <a href="mailto:hello@zfind.online">hello@zfind.online</a>
+        <a href="https://wa.me/351962014124" target="_blank" rel="noopener" data-i18n="footer.chatWhatsApp"></a>
+      </div>
+    </div>
+    <div class="bottom"><span data-i18n="footer.rights"></span><span data-i18n="footer.location"></span></div>
+  </div>
+</footer>
+
+<!-- ============ ENQUIRY MODAL ============ -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <span class="close-x" onclick="closeModal()">&times;</span>
+    <svg class="zf-mark" viewBox="0 0 1254 1254" style="width:26px;height:26px;margin-bottom:14px;"><g transform="translate(0.000000,1254.000000) scale(0.100000,-0.100000)" fill="url(#zfindGold)"><path d="__PATH_D__"/></g></svg>
+    <h3 data-i18n="enquiry.title"></h3>
+    <p class="sub" data-i18n="enquiry.sub"></p>
+    <div id="enquiry-body"></div>
+  </div>
+</div>

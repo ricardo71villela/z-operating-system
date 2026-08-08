@@ -1,42 +1,55 @@
-# Z Operating System
+# Z Operating System — ZOS
 
-This repository is the strategic brain of the Z ecosystem: vision, architecture, business model, and documentation for everything Z is building — today and long-term.
+ZOS is the shared operating system and engineering platform for the Z ecosystem.
 
-It is **not** the operational website and contains **no application code**.
+This repository combines two complementary layers:
 
-## How to navigate
+1. **Strategic architecture and governance** — the principles, domain models, standards, security, data, intelligence and operating model of ZOS.
+2. **Operational product engineering** — the applications, shared packages, database infrastructure and CI/CD that implement those principles.
 
-The numbered domains tell a story, in order:
+The repository is the intended **single source of truth** for the Z ecosystem.
 
-| # | Domain | Answers |
-|---|---|---|
-| 00 | `foundation` | Who we are |
-| 10 | `company` | What we believe (business) |
-| 20 | `registry` | What we record |
-| 30 | `trust-engine` | How we build trust |
-| 40 | `partner-quality-score` | How we evaluate partners |
-| 50 | `marketplace` | How the market works |
-| 60 | `data` | How we handle data |
-| 70 | `knowledge-hub` | How we generate knowledge (product) |
-| 80 | `intelligence` | How we use intelligence (AI, ML, geospatial, market) |
-| 90 | `platform-engineering` | How we build technology |
-| 100 | `security` | How we protect |
-| 110 | `governance` | How we decide |
-| 120 | `operations` | How we operate |
-| 130 | `design` | How things look and feel |
-| 140 | `roadmaps` | Where we're going |
-| 145 | `research` | How we investigate (company) |
-| 150 | `standards` | How we keep quality |
-| 160 | `legal-and-compliance` | How we comply |
+---
 
-Numbering is gapped in increments of 10 (with room at 145) so new domains can be inserted later without renumbering existing ones.
+## Products
 
-`architecture/`, `diagrams/`, `templates/`, and `tools/` are cross-cutting infrastructure, not domains — every domain may reference them. `GLOSSARY.md` is cross-cutting reference material, kept at root because every domain depends on it.
+ZOS supports multiple independent marketplaces and products:
 
-## Conventions
+- **Z Find** — real estate
+- **Z Mobility** — automotive
+- **Z Jobs** — employment
+- **Z Living** — rentals *(future)*
+- **Z Finance** — financial services *(future)*
 
-See [`templates/README.md`](./templates/README.md) for document templates and [`150-standards/README.md`](./150-standards/README.md) for naming and writing conventions.
+Each product remains an independent marketplace with its own domain semantics, application experience and business lifecycle.
 
-## Status
+They share selected ZOS capabilities where appropriate.
 
-Repository structure established 2026-07-16, revised same day after architectural review. Domains contain scaffolding only (`README.md` per domain); content is added organically as real decisions are made — no placeholder documents are pre-created.
+> **One ecosystem. Multiple marketplaces. Shared intelligence. Separate domain ownership.**
+
+---
+
+## Core architectural principles
+
+ZOS follows the Architectural Constitution v1.1.
+
+Key principles include:
+
+- Platform capabilities and domain ownership remain explicitly separated.
+- Canonical identity is shared only where stable cross-vertical identity is required.
+- Registry answers **“what is it?”**
+- Data Observations answer **“what was observed about it?”**
+- Domain-specific lifecycles remain owned by their domains.
+- Cross-vertical activation requires explicit consent.
+- AI may assist interpretation and processing but does not automatically author canonical truth.
+- Integration messages are transport mechanisms, not a universal semantic Event model.
+- Shared intelligence does not imply shared ownership of domain semantics.
+
+---
+
+# Repository structure
+
+## Operational platform
+
+```text
+apps/

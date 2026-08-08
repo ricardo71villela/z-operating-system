@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "1.0.0",
+  "source": {
+    "url": "https://www.audi-mediacenter.com/en/audi-a6-c9-technical-data",
+    "finalUrl": "https://www.audi-mediacenter.com/en/audi-a6-c9-technical-data",
+    "fetchedAt": "2026-08-03T00:00:00.000Z",
+    "status": 200,
+    "contentType": "text/html; charset=utf-8",
+    "sha256": "audi-a6-c9-test-fixture"
+  },
+  "target": {
+    "brandSlug": "audi",
+    "modelSlug": "a6-c9"
+  },
+  "page": {
+    "title": "Audi A6 C9 technical data",
+    "description": "Official Audi A6 technical data fixture",
+    "language": "en",
+    "canonicalUrl": "https://www.audi-mediacenter.com/en/audi-a6-c9-technical-data",
+    "headings": ["Audi A6 C9"],
+    "paragraphs": [
+      "The Audi A6 range includes TFSI, TDI and fully electric e-tron variants."
+    ]
+  },
+  "jsonLd": [],
+  "tables": [
+    {
+      "index": 0,
+      "caption": "Technical specifications",
+      "headers": [
+        "Technical data",
+        "Audi A6 Sedan TFSI 150 kW",
+        "Audi A6 Avant TDI quattro 150 kW",
+        "Audi A6 e-tron Sportback 270 kW"
+      ],
+      "rows": [
+        ["Engine", "4-cylinder turbo gasoline engine", "4-cylinder turbo diesel engine", "Battery electric BEV"],
+        ["Displacement in cm³", "1,984", "1,968", ""],
+        ["Drivetrain", "Front", "quattro", "Rear"],
+        ["Power output in kW (PS)", "150 (204)", "150 (204)", "270 (367)"],
+        ["Max. torque in Nm", "340", "400", "565"],
+        ["Acceleration 0 to 100 km/h in s", "8.2", "7.6", "5.4"],
+        ["Max. speed in km/h", "244", "241", "210"],
+        ["Fuel consumption, combined, in l/100 km", "7.8-6.9", "5.6-4.9", ""],
+        ["CO2 emissions, combined, in g/km", "177-157", "147-129", "0"]
+      ]
+    }
+  ],
+  "textSignals": {
+    "powerValues": ["150 kW", "150 kW", "270 kW"],
+    "torqueValues": ["340 Nm", "400 Nm", "565 Nm"],
+    "consumptionValues": ["7.8-6.9 l/100 km", "5.6-4.9 l/100 km"],
+    "emissionValues": ["177-157 g/km", "147-129 g/km", "0 g/km"],
+    "rangeValues": []
+  },
+  "reviewRequired": false
+}

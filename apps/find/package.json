@@ -1,0 +1,41 @@
+{
+  "name": "z-find-platform",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Z Find — consolidated repository. Sprint A (infrastructure baseline, frozen) + Sprint B (Product Backbone, in progress).",
+  "scripts": {
+    "build:zfind": "node -r dotenv/config apps/zfind-web/scripts/build.js",
+    "build:seo-pages": "node -r dotenv/config apps/zfind-web/scripts/generate-seo-pages.js",
+    "build:vercel-output": "node apps/zfind-web/scripts/prepare-vercel-output.js",
+    "test:seo-pages": "node tests/unit/seo-page-generator.test.js",
+    "test:import-engine": "node tests/integration/import-engine/test-v2.js",
+    "test:import-engine-v1-archive": "node archive/import-engine-v1/test.js",
+    "test:browser": "node tests/browser/zfind-web/browser_test.js",
+    "test:sprint-1-1": "node tests/browser/zfind-web/sprint-1-1-verification.js",
+    "test:sprint-1-2": "node tests/browser/zfind-web/sprint-1-2-verification.js",
+    "test:sprint-1-3": "node tests/browser/zfind-web/sprint-1-3-verification.js",
+    "test:sprint-1-4": "node tests/browser/zfind-web/sprint-1-4-verification.js",
+    "test:sprint-1-5": "node tests/browser/zfind-web/sprint-1-5-verification.js",
+    "test:sprint-1-6": "node tests/browser/zfind-web/sprint-1-6-verification.js",
+    "build:admin": "node -r dotenv/config apps/zfind-admin/scripts/build.js",
+    "build:partner": "node -r dotenv/config apps/zfind-partner/scripts/build.js",
+    "test:sprint-1-7": "node tests/browser/zfind-admin/sprint-1-7-verification.js",
+    "test:simulator": "node tests/browser/zfind-web/simulator-verification.js",
+    "test:staging-smoke": "node -r dotenv/config tests/browser/zfind-web/staging-smoke-test.js",
+    "test:connectivity": "node -r dotenv/config scripts/test-connectivity.js",
+    "test": "npm run test:import-engine && npm run test:import-engine-v1-archive",
+    "test:zos-alignment": "node tests/unit/zos-alignment.test.js",
+    "check:syntax": "node scripts/check-js-syntax.js",
+    "check:migrations": "node scripts/validate-migrations.js",
+    "check:zos": "node scripts/validate-zos-alignment.js",
+    "check": "npm run test && npm run test:seo-pages && npm run test:zos-alignment && npm run check:syntax && npm run check:migrations && npm run check:zos"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.110.8",
+    "@zos/registry-contracts": "0.1.0"
+  },
+  "devDependencies": {
+    "dotenv": "^16.0.0",
+    "playwright": "^1.0.0"
+  }
+}

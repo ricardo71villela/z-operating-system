@@ -1,0 +1,7 @@
+{
+  "buildCommand": "cd ../.. && node apps/zfind-admin/scripts/build.js && mkdir -p apps/zfind-admin/vercel-output && cp apps/zfind-admin/dist/z-find-admin.html apps/zfind-admin/vercel-output/index.html",
+  "outputDirectory": "vercel-output",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

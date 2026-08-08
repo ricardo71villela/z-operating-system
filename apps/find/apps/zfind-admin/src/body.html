@@ -1,0 +1,23 @@
+<div id="login-view">
+  <h1>Z Find Admin</h1>
+  <div id="login-error"></div>
+  <input type="email" id="login-email" placeholder="Email">
+  <input type="password" id="login-password" placeholder="Password">
+  <button id="login-btn" onclick="handleLogin()">Sign in</button>
+</div>
+
+<div id="app-shell" class="hidden">
+  <div id="sidebar">
+    <h2>Z Find Admin</h2>
+    <a data-view="dashboard" onclick="navigateAdmin('dashboard')">Dashboard</a>
+    <a data-view="properties" onclick="navigateAdmin('properties')">Properties</a>
+    <a data-view="developments" onclick="navigateAdmin('developments')">Developments</a>
+    <a data-view="partners" onclick="navigateAdmin('partners')">Partners</a>
+    <a data-view="leads" onclick="navigateAdmin('leads')">Leads</a>
+    <div class="signout"><a onclick="handleSignOut()">Sign out</a></div>
+  </div>
+  <div id="main"></div>
+</div>
+<div id="toast-host"></div>
+<div id="confirm-overlay" class="hidden"></div>
+<div id="lightbox-overlay" class="hidden" onclick="closeLightbox()"></div>
