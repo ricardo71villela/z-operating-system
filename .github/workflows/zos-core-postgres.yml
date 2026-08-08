@@ -1,0 +1,591 @@
+name: ZOS Core PostgreSQL
+
+on:
+  workflow_dispatch:
+
+  push:
+    paths:
+      - "infrastructure/supabase/migrations/**"
+      - ".github/workflows/zos-core-postgres.yml"
+
+  pull_request:
+    branches: [main]
+    paths:
+      - "infrastructure/supabase/migrations/**"
+      - ".github/workflows/zos-core-postgres.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  postgres:
+    name: Core migrations + invariants
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: zos_core_test_pw
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create disposable database
+        env:
+          PGPASSWORD: zos_core_test_pw
+        run: |
+          psql -h localhost -U postgres -v ON_ERROR_STOP=1 \
+            -c "CREATE DATABASE zos_core_test;"
+
+          psql -h localhost -U postgres -d zos_core_test -v ON_ERROR_STOP=1 \
+            -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+
+          psql -h localhost -U postgres -d zos_core_test -v ON_ERROR_STOP=1 <<'SQL'
+          create schema if not exists auth;
+
+          create table auth.users (
+            id uuid primary key default gen_random_uuid(),
+            email text unique,
+            created_at timestamptz not null default now()
+          );
+          SQL
+
+      - name: Apply ZOS Core migrations in order
+        env:
+          PGPASSWORD: zos_core_test_pw
+        run: |
+          for f in $(ls infrastructure/supabase/migrations/*.sql | sort); do
+            echo "--- APPLYING $f ---"
+            psql \
+              -h localhost \
+              -U postgres \
+              -d zos_core_test \
+              -v ON_ERROR_STOP=1 \
+              -f "$f"
+          done
+
+      - name: Verify schemas and Core objects
+        env:
+          PGPASSWORD: zos_core_test_pw
+        run: |
+          psql -h localhost -U postgres -d zos_core_test -v ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          declare
+            missing_object text;
+          begin
+            for missing_object in
+              select object_name
+              from (
+                values
+                  ('zos.persons'),
+                  ('zos.organisations'),
+                  ('zos.memberships'),
+                  ('zos.registry_bindings'),
+                  ('zos.geography_locations'),
+                  ('zos.consent_grants'),
+                  ('zos.communication_preferences'),
+                  ('zos.referrals'),
+                  ('zos.data_sources'),
+                  ('zos.metric_definitions'),
+                  ('zos.observations'),
+                  ('zos.observation_evidence'),
+                  ('platform_internal.integration_outbox')
+              ) as required(object_name)
+              where to_regclass(object_name) is null
+            loop
+              raise exception 'Missing Core relation: %', missing_object;
+            end loop;
+          end;
+          $$;
+
+          do $$
+          begin
+            if not exists (
+              select 1
+              from information_schema.columns
+              where table_schema = 'zos'
+                and table_name = 'metric_definitions'
+                and column_name = 'namespace_code'
+            ) then
+              raise exception 'metric_definitions.namespace_code is missing';
+            end if;
+
+            if exists (
+              select 1
+              from information_schema.columns
+              where table_schema = 'zos'
+                and table_name = 'metric_definitions'
+                and column_name = 'domain_code'
+            ) then
+              raise exception 'Legacy metric_definitions.domain_code still exists';
+            end if;
+          end;
+          $$;
+          SQL
+
+      - name: Verify RLS default-deny foundation
+        env:
+          PGPASSWORD: zos_core_test_pw
+        run: |
+          psql -h localhost -U postgres -d zos_core_test -v ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          declare
+            unprotected_table text;
+          begin
+            for unprotected_table in
+              select format('%I.%I', n.nspname, c.relname)
+              from pg_class c
+              join pg_namespace n on n.oid = c.relnamespace
+              where n.nspname in ('zos', 'platform_internal')
+                and c.relkind = 'r'
+                and not c.relrowsecurity
+            loop
+              raise exception 'RLS not enabled on %', unprotected_table;
+            end loop;
+          end;
+          $$;
+          SQL
+
+      - name: Verify updated_at triggers
+        env:
+          PGPASSWORD: zos_core_test_pw
+        run: |
+          psql -h localhost -U postgres -d zos_core_test -v ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          declare
+            target_table record;
+          begin
+            for target_table in
+              select distinct
+                c.table_schema,
+                c.table_name
+              from information_schema.columns c
+              join information_schema.tables t
+                on t.table_schema = c.table_schema
+               and t.table_name = c.table_name
+              where c.table_schema in ('zos', 'platform_internal')
+                and c.column_name = 'updated_at'
+                and t.table_type = 'BASE TABLE'
+            loop
+              if not exists (
+                select 1
+                from pg_trigger tg
+                join pg_class cls on cls.oid = tg.tgrelid
+                join pg_namespace ns on ns.oid = cls.relnamespace
+                where ns.nspname = target_table.table_schema
+                  and cls.relname = target_table.table_name
+                  and tg.tgname = 'set_updated_at'
+                  and not tg.tgisinternal
+              ) then
+                raise exception
+                  'Missing set_updated_at trigger on %.%',
+                  target_table.table_schema,
+                  target_table.table_name;
+              end if;
+            end loop;
+          end;
+          $$;
+
+          do $$
+          declare
+            organisation_id uuid;
+            before_update timestamptz;
+            after_update timestamptz;
+          begin
+            insert into zos.organisations(name, country_iso)
+            values ('Trigger Test Organisation', 'PT')
+            returning id, updated_at
+            into organisation_id, before_update;
+
+            perform pg_sleep(0.02);
+
+            update zos.organisations
+            set name = 'Trigger Test Organisation Updated'
+            where id = organisation_id
+            returning updated_at into after_update;
+
+            if after_update <= before_update then
+              raise exception 'updated_at trigger did not advance timestamp';
+            end if;
+          end;
+          $$;
+          SQL
+
+      - name: Verify organisation and temporal constraints
+        env:
+          PGPASSWORD: zos_core_test_pw
+        run: |
+          psql -h localhost -U postgres -d zos_core_test -v ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          begin
+            begin
+              insert into zos.organisations(name)
+              values ('   ');
+
+              raise exception 'Blank organisation name was accepted';
+            exception
+              when check_violation then null;
+            end;
+
+            begin
+              insert into zos.organisations(name, country_iso)
+              values ('Invalid Country Organisation', 'pt');
+
+              raise exception 'Lowercase country ISO was accepted';
+            exception
+              when check_violation then null;
+            end;
+          end;
+          $$;
+
+          do $$
+          declare
+            person_id uuid;
+            organisation_id uuid;
+          begin
+            insert into zos.persons(display_name)
+            values ('Membership Test Person')
+            returning id into person_id;
+
+            insert into zos.organisations(name, country_iso)
+            values ('Membership Test Organisation', 'PT')
+            returning id into organisation_id;
+
+            begin
+              insert into zos.memberships(
+                person_id,
+                organisation_id,
+                joined_at,
+                ended_at
+              )
+              values (
+                person_id,
+                organisation_id,
+                now(),
+                now() - interval '1 day'
+              );
+
+              raise exception 'Invalid membership chronology was accepted';
+            exception
+              when check_violation then null;
+            end;
+          end;
+          $$;
+
+          do $$
+          begin
+            begin
+              insert into zos.registry_bindings(
+                domain_code,
+                local_entity_type,
+                local_entity_id,
+                canonical_entity_type,
+                canonical_entity_id,
+                binding_status,
+                linked_at,
+                retired_at
+              )
+              values (
+                'find',
+                'partner',
+                'registry-time-test',
+                'organisation',
+                gen_random_uuid()::text,
+                'retired',
+                now(),
+                now() - interval '1 day'
+              );
+
+              raise exception 'Invalid registry chronology was accepted';
+            exception
+              when check_violation then null;
+            end;
+          end;
+          $$;
+          SQL
+
+      - name: Verify canonical geography constraints
+        env:
+          PGPASSWORD: zos_core_test_pw
+        run: |
+          psql -h localhost -U postgres -d zos_core_test -v ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          declare
+            pt_id uuid;
+            es_id uuid;
+          begin
+            insert into zos.geography_locations(
+              location_type,
+              canonical_code,
+              country_iso
+            )
+            values ('country', 'PT', 'PT')
+            returning id into pt_id;
+
+            insert into zos.geography_locations(
+              location_type,
+              canonical_code,
+              country_iso
+            )
+            values ('country', 'ES', 'ES')
+            returning id into es_id;
+
+            begin
+              insert into zos.geography_locations(
+                location_type,
+                canonical_code,
+                country_iso,
+                parent_id
+              )
+              values (
+                'city',
+                'invalid-cross-country-city',
+                'PT',
+                es_id
+              );
+
+              raise exception 'Cross-country geography parent was accepted';
+            exception
+              when foreign_key_violation then null;
+            end;
+
+            begin
+              insert into zos.geography_locations(
+                location_type,
+                canonical_code,
+                country_iso
+              )
+              values ('country', 'PT-duplicate', 'PT');
+
+              raise exception 'Duplicate active PT country root was accepted';
+            exception
+              when unique_violation then null;
+            end;
+          end;
+          $$;
+          SQL
+
+      - name: Verify Integration Outbox invariants
+        env:
+          PGPASSWORD: zos_core_test_pw
+        run: |
+          psql -h localhost -U postgres -d zos_core_test -v ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          begin
+            begin
+              insert into platform_internal.integration_outbox(
+                producer_domain_code,
+                message_type,
+                correlation_id,
+                status,
+                locked_at,
+                lock_expires_at,
+                locked_by
+              )
+              values (
+                'find',
+                'find.invalid_pending_lease',
+                'correlation-pending',
+                'pending',
+                now(),
+                now() + interval '5 minutes',
+                'worker-1'
+              );
+
+              raise exception 'Pending message with lease was accepted';
+            exception
+              when check_violation then null;
+            end;
+
+            begin
+              insert into platform_internal.integration_outbox(
+                producer_domain_code,
+                message_type,
+                correlation_id,
+                status
+              )
+              values (
+                'mobility',
+                'mobility.invalid_processing_without_lease',
+                'correlation-processing',
+                'processing'
+              );
+
+              raise exception 'Processing message without lease was accepted';
+            exception
+              when check_violation then null;
+            end;
+
+            insert into platform_internal.integration_outbox(
+              producer_domain_code,
+              message_type,
+              correlation_id,
+              status,
+              locked_at,
+              lock_expires_at,
+              locked_by
+            )
+            values (
+              'jobs',
+              'jobs.processing_test',
+              'correlation-valid-processing',
+              'processing',
+              now(),
+              now() + interval '5 minutes',
+              'worker-valid'
+            );
+          end;
+          $$;
+
+          do $$
+          begin
+            insert into platform_internal.integration_outbox(
+              producer_domain_code,
+              message_type,
+              correlation_id,
+              idempotency_key
+            )
+            values (
+              'find',
+              'find.idempotency_test',
+              'correlation-idempotency-1',
+              'same-logical-message'
+            );
+
+            begin
+              insert into platform_internal.integration_outbox(
+                producer_domain_code,
+                message_type,
+                correlation_id,
+                idempotency_key
+              )
+              values (
+                'find',
+                'find.idempotency_test',
+                'correlation-idempotency-2',
+                'same-logical-message'
+              );
+
+              raise exception 'Duplicate producer idempotency key was accepted';
+            exception
+              when unique_violation then null;
+            end;
+          end;
+          $$;
+
+          do $$
+          begin
+            if to_regclass(
+              'platform_internal.idx_platform_integration_outbox_dispatch'
+            ) is null then
+              raise exception 'Integration Outbox dispatch index is missing';
+            end if;
+          end;
+          $$;
+          SQL
+
+      - name: Verify Data Observation primitives
+        env:
+          PGPASSWORD: zos_core_test_pw
+        run: |
+          psql -h localhost -U postgres -d zos_core_test -v ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          declare
+            source_id uuid;
+            observation_id uuid;
+          begin
+            insert into zos.data_sources(
+              code,
+              source_type,
+              name,
+              source_domain_code,
+              source_local_entity_type,
+              source_local_entity_id
+            )
+            values (
+              'test.find.manual',
+              'manual',
+              'Find Test Source',
+              'find',
+              'source',
+              'test-source-1'
+            )
+            returning id into source_id;
+
+            insert into zos.metric_definitions(
+              code,
+              namespace_code,
+              value_kind,
+              default_unit,
+              description
+            )
+            values (
+              'real_estate.area_sqm',
+              'real_estate',
+              'number',
+              'sqm',
+              'Disposable validation metric'
+            );
+
+            insert into zos.observations(
+              subject_domain_code,
+              subject_entity_type,
+              subject_entity_id,
+              metric_code,
+              value_jsonb,
+              unit,
+              source_id,
+              provenance_method,
+              observed_at
+            )
+            values (
+              'find',
+              'property',
+              'property-test-1',
+              'real_estate.area_sqm',
+              '120'::jsonb,
+              'sqm',
+              source_id,
+              'manual',
+              now()
+            )
+            returning id into observation_id;
+
+            insert into zos.observation_evidence(
+              observation_id,
+              evidence_type,
+              source_uri
+            )
+            values (
+              observation_id,
+              'document',
+              'https://example.invalid/test-document'
+            );
+
+            begin
+              update zos.observations
+              set supersedes_id = id
+              where id = observation_id;
+
+              raise exception 'Observation was allowed to supersede itself';
+            exception
+              when check_violation then null;
+            end;
+          end;
+          $$;
+          SQL
+
+      - name: Print Core validation summary
+        env:
+          PGPASSWORD: zos_core_test_pw
+        run: |
+          psql -h localhost -U postgres -d zos_core_test -v ON_ERROR_STOP=1 \
+            -c "select 'ZOS CORE DATABASE v1 VALIDATED' as result;"
