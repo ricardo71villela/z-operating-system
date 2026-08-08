@@ -41,6 +41,10 @@ create unique index uq_zos_geography_locations_active_code
   on zos.geography_locations(country_iso, location_type, canonical_code)
   where status = 'active';
 
+create unique index uq_zos_geography_locations_active_country_root
+  on zos.geography_locations(country_iso)
+  where location_type = 'country' and status = 'active';
+
 create index idx_zos_geography_locations_parent
   on zos.geography_locations(parent_id)
   where parent_id is not null;
