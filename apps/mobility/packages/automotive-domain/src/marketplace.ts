@@ -1,3 +1,5 @@
+import type { ZosOrganizationReference } from "./zos";
+
 export type MarketplaceFuel =
   | "Petrol"
   | "Diesel"
@@ -43,6 +45,7 @@ export type MarketplaceVehicle = {
   id: string;
   versionId: string | null;
   dealerOrganizationId: string | null;
+  dealerOrganizationRef?: ZosOrganizationReference | null;
   slug: string;
   brand: string;
   model: string;
