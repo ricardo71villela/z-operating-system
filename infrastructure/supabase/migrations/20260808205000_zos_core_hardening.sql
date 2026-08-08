@@ -178,7 +178,7 @@ returns trigger
 language plpgsql
 as $$
 begin
-  new.updated_at = now();
+  new.updated_at = clock_timestamp();
   return new;
 end;
 $$;
