@@ -1,0 +1,84 @@
+name: Z Jobs Schema Snapshot
+
+on:
+  push:
+    branches:
+      - feature/zos-jobs-database-convergence-v1
+    paths:
+      - ".github/workflows/jobs-schema-snapshot.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    name: Build historical Jobs schema snapshot
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: zjobs_dev_pw
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create disposable Jobs database
+        env:
+          PGPASSWORD: zjobs_dev_pw
+        run: |
+          psql -h localhost -U postgres -c "CREATE DATABASE zjobs;"
+          psql -h localhost -U postgres -d zjobs \
+            -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+          psql -h localhost -U postgres -d zjobs \
+            -v ON_ERROR_STOP=1 \
+            -f apps/jobs/local-dev/00_supabase_stub.sql
+
+      - name: Apply historical Jobs migrations
+        env:
+          PGPASSWORD: zjobs_dev_pw
+        run: |
+          for f in $(ls apps/jobs/migrations/*.sql | sort); do
+            echo "--- $f ---"
+            psql \
+              -h localhost \
+              -U postgres \
+              -d zjobs \
+              -v ON_ERROR_STOP=1 \
+              -f "$f"
+          done
+
+      - name: Export final public schema
+        env:
+          PGPASSWORD: zjobs_dev_pw
+        run: |
+          mkdir -p artifacts
+
+          pg_dump \
+            -h localhost \
+            -U postgres \
+            -d zjobs \
+            --schema-only \
+            --schema=public \
+            --no-owner \
+            --no-privileges \
+            > artifacts/zjobs-final-public-schema.sql
+
+          echo "=== snapshot ==="
+          wc -l artifacts/zjobs-final-public-schema.sql
+
+      - name: Upload schema snapshot
+        uses: actions/upload-artifact@v7
+        with:
+          name: zjobs-final-schema
+          path: artifacts/zjobs-final-public-schema.sql
+          if-no-files-found: error
+          retention-days: 7
