@@ -49,6 +49,10 @@ jobs:
             -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
 
           psql -h localhost -U postgres -d zos_core_test -v ON_ERROR_STOP=1 <<'SQL'
+          create role anon nologin;
+          create role authenticated nologin;
+          create role service_role nologin bypassrls;
+
           create schema if not exists auth;
 
           create table auth.users (
@@ -56,6 +60,25 @@ jobs:
             email text unique,
             created_at timestamptz not null default now()
           );
+
+          create or replace function auth.uid()
+          returns uuid
+          language sql
+          stable
+          as $$
+            select nullif(
+              current_setting('request.jwt.claim.sub', true),
+              ''
+            )::uuid;
+          $$;
+
+          revoke all on function auth.uid() from public;
+
+          grant usage on schema auth
+            to anon, authenticated, service_role;
+
+          grant execute on function auth.uid()
+            to anon, authenticated, service_role;
           SQL
 
       - name: Apply ZOS Core migrations in order
@@ -152,6 +175,388 @@ jobs:
             end loop;
           end;
           $$;
+          SQL
+
+      - name: Verify ZOS Core Access v1
+        env:
+          PGPASSWORD: zos_core_test_pw
+        run: |
+          psql -h localhost -U postgres -d zos_core_test -v ON_ERROR_STOP=1 <<'SQL'
+
+          -- --------------------------------------------------
+          -- Structural access boundary
+          -- --------------------------------------------------
+
+          do $$
+          begin
+            if to_regnamespace('zos_api') is null then
+              raise exception 'zos_api schema does not exist';
+            end if;
+
+            if has_schema_privilege('anon', 'zos_api', 'USAGE') then
+              raise exception 'anon unexpectedly has USAGE on zos_api';
+            end if;
+
+            if has_schema_privilege('anon', 'zos', 'USAGE') then
+              raise exception 'anon unexpectedly has USAGE on zos';
+            end if;
+
+            if has_schema_privilege('anon', 'platform_internal', 'USAGE') then
+              raise exception 'anon unexpectedly has USAGE on platform_internal';
+            end if;
+
+            if not has_schema_privilege(
+              'authenticated',
+              'zos_api',
+              'USAGE'
+            ) then
+              raise exception 'authenticated is missing USAGE on zos_api';
+            end if;
+
+            if not has_schema_privilege(
+              'authenticated',
+              'zos',
+              'USAGE'
+            ) then
+              raise exception 'authenticated is missing minimal USAGE on zos';
+            end if;
+
+            if has_schema_privilege(
+              'authenticated',
+              'platform_internal',
+              'USAGE'
+            ) then
+              raise exception 'authenticated unexpectedly has USAGE on platform_internal';
+            end if;
+
+            if has_schema_privilege(
+              'service_role',
+              'zos_api',
+              'USAGE'
+            ) then
+              raise exception 'service_role unexpectedly has USAGE on zos_api';
+            end if;
+
+            if has_schema_privilege(
+              'service_role',
+              'zos',
+              'USAGE'
+            ) then
+              raise exception 'service_role unexpectedly has USAGE on zos';
+            end if;
+
+            if has_schema_privilege(
+              'service_role',
+              'platform_internal',
+              'USAGE'
+            ) then
+              raise exception 'service_role unexpectedly has USAGE on platform_internal';
+            end if;
+
+
+            if not has_table_privilege(
+              'authenticated',
+              'zos.persons',
+              'SELECT'
+            ) then
+              raise exception 'authenticated is missing SELECT on zos.persons';
+            end if;
+
+            if not has_column_privilege(
+              'authenticated',
+              'zos.persons',
+              'auth_user_id',
+              'INSERT'
+            ) then
+              raise exception 'authenticated cannot bootstrap auth_user_id';
+            end if;
+
+            if not has_column_privilege(
+              'authenticated',
+              'zos.persons',
+              'display_name',
+              'INSERT'
+            ) then
+              raise exception 'authenticated cannot bootstrap display_name';
+            end if;
+
+            if not has_column_privilege(
+              'authenticated',
+              'zos.persons',
+              'display_name',
+              'UPDATE'
+            ) then
+              raise exception 'authenticated cannot update own display_name';
+            end if;
+
+            if has_column_privilege(
+              'authenticated',
+              'zos.persons',
+              'auth_user_id',
+              'UPDATE'
+            ) then
+              raise exception 'authenticated can unexpectedly change auth_user_id';
+            end if;
+
+
+            if not has_function_privilege(
+              'authenticated',
+              'zos_api.current_person()',
+              'EXECUTE'
+            ) then
+              raise exception 'authenticated cannot execute current_person()';
+            end if;
+
+            if not has_function_privilege(
+              'authenticated',
+              'zos_api.ensure_current_person(text)',
+              'EXECUTE'
+            ) then
+              raise exception 'authenticated cannot execute ensure_current_person(text)';
+            end if;
+
+            if has_function_privilege(
+              'anon',
+              'zos_api.current_person()',
+              'EXECUTE'
+            ) then
+              raise exception 'anon can unexpectedly execute current_person()';
+            end if;
+
+            if has_function_privilege(
+              'anon',
+              'zos_api.ensure_current_person(text)',
+              'EXECUTE'
+            ) then
+              raise exception 'anon can unexpectedly execute ensure_current_person(text)';
+            end if;
+
+
+            if not exists (
+              select 1
+              from pg_policies
+              where schemaname = 'zos'
+                and tablename = 'persons'
+                and policyname = 'zos_persons_self_select'
+            ) then
+              raise exception 'Missing persons self SELECT policy';
+            end if;
+
+            if not exists (
+              select 1
+              from pg_policies
+              where schemaname = 'zos'
+                and tablename = 'persons'
+                and policyname = 'zos_persons_self_insert'
+            ) then
+              raise exception 'Missing persons self INSERT policy';
+            end if;
+
+            if not exists (
+              select 1
+              from pg_policies
+              where schemaname = 'zos'
+                and tablename = 'persons'
+                and policyname = 'zos_persons_self_update'
+            ) then
+              raise exception 'Missing persons self UPDATE policy';
+            end if;
+          end;
+          $$;
+
+
+          -- --------------------------------------------------
+          -- authenticated must not access other Core tables
+          -- --------------------------------------------------
+
+          do $$
+          declare
+            target record;
+          begin
+            for target in
+              select
+                format('%I.%I', n.nspname, c.relname) as relation_name
+              from pg_class c
+              join pg_namespace n
+                on n.oid = c.relnamespace
+              where n.nspname = 'zos'
+                and c.relkind = 'r'
+                and c.relname <> 'persons'
+            loop
+              if has_table_privilege(
+                'authenticated',
+                target.relation_name,
+                'SELECT'
+              )
+              or has_table_privilege(
+                'authenticated',
+                target.relation_name,
+                'INSERT'
+              )
+              or has_table_privilege(
+                'authenticated',
+                target.relation_name,
+                'UPDATE'
+              )
+              or has_table_privilege(
+                'authenticated',
+                target.relation_name,
+                'DELETE'
+              ) then
+                raise exception
+                  'authenticated unexpectedly has access to %',
+                  target.relation_name;
+              end if;
+            end loop;
+          end;
+          $$;
+
+
+          -- --------------------------------------------------
+          -- Functional identity + RLS isolation
+          -- --------------------------------------------------
+
+          insert into auth.users (id, email)
+          values
+            (
+              '11111111-1111-4111-8111-111111111111',
+              'user1@zos.test'
+            ),
+            (
+              '22222222-2222-4222-8222-222222222222',
+              'user2@zos.test'
+            ),
+            (
+              '33333333-3333-4333-8333-333333333333',
+              'user3@zos.test'
+            );
+
+
+          begin;
+
+          set local role authenticated;
+
+          do $$
+          declare
+            user1_person uuid;
+            user1_repeat uuid;
+            user1_current uuid;
+            user2_person uuid;
+            visible_rows integer;
+          begin
+
+            -- User 1 bootstrap.
+            perform set_config(
+              'request.jwt.claim.sub',
+              '11111111-1111-4111-8111-111111111111',
+              true
+            );
+
+            select person_id
+            into user1_person
+            from zos_api.ensure_current_person('User One');
+
+            if user1_person is null then
+              raise exception 'User 1 bootstrap returned no person';
+            end if;
+
+
+            -- Same user must always resolve to the same canonical person.
+            select person_id
+            into user1_repeat
+            from zos_api.ensure_current_person(null);
+
+            if user1_repeat is distinct from user1_person then
+              raise exception 'ensure_current_person() is not idempotent';
+            end if;
+
+
+            -- A second auth user must receive a distinct canonical person.
+            perform set_config(
+              'request.jwt.claim.sub',
+              '22222222-2222-4222-8222-222222222222',
+              true
+            );
+
+            select person_id
+            into user2_person
+            from zos_api.ensure_current_person('User Two');
+
+            if user2_person is null
+               or user2_person = user1_person then
+              raise exception 'User 2 canonical identity isolation failed';
+            end if;
+
+
+            -- User 1 must only see User 1 through RLS.
+            perform set_config(
+              'request.jwt.claim.sub',
+              '11111111-1111-4111-8111-111111111111',
+              true
+            );
+
+            select count(*)
+            into visible_rows
+            from zos.persons;
+
+            if visible_rows <> 1 then
+              raise exception
+                'User 1 can see % canonical person rows; expected 1',
+                visible_rows;
+            end if;
+
+            select person_id
+            into user1_current
+            from zos_api.current_person();
+
+            if user1_current is distinct from user1_person then
+              raise exception 'current_person() returned another user identity';
+            end if;
+
+
+            -- User 1 cannot create a canonical identity for User 3.
+            begin
+              insert into zos.persons (
+                auth_user_id,
+                display_name
+              )
+              values (
+                '33333333-3333-4333-8333-333333333333',
+                'Forged User'
+              );
+
+              raise exception 'RLS allowed canonical identity forgery';
+
+            exception
+              when insufficient_privilege then
+                null;
+            end;
+
+
+            -- No JWT subject means no bootstrap.
+            perform set_config(
+              'request.jwt.claim.sub',
+              '',
+              true
+            );
+
+            begin
+              perform *
+              from zos_api.ensure_current_person('No Auth');
+
+              raise exception
+                'ensure_current_person() accepted missing auth.uid()';
+
+            exception
+              when invalid_authorization_specification then
+                null;
+            end;
+
+          end;
+          $$;
+
+          rollback;
+
           SQL
 
       - name: Verify updated_at triggers
