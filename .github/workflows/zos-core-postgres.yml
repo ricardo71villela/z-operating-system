@@ -366,7 +366,7 @@ jobs:
 
 
           -- --------------------------------------------------
-          -- authenticated must not access other Core tables
+          -- authenticated must not access Core tables outside the approved identity boundary
           -- --------------------------------------------------
 
           do $$
@@ -381,7 +381,7 @@ jobs:
                 on n.oid = c.relnamespace
               where n.nspname = 'zos'
                 and c.relkind = 'r'
-                and c.relname <> 'persons'
+                and c.relname not in ('persons', 'registry_bindings')
             loop
               if has_table_privilege(
                 'authenticated',
@@ -556,6 +556,678 @@ jobs:
           $$;
 
           rollback;
+
+          SQL
+
+      - name: Verify ZOS Identity Bridge v1
+        env:
+          PGPASSWORD: zos_core_test_pw
+        run: |
+          psql -h localhost -U postgres -d zos_core_test -v ON_ERROR_STOP=1 <<'SQL'
+
+          -- --------------------------------------------------
+          -- Structural boundary
+          -- --------------------------------------------------
+
+          do $$
+          begin
+            if not (
+              select p.prosecdef
+              from pg_proc p
+              where p.oid =
+                'platform_internal.register_local_person_identity(text,uuid)'::regprocedure
+            ) then
+              raise exception
+                'register_local_person_identity() must be SECURITY DEFINER';
+            end if;
+
+            if (
+              select p.prosecdef
+              from pg_proc p
+              where p.oid =
+                'zos_api.current_identity_bindings()'::regprocedure
+            ) then
+              raise exception
+                'current_identity_bindings() must be SECURITY INVOKER';
+            end if;
+
+            if (
+              select p.prosecdef
+              from pg_proc p
+              where p.oid =
+                'zos_api.ensure_current_identity_binding(text)'::regprocedure
+            ) then
+              raise exception
+                'ensure_current_identity_binding() must be SECURITY INVOKER';
+            end if;
+
+
+            -- Private registration primitive must remain private.
+
+            if has_function_privilege(
+              'anon',
+              'platform_internal.register_local_person_identity(text,uuid)',
+              'EXECUTE'
+            ) then
+              raise exception
+                'anon can unexpectedly execute private identity registration';
+            end if;
+
+            if has_function_privilege(
+              'authenticated',
+              'platform_internal.register_local_person_identity(text,uuid)',
+              'EXECUTE'
+            ) then
+              raise exception
+                'authenticated can unexpectedly execute private identity registration';
+            end if;
+
+            if has_function_privilege(
+              'service_role',
+              'platform_internal.register_local_person_identity(text,uuid)',
+              'EXECUTE'
+            ) then
+              raise exception
+                'service_role can unexpectedly execute private identity registration';
+            end if;
+
+
+            -- Public Identity Bridge RPCs: authenticated only.
+
+            if not has_function_privilege(
+              'authenticated',
+              'zos_api.current_identity_bindings()',
+              'EXECUTE'
+            ) then
+              raise exception
+                'authenticated cannot execute current_identity_bindings()';
+            end if;
+
+            if not has_function_privilege(
+              'authenticated',
+              'zos_api.ensure_current_identity_binding(text)',
+              'EXECUTE'
+            ) then
+              raise exception
+                'authenticated cannot execute ensure_current_identity_binding(text)';
+            end if;
+
+            if has_function_privilege(
+              'anon',
+              'zos_api.current_identity_bindings()',
+              'EXECUTE'
+            ) then
+              raise exception
+                'anon can unexpectedly execute current_identity_bindings()';
+            end if;
+
+            if has_function_privilege(
+              'anon',
+              'zos_api.ensure_current_identity_binding(text)',
+              'EXECUTE'
+            ) then
+              raise exception
+                'anon can unexpectedly execute ensure_current_identity_binding(text)';
+            end if;
+
+            if has_function_privilege(
+              'service_role',
+              'zos_api.current_identity_bindings()',
+              'EXECUTE'
+            ) then
+              raise exception
+                'service_role can unexpectedly execute current_identity_bindings()';
+            end if;
+
+            if has_function_privilege(
+              'service_role',
+              'zos_api.ensure_current_identity_binding(text)',
+              'EXECUTE'
+            ) then
+              raise exception
+                'service_role can unexpectedly execute ensure_current_identity_binding(text)';
+            end if;
+
+
+            -- registry_bindings least privilege.
+
+            if not has_table_privilege(
+              'authenticated',
+              'zos.registry_bindings',
+              'SELECT'
+            ) then
+              raise exception
+                'authenticated is missing SELECT on registry_bindings';
+            end if;
+
+            if has_table_privilege(
+              'authenticated',
+              'zos.registry_bindings',
+              'INSERT'
+            ) then
+              raise exception
+                'authenticated can unexpectedly INSERT registry_bindings';
+            end if;
+
+            if has_table_privilege(
+              'authenticated',
+              'zos.registry_bindings',
+              'DELETE'
+            ) then
+              raise exception
+                'authenticated can unexpectedly DELETE registry_bindings';
+            end if;
+
+
+            if not has_column_privilege(
+              'authenticated',
+              'zos.registry_bindings',
+              'canonical_entity_type',
+              'UPDATE'
+            ) then
+              raise exception
+                'authenticated cannot update canonical_entity_type';
+            end if;
+
+            if not has_column_privilege(
+              'authenticated',
+              'zos.registry_bindings',
+              'canonical_entity_id',
+              'UPDATE'
+            ) then
+              raise exception
+                'authenticated cannot update canonical_entity_id';
+            end if;
+
+            if not has_column_privilege(
+              'authenticated',
+              'zos.registry_bindings',
+              'binding_status',
+              'UPDATE'
+            ) then
+              raise exception
+                'authenticated cannot update binding_status';
+            end if;
+
+            if not has_column_privilege(
+              'authenticated',
+              'zos.registry_bindings',
+              'linked_at',
+              'UPDATE'
+            ) then
+              raise exception
+                'authenticated cannot update linked_at';
+            end if;
+
+
+            if has_column_privilege(
+              'authenticated',
+              'zos.registry_bindings',
+              'domain_code',
+              'UPDATE'
+            ) then
+              raise exception
+                'authenticated can unexpectedly change domain_code';
+            end if;
+
+            if has_column_privilege(
+              'authenticated',
+              'zos.registry_bindings',
+              'local_entity_type',
+              'UPDATE'
+            ) then
+              raise exception
+                'authenticated can unexpectedly change local_entity_type';
+            end if;
+
+            if has_column_privilege(
+              'authenticated',
+              'zos.registry_bindings',
+              'local_entity_id',
+              'UPDATE'
+            ) then
+              raise exception
+                'authenticated can unexpectedly change local_entity_id';
+            end if;
+
+            if has_column_privilege(
+              'authenticated',
+              'zos.registry_bindings',
+              'retired_at',
+              'UPDATE'
+            ) then
+              raise exception
+                'authenticated can unexpectedly change retired_at';
+            end if;
+
+
+            -- Required RLS policies.
+
+            if not exists (
+              select 1
+              from pg_policies
+              where schemaname = 'zos'
+                and tablename = 'registry_bindings'
+                and policyname =
+                  'zos_registry_bindings_self_person_select'
+                and cmd = 'SELECT'
+            ) then
+              raise exception
+                'Missing registry_bindings self SELECT policy';
+            end if;
+
+            if not exists (
+              select 1
+              from pg_policies
+              where schemaname = 'zos'
+                and tablename = 'registry_bindings'
+                and policyname =
+                  'zos_registry_bindings_self_person_update'
+                and cmd = 'UPDATE'
+            ) then
+              raise exception
+                'Missing registry_bindings self UPDATE policy';
+            end if;
+
+            if exists (
+              select 1
+              from pg_policies
+              where schemaname = 'zos'
+                and tablename = 'registry_bindings'
+                and policyname =
+                  'zos_registry_bindings_self_person_insert'
+            ) then
+              raise exception
+                'Authenticated INSERT policy unexpectedly exists';
+            end if;
+          end;
+          $$;
+
+
+          -- --------------------------------------------------
+          -- Functional bridge behaviour
+          -- --------------------------------------------------
+
+          begin;
+
+
+          -- Trusted vertical integration pre-registers existing
+          -- local identities. Run as database owner, not as app user.
+
+          do $$
+          declare
+            first_binding uuid;
+            repeat_binding uuid;
+          begin
+            select platform_internal.register_local_person_identity(
+              'find',
+              '11111111-1111-4111-8111-111111111111'
+            )
+            into first_binding;
+
+            select platform_internal.register_local_person_identity(
+              'find',
+              '11111111-1111-4111-8111-111111111111'
+            )
+            into repeat_binding;
+
+            if first_binding is distinct from repeat_binding then
+              raise exception
+                'Private Find registration is not idempotent';
+            end if;
+
+
+            perform platform_internal.register_local_person_identity(
+              'jobs',
+              '11111111-1111-4111-8111-111111111111'
+            );
+
+            perform platform_internal.register_local_person_identity(
+              'find',
+              '22222222-2222-4222-8222-222222222222'
+            );
+
+
+            if exists (
+              select 1
+              from zos.registry_bindings
+              where local_entity_id =
+                '11111111-1111-4111-8111-111111111111'
+                and (
+                  binding_status <> 'local_only'
+                  or canonical_entity_type is not null
+                  or canonical_entity_id is not null
+                  or linked_at is not null
+                )
+            ) then
+              raise exception
+                'Pre-registration assigned canonical identity too early';
+            end if;
+
+
+            -- Mobility has no human local-identity contract in v1.
+
+            begin
+              perform platform_internal.register_local_person_identity(
+                'mobility',
+                '11111111-1111-4111-8111-111111111111'
+              );
+
+              raise exception
+                'Private registration accepted unsupported mobility domain';
+
+            exception
+              when invalid_parameter_value then
+                null;
+            end;
+
+
+            -- Unknown Auth identities cannot be registered.
+
+            begin
+              perform platform_internal.register_local_person_identity(
+                'find',
+                '44444444-4444-4444-8444-444444444444'
+              );
+
+              raise exception
+                'Private registration accepted missing auth user';
+
+            exception
+              when foreign_key_violation then
+                null;
+            end;
+          end;
+          $$;
+
+
+          -- Application-facing bridge now runs as authenticated.
+
+          set local role authenticated;
+
+          do $$
+          declare
+            user1_person uuid;
+            user1_jobs_person uuid;
+            user2_person uuid;
+
+            user1_find_binding uuid;
+            user1_find_repeat uuid;
+            user1_jobs_binding uuid;
+            user2_find_binding uuid;
+
+            visible_bindings integer;
+            distinct_people integer;
+            hijack_rows integer;
+            user3_people integer;
+          begin
+
+            -- ------------------------------------------------
+            -- User 1: Find
+            -- ------------------------------------------------
+
+            perform set_config(
+              'request.jwt.claim.sub',
+              '11111111-1111-4111-8111-111111111111',
+              true
+            );
+
+            select
+              binding_id,
+              canonical_person_id
+            into
+              user1_find_binding,
+              user1_person
+            from zos_api.ensure_current_identity_binding('find');
+
+            if user1_find_binding is null
+               or user1_person is null then
+              raise exception
+                'User 1 Find binding returned null identity';
+            end if;
+
+
+            -- Idempotent repeat.
+
+            select binding_id
+            into user1_find_repeat
+            from zos_api.ensure_current_identity_binding('find');
+
+            if user1_find_repeat is distinct from user1_find_binding then
+              raise exception
+                'User 1 Find binding is not idempotent';
+            end if;
+
+
+            -- ------------------------------------------------
+            -- User 1: Jobs must converge to the SAME person.
+            -- ------------------------------------------------
+
+            select
+              binding_id,
+              canonical_person_id
+            into
+              user1_jobs_binding,
+              user1_jobs_person
+            from zos_api.ensure_current_identity_binding('jobs');
+
+            if user1_jobs_binding is null then
+              raise exception
+                'User 1 Jobs binding returned null binding';
+            end if;
+
+            if user1_jobs_person is distinct from user1_person then
+              raise exception
+                'Find and Jobs did not converge to one canonical person';
+            end if;
+
+
+            select
+              count(*),
+              count(distinct canonical_person_id)
+            into
+              visible_bindings,
+              distinct_people
+            from zos_api.current_identity_bindings();
+
+            if visible_bindings <> 2 then
+              raise exception
+                'User 1 sees % identity bindings; expected 2',
+                visible_bindings;
+            end if;
+
+            if distinct_people <> 1 then
+              raise exception
+                'User 1 bindings resolve to % canonical persons; expected 1',
+                distinct_people;
+            end if;
+
+
+            -- Unsupported Mobility domain remains rejected.
+
+            begin
+              perform *
+              from zos_api.ensure_current_identity_binding('mobility');
+
+              raise exception
+                'Authenticated bridge accepted mobility domain';
+
+            exception
+              when invalid_parameter_value then
+                null;
+            end;
+
+
+            -- ------------------------------------------------
+            -- User 3 has NO trusted local pre-registration.
+            -- The bridge must not fabricate one.
+            -- ------------------------------------------------
+
+            perform set_config(
+              'request.jwt.claim.sub',
+              '33333333-3333-4333-8333-333333333333',
+              true
+            );
+
+            begin
+              perform *
+              from zos_api.ensure_current_identity_binding('find');
+
+              raise exception
+                'User 3 fabricated a Find local identity';
+
+            exception
+              when check_violation then
+                null;
+            end;
+
+            select count(*)
+            into user3_people
+            from zos.persons
+            where auth_user_id =
+              '33333333-3333-4333-8333-333333333333';
+
+            if user3_people <> 0 then
+              raise exception
+                'Failed local binding left a canonical User 3 person behind';
+            end if;
+
+
+            -- ------------------------------------------------
+            -- User 2 receives a separate canonical person.
+            -- ------------------------------------------------
+
+            perform set_config(
+              'request.jwt.claim.sub',
+              '22222222-2222-4222-8222-222222222222',
+              true
+            );
+
+            select
+              binding_id,
+              canonical_person_id
+            into
+              user2_find_binding,
+              user2_person
+            from zos_api.ensure_current_identity_binding('find');
+
+            if user2_find_binding is null
+               or user2_person is null then
+              raise exception
+                'User 2 Find binding returned null identity';
+            end if;
+
+            if user2_person = user1_person then
+              raise exception
+                'Two Auth users converged to the same canonical person';
+            end if;
+
+
+            select count(*)
+            into visible_bindings
+            from zos_api.current_identity_bindings();
+
+            if visible_bindings <> 1 then
+              raise exception
+                'User 2 sees % identity bindings; expected 1',
+                visible_bindings;
+            end if;
+
+
+            -- User 2 cannot update User 1's binding.
+
+            update zos.registry_bindings
+            set
+              canonical_entity_id = user2_person::text,
+              linked_at = now()
+            where id = user1_find_binding;
+
+            get diagnostics hijack_rows = row_count;
+
+            if hijack_rows <> 0 then
+              raise exception
+                'Cross-user registry binding UPDATE succeeded';
+            end if;
+
+
+            -- ------------------------------------------------
+            -- User 1 cannot repoint own binding to User 2.
+            -- ------------------------------------------------
+
+            perform set_config(
+              'request.jwt.claim.sub',
+              '11111111-1111-4111-8111-111111111111',
+              true
+            );
+
+            begin
+              update zos.registry_bindings
+              set
+                canonical_entity_id = user2_person::text,
+                linked_at = now()
+              where id = user1_find_binding;
+
+              raise exception
+                'RLS allowed canonical identity hijack';
+
+            exception
+              when insufficient_privilege then
+                null;
+            end;
+
+
+            -- Confirm User 1 still resolves correctly.
+
+            if not exists (
+              select 1
+              from zos_api.current_identity_bindings()
+              where binding_id = user1_find_binding
+                and canonical_person_id = user1_person
+            ) then
+              raise exception
+                'User 1 Find binding changed after hijack attempt';
+            end if;
+
+          end;
+          $$;
+
+
+          rollback;
+
+
+          -- --------------------------------------------------
+          -- Test transaction must leave no Core identity residue.
+          -- --------------------------------------------------
+
+          do $$
+          begin
+            if exists (
+              select 1
+              from zos.registry_bindings
+              where local_entity_id in (
+                '11111111-1111-4111-8111-111111111111',
+                '22222222-2222-4222-8222-222222222222',
+                '33333333-3333-4333-8333-333333333333'
+              )
+            ) then
+              raise exception
+                'Identity Bridge functional test left registry binding residue';
+            end if;
+
+            if exists (
+              select 1
+              from zos.persons
+              where auth_user_id in (
+                '11111111-1111-4111-8111-111111111111',
+                '22222222-2222-4222-8222-222222222222',
+                '33333333-3333-4333-8333-333333333333'
+              )
+            ) then
+              raise exception
+                'Identity Bridge functional test left canonical person residue';
+            end if;
+          end;
+          $$;
 
           SQL
 
