@@ -13,6 +13,9 @@ if (process.env.JOBS_DB_SCHEMA !== 'jobs') {
   throw new Error('JOBS_DB_SCHEMA=jobs is required');
 }
 
+const SIGNUP_USER =
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+
 const COMMIT_USER =
   'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 
@@ -181,6 +184,84 @@ async function main() {
     );
 
     console.log('✓ direct auth.users SELECT denied');
+
+    // ----------------------------------------------------------
+    // Anonymous signup bootstrap:
+    //
+    // POST /candidates começa sem Authorization Bearer, portanto
+    // auth.uid() é null. O UUID usado no bootstrap não vem do cliente:
+    // é o UUID já emitido pelo Supabase Auth.
+    //
+    // A tarefa equivalente ao Identity Adapter deve ficar pendente
+    // durante a transação e só conseguir observar jobs.persons depois
+    // do COMMIT.
+    // ----------------------------------------------------------
+
+    let signupPostCommitObserved = false;
+
+    await store.withRequestContext(null, async () => {
+      const anonymousIdentity = await store.query(
+        `select auth.uid()::text as uid`,
+      );
+
+      assert.equal(
+        anonymousIdentity.rows[0]?.uid ?? null,
+        null,
+        'anonymous signup request must start with auth.uid() = null',
+      );
+
+      await store.bootstrapPersonRecord(
+        SIGNUP_USER,
+        'Runtime Signup User',
+        'ci-shared-runtime-v1',
+      );
+
+      const insideTransaction = await store.query(
+        `select full_name
+         from persons
+         where user_id = $1`,
+        [SIGNUP_USER],
+      );
+
+      assert.equal(
+        insideTransaction.rows[0]?.full_name,
+        'Runtime Signup User',
+        'bootstrap must create jobs.persons before COMMIT',
+      );
+
+      await store.scheduleAfterCommit(async () => {
+        const committedPerson = await store.query(
+          `select full_name
+           from persons
+           where user_id = $1`,
+          [SIGNUP_USER],
+        );
+
+        assert.equal(
+          committedPerson.rows[0]?.full_name,
+          'Runtime Signup User',
+          'post-COMMIT task must observe committed jobs.persons',
+        );
+
+        signupPostCommitObserved = true;
+      });
+
+      assert.equal(
+        signupPostCommitObserved,
+        false,
+        'identity task must not run inside signup transaction',
+      );
+    });
+
+    assert.equal(
+      signupPostCommitObserved,
+      true,
+      'identity task must run after successful signup COMMIT',
+    );
+
+    console.log(
+      '✓ anonymous signup bootstrap + post-COMMIT identity ordering',
+    );
 
     await seedCandidate(
       COMMIT_USER,

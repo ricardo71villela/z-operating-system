@@ -117,6 +117,98 @@ export interface SupabaseLoginResult {
   accessToken: string;
 }
 
+export interface ZosIdentityBinding {
+  binding_id: string;
+  domain_code: string;
+  local_entity_type: string;
+  local_entity_id: string;
+  canonical_person_id: string;
+  binding_status: string;
+  linked_at: string | null;
+}
+
+/**
+ * Z Jobs Identity Adapter v1.
+ *
+ * Liga a identidade local Jobs já pré-registada à pessoa canónica ZOS.
+ *
+ * Esta operação é deliberadamente feita através do Data API com o
+ * access token DO PRÓPRIO utilizador:
+ *
+ *   authenticated user
+ *        -> zos_api
+ *        -> ensure_current_identity_binding('jobs')
+ *
+ * Nunca usa service_role, jobs_runtime ou platform_internal para
+ * contornar o contrato de identidade do Core.
+ */
+export async function ensureJobsIdentityBinding(
+  config: SupabaseAuthConfig,
+  accessToken: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<ZosIdentityBinding> {
+  const token = accessToken.trim();
+
+  if (!token) {
+    throw new Error(
+      'Z Jobs identity binding requires an authenticated Supabase access token',
+    );
+  }
+
+  const client = createClient(
+    config.projectUrl,
+    config.publicKey,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false,
+      },
+      global: {
+        fetch: fetchImpl,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    },
+  );
+
+  const { data, error } = await client
+    .schema('zos_api')
+    .rpc(
+      'ensure_current_identity_binding',
+      { p_domain_code: 'jobs' },
+    );
+
+  if (error) {
+    throw new Error(
+      `Z Jobs identity binding failed: ${error.message}`,
+    );
+  }
+
+  if (!Array.isArray(data) || data.length !== 1) {
+    throw new Error(
+      'Z Jobs identity binding returned an unexpected result',
+    );
+  }
+
+  const binding = data[0] as Partial<ZosIdentityBinding>;
+
+  if (
+    binding.domain_code !== 'jobs' ||
+    binding.local_entity_type !== 'person' ||
+    binding.binding_status !== 'linked' ||
+    typeof binding.canonical_person_id !== 'string' ||
+    !binding.canonical_person_id
+  ) {
+    throw new Error(
+      'Z Jobs identity binding did not resolve a linked canonical person',
+    );
+  }
+
+  return binding as ZosIdentityBinding;
+}
+
 export async function loginWithSupabase(config: SupabaseAuthConfig, email: string, password: string): Promise<SupabaseLoginResult> {
   const res = await fetch(`${config.projectUrl}/auth/v1/token?grant_type=password`, {
     method: 'POST',
