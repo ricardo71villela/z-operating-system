@@ -30,6 +30,7 @@
 import pg from 'pg';
 import { randomUUID, createHash } from 'node:crypto';
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { readFileSync } from 'node:fs';
 import type { JobOfferDraft, JobOfferStatus, VerificationStatus } from '../../../packages/domain/src/types/jobOffer';
 import type { ApplicationStatus } from '../../../packages/domain/src/rules/application';
 import { computeProfileCompleteness } from '../../../packages/domain/src/rules/candidateProfile';
@@ -131,12 +132,35 @@ export class PgStore {
 
     this.usingSharedZosDatabase = dbSchema === 'jobs';
 
+    // Production TLS:
+    // - local/CI Postgres remains unchanged when JOBS_DB_SSL_MODE is unset
+    // - hosted Supabase uses its root CA with certificate verification
+    // - DATABASE_URL must not contain sslmode when this mode is enabled,
+    //   because node-postgres connection-string SSL options can override `ssl`
+    const dbSslMode = process.env.JOBS_DB_SSL_MODE?.trim();
+
+    if (dbSslMode && dbSslMode !== 'verify-full') {
+      throw new Error(`invalid JOBS_DB_SSL_MODE: ${dbSslMode}`);
+    }
+
+    const ssl =
+      dbSslMode === 'verify-full'
+        ? {
+            ca: readFileSync(
+              new URL('../certs/supabase-root-2021-ca.crt', import.meta.url),
+              'utf8',
+            ),
+            rejectUnauthorized: true,
+          }
+        : undefined;
+
     this.pool = new pg.Pool({
       connectionString,
       max: maxConnections,
       ...(dbSchema
         ? { options: `-c search_path=${dbSchema}` }
         : {}),
+      ...(ssl ? { ssl } : {}),
     });
   }
 
