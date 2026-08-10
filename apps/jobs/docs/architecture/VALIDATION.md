@@ -6,8 +6,8 @@
 - all compiled domain test files — PASS (18 test files)
 - new ZOS compatibility primitives test — PASS
 - `apps/api`: strict TypeScript typecheck — PASS using temporary local type stubs
-  for `pg` and `jsonwebtoken`, because the isolated package registry available in
-  the adaptation environment could not serve all npm tarballs
+  for dependencies that were unavailable from the isolated package registry in
+  the original adaptation environment
 - migration sequence checked statically through `0030`
 
 ## Dependency-install limitation in the adaptation environment

@@ -93,9 +93,8 @@ export function createServer() {
   if (usingSharedZosDatabase) {
     if (!loadSupabaseAuthConfigFromEnv()) {
       throw new Error(
-        'JOBS_DB_SCHEMA=jobs requires SUPABASE_URL, ' +
-        'SUPABASE_PUBLISHABLE_KEY (or SUPABASE_ANON_KEY), ' +
-        'and SUPABASE_JWT_SECRET',
+        'JOBS_DB_SCHEMA=jobs requires SUPABASE_URL and ' +
+        'SUPABASE_PUBLISHABLE_KEY (or SUPABASE_ANON_KEY)',
       );
     }
 

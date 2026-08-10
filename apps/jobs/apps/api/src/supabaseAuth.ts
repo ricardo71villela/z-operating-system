@@ -25,17 +25,16 @@
 // real — este ambiente não tem acesso de rede a supabase.co. A forma
 // do pedido está correta segundo a documentação pública da API REST
 // deles, mas "correta na forma" não é o mesmo que "testada a
-// funcionar". verifySupabaseJWT() foi testada com um token assinado
-// localmente com o mesmo segredo (ver supabaseAuth.test.ts) — essa
-// parte está genuinamente verificada.
+// funcionar". A validação de access tokens usa auth.getClaims(),
+// delegando a verificação criptográfica/JWKS ao SDK oficial do Supabase.
+// O comportamento de integração dessa função é coberto em
+// supabaseAuth.test.ts sem reimplementar criptografia própria.
 
-import jwt from 'jsonwebtoken';
 import { createClient } from '@supabase/supabase-js';
 
 export interface SupabaseAuthConfig {
   projectUrl: string;
   publicKey: string;
-  jwtSecret: string;
 }
 
 export interface SupabaseAdminConfig {
@@ -48,11 +47,10 @@ export function loadSupabaseAuthConfigFromEnv(): SupabaseAuthConfig | null {
   const publicKey =
     process.env.SUPABASE_PUBLISHABLE_KEY ??
     process.env.SUPABASE_ANON_KEY;
-  const jwtSecret = process.env.SUPABASE_JWT_SECRET;
 
-  if (!projectUrl || !publicKey || !jwtSecret) return null;
+  if (!projectUrl || !publicKey) return null;
 
-  return { projectUrl, publicKey, jwtSecret };
+  return { projectUrl, publicKey };
 }
 
 export function loadSupabaseAdminConfigFromEnv(): SupabaseAdminConfig | null {
@@ -229,10 +227,61 @@ export async function loginWithSupabase(config: SupabaseAuthConfig, email: strin
  * criptográfica, local, rápida. Esta é a parte genuinamente testada
  * (ver supabaseAuth.test.ts).
  */
-export function verifySupabaseJWT(config: SupabaseAuthConfig, token: string): string | null {
+type SupabaseClaimsVerifier = (
+  token: string,
+) => Promise<{
+  claims: { sub?: unknown } | null;
+  error: unknown;
+}>;
+
+/**
+ * Valida um access token emitido pelo Supabase Auth.
+ *
+ * Com signing keys assimétricas, auth.getClaims() usa o JWKS do projeto
+ * e valida criptograficamente o JWT sem depender do legacy JWT secret.
+ *
+ * O verifier opcional existe apenas para testes unitários: produção usa
+ * sempre a implementação oficial de @supabase/supabase-js.
+ */
+export async function verifySupabaseJWT(
+  config: SupabaseAuthConfig,
+  token: string,
+  claimsVerifier?: SupabaseClaimsVerifier,
+): Promise<string | null> {
   try {
-    const decoded = jwt.verify(token, config.jwtSecret) as { sub?: string };
-    return decoded.sub ?? null;
+    const verifier =
+      claimsVerifier ??
+      (async (jwtToken: string) => {
+        const client = createClient(
+          config.projectUrl,
+          config.publicKey,
+          {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false,
+              detectSessionInUrl: false,
+            },
+          },
+        );
+
+        const { data, error } =
+          await client.auth.getClaims(jwtToken);
+
+        return {
+          claims: data?.claims ?? null,
+          error,
+        };
+      });
+
+    const { claims, error } = await verifier(token);
+
+    if (error) return null;
+
+    const sub = claims?.sub;
+
+    return typeof sub === 'string' && sub.length > 0
+      ? sub
+      : null;
   } catch {
     return null;
   }
