@@ -78,9 +78,9 @@ export async function resolveSession(db: Queryable, authorizationHeader: string 
 
 /**
  * Caminho duplo, deliberado: se houver configuração real do Supabase
- * (SUPABASE_JWT_SECRET no ambiente), verifica o token como um JWT real
- * do Supabase — sem nenhuma consulta à base de dados, só verificação
- * criptográfica local. Sem essa configuração, cai para a autenticação
+ * (SUPABASE_URL + publishable key), verifica o access token através de
+ * auth.getClaims(), usando as signing keys/JWKS do projeto. Sem essa
+ * configuração, cai para a autenticação
  * própria já testada (150+ vezes nesta base de código), para continuar
  * a poder testar e desenvolver aqui, onde não há acesso de rede real ao
  * Supabase. Nunca finge que uma chamada de rede ao Supabase foi
@@ -92,7 +92,7 @@ export async function resolveAuthenticatedUserId(db: Queryable, authorizationHea
   if (supabaseConfig) {
     if (!authorizationHeader?.startsWith('Bearer ')) return null;
     const token = authorizationHeader.slice('Bearer '.length).trim();
-    return verifySupabaseJWT(supabaseConfig, token);
+    return await verifySupabaseJWT(supabaseConfig, token);
   }
   return resolveSession(db, authorizationHeader);
 }

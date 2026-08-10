@@ -1,20 +1,22 @@
 // apps/api/src/supabaseAuth.test.ts
-// Corre com: npx tsx apps/api/src/supabaseAuth.test.ts
 //
-// Só testa verifySupabaseJWT() — a única função deste módulo que não
-// depende de rede real ao Supabase. signupWithSupabase/loginWithSupabase
-// nunca foram testadas contra um projeto real, e dizê-lo aqui em vez de
-// fingir uma cobertura que não existe.
+// Testes do contrato de integração com Supabase Auth.
+// A criptografia/JWKS é responsabilidade do SDK oficial
+// @supabase/supabase-js; estes testes verificam o comportamento
+// fail-closed da nossa camada e a extração segura do claim sub.
 
 import assert from 'node:assert/strict';
-import jwt from 'jsonwebtoken';
 import { verifySupabaseJWT } from './supabaseAuth';
 
 let passed = 0;
 let failed = 0;
-function test(name: string, fn: () => void) {
+
+async function test(
+  name: string,
+  fn: () => void | Promise<void>,
+) {
   try {
-    fn();
+    await fn();
     console.log(`  ✓ ${name}`);
     passed++;
   } catch (err) {
@@ -24,44 +26,87 @@ function test(name: string, fn: () => void) {
   }
 }
 
-const FAKE_SECRET = 'segredo-de-teste-nunca-usar-em-producao';
-const config = { projectUrl: 'https://exemplo.supabase.co', publicKey: 'x', jwtSecret: FAKE_SECRET };
+const config = {
+  projectUrl: 'https://example.supabase.co',
+  publicKey: 'test-publishable-key',
+};
 
 console.log('verifySupabaseJWT');
 
-test('token assinado com o segredo certo -> devolve o sub corretamente', () => {
-  const token = jwt.sign({ sub: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', role: 'authenticated' }, FAKE_SECRET);
-  const userId = verifySupabaseJWT(config, token);
-  assert.equal(userId, 'a1b2c3d4-e5f6-7890-abcd-ef1234567890');
-});
+await test(
+  'claims válidos -> devolve o sub corretamente',
+  async () => {
+    let receivedToken: string | null = null;
 
-test('token assinado com segredo ERRADO -> devolve null, nunca um id inventado', () => {
-  const token = jwt.sign({ sub: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' }, 'segredo-errado');
-  const userId = verifySupabaseJWT(config, token);
-  assert.equal(userId, null);
-});
+    const userId = await verifySupabaseJWT(
+      config,
+      'user-access-token',
+      async (token) => {
+        receivedToken = token;
 
-test('token expirado -> devolve null', () => {
-  const token = jwt.sign({ sub: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' }, FAKE_SECRET, { expiresIn: -10 });
-  const userId = verifySupabaseJWT(config, token);
-  assert.equal(userId, null);
-});
+        return {
+          claims: {
+            sub: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+          },
+          error: null,
+        };
+      },
+    );
 
-test('texto que não é sequer um JWT -> devolve null, não rebenta', () => {
-  const userId = verifySupabaseJWT(config, 'isto-nao-e-um-jwt-nenhum');
-  assert.equal(userId, null);
-});
+    assert.equal(receivedToken, 'user-access-token');
+    assert.equal(
+      userId,
+      'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+    );
+  },
+);
 
-test('token válido mas sem claim "sub" -> devolve null', () => {
-  const token = jwt.sign({ role: 'authenticated' }, FAKE_SECRET);
-  const userId = verifySupabaseJWT(config, token);
-  assert.equal(userId, null);
-});
+await test(
+  'erro de validação -> devolve null',
+  async () => {
+    const userId = await verifySupabaseJWT(
+      config,
+      'invalid-token',
+      async () => ({
+        claims: null,
+        error: new Error('invalid JWT'),
+      }),
+    );
 
-console.log(`\n${passed} passed, ${failed} failed`);
-if (failed > 0) {
-  process.exitCode = 1;
-}
+    assert.equal(userId, null);
+  },
+);
+
+await test(
+  'verifier lança exceção -> devolve null',
+  async () => {
+    const userId = await verifySupabaseJWT(
+      config,
+      'invalid-token',
+      async () => {
+        throw new Error('JWKS unavailable');
+      },
+    );
+
+    assert.equal(userId, null);
+  },
+);
+
+await test(
+  'claims sem sub -> devolve null',
+  async () => {
+    const userId = await verifySupabaseJWT(
+      config,
+      'token-without-sub',
+      async () => ({
+        claims: {},
+        error: null,
+      }),
+    );
+
+    assert.equal(userId, null);
+  },
+);
 
 async function testIdentityAdapter() {
   console.log('\nensureJobsIdentityBinding');

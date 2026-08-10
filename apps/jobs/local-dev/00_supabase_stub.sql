@@ -8,9 +8,9 @@
 -- CONTEXTO IMPORTANTE: com a integração real do Supabase Auth
 -- (apps/api/src/supabaseAuth.ts), este stub deixou de ser necessário
 -- para autenticação em si — a aplicação já não escreve em auth.users
--- quando SUPABASE_URL/SUPABASE_ANON_KEY/SUPABASE_JWT_SECRET estão
--- definidas (ver PgStore.bootstrapPersonRecord). Continua necessário
--- só para o CAMINHO LOCAL de reserva (sem essas variáveis), usado em
+-- quando o Supabase Auth real está configurado com SUPABASE_URL e uma
+-- publishable key (ou o nome legacy SUPABASE_ANON_KEY). Continua
+-- necessário só para o CAMINHO LOCAL de reserva, usado em
 -- desenvolvimento e nos testes automáticos deste repositório.
 --
 -- Corre isto ANTES das migrations reais, só em ambiente local/CI —

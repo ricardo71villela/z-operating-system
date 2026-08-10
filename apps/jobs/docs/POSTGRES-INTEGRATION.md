@@ -142,27 +142,28 @@ papel da aplicação. Escrever nessa tabela não era um ajuste pequeno de
 fazer, era incompatível com o produto deles por desenho.
 
 **A correção**: `apps/api/src/supabaseAuth.ts` chama a API REST real do
-Supabase Auth para registo/login, e verifica os tokens que eles emitem
-localmente (verificação criptográfica do JWT, sem nenhuma consulta à
-base de dados por pedido — mais rápido do que a tabela de sessões
-própria que existia antes). O mecanismo de RLS nunca mudou:
-`auth.uid()` sempre leu `request.jwt.claim.sub` via `set_config` — só
-mudou quem emite o valor desse claim.
+Supabase Auth para registo/login, e valida os access tokens através de
+`auth.getClaims()`. Com signing keys assimétricas, o SDK usa o JWKS do
+projeto e faz verificação criptográfica local depois de obter/cachear as
+signing keys. O mecanismo de RLS nunca mudou: `auth.uid()` sempre leu
+`request.jwt.claim.sub` via `set_config` — só mudou quem emite e valida
+o valor desse claim.
 
-**Caminho duplo, deliberado**: se `SUPABASE_URL`/`SUPABASE_ANON_KEY`/
-`SUPABASE_JWT_SECRET` estiverem definidas, usa-se o Supabase real.
-Sem elas, cai-se para a autenticação local já testada 150+ vezes nesta
-base de código — necessário porque este ambiente de desenvolvimento não
-tem acesso de rede real a supabase.co.
+**Caminho duplo, deliberado**: se `SUPABASE_URL` e
+`SUPABASE_PUBLISHABLE_KEY` (ou o nome legacy `SUPABASE_ANON_KEY`)
+estiverem definidos, usa-se o Supabase Auth real. No runtime shared ZOS,
+`SUPABASE_SECRET_KEY` também é obrigatória para operações administrativas
+server-side. Sem configuração Supabase, cai-se para a autenticação local
+de desenvolvimento já existente.
 
-**O que foi genuinamente testado**: a verificação criptográfica do JWT
-(`apps/api/src/supabaseAuth.test.ts`, 5 testes) e o próprio servidor a
-reconhecer corretamente um token assinado como o Supabase assinaria,
-incluindo rejeitar um mal assinado (403). **O que NÃO foi testado**: as
-chamadas de rede reais a `signupWithSupabase`/`loginWithSupabase` —
-nunca tocaram um projeto Supabase real. A forma do pedido segue a
-documentação pública deles, mas isso não é o mesmo que confirmado a
-funcionar.
+**O que foi genuinamente testado**: o contrato fail-closed da validação
+de access tokens e do Identity Adapter
+(`apps/api/src/supabaseAuth.test.ts`, 6 testes), incluindo extração do
+`sub`, rejeição de erros/exceções e ausência de `sub`. A criptografia e
+resolução JWKS são delegadas ao SDK oficial do Supabase e não são
+reimplementadas nos testes unitários. **O que NÃO foi testado neste
+teste unitário**: chamadas reais de rede a
+`signupWithSupabase`/`loginWithSupabase` ou ao endpoint JWKS.
 
 **Email real via Resend**: mesmo princípio — `RESEND_API_KEY` no
 ambiente ativa `ResendEmailService`; sem ela, cai para o registo por
