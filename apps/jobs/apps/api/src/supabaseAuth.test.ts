@@ -25,7 +25,7 @@ function test(name: string, fn: () => void) {
 }
 
 const FAKE_SECRET = 'segredo-de-teste-nunca-usar-em-producao';
-const config = { projectUrl: 'https://exemplo.supabase.co', anonKey: 'x', jwtSecret: FAKE_SECRET };
+const config = { projectUrl: 'https://exemplo.supabase.co', publicKey: 'x', jwtSecret: FAKE_SECRET };
 
 console.log('verifySupabaseJWT');
 

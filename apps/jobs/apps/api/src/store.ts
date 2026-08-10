@@ -37,7 +37,11 @@ export interface JobOfferRecord extends JobOfferDraft {
 export interface ApplicationRecord {
   id: string;
   jobOfferId: string;
-  candidateId: string;
+
+  // null depois de um candidate-erasure: preservamos o facto histórico
+  // da candidatura sem manter a ligação à identidade da pessoa.
+  candidateId: string | null;
+
   status: ApplicationStatus;
   createdAt: string;
   history: { from: ApplicationStatus | null; to: ApplicationStatus; at: string }[];

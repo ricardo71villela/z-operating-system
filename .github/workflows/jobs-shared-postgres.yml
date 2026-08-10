@@ -1,0 +1,1044 @@
+name: Z Jobs Shared ZOS PostgreSQL
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - main
+    paths:
+      - "infrastructure/supabase/migrations/**"
+      - "apps/jobs/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/jobs-shared-postgres.yml"
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "infrastructure/supabase/migrations/**"
+      - "apps/jobs/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/jobs-shared-postgres.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  convergence:
+    name: Shared ZOS + Jobs migration + runtime boundary
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: zos_jobs_test_pw
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create disposable shared ZOS database
+        env:
+          PGPASSWORD: zos_jobs_test_pw
+        run: |
+          psql -h localhost -U postgres -v ON_ERROR_STOP=1 \
+            -c "CREATE DATABASE zos_jobs_test;"
+
+          psql -h localhost -U postgres -d zos_jobs_test -v ON_ERROR_STOP=1 \
+            -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+
+          psql -h localhost -U postgres -d zos_jobs_test -v ON_ERROR_STOP=1 <<'SQL'
+          create role anon nologin;
+          create role authenticated nologin;
+          create role service_role nologin bypassrls;
+
+          create schema if not exists auth;
+
+          create table auth.users (
+            id uuid primary key default gen_random_uuid(),
+            email text unique,
+            created_at timestamptz not null default now()
+          );
+
+          create or replace function auth.uid()
+          returns uuid
+          language sql
+          stable
+          as $$
+            select nullif(
+              current_setting('request.jwt.claim.sub', true),
+              ''
+            )::uuid;
+          $$;
+
+          revoke all on function auth.uid() from public;
+
+          grant usage on schema auth
+            to anon, authenticated, service_role;
+
+          grant execute on function auth.uid()
+            to anon, authenticated, service_role;
+          SQL
+
+      - name: Apply shared ZOS migrations in order
+        env:
+          PGPASSWORD: zos_jobs_test_pw
+        run: |
+          for f in $(ls infrastructure/supabase/migrations/*.sql | sort); do
+            echo "--- APPLYING $f ---"
+
+            psql \
+              -h localhost \
+              -U postgres \
+              -d zos_jobs_test \
+              -v ON_ERROR_STOP=1 \
+              -f "$f"
+          done
+
+      - name: Create disposable Jobs application login
+        env:
+          PGPASSWORD: zos_jobs_test_pw
+        run: |
+          psql -h localhost -U postgres -d zos_jobs_test -v ON_ERROR_STOP=1 <<'SQL'
+          create role jobs_runtime_ci
+            login
+            password 'jobs_runtime_ci_pw'
+            nosuperuser
+            nocreatedb
+            nocreaterole
+            inherit
+            noreplication
+            nobypassrls;
+
+          grant jobs_runtime
+            to jobs_runtime_ci
+            with inherit true, set false;
+          SQL
+
+      - name: Verify Jobs runtime role boundary
+        env:
+          PGPASSWORD: zos_jobs_test_pw
+        run: |
+          psql -h localhost -U postgres -d zos_jobs_test -v ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          begin
+            if not exists (
+              select 1
+              from pg_roles
+              where rolname = 'jobs_runtime'
+                and not rolcanlogin
+                and not rolbypassrls
+                and not rolsuper
+            ) then
+              raise exception
+                'jobs_runtime must be NOLOGIN, NOBYPASSRLS and NOSUPERUSER';
+            end if;
+
+            if not exists (
+              select 1
+              from pg_roles
+              where rolname = 'jobs_runtime_ci'
+                and rolcanlogin
+                and not rolbypassrls
+                and not rolsuper
+            ) then
+              raise exception
+                'jobs_runtime_ci login boundary is invalid';
+            end if;
+
+            if not pg_has_role(
+              'jobs_runtime_ci',
+              'jobs_runtime',
+              'USAGE'
+            ) then
+              raise exception
+                'jobs_runtime_ci does not inherit jobs_runtime privileges';
+            end if;
+
+            if pg_has_role(
+              'jobs_runtime_ci',
+              'jobs_runtime',
+              'SET'
+            ) then
+              raise exception
+                'jobs_runtime_ci unexpectedly has SET ROLE permission';
+            end if;
+
+            if not has_schema_privilege(
+              'jobs_runtime_ci',
+              'jobs',
+              'USAGE'
+            ) then
+              raise exception
+                'jobs_runtime_ci lacks USAGE on jobs schema';
+            end if;
+
+            if has_schema_privilege(
+              'jobs_runtime_ci',
+              'platform_internal',
+              'USAGE'
+            ) then
+              raise exception
+                'jobs_runtime_ci unexpectedly has platform_internal access';
+            end if;
+
+            if has_table_privilege(
+              'jobs_runtime_ci',
+              'auth.users',
+              'SELECT'
+            ) then
+              raise exception
+                'jobs_runtime_ci unexpectedly has SELECT on auth.users';
+            end if;
+
+            if not has_function_privilege(
+              'jobs_runtime_ci',
+              'jobs.bootstrap_person(uuid,text,text)',
+              'EXECUTE'
+            ) then
+              raise exception
+                'jobs_runtime_ci cannot execute bootstrap_person';
+            end if;
+
+            if not has_function_privilege(
+              'jobs_runtime_ci',
+              'jobs.get_person_full_name(uuid)',
+              'EXECUTE'
+            ) then
+              raise exception
+                'jobs_runtime_ci cannot execute get_person_full_name';
+            end if;
+
+            if has_function_privilege(
+              'jobs_runtime_ci',
+              'platform_internal.register_jobs_person_identity()',
+              'EXECUTE'
+            ) then
+              raise exception
+                'runtime can unexpectedly execute private trigger function';
+            end if;
+          end;
+          $$;
+          SQL
+
+      - name: Verify Jobs identity registration and self-healing
+        env:
+          PGPASSWORD: zos_jobs_test_pw
+        run: |
+          TEST_USER="11111111-1111-4111-8111-111111111111"
+
+          psql -h localhost -U postgres -d zos_jobs_test -v ON_ERROR_STOP=1 \
+            -c "insert into auth.users(id,email)
+                values (
+                  '$TEST_USER'::uuid,
+                  'jobs-ci@example.invalid'
+                );"
+
+          PGPASSWORD=jobs_runtime_ci_pw \
+          psql \
+            -h localhost \
+            -U jobs_runtime_ci \
+            -d zos_jobs_test \
+            -v ON_ERROR_STOP=1 \
+            -c "select jobs.bootstrap_person(
+                  '$TEST_USER'::uuid,
+                  'Jobs CI User',
+                  'ci-v1'
+                );"
+
+          psql -h localhost -U postgres -d zos_jobs_test -v ON_ERROR_STOP=1 <<SQL
+          do \$\$
+          begin
+            if not exists (
+              select 1
+              from jobs.persons
+              where user_id = '$TEST_USER'::uuid
+                and full_name = 'Jobs CI User'
+            ) then
+              raise exception 'jobs.persons bootstrap failed';
+            end if;
+
+            if not exists (
+              select 1
+              from zos.registry_bindings
+              where domain_code = 'jobs'
+                and local_entity_type = 'person'
+                and local_entity_id = '$TEST_USER'
+                and retired_at is null
+            ) then
+              raise exception 'initial Jobs identity registration failed';
+            end if;
+          end;
+          \$\$;
+
+          delete from zos.registry_bindings
+          where domain_code = 'jobs'
+            and local_entity_type = 'person'
+            and local_entity_id = '$TEST_USER';
+          SQL
+
+          PGPASSWORD=jobs_runtime_ci_pw \
+          psql \
+            -h localhost \
+            -U jobs_runtime_ci \
+            -d zos_jobs_test \
+            -v ON_ERROR_STOP=1 \
+            -c "select jobs.bootstrap_person(
+                  '$TEST_USER'::uuid,
+                  'Jobs CI User Updated',
+                  'ci-v1'
+                );"
+
+          psql -h localhost -U postgres -d zos_jobs_test -v ON_ERROR_STOP=1 <<SQL
+          do \$\$
+          begin
+            if not exists (
+              select 1
+              from zos.registry_bindings
+              where domain_code = 'jobs'
+                and local_entity_type = 'person'
+                and local_entity_id = '$TEST_USER'
+                and retired_at is null
+            ) then
+              raise exception
+                'bootstrap self-healing did not recreate Jobs binding';
+            end if;
+
+            if (
+              select full_name
+              from jobs.persons
+              where user_id = '$TEST_USER'::uuid
+            ) <> 'Jobs CI User Updated' then
+              raise exception
+                'bootstrap ON CONFLICT update failed';
+            end if;
+          end;
+          \$\$;
+          SQL
+
+          RESULT="$(
+            PGPASSWORD=jobs_runtime_ci_pw \
+            psql \
+              -h localhost \
+              -U jobs_runtime_ci \
+              -d zos_jobs_test \
+              -At \
+              -v ON_ERROR_STOP=1 \
+              -c "select jobs.get_person_full_name(
+                    '$TEST_USER'::uuid
+                  );"
+          )"
+
+          test "$RESULT" = "Jobs CI User Updated" || {
+            echo "Unexpected full name result: $RESULT"
+            exit 1
+          }
+
+          echo "OK: Jobs identity registration + self-healing"
+
+      - name: Verify candidate erasure boundary
+        env:
+          PGPASSWORD: zos_jobs_test_pw
+        run: |
+          CANDIDATE_A="22222222-2222-4222-8222-222222222222"
+          CANDIDATE_B="33333333-3333-4333-8333-333333333333"
+          EMPLOYER_USER="44444444-4444-4444-8444-444444444444"
+
+          ORG_ID="55555555-5555-4555-8555-555555555555"
+          OFFER_ID="66666666-6666-4666-8666-666666666666"
+
+          APP_A="77777777-7777-4777-8777-777777777777"
+          APP_B="88888888-8888-4888-8888-888888888888"
+
+          DOC_A1="99999999-9999-4999-8999-999999999991"
+          DOC_A2="99999999-9999-4999-8999-999999999992"
+          DOC_B="99999999-9999-4999-8999-999999999993"
+
+          SKILL_ID="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+
+          # ----------------------------------------------------------
+          # ACL: only the backend runtime group may invoke erasure.
+          # ----------------------------------------------------------
+
+          psql -h localhost -U postgres -d zos_jobs_test -v ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          begin
+            if not has_function_privilege(
+              'jobs_runtime_ci',
+              'jobs.execute_candidate_erasure(uuid)',
+              'EXECUTE'
+            ) then
+              raise exception
+                'jobs_runtime_ci cannot execute candidate erasure';
+            end if;
+
+            if has_function_privilege(
+              'anon',
+              'jobs.execute_candidate_erasure(uuid)',
+              'EXECUTE'
+            ) then
+              raise exception
+                'anon unexpectedly can execute candidate erasure';
+            end if;
+
+            if has_function_privilege(
+              'authenticated',
+              'jobs.execute_candidate_erasure(uuid)',
+              'EXECUTE'
+            ) then
+              raise exception
+                'authenticated unexpectedly can execute candidate erasure';
+            end if;
+
+            if has_function_privilege(
+              'service_role',
+              'jobs.execute_candidate_erasure(uuid)',
+              'EXECUTE'
+            ) then
+              raise exception
+                'service_role unexpectedly can execute candidate erasure';
+            end if;
+          end;
+          $$;
+          SQL
+
+          # ----------------------------------------------------------
+          # Seed deterministic fixtures as database owner.
+          # ----------------------------------------------------------
+
+          psql -h localhost -U postgres -d zos_jobs_test -v ON_ERROR_STOP=1 <<SQL
+          insert into auth.users(id, email)
+          values
+            ('$CANDIDATE_A'::uuid, 'candidate-a@example.invalid'),
+            ('$CANDIDATE_B'::uuid, 'candidate-b@example.invalid'),
+            ('$EMPLOYER_USER'::uuid, 'employer@example.invalid');
+
+          insert into jobs.persons(user_id, full_name)
+          values
+            ('$CANDIDATE_A'::uuid, 'Candidate A'),
+            ('$CANDIDATE_B'::uuid, 'Candidate B');
+
+          insert into jobs.currencies(code, name)
+          values ('EUR', 'Euro');
+
+          insert into jobs.locales(code, name)
+          values ('en-US', 'English');
+
+          insert into jobs.skills(id, name, category)
+          values (
+            '$SKILL_ID'::uuid,
+            'Erasure CI Skill',
+            'ci'
+          );
+
+          insert into jobs.organizations(
+            id,
+            type,
+            legal_name,
+            display_name,
+            created_by
+          )
+          values (
+            '$ORG_ID'::uuid,
+            'employer',
+            'Erasure CI Employer',
+            'Erasure CI Employer',
+            '$EMPLOYER_USER'::uuid
+          );
+
+          insert into jobs.job_offers(
+            id,
+            organization_id,
+            created_by,
+            title,
+            description,
+            contract_type,
+            salary_min,
+            salary_currency,
+            work_regime
+          )
+          values (
+            '$OFFER_ID'::uuid,
+            '$ORG_ID'::uuid,
+            '$EMPLOYER_USER'::uuid,
+            'Erasure CI Job',
+            'Candidate erasure integration fixture',
+            'permanent',
+            1000,
+            'EUR',
+            'remote'
+          );
+
+          insert into jobs.candidate_profiles(
+            user_id,
+            professional_title
+          )
+          values
+            ('$CANDIDATE_A'::uuid, 'Erase profile'),
+            ('$CANDIDATE_B'::uuid, 'Keep profile');
+
+          insert into jobs.candidate_private_data(
+            user_id,
+            phone,
+            full_address
+          )
+          values
+            ('$CANDIDATE_A'::uuid, '+351000000001', 'Erase address'),
+            ('$CANDIDATE_B'::uuid, '+351000000002', 'Keep address');
+
+          insert into jobs.candidate_documents(
+            id,
+            user_id,
+            doc_type,
+            storage_path
+          )
+          values
+            (
+              '$DOC_A1'::uuid,
+              '$CANDIDATE_A'::uuid,
+              'cv',
+              'candidate-a/cv.pdf'
+            ),
+            (
+              '$DOC_A2'::uuid,
+              '$CANDIDATE_A'::uuid,
+              'portfolio',
+              'candidate-a/portfolio.pdf'
+            ),
+            (
+              '$DOC_B'::uuid,
+              '$CANDIDATE_B'::uuid,
+              'cv',
+              'candidate-b/cv.pdf'
+            );
+
+          insert into jobs.candidate_experiences(
+            user_id,
+            company_name,
+            title,
+            start_date
+          )
+          values
+            ('$CANDIDATE_A'::uuid, 'Erase Company', 'Erase Role', '2025-01-01'),
+            ('$CANDIDATE_B'::uuid, 'Keep Company', 'Keep Role', '2025-01-01');
+
+          insert into jobs.candidate_education(
+            user_id,
+            institution_name
+          )
+          values
+            ('$CANDIDATE_A'::uuid, 'Erase University'),
+            ('$CANDIDATE_B'::uuid, 'Keep University');
+
+          insert into jobs.candidate_skills(
+            user_id,
+            skill_id,
+            proficiency
+          )
+          values
+            ('$CANDIDATE_A'::uuid, '$SKILL_ID'::uuid, 'erase'),
+            ('$CANDIDATE_B'::uuid, '$SKILL_ID'::uuid, 'keep');
+
+          insert into jobs.candidate_languages(
+            user_id,
+            locale_code,
+            proficiency
+          )
+          values
+            ('$CANDIDATE_A'::uuid, 'en-US', 'erase'),
+            ('$CANDIDATE_B'::uuid, 'en-US', 'keep');
+
+          insert into jobs.candidate_data_consents(
+            user_id,
+            organization_id,
+            fields
+          )
+          values
+            ('$CANDIDATE_A'::uuid, '$ORG_ID'::uuid, ARRAY['email']),
+            ('$CANDIDATE_B'::uuid, '$ORG_ID'::uuid, ARRAY['email']);
+
+          insert into jobs.job_alerts(
+            user_id,
+            query_params
+          )
+          values
+            ('$CANDIDATE_A'::uuid, '{"fixture":"erase"}'::jsonb),
+            ('$CANDIDATE_B'::uuid, '{"fixture":"keep"}'::jsonb);
+
+          insert into jobs.saved_job_offers(
+            user_id,
+            job_offer_id
+          )
+          values
+            ('$CANDIDATE_A'::uuid, '$OFFER_ID'::uuid),
+            ('$CANDIDATE_B'::uuid, '$OFFER_ID'::uuid);
+
+          insert into jobs.institution_affiliations(
+            organization_id,
+            user_id,
+            affiliation_type
+          )
+          values
+            ('$ORG_ID'::uuid, '$CANDIDATE_A'::uuid, 'candidate'),
+            ('$ORG_ID'::uuid, '$CANDIDATE_B'::uuid, 'candidate');
+
+          insert into jobs.applications(
+            id,
+            job_offer_id,
+            candidate_id,
+            cover_note,
+            resume_document_id
+          )
+          values
+            (
+              '$APP_A'::uuid,
+              '$OFFER_ID'::uuid,
+              '$CANDIDATE_A'::uuid,
+              'Erase cover note',
+              '$DOC_A1'::uuid
+            ),
+            (
+              '$APP_B'::uuid,
+              '$OFFER_ID'::uuid,
+              '$CANDIDATE_B'::uuid,
+              'Keep cover note',
+              '$DOC_B'::uuid
+            );
+
+          insert into jobs.application_notes(
+            application_id,
+            author_id,
+            note
+          )
+          values
+            ('$APP_A'::uuid, '$CANDIDATE_A'::uuid, 'Erase application note'),
+            ('$APP_B'::uuid, '$CANDIDATE_B'::uuid, 'Keep application note');
+
+          insert into jobs.application_status_history(
+            application_id,
+            to_status,
+            changed_by,
+            note
+          )
+          values
+            (
+              '$APP_A'::uuid,
+              'submitted',
+              '$CANDIDATE_A'::uuid,
+              'Erase history note'
+            ),
+            (
+              '$APP_B'::uuid,
+              'submitted',
+              '$CANDIDATE_B'::uuid,
+              'Keep history note'
+            );
+
+          do \$\$
+          begin
+            if not exists (
+              select 1
+              from zos.registry_bindings
+              where domain_code = 'jobs'
+                and local_entity_type = 'person'
+                and local_entity_id = '$CANDIDATE_A'
+                and retired_at is null
+            ) then
+              raise exception
+                'candidate A registry binding missing before erasure';
+            end if;
+
+            if not exists (
+              select 1
+              from zos.registry_bindings
+              where domain_code = 'jobs'
+                and local_entity_type = 'person'
+                and local_entity_id = '$CANDIDATE_B'
+                and retired_at is null
+            ) then
+              raise exception
+                'candidate B registry binding missing before erasure';
+            end if;
+          end;
+          \$\$;
+          SQL
+
+          # ----------------------------------------------------------
+          # Candidate B must NOT be able to erase Candidate A.
+          # ----------------------------------------------------------
+
+          if \
+            PGPASSWORD=jobs_runtime_ci_pw \
+            PGOPTIONS="-c request.jwt.claim.sub=$CANDIDATE_B" \
+            psql \
+              -h localhost \
+              -U jobs_runtime_ci \
+              -d zos_jobs_test \
+              -v ON_ERROR_STOP=1 \
+              -Atc "select jobs.execute_candidate_erasure(
+                '$CANDIDATE_A'::uuid
+              );" \
+              >/tmp/zjobs-erasure-denied.log 2>&1
+          then
+            echo "FAIL: candidate B erased candidate A"
+            exit 1
+          fi
+
+          if ! grep -q \
+            "candidate erasure not authorized" \
+            /tmp/zjobs-erasure-denied.log
+          then
+            echo "FAIL: expected authorization error not returned"
+            cat /tmp/zjobs-erasure-denied.log
+            exit 1
+          fi
+
+          echo "OK: cross-candidate erasure denied"
+
+          # ----------------------------------------------------------
+          # Candidate A erases only Candidate A persona.
+          # ----------------------------------------------------------
+
+          ERASURE_RESULT="$(
+            PGPASSWORD=jobs_runtime_ci_pw \
+            PGOPTIONS="-c request.jwt.claim.sub=$CANDIDATE_A" \
+            psql \
+              -h localhost \
+              -U jobs_runtime_ci \
+              -d zos_jobs_test \
+              -v ON_ERROR_STOP=1 \
+              -qAtc "
+                select pg_catalog.array_to_string(
+                  jobs.execute_candidate_erasure(
+                    '$CANDIDATE_A'::uuid
+                  ),
+                  ','
+                );
+              "
+          )"
+
+          if [ "$ERASURE_RESULT" != \
+            "candidate-a/cv.pdf,candidate-a/portfolio.pdf" ]
+          then
+            echo "FAIL: unexpected storage paths: $ERASURE_RESULT"
+            exit 1
+          fi
+
+          echo "OK: expected storage paths returned"
+
+          # ----------------------------------------------------------
+          # Validate post-erasure database state as owner.
+          # ----------------------------------------------------------
+
+          psql -h localhost -U postgres -d zos_jobs_test -v ON_ERROR_STOP=1 <<SQL
+          do \$\$
+          declare
+            v_count integer;
+            v_keep_count integer;
+          begin
+            -- Identity/auth survive candidate-persona erasure.
+            if not exists (
+              select 1
+              from auth.users
+              where id = '$CANDIDATE_A'::uuid
+            ) then
+              raise exception 'candidate A auth.users row was deleted';
+            end if;
+
+            if not exists (
+              select 1
+              from jobs.persons
+              where user_id = '$CANDIDATE_A'::uuid
+                and full_name = 'Candidate A'
+            ) then
+              raise exception 'candidate A jobs.persons row was deleted or changed';
+            end if;
+
+            if not exists (
+              select 1
+              from zos.registry_bindings
+              where domain_code = 'jobs'
+                and local_entity_type = 'person'
+                and local_entity_id = '$CANDIDATE_A'
+                and retired_at is null
+            ) then
+              raise exception 'candidate A ZOS identity binding was removed';
+            end if;
+
+            -- Candidate-specific rows for A must be gone.
+            select
+              (select count(*) from jobs.candidate_profiles
+                where user_id = '$CANDIDATE_A'::uuid)
+              +
+              (select count(*) from jobs.candidate_private_data
+                where user_id = '$CANDIDATE_A'::uuid)
+              +
+              (select count(*) from jobs.candidate_documents
+                where user_id = '$CANDIDATE_A'::uuid)
+              +
+              (select count(*) from jobs.candidate_experiences
+                where user_id = '$CANDIDATE_A'::uuid)
+              +
+              (select count(*) from jobs.candidate_education
+                where user_id = '$CANDIDATE_A'::uuid)
+              +
+              (select count(*) from jobs.candidate_skills
+                where user_id = '$CANDIDATE_A'::uuid)
+              +
+              (select count(*) from jobs.candidate_languages
+                where user_id = '$CANDIDATE_A'::uuid)
+              +
+              (select count(*) from jobs.candidate_data_consents
+                where user_id = '$CANDIDATE_A'::uuid)
+              +
+              (select count(*) from jobs.job_alerts
+                where user_id = '$CANDIDATE_A'::uuid)
+              +
+              (select count(*) from jobs.saved_job_offers
+                where user_id = '$CANDIDATE_A'::uuid)
+              +
+              (select count(*) from jobs.institution_affiliations
+                where user_id = '$CANDIDATE_A'::uuid)
+            into v_count;
+
+            if v_count <> 0 then
+              raise exception
+                'candidate A still has % candidate-specific rows',
+                v_count;
+            end if;
+
+            -- Application survives, but direct candidate data is anonymized.
+            if not exists (
+              select 1
+              from jobs.applications
+              where id = '$APP_A'::uuid
+                and candidate_id is null
+                and cover_note is null
+                and resume_document_id is null
+            ) then
+              raise exception
+                'candidate A application was not anonymized correctly';
+            end if;
+
+            if exists (
+              select 1
+              from jobs.application_notes
+              where application_id = '$APP_A'::uuid
+            ) then
+              raise exception
+                'candidate A application notes were not deleted';
+            end if;
+
+            if not exists (
+              select 1
+              from jobs.application_status_history
+              where application_id = '$APP_A'::uuid
+            ) then
+              raise exception
+                'candidate A application history was deleted';
+            end if;
+
+            if exists (
+              select 1
+              from jobs.application_status_history
+              where application_id = '$APP_A'::uuid
+                and (
+                  changed_by = '$CANDIDATE_A'::uuid
+                  or note is not null
+                )
+            ) then
+              raise exception
+                'candidate A application history was not anonymized';
+            end if;
+
+            -- Candidate B must remain intact.
+            select
+              (select count(*) from jobs.candidate_profiles
+                where user_id = '$CANDIDATE_B'::uuid)
+              +
+              (select count(*) from jobs.candidate_private_data
+                where user_id = '$CANDIDATE_B'::uuid)
+              +
+              (select count(*) from jobs.candidate_documents
+                where user_id = '$CANDIDATE_B'::uuid)
+              +
+              (select count(*) from jobs.candidate_experiences
+                where user_id = '$CANDIDATE_B'::uuid)
+              +
+              (select count(*) from jobs.candidate_education
+                where user_id = '$CANDIDATE_B'::uuid)
+              +
+              (select count(*) from jobs.candidate_skills
+                where user_id = '$CANDIDATE_B'::uuid)
+              +
+              (select count(*) from jobs.candidate_languages
+                where user_id = '$CANDIDATE_B'::uuid)
+              +
+              (select count(*) from jobs.candidate_data_consents
+                where user_id = '$CANDIDATE_B'::uuid)
+              +
+              (select count(*) from jobs.job_alerts
+                where user_id = '$CANDIDATE_B'::uuid)
+              +
+              (select count(*) from jobs.saved_job_offers
+                where user_id = '$CANDIDATE_B'::uuid)
+              +
+              (select count(*) from jobs.institution_affiliations
+                where user_id = '$CANDIDATE_B'::uuid)
+            into v_keep_count;
+
+            if v_keep_count <> 11 then
+              raise exception
+                'candidate B candidate rows changed: expected 11, found %',
+                v_keep_count;
+            end if;
+
+            if not exists (
+              select 1
+              from auth.users
+              where id = '$CANDIDATE_B'::uuid
+            ) then
+              raise exception
+                'candidate B auth.users row changed unexpectedly';
+            end if;
+
+            if not exists (
+              select 1
+              from jobs.persons
+              where user_id = '$CANDIDATE_B'::uuid
+                and full_name = 'Candidate B'
+            ) then
+              raise exception 'candidate B jobs.persons changed unexpectedly';
+            end if;
+
+            if not exists (
+              select 1
+              from jobs.candidate_profiles
+              where user_id = '$CANDIDATE_B'::uuid
+                and professional_title = 'Keep profile'
+            ) then
+              raise exception 'candidate B profile changed unexpectedly';
+            end if;
+
+            if not exists (
+              select 1
+              from jobs.candidate_private_data
+              where user_id = '$CANDIDATE_B'::uuid
+                and phone = '+351000000002'
+            ) then
+              raise exception 'candidate B private data changed unexpectedly';
+            end if;
+
+            if not exists (
+              select 1
+              from jobs.candidate_documents
+              where id = '$DOC_B'::uuid
+                and user_id = '$CANDIDATE_B'::uuid
+                and storage_path = 'candidate-b/cv.pdf'
+            ) then
+              raise exception 'candidate B document changed unexpectedly';
+            end if;
+
+            if not exists (
+              select 1
+              from jobs.applications
+              where id = '$APP_B'::uuid
+                and candidate_id = '$CANDIDATE_B'::uuid
+                and cover_note = 'Keep cover note'
+                and resume_document_id = '$DOC_B'::uuid
+            ) then
+              raise exception 'candidate B application changed unexpectedly';
+            end if;
+
+            if not exists (
+              select 1
+              from jobs.application_notes
+              where application_id = '$APP_B'::uuid
+                and note = 'Keep application note'
+            ) then
+              raise exception 'candidate B application note changed unexpectedly';
+            end if;
+
+            if not exists (
+              select 1
+              from jobs.application_status_history
+              where application_id = '$APP_B'::uuid
+                and changed_by = '$CANDIDATE_B'::uuid
+                and note = 'Keep history note'
+            ) then
+              raise exception 'candidate B history changed unexpectedly';
+            end if;
+
+            if not exists (
+              select 1
+              from zos.registry_bindings
+              where domain_code = 'jobs'
+                and local_entity_type = 'person'
+                and local_entity_id = '$CANDIDATE_B'
+                and retired_at is null
+            ) then
+              raise exception 'candidate B ZOS identity changed unexpectedly';
+            end if;
+          end;
+          \$\$;
+          SQL
+
+          echo "OK: candidate erasure boundary validated"
+
+      - name: Setup Node.js for shared Jobs runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      - name: Seed shared runtime Auth fixtures
+        env:
+          PGPASSWORD: zos_jobs_test_pw
+        run: |
+          psql \
+            -h localhost \
+            -U postgres \
+            -d zos_jobs_test \
+            -v ON_ERROR_STOP=1 <<'SQL'
+          insert into auth.users(id, email)
+          values
+            (
+              'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'::uuid,
+              'runtime-commit@example.invalid'
+            ),
+            (
+              'cccccccc-cccc-4ccc-8ccc-cccccccccccc'::uuid,
+              'runtime-rollback@example.invalid'
+            );
+          SQL
+
+      - name: Verify PgStore shared ZOS runtime
+        env:
+          DATABASE_URL: postgresql://jobs_runtime_ci:jobs_runtime_ci_pw@localhost:5432/zos_jobs_test
+          JOBS_DB_SCHEMA: jobs
+        run: |
+          npx --no-install tsx \
+            apps/jobs/apps/api/scripts/verify-shared-zos-runtime.ts
+
+      - name: Print convergence validation summary
+        run: |
+          echo "PostgreSQL 17 shared ZOS migrations: OK"
+          echo "jobs_runtime privilege boundary: OK"
+          echo "No direct auth.users runtime access: OK"
+          echo "Jobs identity registration: OK"
+          echo "Jobs bootstrap self-healing: OK"
+          echo "PgStore shared runtime integration: OK"
