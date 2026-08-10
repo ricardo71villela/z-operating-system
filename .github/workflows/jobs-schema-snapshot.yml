@@ -8,6 +8,9 @@ on:
       - feature/zos-jobs-database-convergence-v1
     paths:
       - "infrastructure/supabase/migrations/**"
+      - "apps/jobs/**"
+      - "package.json"
+      - "package-lock.json"
       - ".github/workflows/jobs-schema-snapshot.yml"
 
 permissions:
@@ -982,6 +985,45 @@ jobs:
 
           echo "OK: candidate erasure boundary validated"
 
+      - name: Setup Node.js for shared Jobs runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      - name: Seed shared runtime Auth fixtures
+        env:
+          PGPASSWORD: zos_jobs_test_pw
+        run: |
+          psql \
+            -h localhost \
+            -U postgres \
+            -d zos_jobs_test \
+            -v ON_ERROR_STOP=1 <<'SQL'
+          insert into auth.users(id, email)
+          values
+            (
+              'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'::uuid,
+              'runtime-commit@example.invalid'
+            ),
+            (
+              'cccccccc-cccc-4ccc-8ccc-cccccccccccc'::uuid,
+              'runtime-rollback@example.invalid'
+            );
+          SQL
+
+      - name: Verify PgStore shared ZOS runtime
+        env:
+          DATABASE_URL: postgresql://jobs_runtime_ci:jobs_runtime_ci_pw@localhost:5432/zos_jobs_test
+          JOBS_DB_SCHEMA: jobs
+        run: |
+          npx --no-install tsx \
+            apps/jobs/apps/api/scripts/verify-shared-zos-runtime.ts
+
       - name: Print convergence validation summary
         run: |
           echo "PostgreSQL 17 shared ZOS migrations: OK"
@@ -989,3 +1031,4 @@ jobs:
           echo "No direct auth.users runtime access: OK"
           echo "Jobs identity registration: OK"
           echo "Jobs bootstrap self-healing: OK"
+          echo "PgStore shared runtime integration: OK"
