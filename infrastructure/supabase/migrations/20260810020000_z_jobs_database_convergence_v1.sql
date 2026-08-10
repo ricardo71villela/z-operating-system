@@ -3863,9 +3863,6 @@ CREATE POLICY translations_manage_staff_other_entities ON jobs.translations USIN
 CREATE POLICY translations_select_public ON jobs.translations FOR SELECT USING (true);
 
 
---
-complete
---
 
 
 
