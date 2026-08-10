@@ -113,6 +113,15 @@ export function createServer() {
       const path = url.pathname;
       const method = req.method ?? 'GET';
 
+      // Deployment health check: deliberately independent of Auth and
+      // PostgreSQL request context so the platform can verify that the
+      // HTTP process itself is alive.
+      if (method === 'GET' && path === '/health') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'ok' }));
+        return;
+      }
+
       // Shared/local database mode was validated once when the server
       // was created. Do not silently fall back to the historical local Auth
       // path when JOBS_DB_SCHEMA=jobs.
