@@ -1,17 +1,28 @@
-name: Z Jobs Convergence PostgreSQL
+name: Z Jobs Shared ZOS PostgreSQL
 
 on:
   workflow_dispatch:
 
   push:
     branches:
+      - main
       - feature/zos-jobs-database-convergence-v1
     paths:
       - "infrastructure/supabase/migrations/**"
       - "apps/jobs/**"
       - "package.json"
       - "package-lock.json"
-      - ".github/workflows/jobs-schema-snapshot.yml"
+      - ".github/workflows/jobs-shared-postgres.yml"
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "infrastructure/supabase/migrations/**"
+      - "apps/jobs/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/jobs-shared-postgres.yml"
 
 permissions:
   contents: read
