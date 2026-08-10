@@ -453,143 +453,16 @@ END;
 $$;
 
 
---
--- Name: count_platform_staff(); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION jobs.count_platform_staff() RETURNS integer
-    LANGUAGE sql STABLE SECURITY DEFINER
-    SET search_path = pg_catalog
-    AS $$
-  select count(*)::int from jobs.organization_memberships
-  where role in ('platform_moderator', 'platform_auditor', 'platform_superadmin');
-$$;
 
 
---
--- Name: employer_public_metrics(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION jobs.employer_public_metrics(p_org_id uuid) RETURNS jsonb
-    LANGUAGE sql STABLE SECURITY DEFINER
-    SET search_path = pg_catalog
-    AS $$
-  select jsonb_build_object(
-    'totalApplications', coalesce((
-      select count(*) from jobs.applications a
-      join jobs.job_offers jo on jo.id = a.job_offer_id
-      where jo.organization_id = p_org_id
-    ), 0),
-    'respondedApplications', coalesce((
-      select count(*) from jobs.applications a
-      join jobs.job_offers jo on jo.id = a.job_offer_id
-      where jo.organization_id = p_org_id and a.status <> 'submitted'
-    ), 0),
-    'informedApplications', coalesce((
-      select count(*) from jobs.applications a
-      join jobs.job_offers jo on jo.id = a.job_offer_id
-      where jo.organization_id = p_org_id and a.status in ('hired','rejected','withdrawn','closed')
-    ), 0),
-    'firstJobHiresCount', coalesce((
-      select count(*) from jobs.applications a
-      join jobs.job_offers jo on jo.id = a.job_offer_id
-      where jo.organization_id = p_org_id and a.status = 'hired' and jo.pillar = 'first_jobs'
-    ), 0),
-    'seniorHiresCount', coalesce((
-      select count(*) from jobs.applications a
-      join jobs.job_offers jo on jo.id = a.job_offer_id
-      where jo.organization_id = p_org_id and a.status = 'hired' and jo.pillar = 'senior_careers'
-    ), 0),
-    'confirmedComplaintsCount', coalesce((
-      select
-        (select count(*) from jobs.organization_reports where organization_id = p_org_id and status = 'resolved')
-        +
-        (select count(*) from jobs.job_offer_reports r join jobs.job_offers jo on jo.id = r.job_offer_id
-         where jo.organization_id = p_org_id and r.status = 'resolved')
-    ), 0)
-  );
-$$;
 
 
---
--- Name: is_org_member(uuid, jobs.org_role[]); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION jobs.is_org_member(p_org_id uuid, p_roles jobs.org_role[] DEFAULT NULL::jobs.org_role[]) RETURNS boolean
-    LANGUAGE sql STABLE SECURITY DEFINER
-    SET search_path = pg_catalog
-    AS $$
-  select exists (
-    select 1 from jobs.organization_memberships m
-    where m.organization_id = p_org_id
-      and m.user_id = auth.uid()
-      and (p_roles is null or m.role = any(p_roles))
-  );
-$$;
 
 
---
--- Name: is_platform_staff(); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION jobs.is_platform_staff() RETURNS boolean
-    LANGUAGE sql STABLE SECURITY DEFINER
-    SET search_path = pg_catalog
-    AS $$
-  select exists (
-    select 1 from jobs.organization_memberships m
-    where m.user_id = auth.uid()
-      and m.role in ('platform_moderator', 'platform_auditor', 'platform_superadmin')
-  );
-$$;
 
 
---
--- Name: is_verified_employer(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION jobs.is_verified_employer(p_org_id uuid) RETURNS boolean
-    LANGUAGE sql STABLE SECURITY DEFINER
-    SET search_path = pg_catalog
-    AS $$
-  select exists (
-    select 1 from jobs.company_profiles c
-    where c.organization_id = p_org_id
-      and c.verification_status in ('verified', 'enhanced_verified')
-  );
-$$;
 
 
---
--- Name: record_audit_log(uuid, uuid, text, uuid, text); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION jobs.record_audit_log(
-    p_organization_id uuid,
-    p_entity_type text,
-    p_entity_id uuid,
-    p_action text
-) RETURNS TABLE(id uuid, created_at timestamp with time zone)
-    LANGUAGE sql
-    SECURITY DEFINER
-    SET search_path = pg_catalog
-AS $$
-    INSERT INTO jobs.audit_logs (
-        actor_user_id,
-        organization_id,
-        entity_type,
-        entity_id,
-        action
-    )
-    VALUES (
-        auth.uid(),
-        p_organization_id,
-        p_entity_type,
-        p_entity_id,
-        p_action
-    )
-    RETURNING jobs.audit_logs.id, jobs.audit_logs.created_at;
-$$;
 
 
 --
@@ -1550,6 +1423,148 @@ COMMENT ON TABLE jobs.translations IS 'Conteúdo traduzível genérico. Evita co
 --
 -- Name: application_notes application_notes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
+
+
+-- ============================================================
+-- Deferred SQL functions
+--
+-- LANGUAGE sql validates relation references at CREATE time.
+-- These functions are therefore created only after all jobs.*
+-- tables referenced by their bodies already exist.
+-- ============================================================
+
+--
+-- Name: count_platform_staff(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION jobs.count_platform_staff() RETURNS integer
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path = pg_catalog
+    AS $$
+  select count(*)::int from jobs.organization_memberships
+  where role in ('platform_moderator', 'platform_auditor', 'platform_superadmin');
+$$;
+
+--
+-- Name: employer_public_metrics(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION jobs.employer_public_metrics(p_org_id uuid) RETURNS jsonb
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path = pg_catalog
+    AS $$
+  select jsonb_build_object(
+    'totalApplications', coalesce((
+      select count(*) from jobs.applications a
+      join jobs.job_offers jo on jo.id = a.job_offer_id
+      where jo.organization_id = p_org_id
+    ), 0),
+    'respondedApplications', coalesce((
+      select count(*) from jobs.applications a
+      join jobs.job_offers jo on jo.id = a.job_offer_id
+      where jo.organization_id = p_org_id and a.status <> 'submitted'
+    ), 0),
+    'informedApplications', coalesce((
+      select count(*) from jobs.applications a
+      join jobs.job_offers jo on jo.id = a.job_offer_id
+      where jo.organization_id = p_org_id and a.status in ('hired','rejected','withdrawn','closed')
+    ), 0),
+    'firstJobHiresCount', coalesce((
+      select count(*) from jobs.applications a
+      join jobs.job_offers jo on jo.id = a.job_offer_id
+      where jo.organization_id = p_org_id and a.status = 'hired' and jo.pillar = 'first_jobs'
+    ), 0),
+    'seniorHiresCount', coalesce((
+      select count(*) from jobs.applications a
+      join jobs.job_offers jo on jo.id = a.job_offer_id
+      where jo.organization_id = p_org_id and a.status = 'hired' and jo.pillar = 'senior_careers'
+    ), 0),
+    'confirmedComplaintsCount', coalesce((
+      select
+        (select count(*) from jobs.organization_reports where organization_id = p_org_id and status = 'resolved')
+        +
+        (select count(*) from jobs.job_offer_reports r join jobs.job_offers jo on jo.id = r.job_offer_id
+         where jo.organization_id = p_org_id and r.status = 'resolved')
+    ), 0)
+  );
+$$;
+
+--
+-- Name: is_org_member(uuid, jobs.org_role[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION jobs.is_org_member(p_org_id uuid, p_roles jobs.org_role[] DEFAULT NULL::jobs.org_role[]) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path = pg_catalog
+    AS $$
+  select exists (
+    select 1 from jobs.organization_memberships m
+    where m.organization_id = p_org_id
+      and m.user_id = auth.uid()
+      and (p_roles is null or m.role = any(p_roles))
+  );
+$$;
+
+--
+-- Name: is_platform_staff(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION jobs.is_platform_staff() RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path = pg_catalog
+    AS $$
+  select exists (
+    select 1 from jobs.organization_memberships m
+    where m.user_id = auth.uid()
+      and m.role in ('platform_moderator', 'platform_auditor', 'platform_superadmin')
+  );
+$$;
+
+--
+-- Name: is_verified_employer(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION jobs.is_verified_employer(p_org_id uuid) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path = pg_catalog
+    AS $$
+  select exists (
+    select 1 from jobs.company_profiles c
+    where c.organization_id = p_org_id
+      and c.verification_status in ('verified', 'enhanced_verified')
+  );
+$$;
+
+--
+-- Name: record_audit_log(uuid, uuid, text, uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION jobs.record_audit_log(
+    p_organization_id uuid,
+    p_entity_type text,
+    p_entity_id uuid,
+    p_action text
+) RETURNS TABLE(id uuid, created_at timestamp with time zone)
+    LANGUAGE sql
+    SECURITY DEFINER
+    SET search_path = pg_catalog
+AS $$
+    INSERT INTO jobs.audit_logs (
+        actor_user_id,
+        organization_id,
+        entity_type,
+        entity_id,
+        action
+    )
+    VALUES (
+        auth.uid(),
+        p_organization_id,
+        p_entity_type,
+        p_entity_id,
+        p_action
+    )
+    RETURNING jobs.audit_logs.id, jobs.audit_logs.created_at;
+$$;
 
 ALTER TABLE ONLY jobs.application_notes
     ADD CONSTRAINT application_notes_pkey PRIMARY KEY (id);
