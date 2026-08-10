@@ -4096,14 +4096,40 @@ BEGIN
 END
 $jobs_acl$;
 
-ALTER ROLE jobs_runtime
-    NOLOGIN
-    NOSUPERUSER
-    NOCREATEDB
-    NOCREATEROLE
-    NOINHERIT
-    NOREPLICATION
-    NOBYPASSRLS;
+-- Supabase's migration role is intentionally not SUPERUSER, so it
+-- cannot defensively ALTER every privileged role attribute here.
+--
+-- CREATE ROLE above establishes the required safe attributes when the
+-- role is new. If the role already exists, fail closed unless it already
+-- satisfies the exact runtime boundary instead of attempting to elevate
+-- the migration role's authority.
+DO $jobs_runtime_attributes$
+DECLARE
+    v_role pg_catalog.pg_roles%ROWTYPE;
+BEGIN
+    SELECT *
+    INTO v_role
+    FROM pg_catalog.pg_roles
+    WHERE rolname = 'jobs_runtime';
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'jobs_runtime role is required'
+            USING ERRCODE = '42704';
+    END IF;
+
+    IF v_role.rolcanlogin
+       OR v_role.rolsuper
+       OR v_role.rolcreatedb
+       OR v_role.rolcreaterole
+       OR v_role.rolinherit
+       OR v_role.rolreplication
+       OR v_role.rolbypassrls THEN
+        RAISE EXCEPTION
+            'jobs_runtime role has unsafe attributes; expected NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS'
+            USING ERRCODE = '42501';
+    END IF;
+END
+$jobs_runtime_attributes$;
 
 
 -- ------------------------------------------------------------
