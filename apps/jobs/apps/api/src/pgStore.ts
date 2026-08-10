@@ -38,6 +38,11 @@ import type { ErasurePlan } from '../../../packages/domain/src/rules/dataErasure
 import type { EmployerMetrics } from '../../../packages/domain/src/rules/employerResponsibility';
 import type { BillingProductCode } from '../../../packages/domain/src/rules/billing';
 import { NotFoundError } from './store';
+import {
+  getSupabaseUserEmail,
+  loadSupabaseAdminConfigFromEnv,
+} from './supabaseAuth';
+import { fileStorageService } from './fileStorageService';
 import type {
   UserRecord,
   OrganizationRecord,
@@ -64,7 +69,14 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  * dezenas de pontos de chamada em server.ts — qualquer código que corra
  * dentro de `withRequestContext(...)` vê automaticamente o client certo.
  */
-const requestClientStorage = new AsyncLocalStorage<pg.PoolClient>();
+type AfterCommitTask = () => Promise<void>;
+
+interface RequestDbContext {
+  client: pg.PoolClient;
+  afterCommit: AfterCommitTask[];
+}
+
+const requestContextStorage = new AsyncLocalStorage<RequestDbContext>();
 
 function labelToUuid(label: string): string {
   const hex = createHash('sha1').update(`zjobs-actor:${label}`).digest('hex');
@@ -73,6 +85,7 @@ function labelToUuid(label: string): string {
 
 export class PgStore {
   pool: pg.Pool;
+  private readonly usingSharedZosDatabase: boolean;
 
   constructor(connectionString: string) {
     // HISTÓRICO HONESTO, porque a causa raiz real só foi encontrada
@@ -103,7 +116,28 @@ export class PgStore {
     // intermitente. O pool volta ao tamanho por omissão do driver
     // `pg` (10) — já não há motivo para o restringir.
     const maxConnections = process.env.PG_POOL_MAX ? Number(process.env.PG_POOL_MAX) : 10;
-    this.pool = new pg.Pool({ connectionString, max: maxConnections });
+
+    // ZOS database convergence:
+    // - standalone/local Jobs keeps the historical default search_path (public)
+    // - shared ZOS runtime sets JOBS_DB_SCHEMA=jobs
+    // PostgreSQL startup `options` applies the search_path to every physical
+    // connection in the pool, including queries executed outside
+    // withRequestContext().
+    const dbSchema = process.env.JOBS_DB_SCHEMA?.trim();
+
+    if (dbSchema && !/^[a-z_][a-z0-9_]*$/.test(dbSchema)) {
+      throw new Error(`invalid JOBS_DB_SCHEMA: ${dbSchema}`);
+    }
+
+    this.usingSharedZosDatabase = dbSchema === 'jobs';
+
+    this.pool = new pg.Pool({
+      connectionString,
+      max: maxConnections,
+      ...(dbSchema
+        ? { options: `-c search_path=${dbSchema}` }
+        : {}),
+    });
   }
 
   async close() {
@@ -118,8 +152,36 @@ export class PgStore {
    * também precisa de o usar — ver nota abaixo sobre porquê isso importa.
    */
   query(text: string, params?: any[]) {
-    const client = requestClientStorage.getStore();
-    return (client ?? this.pool).query(text, params);
+    const context = requestContextStorage.getStore();
+    return (context?.client ?? this.pool).query(text, params);
+  }
+
+  /**
+   * Agenda trabalho que só pode ocorrer depois de um COMMIT bem sucedido.
+   *
+   * Fora de um request transaction, a query anterior já terminou a sua
+   * transação implícita, por isso o trabalho pode correr imediatamente.
+   *
+   * Falhas pós-COMMIT são registadas mas não fazem a aplicação fingir que
+   * a transação PostgreSQL, já confirmada, falhou.
+   */
+  private async scheduleAfterCommit(task: AfterCommitTask): Promise<void> {
+    const context = requestContextStorage.getStore();
+
+    const safeTask: AfterCommitTask = async () => {
+      try {
+        await task();
+      } catch (err) {
+        console.error('Z Jobs post-commit task failed', err);
+      }
+    };
+
+    if (context) {
+      context.afterCommit.push(safeTask);
+      return;
+    }
+
+    await safeTask();
   }
 
   /**
@@ -132,31 +194,78 @@ export class PgStore {
    */
   async withRequestContext<T>(userId: string | null, fn: () => Promise<T>): Promise<T> {
     const client = await this.pool.connect();
+    const afterCommit: AfterCommitTask[] = [];
+
     try {
       await client.query('BEGIN');
-      await client.query(`select set_config('request.jwt.claim.sub', $1, true)`, [userId ?? '']);
-      const result = await requestClientStorage.run(client, fn);
+      await client.query(
+        `select set_config('request.jwt.claim.sub', $1, true)`,
+        [userId ?? ''],
+      );
+
+      const result = await requestContextStorage.run(
+        { client, afterCommit },
+        fn,
+      );
+
       await client.query('COMMIT');
+
+      // Só chegamos aqui se o COMMIT foi confirmado.
+      // A resposta HTTP ainda não foi enviada; server.ts só faz
+      // flushPendingResponse() depois de withRequestContext terminar.
+      for (const task of afterCommit) {
+        await task();
+      }
+
       return result;
     } catch (err) {
-      await client.query('ROLLBACK');
+      // Se BEGIN/queries/fn/COMMIT falharem, nenhuma tarefa pós-COMMIT correu.
+      // ROLLBACK depois de um COMMIT falhado pode também falhar; preservamos
+      // sempre o erro original.
+      try {
+        await client.query('ROLLBACK');
+      } catch {
+        // Nada adicional a fazer aqui.
+      }
+
       throw err;
     } finally {
       client.release();
     }
   }
 
-  /** Ver nota 1 no topo do ficheiro. */
+  /**
+   * Standalone/local compatibility may still materialize deterministic
+   * synthetic auth users for the historical test harness.
+   *
+   * In the shared ZOS database, Supabase Auth is the sole authority over
+   * auth.users. A caller must therefore already carry a real Auth UUID;
+   * referential integrity on the target Jobs table verifies that it exists.
+   */
   private async ensureActor(idOrLabel: string): Promise<string> {
+    if (this.usingSharedZosDatabase) {
+      if (!UUID_RE.test(idOrLabel)) {
+        throw new Error('shared ZOS runtime requires a real Supabase Auth user UUID');
+      }
+
+      return idOrLabel;
+    }
+
     const id = UUID_RE.test(idOrLabel) ? idOrLabel : labelToUuid(idOrLabel);
+
     await this.query(
       `insert into auth.users (id, email) values ($1, $2) on conflict (id) do nothing`,
       [id, `${idOrLabel}@synthetic.zjobs.local`],
     );
+
     return id;
   }
 
   async createUser(fullName: string, email: string): Promise<UserRecord> {
+    if (this.usingSharedZosDatabase) {
+      throw new Error('shared ZOS runtime must create users through Supabase Auth');
+    }
+
     const id = randomUUID();
     await this.query(`insert into auth.users (id, email) values ($1, $2)`, [id, email]);
     await this.query(`select bootstrap_person($1, $2)`, [id, fullName]);
@@ -165,6 +274,10 @@ export class PgStore {
 
   /** Ver apps/api/src/auth.ts — cria o utilizador já com password (hash) definida. */
   async createUserWithPassword(fullName: string, email: string, passwordHash: string, termsVersion: string): Promise<UserRecord> {
+    if (this.usingSharedZosDatabase) {
+      throw new Error('shared ZOS runtime must create users through Supabase Auth');
+    }
+
     const id = randomUUID();
     await this.query(
       `insert into auth.users (id, email, password_hash) values ($1, $2, $3)`,
@@ -185,31 +298,86 @@ export class PgStore {
    * escreve em auth.users — essa tabela já não é nossa para escrever.
    */
   async bootstrapPersonRecord(userId: string, fullName: string, termsVersion: string): Promise<UserRecord> {
-    await this.query(`select bootstrap_person($1, $2)`, [userId, fullName]);
-    await this.query(`update persons set terms_accepted_at = now(), terms_version = $2 where user_id = $1`, [userId, termsVersion]);
+    if (this.usingSharedZosDatabase) {
+      await this.query(
+        `select bootstrap_person($1, $2, $3)`,
+        [userId, fullName, termsVersion],
+      );
+    } else {
+      await this.query(`select bootstrap_person($1, $2)`, [userId, fullName]);
+      await this.query(
+        `update persons set terms_accepted_at = now(), terms_version = $2 where user_id = $1`,
+        [userId, termsVersion],
+      );
+    }
+
     return { id: userId, fullName, email: '' }; // email vive em auth.users, gerido pelo Supabase — não o duplicamos aqui
   }
 
   async findUserByEmail(email: string): Promise<{ id: string; passwordHash: string | null; fullName: string } | null> {
+    if (this.usingSharedZosDatabase) {
+      throw new Error(
+        'shared ZOS runtime must resolve login identities through Supabase Auth',
+      );
+    }
+
+    // Historical standalone compatibility only.
     const { rows } = await this.query(
       `select u.id, u.password_hash, p.full_name from auth.users u
        left join persons p on p.user_id = u.id
        where u.email = $1`,
       [email],
     );
+
     if (rows.length === 0) return null;
-    return { id: rows[0].id, passwordHash: rows[0].password_hash, fullName: rows[0].full_name };
+
+    return {
+      id: rows[0].id,
+      passwordHash: rows[0].password_hash,
+      fullName: rows[0].full_name,
+    };
   }
 
   async getUserContact(userId: string): Promise<{ email: string; fullName: string } | null> {
+    if (this.usingSharedZosDatabase) {
+      const adminConfig = loadSupabaseAdminConfigFromEnv();
+
+      if (!adminConfig) {
+        throw new Error(
+          'shared ZOS runtime requires Supabase Admin configuration for user contact lookup',
+        );
+      }
+
+      const email = await getSupabaseUserEmail(adminConfig, userId);
+
+      if (!email) return null;
+
+      const { rows } = await this.query(
+        `select jobs.get_person_full_name($1::uuid) as full_name`,
+        [userId],
+      );
+
+      return {
+        email,
+        fullName: rows[0]?.full_name ?? '',
+      };
+    }
+
+    // Historical standalone compatibility:
+    // auth.users belongs to the local Supabase stub in this mode.
     const { rows } = await this.query(
       `select u.email, p.full_name from auth.users u
        left join persons p on p.user_id = u.id
        where u.id = $1`,
       [userId],
     );
+
     if (rows.length === 0) return null;
-    return { email: rows[0].email, fullName: rows[0].full_name ?? '' };
+
+    return {
+      email: rows[0].email,
+      fullName: rows[0].full_name ?? '',
+    };
   }
 
   async createOrganization(
@@ -445,12 +613,42 @@ export class PgStore {
   }
 
   async addAuditLog(actorId: string, entityType: string, entityId: string, action: string): Promise<AuditLogRecord> {
+    if (this.usingSharedZosDatabase) {
+      const { rows } = await this.query(
+        `select * from record_audit_log(null, $1, $2, $3)`,
+        [entityType, entityId, action],
+      );
+
+      const { rows: actorRows } = await this.query(
+        `select auth.uid() as actor_user_id`,
+      );
+
+      const authenticatedActor = actorRows[0]?.actor_user_id ?? null;
+
+      return {
+        id: rows[0].id,
+        actorId: authenticatedActor,
+        entityType,
+        entityId,
+        action,
+        createdAt: rows[0].created_at.toISOString(),
+      };
+    }
+
     const resolvedActor = await this.ensureActor(actorId);
     const { rows } = await this.query(
       `select * from record_audit_log($1, null, $2, $3, $4)`,
       [resolvedActor, entityType, entityId, action],
     );
-    return { id: rows[0].id, actorId: resolvedActor, entityType, entityId, action, createdAt: rows[0].created_at.toISOString() };
+
+    return {
+      id: rows[0].id,
+      actorId: resolvedActor,
+      entityType,
+      entityId,
+      action,
+      createdAt: rows[0].created_at.toISOString(),
+    };
   }
 
   async listAuditLogs(): Promise<AuditLogRecord[]> {
@@ -1073,54 +1271,76 @@ export class PgStore {
    * Nunca apaga primeiro e pergunta depois.
    */
   async executeCandidateErasure(candidateId: string): Promise<ErasurePlan> {
-    const [billingRows, reportRows, auditRows] = await Promise.all([
-      this.query(
-        `select 1 from billing_events be
-         join organization_memberships om on om.organization_id = be.organization_id
-         where om.user_id = $1 and om.role in ('owner','admin') limit 1`,
+    // O modo shared ZOS será executado atomicamente por uma função
+    // SECURITY DEFINER no schema jobs. Até essa função entrar no baseline,
+    // não executamos aqui mutações parciais que possam tocar identidade
+    // transversal ou contornar RLS.
+    if (this.usingSharedZosDatabase) {
+      const { rows } = await this.query(
+        `select jobs.execute_candidate_erasure($1::uuid) as storage_paths`,
         [candidateId],
-      ),
-      this.query(
-        `select 1 from job_offer_reports
-         where reported_by = $1 and status in ('open','reviewing') limit 1`,
-        [candidateId],
-      ),
-      this.query(
-        `select 1 from audit_logs
-         where actor_user_id = $1 and created_at > now() - interval '6 months' limit 1`,
-        [candidateId],
-      ),
-    ]);
+      );
 
-    const plan = planCandidateErasure({
-      candidateId,
-      hasActiveBillingRecords: billingRows.rows.length > 0,
-      hasOpenLegalClaim: reportRows.rows.length > 0,
-      hasAuditLogEntriesUnderLegalRetention: auditRows.rows.length > 0,
-    });
+      const rawStoragePaths = rows[0]?.storage_paths;
+      const storagePaths: string[] = Array.isArray(rawStoragePaths)
+        ? rawStoragePaths.filter(
+            (value: unknown): value is string =>
+              typeof value === 'string' && value.length > 0,
+          )
+        : [];
+
+      for (const storagePath of storagePaths) {
+        await this.scheduleAfterCommit(
+          () => fileStorageService.delete(storagePath),
+        );
+      }
+
+      return planCandidateErasure({ candidateId });
+    }
+
+    // Compatibilidade temporária do runtime standalone histórico.
+    // Este caminho será revisto separadamente; não define o contrato ZOS.
+    const plan = planCandidateErasure({ candidateId });
 
     for (const action of plan.actions) {
       if (action.action === 'delete') {
-        // Nome real da coluna nestas tabelas é user_id, não candidate_id
-        // — confirmado no esquema antes de correr isto, não assumido.
-        await this.query(`delete from ${action.table} where user_id = $1`, [candidateId]);
-      } else if (action.action === 'anonymize' && action.table === 'candidate_profiles') {
-        await this.query(
-          `update persons set full_name = '[Apagado a pedido do titular]', avatar_url = null, headline = null where user_id = $1`,
-          [candidateId],
-        );
-        await this.query(
-          `update candidate_profiles set professional_title = null, summary = null, intro_video_url = null, work_authorization_notes = null where user_id = $1`,
-          [candidateId],
-        );
-        await this.query(`delete from candidate_private_data where user_id = $1`, [candidateId]);
-      }
-      // 'retain' — não faz nada, de propósito; o motivo já está no plano devolvido.
-    }
+        if (action.table === 'application_notes') {
+          await this.query(
+            `delete from application_notes
+             where application_id in (
+               select id from applications where candidate_id = $1
+             )`,
+            [candidateId],
+          );
+          continue;
+        }
 
-    // Termina todas as sessões ativas, independentemente do resultado
-    // acima — a pessoa deixa de conseguir entrar com a conta antiga.
-    await this.query(`delete from auth.sessions where user_id = $1`, [candidateId]);
+        await this.query(
+          `delete from ${action.table} where user_id = $1`,
+          [candidateId],
+        );
+        continue;
+      }
+
+      if (action.table === 'application_status_history') {
+        await this.query(
+          `update application_status_history
+           set changed_by = case when changed_by = $1 then null else changed_by end,
+               note = null
+           where application_id in (
+             select id from applications where candidate_id = $1
+           )`,
+          [candidateId],
+        );
+        continue;
+      }
+
+      if (action.table === 'applications') {
+        // O schema standalone histórico ainda mantém candidate_id NOT NULL;
+        // a anonimização estrutural pertence ao novo baseline convergido.
+        continue;
+      }
+    }
 
     return plan;
   }

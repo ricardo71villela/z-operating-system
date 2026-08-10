@@ -30,19 +30,61 @@
 // parte está genuinamente verificada.
 
 import jwt from 'jsonwebtoken';
+import { createClient } from '@supabase/supabase-js';
 
 export interface SupabaseAuthConfig {
-  projectUrl: string; // ex: https://xyzcompany.supabase.co
-  anonKey: string;
-  jwtSecret: string; // Project Settings -> API -> JWT Secret, no painel do Supabase
+  projectUrl: string;
+  publicKey: string;
+  jwtSecret: string;
+}
+
+export interface SupabaseAdminConfig {
+  projectUrl: string;
+  secretKey: string;
 }
 
 export function loadSupabaseAuthConfigFromEnv(): SupabaseAuthConfig | null {
   const projectUrl = process.env.SUPABASE_URL;
-  const anonKey = process.env.SUPABASE_ANON_KEY;
+  const publicKey =
+    process.env.SUPABASE_PUBLISHABLE_KEY ??
+    process.env.SUPABASE_ANON_KEY;
   const jwtSecret = process.env.SUPABASE_JWT_SECRET;
-  if (!projectUrl || !anonKey || !jwtSecret) return null;
-  return { projectUrl, anonKey, jwtSecret };
+
+  if (!projectUrl || !publicKey || !jwtSecret) return null;
+
+  return { projectUrl, publicKey, jwtSecret };
+}
+
+export function loadSupabaseAdminConfigFromEnv(): SupabaseAdminConfig | null {
+  const projectUrl = process.env.SUPABASE_URL;
+  const secretKey =
+    process.env.SUPABASE_SECRET_KEY ??
+    process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!projectUrl || !secretKey) return null;
+
+  return { projectUrl, secretKey };
+}
+
+export async function getSupabaseUserEmail(
+  config: SupabaseAdminConfig,
+  userId: string,
+): Promise<string | null> {
+  const client = createClient(config.projectUrl, config.secretKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+      detectSessionInUrl: false,
+    },
+  });
+
+  const { data, error } = await client.auth.admin.getUserById(userId);
+
+  if (error) {
+    throw new Error(`Supabase Auth Admin getUserById failed: ${error.message}`);
+  }
+
+  return data.user?.email ?? null;
 }
 
 export interface SupabaseSignupResult {
@@ -57,7 +99,7 @@ export interface SupabaseSignupResult {
 export async function signupWithSupabase(config: SupabaseAuthConfig, email: string, password: string): Promise<SupabaseSignupResult> {
   const res = await fetch(`${config.projectUrl}/auth/v1/signup`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', apikey: config.anonKey },
+    headers: { 'Content-Type': 'application/json', apikey: config.publicKey },
     body: JSON.stringify({ email, password }),
   });
   const body = await res.json().catch(() => null);
@@ -78,7 +120,7 @@ export interface SupabaseLoginResult {
 export async function loginWithSupabase(config: SupabaseAuthConfig, email: string, password: string): Promise<SupabaseLoginResult> {
   const res = await fetch(`${config.projectUrl}/auth/v1/token?grant_type=password`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', apikey: config.anonKey },
+    headers: { 'Content-Type': 'application/json', apikey: config.publicKey },
     body: JSON.stringify({ email, password }),
   });
   const body = await res.json().catch(() => null);

@@ -30,6 +30,12 @@ export class FileTooLargeError extends Error {
   }
 }
 
+export class InvalidStoragePathError extends Error {
+  constructor() {
+    super('storage path inválido');
+  }
+}
+
 /**
  * Disco local deste contentor — não é armazenamento de produção, é uma
  * implementação real e funcional da mesma interface que um adaptador
@@ -40,13 +46,33 @@ export class FileTooLargeError extends Error {
 export class LocalDiskFileStorageService implements FileStorageService {
   constructor(private readonly baseDir: string = '/tmp/zjobs-file-storage') {}
 
+  /**
+   * storagePath é um identificador relativo opaco, nunca um caminho absoluto.
+   * Qualquer tentativa de sair de baseDir é rejeitada antes de tocar no disco.
+   */
+  private resolveStoragePath(storagePath: string): string {
+    if (!storagePath || path.isAbsolute(storagePath)) {
+      throw new InvalidStoragePathError();
+    }
+
+    const base = path.resolve(this.baseDir);
+    const resolved = path.resolve(base, storagePath);
+
+    if (resolved === base || !resolved.startsWith(`${base}${path.sep}`)) {
+      throw new InvalidStoragePathError();
+    }
+
+    return resolved;
+  }
+
   async store(ownerId: string, fileName: string, contentBase64: string): Promise<StoredFile> {
     const buffer = Buffer.from(contentBase64, 'base64');
     if (buffer.byteLength > MAX_FILE_SIZE_BYTES) throw new FileTooLargeError(buffer.byteLength);
 
     const safeFileName = fileName.replace(/[^\w.\-]/g, '_').slice(0, 200);
     const storagePath = `${ownerId}/${randomUUID()}-${safeFileName}`;
-    const fullPath = path.join(this.baseDir, storagePath);
+    const fullPath = this.resolveStoragePath(storagePath);
+
     await fs.mkdir(path.dirname(fullPath), { recursive: true });
     await fs.writeFile(fullPath, buffer);
 
@@ -54,8 +80,10 @@ export class LocalDiskFileStorageService implements FileStorageService {
   }
 
   async retrieve(storagePath: string): Promise<Buffer | null> {
+    const fullPath = this.resolveStoragePath(storagePath);
+
     try {
-      return await fs.readFile(path.join(this.baseDir, storagePath));
+      return await fs.readFile(fullPath);
     } catch (err: any) {
       if (err.code === 'ENOENT') return null;
       throw err;
@@ -63,8 +91,10 @@ export class LocalDiskFileStorageService implements FileStorageService {
   }
 
   async delete(storagePath: string): Promise<void> {
+    const fullPath = this.resolveStoragePath(storagePath);
+
     try {
-      await fs.unlink(path.join(this.baseDir, storagePath));
+      await fs.unlink(fullPath);
     } catch (err: any) {
       if (err.code !== 'ENOENT') throw err;
     }

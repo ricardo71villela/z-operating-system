@@ -1,11 +1,11 @@
 // packages/domain/src/rules/dataErasure.test.ts
-// Corre com: npx tsx packages/domain/src/rules/dataErasure.test.ts
 
 import assert from 'node:assert/strict';
 import { planCandidateErasure } from './dataErasure';
 
 let passed = 0;
 let failed = 0;
+
 function test(name: string, fn: () => void) {
   try {
     fn();
@@ -18,93 +18,81 @@ function test(name: string, fn: () => void) {
   }
 }
 
+const context = { candidateId: 'c1' };
+
 console.log('dataErasure.planCandidateErasure');
 
-test('candidato sem processos em curso nem faturação -> apagamento total, fullyErased=true', () => {
-  const plan = planCandidateErasure({
-    candidateId: 'c1',
-    hasActiveBillingRecords: false,
-    hasOpenLegalClaim: false,
-    hasAuditLogEntriesUnderLegalRetention: false,
-  });
+test('candidate erasure é sempre completo dentro da persona de candidato', () => {
+  const plan = planCandidateErasure(context);
+
   assert.equal(plan.fullyErased, true);
-  assert.ok(!plan.actions.some((a) => a.action === 'retain'));
+  assert.equal(plan.actions.some((a) => a.action === ('retain' as any)), false);
 });
 
-test('todos os dados de perfil são sempre "delete", nunca "retain" — sem exceção legal que os justifique', () => {
-  const plan = planCandidateErasure({
-    candidateId: 'c1',
-    hasActiveBillingRecords: true,
-    hasOpenLegalClaim: true,
-    hasAuditLogEntriesUnderLegalRetention: true,
-  });
-  const profileTables = ['candidate_experiences', 'candidate_education', 'candidate_skills', 'candidate_languages', 'candidate_documents'];
-  for (const table of profileTables) {
-    const action = plan.actions.find((a) => a.table === table);
-    assert.equal(action?.action, 'delete', `${table} devia ser delete`);
+test('dados candidate-only são apagados', () => {
+  const plan = planCandidateErasure(context);
+
+  const expected = [
+    'candidate_profiles',
+    'candidate_private_data',
+    'candidate_experiences',
+    'candidate_education',
+    'candidate_skills',
+    'candidate_languages',
+    'candidate_documents',
+    'candidate_data_consents',
+    'job_alerts',
+    'saved_job_offers',
+    'institution_affiliations',
+    'application_notes',
+  ];
+
+  for (const table of expected) {
+    assert.equal(
+      plan.actions.find((a) => a.table === table)?.action,
+      'delete',
+      `${table} devia ser delete`,
+    );
   }
 });
 
-test('faturação ativa -> retida, com base legal explícita citada, nunca "porque sim"', () => {
-  const plan = planCandidateErasure({
-    candidateId: 'c1',
-    hasActiveBillingRecords: true,
-    hasOpenLegalClaim: false,
-    hasAuditLogEntriesUnderLegalRetention: false,
-  });
-  const billing = plan.actions.find((a) => a.table === 'billing_records');
-  assert.equal(billing?.action, 'retain');
-  assert.ok(billing && 'legalBasis' in billing && billing.legalBasis.length > 0);
-  assert.equal(plan.fullyErased, false);
+test('applications preserva apenas histórico anónimo', () => {
+  const plan = planCandidateErasure(context);
+
+  assert.equal(
+    plan.actions.find((a) => a.table === 'applications')?.action,
+    'anonymize',
+  );
+
+  assert.equal(
+    plan.actions.find((a) => a.table === 'application_status_history')?.action,
+    'anonymize',
+  );
 });
 
-test('processo de denúncia em curso -> retido, nunca apagado a meio de um processo', () => {
-  const plan = planCandidateErasure({
-    candidateId: 'c1',
-    hasActiveBillingRecords: false,
-    hasOpenLegalClaim: true,
-    hasAuditLogEntriesUnderLegalRetention: false,
-  });
-  const reports = plan.actions.find((a) => a.table === 'job_offer_reports');
-  assert.equal(reports?.action, 'retain');
-  assert.equal(plan.fullyErased, false);
-});
+test('não toca dados transversais de outros papéis', () => {
+  const plan = planCandidateErasure(context);
+  const tables = plan.actions.map((a) => a.table as string);
 
-test('auditoria do AI Act dentro do prazo mínimo -> retida, não é opcional', () => {
-  const plan = planCandidateErasure({
-    candidateId: 'c1',
-    hasActiveBillingRecords: false,
-    hasOpenLegalClaim: false,
-    hasAuditLogEntriesUnderLegalRetention: true,
-  });
-  const audit = plan.actions.find((a) => a.table === 'audit_log');
-  assert.equal(audit?.action, 'retain');
-  assert.ok(audit && 'legalBasis' in audit && audit.legalBasis.includes('AI Act'));
-});
-
-test('candidate_profiles é sempre "anonymize", nunca "delete" — para não quebrar candidaturas já existentes', () => {
-  const plan = planCandidateErasure({
-    candidateId: 'c1',
-    hasActiveBillingRecords: false,
-    hasOpenLegalClaim: false,
-    hasAuditLogEntriesUnderLegalRetention: false,
-  });
-  const profile = plan.actions.find((a) => a.table === 'candidate_profiles');
-  assert.equal(profile?.action, 'anonymize');
-});
-
-test('applications é sempre "anonymize", nunca "delete" — mantém o histórico útil ao empregador, sem identificar a pessoa', () => {
-  const plan = planCandidateErasure({
-    candidateId: 'c1',
-    hasActiveBillingRecords: false,
-    hasOpenLegalClaim: false,
-    hasAuditLogEntriesUnderLegalRetention: false,
-  });
-  const apps = plan.actions.find((a) => a.table === 'applications');
-  assert.equal(apps?.action, 'anonymize');
+  for (const forbidden of [
+    'persons',
+    'billing_events',
+    'job_offer_reports',
+    'organization_reports',
+    'audit_logs',
+    'auth.users',
+    'auth.sessions',
+  ]) {
+    assert.equal(
+      tables.includes(forbidden),
+      false,
+      `${forbidden} não pertence ao candidate erasure`,
+    );
+  }
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);
+
 if (failed > 0) {
   process.exitCode = 1;
 }

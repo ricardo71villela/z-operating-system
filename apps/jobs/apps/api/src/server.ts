@@ -12,7 +12,12 @@
 import http from 'node:http';
 import { store, NotFoundError, usingPostgres } from './db';
 import { hashPassword, verifyPassword, createSession, resolveSession, resolveAuthenticatedUserId } from './auth';
-import { loadSupabaseAuthConfigFromEnv, signupWithSupabase, loginWithSupabase } from './supabaseAuth';
+import {
+  loadSupabaseAuthConfigFromEnv,
+  loadSupabaseAdminConfigFromEnv,
+  signupWithSupabase,
+  loginWithSupabase,
+} from './supabaseAuth';
 import type { PgStore } from './pgStore';
 import {
   validateJobOfferForPublication,
@@ -81,11 +86,35 @@ async function readBody(req: http.IncomingMessage): Promise<any> {
 }
 
 export function createServer() {
+  const usingSharedZosDatabase =
+    usingPostgres && process.env.JOBS_DB_SCHEMA?.trim() === 'jobs';
+
+  if (usingSharedZosDatabase) {
+    if (!loadSupabaseAuthConfigFromEnv()) {
+      throw new Error(
+        'JOBS_DB_SCHEMA=jobs requires SUPABASE_URL, ' +
+        'SUPABASE_PUBLISHABLE_KEY (or SUPABASE_ANON_KEY), ' +
+        'and SUPABASE_JWT_SECRET',
+      );
+    }
+
+    if (!loadSupabaseAdminConfigFromEnv()) {
+      throw new Error(
+        'JOBS_DB_SCHEMA=jobs requires SUPABASE_SECRET_KEY ' +
+        '(or legacy SUPABASE_SERVICE_ROLE_KEY) for server-side Auth operations',
+      );
+    }
+  }
+
   return http.createServer(async (req, res) => {
     try {
       const url = new URL(req.url ?? '/', 'http://localhost');
       const path = url.pathname;
       const method = req.method ?? 'GET';
+
+      // Shared/local database mode was validated once when the server
+      // was created. Do not silently fall back to the historical local Auth
+      // path when JOBS_DB_SCHEMA=jobs.
 
       // Autenticação real (P0.2) — só funcional com Postgres real ligado.
       // Em memória, mantém-se sem autenticação, como sempre esteve.
@@ -239,16 +268,21 @@ export function createServer() {
         return json(res, 200, profile);
       }
 
-      // Direito ao esquecimento (RGPD Art. 17.º) — o próprio candidato,
-      // ou staff a atuar a pedido dele. Investiga o estado real antes
-      // de apagar nada — ver PgStore.executeCandidateErasure e
-      // packages/domain/src/rules/dataErasure.ts para o porquê de
-      // algumas tabelas ficarem retidas em vez de apagadas.
+      // Candidate Erasure: remove apenas a persona de candidato.
+      // A conta Supabase/ZOS e atividade noutros papéis permanecem intactas.
+      // No modo ZOS, a autorização é validada aqui e novamente pela função
+      // SECURITY DEFINER no PostgreSQL.
       if (method === 'DELETE' && path.match(/^\/candidates\/[^/]+\/personal-data$/)) {
         const userId = path.split('/')[2];
+
         if (usingPostgres) {
+          if (!currentUserId) {
+            return json(res, 401, { error: 'não autenticado' });
+          }
+
           const isSelf = currentUserId === userId;
-          const isStaff = await store.isPlatformStaff(currentUserId ?? '');
+          const isStaff = await store.isPlatformStaff(currentUserId);
+
           if (!isSelf && !isStaff) {
             return json(res, 403, { error: 'só o próprio candidato, ou staff a seu pedido, pode acionar isto' });
           }
@@ -479,6 +513,11 @@ export function createServer() {
         };
         const scored = [];
         for (const app of applications) {
+          // Candidaturas historicamente preservadas depois de um pedido de
+          // apagamento deixam de ter candidato identificável e não podem
+          // voltar a entrar em scoring.
+          if (!app.candidateId) continue;
+
           const candidateProfile = await (store as PgStore).getCandidateScoringProfile(app.candidateId);
           const result = computeCandidateScore(candidateProfile, offerScoringInput);
           scored.push({ applicationId: app.id, candidateId: app.candidateId, status: app.status, score: explainCandidateScore(result, requestedMessageLocale) });
@@ -506,8 +545,12 @@ export function createServer() {
       // Denúncias (secção 10/11) — candidato ou empresa denuncia oferta/organização
       if (method === 'POST' && path === '/reports') {
         const body = await readBody(req);
-        const report = await store.createReport(body);
-        await store.addAuditLog(body.reportedBy, report.targetType, report.targetId, 'create_report');
+        if (usingSharedZosDatabase && !currentUserId) {
+          return json(res, 401, { error: 'não autenticado' });
+        }
+        const reportedBy = usingSharedZosDatabase ? currentUserId! : body.reportedBy;
+        const report = await store.createReport({ ...body, reportedBy });
+        await store.addAuditLog(reportedBy, report.targetType, report.targetId, 'create_report');
         return json(res, 201, report);
       }
 
@@ -520,15 +563,16 @@ export function createServer() {
         if (!staffCheck.ok) return json(res, staffCheck.status, { error: staffCheck.error });
         const id = path.split('/')[2];
         const { resolution, actorId } = await readBody(req);
+        const effectiveActorId = usingSharedZosDatabase ? currentUserId! : actorId;
         const existing = await store.getReport(id);
         if (!existing) return json(res, 404, { error: 'report not found' });
         if (!canTransitionReport(existing.status, 'resolved') && existing.status !== 'open') {
           return json(res, 409, { error: `denúncia em estado terminal: ${existing.status}` });
         }
         const resolved = await store.resolveReport(id, resolution);
-        await store.addAuditLog(actorId, 'report', id, resolution === 'confirmed' ? 'resolve_report' : 'dismiss_report');
+        await store.addAuditLog(effectiveActorId, 'report', id, resolution === 'confirmed' ? 'resolve_report' : 'dismiss_report');
         if (resolved.resolution === 'confirmed' && resolved.targetType === 'job_offer') {
-          await store.addAuditLog(actorId, 'job_offer', resolved.targetId, 'suspend');
+          await store.addAuditLog(effectiveActorId, 'job_offer', resolved.targetId, 'suspend');
         }
         if (usingPostgres && resolved.reportedBy) {
           const contact = await (store as PgStore).getUserContact(resolved.reportedBy);
@@ -556,7 +600,11 @@ export function createServer() {
       // 3. Empresa cria conta organizacional
       if (method === 'POST' && path === '/organizations') {
         const { legalName, displayName, createdBy, type } = await readBody(req);
-        const org = await store.createOrganization(legalName, displayName, createdBy, type);
+        if (usingSharedZosDatabase && !currentUserId) {
+          return json(res, 401, { error: 'não autenticado' });
+        }
+        const effectiveCreatedBy = usingSharedZosDatabase ? currentUserId! : createdBy;
+        const org = await store.createOrganization(legalName, displayName, effectiveCreatedBy, type);
         return json(res, 201, org);
       }
 
@@ -885,11 +933,15 @@ export function createServer() {
       // 11. Candidato candidata-se
       if (method === 'POST' && path === '/applications') {
         const { jobOfferId, candidateId } = await readBody(req);
+        if (usingSharedZosDatabase && !currentUserId) {
+          return json(res, 401, { error: 'não autenticado' });
+        }
+        const effectiveCandidateId = usingSharedZosDatabase ? currentUserId! : candidateId;
         const offer = await store.mustGetJobOffer(jobOfferId);
         if (offer.status !== 'published') {
           return json(res, 409, { error: 'só é possível candidatar-se a ofertas publicadas' });
         }
-        const app = await store.createApplication(jobOfferId, candidateId);
+        const app = await store.createApplication(jobOfferId, effectiveCandidateId);
         return json(res, 201, app);
       }
 
@@ -907,7 +959,7 @@ export function createServer() {
         // Transparência (ver candidateScore.ts, ponto 5 do aviso): o
         // candidato vê a mesma pontuação orientadora que o empregador,
         // nunca uma versão diferente ou escondida.
-        if (usingPostgres && currentUserId === app.candidateId) {
+        if (usingPostgres && app.candidateId && currentUserId === app.candidateId) {
           const offer = await store.mustGetJobOffer(app.jobOfferId);
           const candidateProfile = await (store as PgStore).getCandidateScoringProfile(app.candidateId);
           const score = computeCandidateScore(candidateProfile, { title: offer.title, description: offer.description, languageHints: [] });
@@ -928,7 +980,7 @@ export function createServer() {
           return json(res, 409, { error: `transição ${app.status} -> ${to} não permitida` });
         }
         const updated = await store.transitionApplication(id, to);
-        if (usingPostgres) {
+        if (usingPostgres && app.candidateId) {
           const contact = await (store as PgStore).getUserContact(app.candidateId);
           if (contact) {
             const offer = await store.mustGetJobOffer(app.jobOfferId);
