@@ -216,7 +216,9 @@ async function main() {
         'ci-shared-runtime-v1',
       );
 
-      const insideTransaction = await store.query(
+      // O bootstrap server-side pode criar a pessoa, mas o request
+      // continua anónimo: RLS não lhe deve permitir lê-la.
+      const anonymousRead = await store.query(
         `select full_name
          from persons
          where user_id = $1`,
@@ -224,23 +226,30 @@ async function main() {
       );
 
       assert.equal(
-        insideTransaction.rows[0]?.full_name,
-        'Runtime Signup User',
-        'bootstrap must create jobs.persons before COMMIT',
+        anonymousRead.rows[0],
+        undefined,
+        'anonymous signup must not read jobs.persons through RLS',
       );
 
       await store.scheduleAfterCommit(async () => {
-        const committedPerson = await store.query(
-          `select full_name
-           from persons
-           where user_id = $1`,
-          [SIGNUP_USER],
-        );
+        // Depois do COMMIT simulamos o contexto autenticado que o
+        // Identity Adapter real terá através do Bearer Supabase.
+        await store.withRequestContext(
+          SIGNUP_USER,
+          async () => {
+            const committedPerson = await store.query(
+              `select full_name
+               from persons
+               where user_id = $1`,
+              [SIGNUP_USER],
+            );
 
-        assert.equal(
-          committedPerson.rows[0]?.full_name,
-          'Runtime Signup User',
-          'post-COMMIT task must observe committed jobs.persons',
+            assert.equal(
+              committedPerson.rows[0]?.full_name,
+              'Runtime Signup User',
+              'authenticated post-COMMIT context must observe committed jobs.persons',
+            );
+          },
         );
 
         signupPostCommitObserved = true;
