@@ -1,25 +1,28 @@
-name: Z Jobs Schema Snapshot
+name: Z Jobs Convergence PostgreSQL
 
 on:
+  workflow_dispatch:
+
   push:
     branches:
       - feature/zos-jobs-database-convergence-v1
     paths:
+      - "infrastructure/supabase/migrations/**"
       - ".github/workflows/jobs-schema-snapshot.yml"
 
 permissions:
   contents: read
 
 jobs:
-  snapshot:
-    name: Build historical Jobs schema snapshot
+  convergence:
+    name: Shared ZOS + Jobs migration + runtime boundary
     runs-on: ubuntu-latest
 
     services:
       postgres:
-        image: postgres:16
+        image: postgres:17
         env:
-          POSTGRES_PASSWORD: zjobs_dev_pw
+          POSTGRES_PASSWORD: zos_jobs_test_pw
         ports:
           - 5432:5432
         options: >-
@@ -31,54 +34,309 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create disposable Jobs database
+      - name: Create disposable shared ZOS database
         env:
-          PGPASSWORD: zjobs_dev_pw
+          PGPASSWORD: zos_jobs_test_pw
         run: |
-          psql -h localhost -U postgres -c "CREATE DATABASE zjobs;"
-          psql -h localhost -U postgres -d zjobs \
-            -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
-          psql -h localhost -U postgres -d zjobs \
-            -v ON_ERROR_STOP=1 \
-            -f apps/jobs/local-dev/00_supabase_stub.sql
+          psql -h localhost -U postgres -v ON_ERROR_STOP=1 \
+            -c "CREATE DATABASE zos_jobs_test;"
 
-      - name: Apply historical Jobs migrations
+          psql -h localhost -U postgres -d zos_jobs_test -v ON_ERROR_STOP=1 \
+            -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+
+          psql -h localhost -U postgres -d zos_jobs_test -v ON_ERROR_STOP=1 <<'SQL'
+          create role anon nologin;
+          create role authenticated nologin;
+          create role service_role nologin bypassrls;
+
+          create schema if not exists auth;
+
+          create table auth.users (
+            id uuid primary key default gen_random_uuid(),
+            email text unique,
+            created_at timestamptz not null default now()
+          );
+
+          create or replace function auth.uid()
+          returns uuid
+          language sql
+          stable
+          as $$
+            select nullif(
+              current_setting('request.jwt.claim.sub', true),
+              ''
+            )::uuid;
+          $$;
+
+          revoke all on function auth.uid() from public;
+
+          grant usage on schema auth
+            to anon, authenticated, service_role;
+
+          grant execute on function auth.uid()
+            to anon, authenticated, service_role;
+          SQL
+
+      - name: Apply shared ZOS migrations in order
         env:
-          PGPASSWORD: zjobs_dev_pw
+          PGPASSWORD: zos_jobs_test_pw
         run: |
-          for f in $(ls apps/jobs/migrations/*.sql | sort); do
-            echo "--- $f ---"
+          for f in $(ls infrastructure/supabase/migrations/*.sql | sort); do
+            echo "--- APPLYING $f ---"
+
             psql \
               -h localhost \
               -U postgres \
-              -d zjobs \
+              -d zos_jobs_test \
               -v ON_ERROR_STOP=1 \
               -f "$f"
           done
 
-      - name: Export final public schema
+      - name: Create disposable Jobs application login
         env:
-          PGPASSWORD: zjobs_dev_pw
+          PGPASSWORD: zos_jobs_test_pw
         run: |
-          mkdir -p artifacts
+          psql -h localhost -U postgres -d zos_jobs_test -v ON_ERROR_STOP=1 <<'SQL'
+          create role jobs_runtime_ci
+            login
+            password 'jobs_runtime_ci_pw'
+            nosuperuser
+            nocreatedb
+            nocreaterole
+            inherit
+            noreplication
+            nobypassrls;
 
-          pg_dump \
+          grant jobs_runtime
+            to jobs_runtime_ci
+            with inherit true, set false;
+          SQL
+
+      - name: Verify Jobs runtime role boundary
+        env:
+          PGPASSWORD: zos_jobs_test_pw
+        run: |
+          psql -h localhost -U postgres -d zos_jobs_test -v ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          begin
+            if not exists (
+              select 1
+              from pg_roles
+              where rolname = 'jobs_runtime'
+                and not rolcanlogin
+                and not rolbypassrls
+                and not rolsuper
+            ) then
+              raise exception
+                'jobs_runtime must be NOLOGIN, NOBYPASSRLS and NOSUPERUSER';
+            end if;
+
+            if not exists (
+              select 1
+              from pg_roles
+              where rolname = 'jobs_runtime_ci'
+                and rolcanlogin
+                and not rolbypassrls
+                and not rolsuper
+            ) then
+              raise exception
+                'jobs_runtime_ci login boundary is invalid';
+            end if;
+
+            if not pg_has_role(
+              'jobs_runtime_ci',
+              'jobs_runtime',
+              'USAGE'
+            ) then
+              raise exception
+                'jobs_runtime_ci does not inherit jobs_runtime privileges';
+            end if;
+
+            if pg_has_role(
+              'jobs_runtime_ci',
+              'jobs_runtime',
+              'SET'
+            ) then
+              raise exception
+                'jobs_runtime_ci unexpectedly has SET ROLE permission';
+            end if;
+
+            if not has_schema_privilege(
+              'jobs_runtime_ci',
+              'jobs',
+              'USAGE'
+            ) then
+              raise exception
+                'jobs_runtime_ci lacks USAGE on jobs schema';
+            end if;
+
+            if has_schema_privilege(
+              'jobs_runtime_ci',
+              'platform_internal',
+              'USAGE'
+            ) then
+              raise exception
+                'jobs_runtime_ci unexpectedly has platform_internal access';
+            end if;
+
+            if has_table_privilege(
+              'jobs_runtime_ci',
+              'auth.users',
+              'SELECT'
+            ) then
+              raise exception
+                'jobs_runtime_ci unexpectedly has SELECT on auth.users';
+            end if;
+
+            if not has_function_privilege(
+              'jobs_runtime_ci',
+              'jobs.bootstrap_person(uuid,text,text)',
+              'EXECUTE'
+            ) then
+              raise exception
+                'jobs_runtime_ci cannot execute bootstrap_person';
+            end if;
+
+            if not has_function_privilege(
+              'jobs_runtime_ci',
+              'jobs.get_person_full_name(uuid)',
+              'EXECUTE'
+            ) then
+              raise exception
+                'jobs_runtime_ci cannot execute get_person_full_name';
+            end if;
+
+            if has_function_privilege(
+              'jobs_runtime_ci',
+              'platform_internal.register_jobs_person_identity()',
+              'EXECUTE'
+            ) then
+              raise exception
+                'runtime can unexpectedly execute private trigger function';
+            end if;
+          end;
+          $$;
+          SQL
+
+      - name: Verify Jobs identity registration and self-healing
+        env:
+          PGPASSWORD: zos_jobs_test_pw
+        run: |
+          TEST_USER="11111111-1111-4111-8111-111111111111"
+
+          psql -h localhost -U postgres -d zos_jobs_test -v ON_ERROR_STOP=1 \
+            -c "insert into auth.users(id,email)
+                values (
+                  '$TEST_USER'::uuid,
+                  'jobs-ci@example.invalid'
+                );"
+
+          PGPASSWORD=jobs_runtime_ci_pw \
+          psql \
             -h localhost \
-            -U postgres \
-            -d zjobs \
-            --schema-only \
-            --schema=public \
-            --no-owner \
-            --no-privileges \
-            > artifacts/zjobs-final-public-schema.sql
+            -U jobs_runtime_ci \
+            -d zos_jobs_test \
+            -v ON_ERROR_STOP=1 \
+            -c "select jobs.bootstrap_person(
+                  '$TEST_USER'::uuid,
+                  'Jobs CI User',
+                  'ci-v1'
+                );"
 
-          echo "=== snapshot ==="
-          wc -l artifacts/zjobs-final-public-schema.sql
+          psql -h localhost -U postgres -d zos_jobs_test -v ON_ERROR_STOP=1 <<SQL
+          do \$\$
+          begin
+            if not exists (
+              select 1
+              from jobs.persons
+              where user_id = '$TEST_USER'::uuid
+                and full_name = 'Jobs CI User'
+            ) then
+              raise exception 'jobs.persons bootstrap failed';
+            end if;
 
-      - name: Upload schema snapshot
-        uses: actions/upload-artifact@v7
-        with:
-          name: zjobs-final-schema
-          path: artifacts/zjobs-final-public-schema.sql
-          if-no-files-found: error
-          retention-days: 7
+            if not exists (
+              select 1
+              from zos.registry_bindings
+              where domain_code = 'jobs'
+                and local_entity_type = 'person'
+                and local_entity_id = '$TEST_USER'
+                and retired_at is null
+            ) then
+              raise exception 'initial Jobs identity registration failed';
+            end if;
+          end;
+          \$\$;
+
+          delete from zos.registry_bindings
+          where domain_code = 'jobs'
+            and local_entity_type = 'person'
+            and local_entity_id = '$TEST_USER';
+          SQL
+
+          PGPASSWORD=jobs_runtime_ci_pw \
+          psql \
+            -h localhost \
+            -U jobs_runtime_ci \
+            -d zos_jobs_test \
+            -v ON_ERROR_STOP=1 \
+            -c "select jobs.bootstrap_person(
+                  '$TEST_USER'::uuid,
+                  'Jobs CI User Updated',
+                  'ci-v1'
+                );"
+
+          psql -h localhost -U postgres -d zos_jobs_test -v ON_ERROR_STOP=1 <<SQL
+          do \$\$
+          begin
+            if not exists (
+              select 1
+              from zos.registry_bindings
+              where domain_code = 'jobs'
+                and local_entity_type = 'person'
+                and local_entity_id = '$TEST_USER'
+                and retired_at is null
+            ) then
+              raise exception
+                'bootstrap self-healing did not recreate Jobs binding';
+            end if;
+
+            if (
+              select full_name
+              from jobs.persons
+              where user_id = '$TEST_USER'::uuid
+            ) <> 'Jobs CI User Updated' then
+              raise exception
+                'bootstrap ON CONFLICT update failed';
+            end if;
+          end;
+          \$\$;
+          SQL
+
+          RESULT="$(
+            PGPASSWORD=jobs_runtime_ci_pw \
+            psql \
+              -h localhost \
+              -U jobs_runtime_ci \
+              -d zos_jobs_test \
+              -At \
+              -v ON_ERROR_STOP=1 \
+              -c "select jobs.get_person_full_name(
+                    '$TEST_USER'::uuid
+                  );"
+          )"
+
+          test "$RESULT" = "Jobs CI User Updated" || {
+            echo "Unexpected full name result: $RESULT"
+            exit 1
+          }
+
+          echo "OK: Jobs identity registration + self-healing"
+
+      - name: Print convergence validation summary
+        run: |
+          echo "PostgreSQL 17 shared ZOS migrations: OK"
+          echo "jobs_runtime privilege boundary: OK"
+          echo "No direct auth.users runtime access: OK"
+          echo "Jobs identity registration: OK"
+          echo "Jobs bootstrap self-healing: OK"
