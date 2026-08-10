@@ -1017,6 +1017,10 @@ jobs:
           insert into auth.users(id, email)
           values
             (
+              'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid,
+              'runtime-signup@example.invalid'
+            ),
+            (
               'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'::uuid,
               'runtime-commit@example.invalid'
             ),

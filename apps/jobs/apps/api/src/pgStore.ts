@@ -165,7 +165,7 @@ export class PgStore {
    * Falhas pós-COMMIT são registadas mas não fazem a aplicação fingir que
    * a transação PostgreSQL, já confirmada, falhou.
    */
-  private async scheduleAfterCommit(task: AfterCommitTask): Promise<void> {
+  async scheduleAfterCommit(task: AfterCommitTask): Promise<void> {
     const context = requestContextStorage.getStore();
 
     const safeTask: AfterCommitTask = async () => {

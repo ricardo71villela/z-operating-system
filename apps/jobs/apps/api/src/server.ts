@@ -17,6 +17,7 @@ import {
   loadSupabaseAdminConfigFromEnv,
   signupWithSupabase,
   loginWithSupabase,
+  ensureJobsIdentityBinding,
 } from './supabaseAuth';
 import type { PgStore } from './pgStore';
 import {
@@ -155,6 +156,21 @@ export function createServer() {
         if (supabaseConfig) {
           try {
             const result = await loginWithSupabase(supabaseConfig, email, password);
+
+            // Z Jobs Identity Adapter v1:
+            // o RPC Core corre como o próprio utilizador autenticado e só
+            // depois do COMMIT do request Jobs. Falhas pós-COMMIT são
+            // registadas pelo PgStore sem transformar um login válido num
+            // falso 500.
+            await (store as PgStore).scheduleAfterCommit(
+              async () => {
+                await ensureJobsIdentityBinding(
+                  supabaseConfig,
+                  result.accessToken,
+                );
+              },
+            );
+
             return json(res, 200, { userId: result.userId, token: result.accessToken });
           } catch (err) {
             return json(res, 401, { error: 'email ou password inválidos' });
@@ -230,7 +246,28 @@ export function createServer() {
             token = session.token;
           }
           if (supabaseConfig) {
-            await (store as PgStore).bootstrapPersonRecord(userId, fullName, CURRENT_TERMS_VERSION);
+            await (store as PgStore).bootstrapPersonRecord(
+              userId,
+              fullName,
+              CURRENT_TERMS_VERSION,
+            );
+
+            // O bootstrap cria/repara primeiro a identidade local Jobs.
+            // O Data API só deve tentar ligar essa identidade ao ZOS
+            // canónico quando a transação Jobs já estiver committed.
+            //
+            // Se o Supabase exigir confirmação de email, token é null;
+            // nesse caso o login posterior executará o mesmo adapter.
+            if (token) {
+              await (store as PgStore).scheduleAfterCommit(
+                async () => {
+                  await ensureJobsIdentityBinding(
+                    supabaseConfig,
+                    token,
+                  );
+                },
+              );
+            }
           }
           const tpl = EMAIL_TEMPLATES.signupConfirmation(fullName);
           await emailService.send({ to: email, subject: tpl.subject, body: tpl.body, templateKey: 'signupConfirmation' });
