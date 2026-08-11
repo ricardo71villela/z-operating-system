@@ -425,4 +425,63 @@ test('Outbox envelope is immutable while transport state may evolve', () => {
   );
 });
 
+
+test('Trust fixture cannot define an authoritative scoring policy', () => {
+  const fs = require('fs');
+  const path = require('path');
+
+  const trustDomain = fs.readFileSync(
+    path.join(__dirname, '../../packages/zfind-domain/trust.js'),
+    'utf8'
+  );
+
+  const trustMigration = fs.readFileSync(
+    path.join(__dirname, '../../supabase/migrations/0009_state_and_trust_history.sql'),
+    'utf8'
+  );
+
+  const fixture = fs.readFileSync(
+    path.join(__dirname, '../../apps/zfind-web/src/db.js'),
+    'utf8'
+  );
+
+  // Verification assessments remain the durable source of verification truth.
+  assert(
+    /partners\.trust_level[\s\S]*Legacy marketplace projection[\s\S]*verification_assessments/i.test(trustMigration),
+    'partners.trust_level must remain a legacy projection backed by verification truth'
+  );
+
+  // The current domain deliberately defines Verification primitives only.
+  assert(
+    /createVerificationAssessment/.test(trustDomain),
+    'Trust domain must retain explicit Verification assessment primitives'
+  );
+
+  assert(
+    !/\b(?:derive|calculate|compute|create)TrustScore\b/i.test(trustDomain),
+    'Trust domain must not invent a Trust Score algorithm before policy exists'
+  );
+
+  assert(
+    !/\bTRUST_LEVELS\b|\bTRUST_SCORE\b|\btrustScore\b/.test(trustDomain),
+    'Trust domain must not introduce authoritative score/level semantics implicitly'
+  );
+
+  // Existing DB.trust values are prototype presentation data only.
+  assert(
+    /TRUST PRESENTATION FIXTURE[\s\S]*Prototype-only UI data/i.test(fixture),
+    'Fixture Trust values must be explicitly marked as prototype-only presentation data'
+  );
+
+  assert(
+    /NOT an authoritative Trust Score, scoring algorithm or persisted[\s\S]*Trust Engine projection/i.test(fixture),
+    'Fixture must explicitly reject authoritative scoring semantics'
+  );
+
+  assert(
+    /Verification truth lives in[\s\S]*verification_assessments/i.test(fixture),
+    'Fixture must point back to verification assessments as verification truth'
+  );
+});
+
 console.log(`\nRESULT: ${passed} passed, 0 failed\n`);
