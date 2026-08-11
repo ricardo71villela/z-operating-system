@@ -343,4 +343,86 @@ test('Observation payload remains immutable while lifecycle may evolve', () => {
   );
 });
 
+
+test('Outbox envelope is immutable while transport state may evolve', () => {
+  const fs = require('fs');
+  const path = require('path');
+
+  const outboxMigration = fs.readFileSync(
+    path.join(__dirname, '../../supabase/migrations/0011_integration_outbox.sql'),
+    'utf8'
+  );
+
+  const invariantMigration = fs.readFileSync(
+    path.join(__dirname, '../../supabase/migrations/0018_outbox_envelope_invariant.sql'),
+    'utf8'
+  );
+
+  const integrationDomain = fs.readFileSync(
+    path.join(__dirname, '../../packages/zfind-domain/integration.js'),
+    'utf8'
+  );
+
+  // Outbox remains transport infrastructure, never a universal Event model.
+  assert(
+    /not a universal semantic Event[\s\S]*?model/i.test(outboxMigration),
+    'Integration outbox must remain explicitly scoped as technical transport infrastructure'
+  );
+
+  assert(
+    /transport metadata, not a[\s\S]*universal semantic ZOS Event model/i.test(integrationDomain),
+    'Domain integration envelope must not become a universal semantic ZOS Event model'
+  );
+
+  // Database-level guard protects the existing message envelope.
+  assert(
+    /create\s+trigger\s+integration_outbox_envelope_guard[\s\S]*before\s+update\s+on\s+integration_outbox/i.test(invariantMigration),
+    'Outbox message envelope must be protected by a database UPDATE guard'
+  );
+
+  assert(
+    /new\.message_type\s+is\s+distinct\s+from\s+old\.message_type/i.test(invariantMigration),
+    'Outbox message type must be immutable'
+  );
+
+  assert(
+    /new\.subject_id\s+is\s+distinct\s+from\s+old\.subject_id/i.test(invariantMigration),
+    'Outbox subject identity must be immutable'
+  );
+
+  assert(
+    /new\.payload\s+is\s+distinct\s+from\s+old\.payload/i.test(invariantMigration),
+    'Outbox payload must be immutable'
+  );
+
+  assert(
+    /new\.occurred_at\s+is\s+distinct\s+from\s+old\.occurred_at/i.test(invariantMigration),
+    'Outbox occurrence time must be immutable'
+  );
+
+  // Transport state deliberately remains mutable.
+  assert(
+    /available_at,\s*processed_at,\s*attempts,\s*last_error/i.test(invariantMigration),
+    'Outbox invariant must explicitly preserve mutable transport state'
+  );
+
+  for (const field of ['available_at', 'processed_at', 'attempts', 'last_error']) {
+    const mutationGuard = new RegExp(
+      `new\\.${field}\\s+is\\s+distinct\\s+from\\s+old\\.${field}`,
+      'i'
+    );
+
+    assert(
+      !mutationGuard.test(invariantMigration),
+      `${field} must remain mutable transport state`
+    );
+  }
+
+  // No retention policy is invented at this stage.
+  assert(
+    !/revoke\s+delete[\s\S]*on\s+integration_outbox/i.test(invariantMigration),
+    'Outbox envelope invariant must not invent a retention/delete policy'
+  );
+});
+
 console.log(`\nRESULT: ${passed} passed, 0 failed\n`);
