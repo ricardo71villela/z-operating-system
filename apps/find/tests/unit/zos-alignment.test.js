@@ -270,4 +270,77 @@ test('Verification assessments are immutable audit records', () => {
   );
 });
 
+
+test('Observation payload remains immutable while lifecycle may evolve', () => {
+  const fs = require('fs');
+  const path = require('path');
+
+  const observationMigration = fs.readFileSync(
+    path.join(__dirname, '../../supabase/migrations/0010_data_observations_and_provenance.sql'),
+    'utf8'
+  );
+
+  const auditMigration = fs.readFileSync(
+    path.join(__dirname, '../../supabase/migrations/0017_observation_audit_invariant.sql'),
+    'utf8'
+  );
+
+  // Observations remain provenance/history records that complement
+  // operational Property / Development / Listing projections.
+  assert(
+    /observations preserve source, time, validity and provenance/i.test(observationMigration),
+    'Observations must preserve source, time, validity and provenance'
+  );
+
+  // Observation lifecycle remains explicit and independent.
+  assert(
+    /status\s+text[\s\S]*recorded[\s\S]*validated[\s\S]*superseded[\s\S]*archived/i.test(observationMigration),
+    'Observation lifecycle states must remain explicit'
+  );
+
+  // Historical observations cannot be deleted.
+  assert(
+    /revoke\s+delete[\s\S]*on\s+data_observations[\s\S]*from\s+authenticated/i.test(auditMigration),
+    'Authenticated application roles must not delete data observations'
+  );
+
+  // Database guard must protect factual payload.
+  assert(
+    /create\s+trigger\s+data_observations_audit_guard[\s\S]*before\s+update\s+or\s+delete\s+on\s+data_observations/i.test(auditMigration),
+    'Observation factual payload must be protected by a database audit guard'
+  );
+
+  assert(
+    /new\.value_jsonb\s+is\s+distinct\s+from\s+old\.value_jsonb/i.test(auditMigration),
+    'Observation value payload must be immutable'
+  );
+
+  assert(
+    /new\.source_id\s+is\s+distinct\s+from\s+old\.source_id/i.test(auditMigration),
+    'Observation source must be immutable'
+  );
+
+  assert(
+    /new\.provenance\s+is\s+distinct\s+from\s+old\.provenance/i.test(auditMigration),
+    'Observation provenance must be immutable'
+  );
+
+  // Lifecycle fields deliberately remain mutable.
+  assert(
+    /Only status and valid_to may change/i.test(auditMigration),
+    'Observation lifecycle must allow status and valid_to evolution'
+  );
+
+  // Evidence is append-only.
+  assert(
+    /revoke\s+update\s*,\s*delete[\s\S]*on\s+observation_evidence[\s\S]*from\s+authenticated/i.test(auditMigration),
+    'Observation evidence must not be updated or deleted'
+  );
+
+  assert(
+    /create\s+trigger\s+observation_evidence_append_only[\s\S]*before\s+update\s+or\s+delete\s+on\s+observation_evidence/i.test(auditMigration),
+    'Observation evidence must be protected as append-only audit material'
+  );
+});
+
 console.log(`\nRESULT: ${passed} passed, 0 failed\n`);
