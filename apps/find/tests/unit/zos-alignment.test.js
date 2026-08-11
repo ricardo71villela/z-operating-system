@@ -154,4 +154,69 @@ test('Every future Registry-eligible Z Find entity gets a Registry Bridge bindin
   );
 });
 
+
+test('Geography binding remains optional and command-owned', () => {
+  const fs = require('fs');
+  const path = require('path');
+
+  const migration = fs.readFileSync(
+    path.join(__dirname, '../../supabase/migrations/0012_geography_registry_bridge.sql'),
+    'utf8'
+  );
+
+  const geographyPort = fs.readFileSync(
+    path.join(__dirname, '../../packages/import-engine/geography-port.js'),
+    'utf8'
+  );
+
+  // zones_lite remains a marketplace projection and may legitimately
+  // exist without a canonical Geography binding.
+  assert(
+    /geography_entity_id\s+text/i.test(migration),
+    'zones_lite must expose an optional canonical Geography reference'
+  );
+
+  assert(
+    /geography_binding_status\s+text\s+not\s+null\s+default\s+'unbound'/i.test(migration),
+    'New zones_lite rows must remain unbound by default'
+  );
+
+  assert(
+    /check\s*\(\s*geography_binding_status\s+in\s*\(\s*'unbound'\s*,\s*'linked'\s*,\s*'superseded'\s*\)\s*\)/i.test(migration),
+    'Geography binding lifecycle must explicitly preserve the unbound state'
+  );
+
+  // No database trigger should invent or auto-link canonical Geography.
+  assert(
+    !/create\s+trigger[\s\S]*?(before|after)\s+insert\s+on\s+zones_lite/i.test(migration),
+    'zones_lite must not auto-bind to canonical Geography on insert'
+  );
+
+  // Canonical Geography mutations remain behind the command port.
+  assert(
+    /function\s+createGeographyPort\s*\(/i.test(geographyPort),
+    'Canonical Geography writes must remain behind the Geography command port'
+  );
+
+  assert(
+    /function\s+submit\s*\(\s*command\s*\)/i.test(geographyPort),
+    'Geography port must accept explicit commands'
+  );
+
+  assert(
+    /processedKeys\s*=\s*new\s+Map\s*\(\s*\)/i.test(geographyPort),
+    'Geography command boundary must preserve idempotency'
+  );
+
+  assert(
+    /succession_proposal_logged_not_executed/i.test(geographyPort),
+    'Succession proposals must never be auto-executed by the Geography port'
+  );
+
+  assert(
+    !/zones_lite|ZFindServices|renderZone|Marketplace/i.test(geographyPort),
+    'Canonical Geography port must remain decoupled from Z Find marketplace/UI projections'
+  );
+});
+
 console.log(`\nRESULT: ${passed} passed, 0 failed\n`);
