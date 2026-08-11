@@ -13,7 +13,7 @@
            bounded context; this file only stores a locationId pointing
            into it, never duplicates place names or hierarchy)
         -> Observations (Data)
-        -> Trust (Trust Engine)
+        -> Trust presentation fixture (prototype only; no scoring policy)
         -> Intelligence Outputs (Intelligence)
         -> Enquiry policy (Partner-level default, Listing-level override)
 
@@ -219,7 +219,17 @@ const DB = {
     ],
   },
 
-  /* ---------------- TRUST (Trust Engine) ---------------- */
+  /* ---------------- TRUST PRESENTATION FIXTURE ----------------
+     Prototype-only UI data.
+
+     This is NOT an authoritative Trust Score, scoring algorithm or persisted
+     Trust Engine projection. Verification truth lives in
+     verification_assessments.
+
+     The concrete level/checklist/limitations below exist only so the current
+     prototype can render the intended Trust experience until an explicit,
+     evidence-backed Trust derivation policy is approved.
+     ------------------------------------------------------------- */
   trust: {
     trust_zimob: {
       id:'trust_zimob', level:'high',
