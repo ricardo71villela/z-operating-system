@@ -68,7 +68,7 @@ async function getPropertyById(propertyId, locale) {
     () => client
       .from('properties')
       .select(`
-        id, subtype, typology, area_sqm, floor, zone_lite_id, development_id,
+        id, subtype, typology, area_sqm, plot_area_sqm, floor, zone_lite_id, development_id,
         zones_lite ( name, city, country_iso ),
         representations!inner (
           id, target_type, status,

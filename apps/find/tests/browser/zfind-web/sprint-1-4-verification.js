@@ -223,7 +223,11 @@ async function run() {
     await page.waitForTimeout(150); // check BEFORE the delayed response arrives
     const earlyText = await page.evaluate(() => document.getElementById('property-root').textContent);
     assert(earlyText.toLowerCase().includes('loading'), 'Loading message shown while the request is in flight');
-    await page.waitForTimeout(1000);
+    await page.waitForFunction(
+      () => document.getElementById('property-root').textContent.includes('Renovated Duplex in Boavista'),
+      null,
+      { timeout: 3000 }
+    );
     const laterText = await page.evaluate(() => document.getElementById('property-root').textContent);
     assert(laterText.includes('Renovated Duplex in Boavista'), 'Real content replaces the loading state once data arrives');
     await page.close();
@@ -267,10 +271,13 @@ async function run() {
         };
       };
     });
-    await page.evaluate(() => { location.hash = '/en/home'; });
-    await page.waitForTimeout(150);
-    await page.evaluate(() => { location.hash = '/en/property/asset_apt_boavista'; });
-    await page.waitForTimeout(500);
+    // Re-run the real Property renderer directly after replacing its
+    // loader. Do not route through Home: mockRoutes() intentionally
+    // returns one Property object for getPropertyById(), whereas Home's
+    // search service correctly expects an array.
+    await page.evaluate(async () => {
+      await renderProperty('asset_apt_boavista');
+    });
 
     assert(pageErrors.length === 0, `No exception thrown when vm.market is genuinely null (errors: ${JSON.stringify(pageErrors)})`);
     const visibleText = await page.evaluate(() => document.getElementById('property-root').textContent);
