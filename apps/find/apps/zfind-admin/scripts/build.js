@@ -51,6 +51,7 @@ function build() {
   const authService = readWeb('services/auth.js');
   const identityService = readWeb('services/identity.js');
   const registryService = readWeb('services/registry.js');
+  const verificationService = readWeb('services/verification.js');
 
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
@@ -71,6 +72,7 @@ function build() {
     + authService + '\n'
     + identityService + '\n'
     + registryService + '\n'
+    + verificationService + '\n'
     + readWeb('services/image-optimize.js') + '\n'
     + readWeb('services/admin.js') + '\n'
     + readWeb('services/field-forms.js') + '\n'

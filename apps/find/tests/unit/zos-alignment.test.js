@@ -219,4 +219,55 @@ test('Geography binding remains optional and command-owned', () => {
   );
 });
 
+
+test('Verification assessments are immutable audit records', () => {
+  const fs = require('fs');
+  const path = require('path');
+
+  const trustMigration = fs.readFileSync(
+    path.join(__dirname, '../../supabase/migrations/0009_state_and_trust_history.sql'),
+    'utf8'
+  );
+
+  const auditMigration = fs.readFileSync(
+    path.join(__dirname, '../../supabase/migrations/0016_verification_audit_invariant.sql'),
+    'utf8'
+  );
+
+  // Verification remains its own durable assessment model.
+  assert(
+    /create\s+table\s+verification_assessments/i.test(trustMigration),
+    'Verification truth must remain represented by verification_assessments'
+  );
+
+  // Legacy partner trust is not promoted back into canonical truth.
+  assert(
+    /partners\.trust_level[\s\S]*Legacy marketplace projection/i.test(trustMigration),
+    'partners.trust_level must remain explicitly documented as a legacy marketplace projection'
+  );
+
+  // Application roles may not rewrite or delete past assessments.
+  assert(
+    /revoke\s+update\s*,\s*delete[\s\S]*on\s+verification_assessments[\s\S]*from\s+authenticated/i.test(auditMigration),
+    'Authenticated application roles must not UPDATE or DELETE verification assessments'
+  );
+
+  // Defense in depth: the database itself rejects mutation.
+  assert(
+    /create\s+trigger\s+verification_assessments_append_only[\s\S]*before\s+update\s+or\s+delete\s+on\s+verification_assessments/i.test(auditMigration),
+    'Verification assessments must be protected by an append-only database trigger'
+  );
+
+  assert(
+    /raise\s+exception[\s\S]*append-only/i.test(auditMigration),
+    'Attempts to mutate historical verification assessments must fail explicitly'
+  );
+
+  // The invariant must not block the creation of new assessments.
+  assert(
+    !/revoke\s+insert[\s\S]*on\s+verification_assessments/i.test(auditMigration),
+    'Verification history must remain appendable through new assessment rows'
+  );
+});
+
 console.log(`\nRESULT: ${passed} passed, 0 failed\n`);
