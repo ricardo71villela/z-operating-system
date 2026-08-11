@@ -89,4 +89,69 @@ test('Every future Z Find profile gets an Identity Bridge binding', () => {
   );
 });
 
+
+test('Every future Registry-eligible Z Find entity gets a Registry Bridge binding', () => {
+  const fs = require('fs');
+  const path = require('path');
+
+  const migration = fs.readFileSync(
+    path.join(__dirname, '../../supabase/migrations/0015_registry_binding_invariant.sql'),
+    'utf8'
+  );
+
+  const entities = [
+    ['organisations', 'organisation_id'],
+    ['partners', 'partner_id'],
+    ['properties', 'property_id'],
+    ['developments', 'development_id'],
+  ];
+
+  for (const [table, targetColumn] of entities) {
+    const triggerPattern = new RegExp(
+      `create\\s+trigger\\s+${table}_create_registry_binding[\\s\\S]*?after\\s+insert\\s+on\\s+${table}`,
+      'i'
+    );
+
+    assert(
+      triggerPattern.test(migration),
+      `Registry binding invariant must be enforced by an AFTER INSERT trigger on ${table}`
+    );
+
+    const backfillPattern = new RegExp(
+      `insert\\s+into\\s+registry_bindings\\s*\\(\\s*entity_type\\s*,\\s*${targetColumn}\\s*\\)[\\s\\S]*?select[\\s\\S]*?id[\\s\\S]*?from\\s+${table}[\\s\\S]*?on\\s+conflict\\s+do\\s+nothing`,
+      'i'
+    );
+
+    assert(
+      backfillPattern.test(migration),
+      `${table} must be defensively reconciled into registry_bindings`
+    );
+  }
+
+  assert(
+    /when\s+'organisations'[\s\S]*values\s*\(\s*'organisation'\s*,\s*new\.id\s*\)/i.test(migration),
+    'Organisation bindings must preserve organisations.id'
+  );
+
+  assert(
+    /when\s+'partners'[\s\S]*values\s*\(\s*'partner'\s*,\s*new\.id\s*\)/i.test(migration),
+    'Partner bindings must preserve partners.id'
+  );
+
+  assert(
+    /when\s+'properties'[\s\S]*values\s*\(\s*'property'\s*,\s*new\.id\s*\)/i.test(migration),
+    'Property bindings must preserve properties.id'
+  );
+
+  assert(
+    /when\s+'developments'[\s\S]*values\s*\(\s*'development'\s*,\s*new\.id\s*\)/i.test(migration),
+    'Development bindings must preserve developments.id'
+  );
+
+  assert(
+    !/update\s+(organisations|partners|properties|developments)[\s\S]*set\s+id\s*=/i.test(migration),
+    'Registry convergence must never replace local entity UUIDs'
+  );
+});
+
 console.log(`\nRESULT: ${passed} passed, 0 failed\n`);
