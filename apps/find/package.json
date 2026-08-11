@@ -28,7 +28,8 @@
     "check:syntax": "node scripts/check-js-syntax.js",
     "check:migrations": "node scripts/validate-migrations.js",
     "check:zos": "node scripts/validate-zos-alignment.js",
-    "check": "npm run test && npm run test:seo-pages && npm run test:zos-alignment && npm run check:syntax && npm run check:migrations && npm run check:zos"
+    "check": "npm run test && npm run test:seo-pages && npm run test:zos-alignment && npm run test:identity-service && npm run check:syntax && npm run check:migrations && npm run check:zos",
+    "test:identity-service": "node tests/unit/identity-service.test.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.8",

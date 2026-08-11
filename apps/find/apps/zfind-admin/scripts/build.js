@@ -49,6 +49,7 @@ function build() {
   const configTemplate = readWeb('config.template.js');
   const supabaseClient = readWeb('services/supabaseClient.js');
   const authService = readWeb('services/auth.js');
+  const identityService = readWeb('services/identity.js');
 
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
@@ -67,6 +68,7 @@ function build() {
     + resolvedConfig + '\n'
     + supabaseClient + '\n'
     + authService + '\n'
+    + identityService + '\n'
     + readWeb('services/image-optimize.js') + '\n'
     + readWeb('services/admin.js') + '\n'
     + readWeb('services/field-forms.js') + '\n'

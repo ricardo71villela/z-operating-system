@@ -73,6 +73,7 @@ function build() {
   const developmentsService = read('services/developments.js');
   const searchService = read('services/search.js');
   const authService = read('services/auth.js');
+  const identityService = read('services/identity.js');
   const leadsService = read('services/leads.js');
   const simulatorService = read('services/simulator.js');
   const zonesService = read('services/zones.js');
@@ -113,6 +114,7 @@ function build() {
     + developmentsService + '\n'
     + searchService + '\n'
     + authService + '\n'
+    + identityService + '\n'
     + leadsService + '\n'
     + simulatorService + '\n'
     + zonesService + '\n'

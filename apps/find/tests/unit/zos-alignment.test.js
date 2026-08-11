@@ -54,4 +54,39 @@ test('Integration message is a transport envelope, scoped to Z Find', () => {
   assert.strictEqual(msg.schemaVersion, 1);
 });
 
+
+test('Every future Z Find profile gets an Identity Bridge binding', () => {
+  const fs = require('fs');
+  const path = require('path');
+
+  const migration = fs.readFileSync(
+    path.join(__dirname, '../../supabase/migrations/0014_identity_binding_invariant.sql'),
+    'utf8'
+  );
+
+  // Future profiles are covered automatically.
+  assert(
+    /create\s+trigger\s+profiles_create_identity_binding[\s\S]*after\s+insert\s+on\s+profiles/i.test(migration),
+    'Identity binding invariant must be enforced by an AFTER INSERT trigger on profiles'
+  );
+
+  // The trigger preserves the local profile/Auth UUID and only creates a bridge.
+  assert(
+    /insert\s+into\s+identity_bindings\s*\(\s*profile_id\s*\)[\s\S]*values\s*\(\s*new\.id\s*\)[\s\S]*on\s+conflict\s*\(\s*profile_id\s*\)\s+do\s+nothing/i.test(migration),
+    'New profiles must create an idempotent identity_bindings row using the same profile UUID'
+  );
+
+  // Profiles created in the gap between 0013 and 0014 are reconciled.
+  assert(
+    /insert\s+into\s+identity_bindings\s*\(\s*profile_id\s*\)[\s\S]*select\s+id[\s\S]*from\s+profiles[\s\S]*on\s+conflict\s*\(\s*profile_id\s*\)\s+do\s+nothing/i.test(migration),
+    'Migration must defensively backfill any profiles missing an identity binding'
+  );
+
+  // The bridge must never rewrite the local application/Auth identity.
+  assert(
+    !/update\s+profiles[\s\S]*set\s+id\s*=/i.test(migration),
+    'Identity convergence must never replace profiles.id'
+  );
+});
+
 console.log(`\nRESULT: ${passed} passed, 0 failed\n`);
