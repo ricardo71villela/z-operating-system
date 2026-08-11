@@ -20,6 +20,7 @@
     "build:admin": "node -r dotenv/config apps/zfind-admin/scripts/build.js",
     "build:partner": "node -r dotenv/config apps/zfind-partner/scripts/build.js",
     "test:sprint-1-7": "node tests/browser/zfind-admin/sprint-1-7-verification.js",
+    "test:sprint-1-8": "node tests/browser/zfind-web/sprint-1-8-verification.js",
     "test:simulator": "node tests/browser/zfind-web/simulator-verification.js",
     "test:staging-smoke": "node -r dotenv/config tests/browser/zfind-web/staging-smoke-test.js",
     "test:connectivity": "node -r dotenv/config scripts/test-connectivity.js",

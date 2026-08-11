@@ -42,6 +42,46 @@ function mockDevelopmentRow(enquiryPolicy) {
   };
 }
 
+
+function mockLandRow(enquiryPolicy) {
+  return {
+    id: 'asset_land_boavista',
+    subtype: 'land',
+    typology: null,
+    area_sqm: 3200,
+    plot_area_sqm: 3200,
+    floor: null,
+    zone_lite_id: 'z-land',
+    development_id: null,
+    zones_lite: { name: 'Boavista', city: 'Porto', country_iso: 'PT' },
+    representations: [{
+      id: 'rep-land-1',
+      target_type: 'property',
+      status: 'active',
+      partners: {
+        id: 'partner_zimob',
+        name: 'Z Imobiliária',
+        enquiry_policy: enquiryPolicy,
+      },
+      listings: [{
+        id: 'listing-land-1',
+        channel: 'standard',
+        price_current: 2100000,
+        currency_iso: 'EUR',
+        price_is_from: false,
+        status: 'published',
+        listing_content: [{
+          locale: 'en',
+          title: 'Development Land in Boavista',
+          description: 'Urban land opportunity in Porto.',
+        }],
+        listing_media: [],
+      }],
+    }],
+  };
+}
+
+
 function trackLeadsRoute(page, opts) {
   const options = opts || {};
   const requests = [];
@@ -244,20 +284,55 @@ async function run() {
     await page.close();
   }
 
-  console.log('\n=== 5. Land — no Supabase INSERT attempted from an unmigrated page ===');
+  console.log('\n=== 5. Land — migrated Supabase listing uses the real enquiry flow ===');
   {
     const page = await browser.newPage();
-    let leadsRequested = false;
-    page.route('**/rest/v1/leads**', route => { leadsRequested = true; route.fulfill({ status: 201, contentType: 'application/json', body: '' }); });
+
+    await page.route(
+      '**/rest/v1/properties**',
+      route => route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(
+          mockLandRow({
+            direct: true,
+            qualified: false,
+            assisted: false,
+          })
+        ),
+      })
+    );
+
+    const requests = trackLeadsRoute(page);
+
     await page.goto(FILE_URL + '#/en/land/asset_land_boavista');
     await page.waitForTimeout(500);
-    await page.evaluate(() => { document.querySelectorAll('button.btn-gold').forEach(b => { if (b.getAttribute('onclick') && b.getAttribute('onclick').includes('openLandEnquiryUnavailable')) b.click(); }); });
-    await page.waitForTimeout(300);
-    const modalVisible = await page.evaluate(() => document.getElementById('modal-overlay').classList.contains('active'));
-    const hasNameField = await page.evaluate(() => !!document.getElementById('enquiry-name'));
-    assert(modalVisible, 'A modal opens (clear temporary state), not a silent no-op');
-    assert(!hasNameField, 'No submission form is rendered for Land — no name/contact fields exist to even attempt a submission with');
-    assert(!leadsRequested, 'Zero requests to /rest/v1/leads occur from the Land page');
+
+    await openModalOnPage(page);
+
+    const modalVisible = await page.evaluate(
+      () => document.getElementById('modal-overlay').classList.contains('active')
+    );
+    const hasNameField = await page.evaluate(
+      () => !!document.getElementById('enquiry-name')
+    );
+
+    assert(modalVisible, 'Land opens the real enquiry modal');
+    assert(hasNameField, 'Land renders the real enquiry form after migration');
+
+    await page.fill('#enquiry-name', 'Maria Silva');
+    await page.fill('#enquiry-email', 'maria@example.com');
+    await page.click('#enquiry-send-btn');
+    await page.waitForTimeout(500);
+
+    const post = requests.find(r => r.method === 'POST');
+
+    assert(!!post, 'Land enquiry performs one real /leads POST');
+    assert(
+      post && post.body && post.body.listing_id === 'listing-land-1',
+      `Land enquiry carries the real Supabase listing_id — got ${post && post.body && post.body.listing_id}`
+    );
+
     await page.close();
   }
 

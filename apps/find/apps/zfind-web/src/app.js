@@ -455,73 +455,147 @@ function clearUnit(devId) {
 }
 
 /* ---------------- Land detail ---------------- */
-function renderLand(assetId) {
-  const vm = getLandDetailViewModel(assetId, state.lang);
+async function renderLand(assetId) {
+  const root = document.getElementById('land-root');
+  root.innerHTML = detailStatusHTML('home.loadingTitle', 'home.loadingBody');
+
+  const result = await loadLandDetail(assetId, state.lang);
+
+  if (result.notFound) {
+    root.innerHTML = detailStatusHTML(
+      'property.notFoundTitle',
+      'property.notFoundBody'
+    );
+    return;
+  }
+
+  if (result.error) {
+    console.error('Land load failed:', result.error);
+    root.innerHTML = detailStatusHTML('home.errorTitle', 'home.errorBody');
+    return;
+  }
+
+  const vm = result.viewModel;
   const L = state.lang;
-  const landLabel = (key) => {
-    const map = { vacant_former_industrial:'land.vacantFormerIndustrial', mixed_use_urban:'land.mixedUseUrban', paved_road_utilities_nearby:'land.pavedRoad', not_submitted:'land.notSubmitted', '6_floors':'land.sixFloors' };
-    return map[key] ? t(L, map[key]) : key;
-  };
-  const factLabel = (k) => t(L, 'land.' + k);
 
-  const scenario0 = vm.scenarios[0], scenario1 = vm.scenarios[1];
+  document.title = vm.content.title
+    ? (vm.content.title + ' — Z Find')
+    : document.title;
 
-  document.getElementById('land-root').innerHTML = `
+  const galleryStyle = vm.media[0]
+    ? `background-image:url('${vm.media[0].url}'); background-size:cover; background-position:center;`
+    : '';
+
+  const galleryAlt = vm.media[0] ? vm.media[0].altText : '';
+
+  const displayAreaSqm =
+    vm.asset.plotAreaSqm != null
+      ? vm.asset.plotAreaSqm
+      : vm.asset.areaSqm;
+
+  const areaHTML = displayAreaSqm != null
+    ? `<span>·</span><span>${fmtNumber(displayAreaSqm, L)} m²</span>`
+    : '';
+
+  const factualHTML = vm.facts && vm.facts.length
+    ? `
+      <div class="section-title" id="land-known-facts">
+        ${t(L,'land.knownFacts')} ${statusTag('fact')}
+      </div>
+      <div class="info-card">
+        ${vm.facts.map(f => `
+          <div class="row">
+            <span class="label">${t(L,f.labelKey)}</span>
+            <span class="val">${f.value}</span>
+          </div>
+        `).join('')}
+      </div>
+    `
+    : '';
+
+  root.innerHTML = `
   <div class="wrap" style="padding-top:20px;">
     <a href="#" onclick="navigate('search');return false;" class="btn-ghost" style="font-size:0.82rem;">${t(L,'common.backToResults')}</a>
   </div>
+
   <div class="detail-hero">
     <div class="wrap">
       <span class="eyebrow">${t(L,'navigation.land')} · ${vm.geo.zoneLabel || vm.geo.cityLabel}, ${vm.geo.countryLabel}</span>
       <h1>${vm.content.title}</h1>
-      <div class="loc-row"><span style="cursor:pointer; text-decoration:underline; text-underline-offset:3px;" onclick="navigate('search',null,{q:'${(vm.geo.zoneLabel||vm.geo.cityLabel).replace(/'/g,"\\'")}'})">${vm.geo.zoneLabel || vm.geo.cityLabel}, ${vm.geo.cityLabel}</span><span>·</span><span>${vm.asset.areaSqm} m²</span></div>
+      <div class="loc-row">
+        <span
+          style="cursor:pointer; text-decoration:underline; text-underline-offset:3px;"
+          onclick="navigate('search',null,{q:'${(vm.geo.zoneLabel||vm.geo.cityLabel).replace(/'/g,"\'")}'})"
+        >${vm.geo.zoneLabel || vm.geo.cityLabel}</span>
+        ${areaHTML}
+        <span>·</span>
+        <span class="tag tag-verified">${t(L,'property.singleRepresentation')}</span>
+      </div>
       <div class="price-tag">${vm.priceLabel}</div>
     </div>
   </div>
-  <div class="wrap" style="padding-top:24px; display:flex; gap:8px;">
-    <button class="pill" onclick="document.getElementById('land-known-facts').scrollIntoView({behavior:'smooth',block:'start'})">${t(L,'land.jumpKnownFacts')}</button>
-    <button class="pill" onclick="document.getElementById('land-planning').scrollIntoView({behavior:'smooth',block:'start'})">${t(L,'land.jumpPlanning')}</button>
-    <button class="pill" onclick="document.getElementById('land-scenarios').scrollIntoView({behavior:'smooth',block:'start'})">${t(L,'land.jumpScenarios')}</button>
-  </div>
+
   <div class="wrap detail-layout">
     <div>
-      <div class="gallery"></div>
-      <div class="section-title" id="land-known-facts">${t(L,'land.knownFacts')} ${statusTag('fact')}</div>
-      <div class="info-card">
-        ${vm.knownFacts.map(f => `<div class="row"><span class="label">${factLabel(f.key)}</span><span class="val">${landLabel(f.value) !== f.value ? landLabel(f.value) : f.value}</span></div>`).join('')}
-      </div>
-      <div class="section-title" id="land-planning">${t(L,'land.planningContext')} ${statusTag('estimate')}</div>
-      <div class="info-card">
-        ${vm.planningContext.map(f => `<div class="row"><span class="label">${factLabel(f.key)}</span><span class="val">${landLabel(f.value) !== f.value ? landLabel(f.value) : f.value}</span></div>`).join('')}
-      </div>
-      <p class="disclaimer">⚠ ${t(L,'land.planningDisclaimer')}</p>
+      <div class="gallery" style="${galleryStyle}" title="${galleryAlt}"></div>
 
-      <div class="section-title" id="land-scenarios" style="margin-top:36px">${t(L,'land.scenarios')} ${statusTag('model_output')}</div>
-      ${scenario0 ? `<div class="scenario-card">
-        <div class="top"><h4>${t(L,'land.scenarioResidential')}</h4><span style="color:var(--gold-dark); font-family:'Cormorant Garamond'; font-size:1.2rem">${t(L,'land.estGDV',{value:fmtCurrency(scenario0.estGDV,L)})}</span></div>
-        <p style="font-size:0.85rem; color:var(--gray-500); margin-top:8px;">${t(L,'land.scenarioResidentialDesc',{units:scenario0.unitsEst, cost:fmtCurrency(scenario0.constructionCostEst,L), months:scenario0.buildMonthsEst})}</p>
-      </div>` : ''}
-      ${scenario1 ? `<div class="scenario-card">
-        <div class="top"><h4>${t(L,'land.scenarioMixedUse')}</h4><span style="color:var(--gold-dark); font-family:'Cormorant Garamond'; font-size:1.2rem">${t(L,'land.estGDV',{value:fmtCurrency(scenario1.estGDV,L)})}</span></div>
-        <p style="font-size:0.85rem; color:var(--gray-500); margin-top:8px;">${t(L,'land.scenarioMixedDesc')}</p>
-      </div>` : ''}
-      <p class="disclaimer">⚠ ${t(L,'land.scenarioDisclaimer')}</p>
+      ${factualHTML}
+
+      <div class="section-title">${t(L,'property.aboutTitle')}</div>
+      <p style="color:var(--gray-700); line-height:1.7; font-size:0.95rem; margin-bottom:20px;">
+        ${vm.content.description || ''}
+      </p>
+
+      <div class="section-title" style="margin-top:30px">${t(L,'property.zInsightsTitle')}</div>
+      <div class="info-card">
+        <div class="row">
+          <span class="label" style="color:var(--gray-400);">
+            ${t(L,'property.zInsightsComingSoonBody')}
+          </span>
+        </div>
+      </div>
+
+      <div class="section-title">${t(L,'property.investmentTitle')}</div>
+      <div class="info-card">
+        <div class="row">
+          <span class="label" style="color:var(--gray-400);">
+            ${t(L,'property.zIntelInvestmentComingSoonBody')}
+          </span>
+        </div>
+      </div>
     </div>
+
     <div>
       <div class="sidebar-sticky">
-      <div class="sidebar-card">
-        <h4>${t(L,'land.relevantProfessionals')}</h4>
-        <div class="info-card" style="margin-bottom:0">
-          <div class="row"><span class="label">${t(L,'land.planningConsultant')}</span><span class="val">${t(L,'land.availableOnRequest')}</span></div>
-          <div class="row"><span class="label">${t(L,'land.architect')}</span><span class="val">${t(L,'land.availableOnRequest')}</span></div>
+        <div class="sidebar-card">
+          <h4>${t(L,'property.representedBy')}</h4>
+
+          <div
+            style="display:flex; gap:12px; align-items:center; ${vm.partner.id ? 'cursor:pointer;' : ''}"
+            ${vm.partner.id ? `onclick="navigate('partner','${vm.partner.id}')"` : ''}
+          >
+            <div style="width:46px;height:46px;border-radius:50%;background:var(--gray-200)"></div>
+            <div>
+              <div style="font-family:'Cormorant Garamond'; font-size:1.1rem">
+                ${vm.partner.name}
+              </div>
+              <div
+                class="trust-chip"
+                style="color:var(--gray-400); background:var(--gray-100); border-color:var(--gray-200);"
+              >
+                ${t(L,'property.trustComingSoon')}
+              </div>
+            </div>
+          </div>
+
+          <button
+            class="btn btn-gold"
+            style="width:100%; margin-top:20px; justify-content:center"
+            onclick="openModal('${vm.listing.id}', ${JSON.stringify(vm.partner.enquiryPolicy).replace(/"/g,'&quot;')}, '${vm.partner.id}')"
+          >
+            ${t(L,'property.contactBtn')}
+          </button>
         </div>
-        <button class="btn btn-outline" style="width:100%; margin-top:16px; justify-content:center">${t(L,'land.requestNetwork')}</button>
-      </div>
-      <div class="sidebar-card">
-        <h4>${t(L,'land.matchingTitle')}</h4>
-        <p style="font-size:0.85rem; color:var(--gray-500); line-height:1.6;">${t(L,'land.matchingBody')}</p>
-        <button class="btn btn-gold" style="width:100%; margin-top:18px; justify-content:center" onclick="openLandEnquiryUnavailable()">${t(L,'land.expressInterest')}</button>
-      </div>
       </div>
     </div>
   </div>`;
@@ -820,14 +894,9 @@ function extractUTMParams() {
 function openModal(listingId, enquiryConfig, partnerId) {
   currentListingIdForEnquiry = listingId;
   currentPartnerIdForEnquiry = partnerId || null;
-  // Sprint 1.6: Property/Development now pass their REAL, Supabase-
-  // loaded partner enquiry_policy directly — getEnquiryConfig() (the
-  // old fixture-based lookup) is kept only as a fallback for Land,
-  // which has not been migrated yet (a real listing_id from Land's
-  // fixture would fail the leads.listing_id FK against real Supabase
-  // data anyway — that migration is its own future sprint, not faked
-  // here; see openLandEnquiryUnavailable() below, Land no longer
-  // calls this function at all).
+  // Supabase-backed detail pages pass their REAL listing_id and
+  // partner enquiry_policy directly. getEnquiryConfig() remains only
+  // as a conservative legacy fallback for callers that omit policy.
   const cfg = enquiryConfig || getEnquiryConfig(listingId);
   // Sprint 1.6 final correction: 'assisted' can now be genuinely
   // selected AND rendered — previously it could be the silently
@@ -880,22 +949,6 @@ function openModal(listingId, enquiryConfig, partnerId) {
   document.getElementById('modal-overlay').classList.add('active');
 }
 
-/** Sprint 1.6 final correction: Land has not been migrated to
-    Supabase — its listing_id is still a fixture value that would
-    fail the real leads.listing_id foreign key. Rather than leave an
-    active form that is known to fail (or fabricate a fake real id),
-    Land shows this clear temporary state instead of opening the real
-    enquiry modal at all. No Supabase call is ever attempted from
-    here. Documented, temporary technical debt — resolved when Land
-    is migrated in its own future sprint. */
-function openLandEnquiryUnavailable() {
-  const L = state.lang;
-  document.getElementById('enquiry-body').innerHTML = `
-    <div style="text-align:center; padding:30px 10px;">
-      <p style="color:var(--gray-600); font-size:0.95rem;">${t(L,'enquiry.landTemporarilyUnavailable')}</p>
-    </div>`;
-  document.getElementById('modal-overlay').classList.add('active');
-}
 
 function closeModal() { document.getElementById('modal-overlay').classList.remove('active'); }
 function selectOpt(opt) {

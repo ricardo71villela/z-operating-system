@@ -21,7 +21,7 @@ function mockProperty(id, subtype, channel, title, zoneName) {
   return {
     id, subtype, typology: subtype === 'land' ? null : 'T2', area_sqm: 80, zone_lite_id: 'z1',
     zones_lite: { name: zoneName, city: 'Porto', country_iso: 'PT' },
-    representations: [{ target_type: 'property', status: 'active', partners: { id: 'partner_zimob', name: 'Z Imobiliária' }, listings: [{
+    representations: [{ target_type: 'property', status: 'active', partners: { id: 'partner_zimob', name: 'Z Imobiliária', enquiry_policy: { direct: true, qualified: true, assisted: false } }, listings: [{
       id: 'l-' + id, channel, price_current: 400000, currency_iso: 'EUR', price_is_from: false, status: 'published',
       listing_content: [{ locale: 'en', title }],
       listing_media: [],
@@ -40,7 +40,7 @@ const MOCK_DEVELOPMENTS = [{
   id: 'asset_dev_rionorte', name: 'Rio Norte', zone_lite_id: 'z2',
   zones_lite: { name: 'Matosinhos Sul', city: 'Matosinhos', country_iso: 'PT' },
   development_media: [],
-  representations: [{ target_type: 'development', status: 'active', partners: { id: 'partner_zimob', name: 'Z Imobiliária' }, listings: [{
+  representations: [{ target_type: 'development', status: 'active', partners: { id: 'partner_zimob', name: 'Z Imobiliária', enquiry_policy: { direct: true, qualified: true, assisted: false } }, listings: [{
     id: 'l-asset_dev_rionorte', channel: 'standard', price_current: 340000, currency_iso: 'EUR', price_is_from: true, status: 'published',
     listing_content: [{ locale: 'en', title: 'Rio Norte Development', description: 'A new construction project.' }],
     listing_media: [],
@@ -198,29 +198,30 @@ async function mockSupabaseRoutes(page) {
   console.log('PH1 unit shows enquire button (available, not sold):', enquireButtonVisible);
   await shot('10-development-unit-sold');
 
-  console.log('--- 10. Navigate to land, test quick-nav chip scroll ---');
+  console.log('--- 10. Navigate to Land, verify source-backed detail ---');
   await page.evaluate(() => navigate('land','asset_land_boavista'));
-  await page.waitForTimeout(300);
-  await shot('11-land-top');
-  await page.click('button:has-text("Scenarios")');
-  await page.waitForTimeout(500);
-  const scrollY = await page.evaluate(() => window.scrollY);
-  console.log('Scroll position after chip click:', scrollY, '(expect > 0)');
-  await shot('12-land-scrolled-scenarios');
+  await page.waitForSelector('#land-root button:has-text("Contact about this opportunity")');
 
-  console.log('--- 11. Land off-market-style enquiry (direct:false) ---');
-  await page.evaluate(() => navigate('land','asset_land_boavista'));
-  await page.waitForTimeout(300);
-  await page.click('button:has-text("Express interest")');
-  await page.waitForTimeout(300);
-  const directOptVisible = await page.locator('.contact-opt[data-opt=\"direct\"]').isVisible().catch(()=>false);
-  const qualifiedOptVisible = await page.locator('.contact-opt[data-opt=\"qualified\"]').isVisible().catch(()=>false);
-  const noteText = await page.locator('.direct-only-note').textContent().catch(()=>'MISSING');
-  console.log('Direct option visible:', directOptVisible, '(expect false)');
+  const landText = await page.locator('#land-root').textContent();
+  const legacyScenarioButtons = await page.locator('button:has-text("Scenarios")').count();
+
+  console.log('Land title visible:', landText.includes('Land in Boavista'), '(expect true)');
+  console.log('Legacy Scenarios button present:', legacyScenarioButtons, '(expect 0)');
+  await shot('11-land-top');
+
+
+  console.log('--- 11. Land enquiry uses Supabase Partner enquiry policy ---');
+  await page.click('#land-root button:has-text("Contact about this opportunity")');
+  await page.waitForSelector('#modal-overlay.active');
+
+  const directOptVisible = await page.locator('.contact-opt[data-opt="direct"]').isVisible().catch(()=>false);
+  const qualifiedOptVisible = await page.locator('.contact-opt[data-opt="qualified"]').isVisible().catch(()=>false);
+
+  console.log('Direct option visible:', directOptVisible, '(expect true)');
   console.log('Qualified option visible:', qualifiedOptVisible, '(expect true)');
-  console.log('Note text:', noteText);
-  await shot('13-enquiry-land-qualified-only');
+  await shot('13-enquiry-land-partner-policy');
   await page.click('#modal-overlay .close-x');
+
 
   console.log('--- 12. Normal property enquiry (both options) ---');
   await page.evaluate(() => navigate('property','asset_apt_boavista'));

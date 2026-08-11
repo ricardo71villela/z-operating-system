@@ -539,6 +539,92 @@ async function loadPropertyDetail(propertyId, lang) {
 }
 
 
+
+/* ---------------- Sprint 1.8: Supabase-backed Land detail ----------------
+   Land is deliberately NOT a separate persistence/domain entity here:
+   in Z Find's current schema it is a Property with subtype='land'.
+
+   The runtime therefore reuses properties.getPropertyById() and the
+   existing Property detail mapper for relationships/content/media, then
+   narrows the public Land view-model to facts that actually exist in the
+   database.
+
+   Crucially, the old prototype's zoning/planning/GDV/construction
+   scenarios are NOT copied forward. They have no equivalent public
+   source-backed model yet. Absence is rendered as absence — never as
+   invented estimates. */
+function mapSupabaseLandRowToDetailViewModel(row, lang) {
+  const viewModel = mapSupabasePropertyRowToDetailViewModel(row, lang);
+
+  const hasPlotArea = row.plot_area_sqm != null;
+  const factualAreaSqm = hasPlotArea ? row.plot_area_sqm : row.area_sqm;
+
+  viewModel.asset.plotAreaSqm = hasPlotArea ? row.plot_area_sqm : null;
+  viewModel.asset.areaSqm = row.area_sqm != null ? row.area_sqm : null;
+
+  viewModel.facts = factualAreaSqm != null ? [{
+    labelKey: hasPlotArea ? 'land.plotArea' : 'property.grossArea',
+    value: fmtNumber(factualAreaSqm, lang) + ' m²',
+  }] : [];
+
+  // These bounded contexts do not yet expose public, evidence-backed
+  // Land data. Never project the old DB.js prototype values here.
+  viewModel.market = null;
+  viewModel.intelligence = null;
+  viewModel.trust = null;
+  viewModel.planningContext = null;
+  viewModel.scenarios = [];
+
+  return viewModel;
+}
+
+/** Loads a published Land record through the existing Property service.
+    A non-Land Property id is treated as not-found for this route: the
+    /land/:id route must never silently render an apartment or villa. */
+async function loadLandDetail(propertyId, lang) {
+  const services = window.ZFindServices;
+  if (!services || !services.properties) {
+    return {
+      viewModel: null,
+      notFound: false,
+      error: {
+        type: 'malformed_response',
+        message: 'Supabase services not loaded.',
+      },
+    };
+  }
+
+  const result = await services.properties.getPropertyById(propertyId, lang);
+
+  if (result.error && result.error.type === 'empty_result') {
+    return { viewModel: null, notFound: true, error: null };
+  }
+
+  if (result.error) {
+    return { viewModel: null, notFound: false, error: result.error };
+  }
+
+  if (!result.data || result.data.subtype !== 'land') {
+    return { viewModel: null, notFound: true, error: null };
+  }
+
+  const viewModel = mapSupabaseLandRowToDetailViewModel(result.data, lang);
+
+  if (
+    viewModel.media[0] &&
+    viewModel.media[0].storagePath &&
+    window.ZFindServices.supabaseClient
+  ) {
+    viewModel.media[0].url =
+      await window.ZFindServices.supabaseClient.resolveMediaUrl(
+        viewModel.media[0].storagePath
+      );
+  }
+
+  return { viewModel, notFound: false, error: null };
+}
+
+
 function getDevelopmentDetailViewModel(assetId, lang) {
   const asset = DB.assets[assetId];
   const listing = getListingForAsset(assetId);
@@ -664,26 +750,6 @@ async function loadDevelopmentDetail(developmentId, lang) {
   return { viewModel, notFound: false, error: null };
 }
 
-
-function getLandDetailViewModel(assetId, lang) {
-  const asset = DB.assets[assetId];
-  const listing = getListingForAsset(assetId);
-  const rep = getActiveRepresentation(assetId);
-  const partner = DB.partners[rep.partnerId];
-  const content = (DB.content[assetId] && DB.content[assetId][lang]) || DB.content[assetId].en;
-  const geo = resolveAssetGeography(asset, lang);
-  const land = DB.land[assetId];
-  const intel = DB.intelligence[assetId];
-
-  return {
-    asset, listing, partner, geo, content,
-    knownFacts: land.knownFacts,
-    planningContext: land.planningContext,
-    scenarios: intel ? intel.scenarios : [],
-    priceLabel: fmtCurrency(listing.priceCurrent, lang, geo.currencyIso),
-    enquiryConfig: getEnquiryConfig(listing.id),
-  };
-}
 
 /* ---------------- Partner detail ---------------- */
 function getPartnerDetailViewModel(partnerId, lang) {
