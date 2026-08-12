@@ -20,7 +20,7 @@ c44a9cb8fdb9e799a82c4e1e4fbf355375c64c0d0620d0f9074e891df09a8192  apps/zfind-web
 dad7adf32df7b5103282523f98186d0e5cfc8cfb7caf93bbe38578ff10be3482  apps/zfind-web/public/brand/z-find-symbol-gold-64.png
 c8cfe26f735ef865c7f1bb2324c5abcf52cb122ce9f117b45ea3c0f0a87351f1  apps/zfind-web/public/brand/z-find-symbol-gold.png
 b58c18642d764c67e06e878e4044c4063512290b8ae30cbe2baab307009a2f21  apps/zfind-web/public/brand/z-find-symbol-gold.svg
-6386b745e4e4ddd7bc41a73e0395a9ee8b3dc762602c0e786533803ebc2fd3fe  apps/zfind-web/scripts/build.js
+619fcb16526878b08f38ecd852767789d9b9f54f556f87dd89c3e8294b36a089  apps/zfind-web/scripts/build.js
 9a367d30093cc5c1c42ab0b45ac47f92b1b787f70d4f910a01cbd83c192d7d44  apps/zfind-web/src/app.js
 a471410c487047253789c855bda366807773e5bb69053c54fc87ccee8a9a1193  apps/zfind-web/src/body.html
 0101ac7bb47e34f81c996a96f6f6da2b744cf8f0ae706c7e6931148058f76ada  apps/zfind-web/src/config.template.js
@@ -34,10 +34,11 @@ ab5510c501e8b479871add68700aa0780968b984e8327233d6fd207d8efd48ef  apps/zfind-web
 7dba9cac8ffc2b0c9da3dd6bdd8673f5c896a81b3fb443f81d34251d628d16bd  apps/zfind-web/src/services/developments.js
 2c3872b8c595e76fc749c260f83712e4fb17cb2ce5e1704154bdd9c5519c836f  apps/zfind-web/src/services/leads.js
 ddfa510664694fec23599f4cc56fe70b8a94b0d3e7ecb5bd092e94adfb3a3251  apps/zfind-web/src/services/properties.js
+0390d90d5f40ba3c0a20cc1911d1079c1c24c57e947a8d6e3dbb51f75bdccb05  apps/zfind-web/src/services/public-verification.js
 590434fe7de25fd86aceb604361c61d05d1af088c8649a367675769dbe143a59  apps/zfind-web/src/services/search.js
 8e0f971563b7463c41774a751377b471f8c7ae4604e4698d1151ae6d6fef3be5  apps/zfind-web/src/services/supabaseClient.js
 913f94db33b394a97d34c058347009053ac2d9534459c0990eb08594a108d2ee  apps/zfind-web/src/vendor-supabase.js
-40cdf56560cfa76a5c82c0f19ec8b922fd45a2a3d019da1f2198e25bcb17bcdb  apps/zfind-web/src/viewmodels.js
+36e1d5caf40f6119842786b8992039c13d10e9143a670b6bde1bb4072b4f071d  apps/zfind-web/src/viewmodels.js
 9cfb6d91199be70cb8ae05c8d6c27d7aee588ad5e10b14556c1bc1015b6073d2  archive/import-engine-v1/ARCHIVED.md
 0632c27e464ea8c8aa6461652d05535484c04fd899cd6e4fd26228f42aeddc0a  archive/import-engine-v1/adapters/fr-adapter.js
 ea30f0478009b223b1794fa29ca6b8bc49c833768ab6a52517f9d4e7630b961a  archive/import-engine-v1/adapters/pt-adapter.js
@@ -57,7 +58,7 @@ cb49b37739dce95f263395c7daea3b08044ad1e72fd1f5880c6729077e5dde92  docs/architect
 7487c9c1f8554f35ff48c45316bb30bd5a4939c401c724ef85cee88f2b28d038  docs/consolidation/PRE-LAUNCH-SECURITY-BACKLOG.md
 804fbb4fcebb3dc78063c65d6100bb585c0a4822f252f3ff23927a1d2bf43551  docs/consolidation/WEEK-1-EXECUTION-GUIDE.md
 a15cc632a721da763f38fe4586cf4d08488fc8620ce0815cc6432168ddcdb7dc  package-lock.json
-8c225e91a460f89a4f3d895266b7814b772a6ce6b0dc67b2021317d1d2a48bb7  package.json
+5b6ae9e997a08be344f0ff8f02219c2b6da4d2437aa09c6c9633bf5b457d8c3f  package.json
 508f6c47d997e42d67196ddaf13bef752e6c732e154af0d78651200ae2893ff4  packages/geography/geography.js
 0632c27e464ea8c8aa6461652d05535484c04fd899cd6e4fd26228f42aeddc0a  packages/import-engine/adapters/fr-adapter.js
 ea30f0478009b223b1794fa29ca6b8bc49c833768ab6a52517f9d4e7630b961a  packages/import-engine/adapters/pt-adapter.js
@@ -85,4 +86,5 @@ e08d131b4caf98e2619cea992fecbd38961de12cf336d876a3eab9bc941e7bfd  tests/browser/
 d53ac042086a13bf0bc13247545a73498d5ea0708a35808de931d8a9d7d7a689  tests/browser/zfind-web/staging-smoke-test.js
 27f7047c030138319fb597d6bca93d395531593bfa0e27038e99267d54adaf98  tests/browser/zfind-web/sprint-1-10-verification.js
 904fd620167bf381e65a2e692385be141e90fd00376dc1a47eaf7d94dc5b3dae  tests/browser/zfind-web/sprint-1-11-verification.js
+36f6306110b0b1d915511b509e40b9b52a0e401bf72a1030c9f86e4d9e165429  tests/browser/zfind-web/sprint-1-12-verification.js
 51f04fa2f342dc7a065e66a8268c86a64a77afbc0c194413d7ee1bd0c6071d26  tests/integration/import-engine/test-v2.js
