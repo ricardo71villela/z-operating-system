@@ -345,14 +345,17 @@ function mapSupabasePropertyRowToDetailViewModel(row, lang) {
     content,
     media,
     trust: null,           // Trust Engine not implemented in Supabase — documented technical debt, template already omits gracefully
+    // Public factual attributes are strictly source-backed.
+    // Missing attributes are omitted rather than replaced with prototype,
+    // inferred or default values.
     facts: [
-      { labelKey: 'property.typology', value: row.typology },
-      { labelKey: 'property.grossArea', value: fmtNumber(row.area_sqm, lang) + ' m²' },
-      { labelKey: 'property.energyRating', value: 'B' },   // pre-existing hardcoded placeholder, not introduced by this migration
-      { labelKey: 'property.bathrooms', value: '3' },       // same
-      { labelKey: 'property.parking', value: '2' },         // same
-      { labelKey: 'property.yearBuilt', value: '2019' },    // same
-    ],
+      row.typology != null && row.typology !== ''
+        ? { labelKey: 'property.typology', value: row.typology }
+        : null,
+      row.area_sqm != null
+        ? { labelKey: 'property.grossArea', value: fmtNumber(row.area_sqm, lang) + ' m²' }
+        : null,
+    ].filter(Boolean),
     market: { avgPriceZone: null, priceThis: null, trend: null, comparables: null }, // Data/Observation not implemented in Supabase — documented technical debt
     intelligence: null, // Intelligence bounded context not implemented in Supabase — documented technical debt
     priceLabel,
