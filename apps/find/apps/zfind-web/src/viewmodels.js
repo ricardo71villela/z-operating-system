@@ -344,6 +344,7 @@ function mapSupabasePropertyRowToDetailViewModel(row, lang) {
     },
     content,
     media,
+    verification: null, // Safe public Verification exists as a separate read path; it is not Trust and is not automatically fetched yet.
     trust: null,           // Trust Engine not implemented in Supabase — documented technical debt, template already omits gracefully
     // Public factual attributes are strictly source-backed.
     // Missing attributes are omitted rather than replaced with prototype,

@@ -70,6 +70,7 @@ function build() {
   const configTemplate = read('config.template.js'); // 10th source artifact — build-time Supabase config injection (Sprint 1.1)
   const supabaseClient = read('services/supabaseClient.js');
   const propertiesService = read('services/properties.js');
+  const publicVerificationService = read('services/public-verification.js');
   const developmentsService = read('services/developments.js');
   const partnersService = read('services/partners.js');
   const searchService = read('services/search.js');
@@ -111,6 +112,7 @@ function build() {
     + resolvedConfig + '\n'
     + supabaseClient + '\n'
     + propertiesService + '\n'
+    + publicVerificationService + '\n'
     + developmentsService + '\n'
     + partnersService + '\n'
     + searchService + '\n'
