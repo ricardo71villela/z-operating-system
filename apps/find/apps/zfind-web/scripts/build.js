@@ -81,7 +81,6 @@ function build() {
   const zoneImagesService = read('services/zone-images.js');
   const rentabilityService = read('services/rentability.js');
   const geography = read('geography.js');
-  const db = read('db.js');
   const i18n = read('i18n.js');
   const viewmodels = read('viewmodels.js');
   const app = read('app.js');
@@ -122,7 +121,7 @@ function build() {
     + zonesService + '\n'
     + zoneImagesService + '\n'
     + rentabilityService + '\n'
-    + geography + '\n' + db + '\n' + i18n + '\n' + viewmodels + '\n' + app
+    + geography + '\n' + i18n + '\n' + viewmodels + '\n' + app
     + '\n</script>\n</body>\n</html>\n';
 
   fs.mkdirSync(DIST, { recursive: true });

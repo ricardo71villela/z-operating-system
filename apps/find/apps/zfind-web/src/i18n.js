@@ -2,9 +2,9 @@
    Z FIND — I18N (interface strings only)
    ============================================================
    UI translations  !=  canonical data  !=  localized editorial content.
-   Canonical data (price, area, IDs) lives in db.js and is never
-   translated. Editorial content (title/description per asset) lives
-   in DB.content, keyed by language, and is not part of this file.
+   Canonical data (price, area, IDs) is source-backed and is never
+   translated. Editorial listing content (title/description) is also
+   source-backed, keyed by locale, and is not part of this file.
    This file is ONLY interface chrome: navigation, buttons, labels,
    disclaimers, tags.
    ============================================================ */

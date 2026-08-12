@@ -2,20 +2,17 @@ const { chromium } = require('playwright');
 const path = require('path');
 
 /* ============================================================
-   Sprint 1.3 update: Home and Search now source data from Supabase
-   (via window.ZFindServices), not db.js directly — this suite's
-   pre-existing assertions (villa:2, all:7, land:1, etc.) were written
-   against db.js's 7-listing fixture. Rather than rewrite those
-   assertions, this mock data replicates the SAME 7-listing shape
-   (3 apartments, 2 villas [1 standard, 1 offmarket], 1 development,
-   1 land) over the network — so the suite keeps testing the same
-   documented behavior, sourced the same way the real app now sources
-   it, real network calls just replaced with realistic fixed
-   responses (this sandbox cannot reach real Supabase at all — see
-   the CORS root-cause investigation). Property/Development/Land
-   DETAIL pages are untouched here: those still read db.js directly
-   (Sprint 1.4/1.5 have not migrated them yet), so their own fixture
-   data continues to apply unmodified.
+   Public Web regression fixture.
+
+   Home, Search, Property, Development, Land and Partner now source
+   runtime data through window.ZFindServices / Supabase-backed paths.
+   This suite deliberately keeps the historical 7-card regression
+   shape (3 apartments, 2 villas, 1 development, 1 land), but serves
+   it through mocked Supabase network responses rather than through
+   any application fixture.
+
+   Sprint 1.10 removes db.js from the public runtime entirely. These
+   fixed responses are test-only data and are not bundled into Z Find.
    ============================================================ */
 function mockProperty(id, subtype, channel, title, zoneName) {
   return {
@@ -51,8 +48,8 @@ const MOCK_DEVELOPMENTS = [{
 // Every unit listUnitsForDevelopment() can ever return is, by
 // construction, actively listed — so every mock unit here is
 // genuinely 'available' too, matching real behavior exactly. IDs kept
-// identical to the original db.js fixture (unit_2a...unit_ph1) so
-// existing click-by-position/click-by-text test steps still resolve.
+// historical regression IDs are intentionally preserved so existing
+// click-by-position/click-by-text test steps remain stable.
 function mockUnit(id, typology, areaSqm, floor, price) {
   return { id, subtype: 'apartment', typology, area_sqm: areaSqm, floor, representations: [{ target_type: 'property', status: 'active', listings: [{ id: 'ul-' + id, price_current: price, currency_iso: 'EUR', status: 'published' }] }] };
 }

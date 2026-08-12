@@ -426,7 +426,7 @@ test('Outbox envelope is immutable while transport state may evolve', () => {
 });
 
 
-test('Trust fixture cannot define an authoritative scoring policy', () => {
+test('Public runtime cannot define an authoritative Trust scoring policy', () => {
   const fs = require('fs');
   const path = require('path');
 
@@ -440,9 +440,24 @@ test('Trust fixture cannot define an authoritative scoring policy', () => {
     'utf8'
   );
 
-  const fixture = fs.readFileSync(
-    path.join(__dirname, '../../apps/zfind-web/src/db.js'),
+  const publicBuild = fs.readFileSync(
+    path.join(__dirname, '../../apps/zfind-web/scripts/build.js'),
     'utf8'
+  );
+
+  const publicViewModels = fs.readFileSync(
+    path.join(__dirname, '../../apps/zfind-web/src/viewmodels.js'),
+    'utf8'
+  );
+
+  const publicApp = fs.readFileSync(
+    path.join(__dirname, '../../apps/zfind-web/src/app.js'),
+    'utf8'
+  );
+
+  const fixturePath = path.join(
+    __dirname,
+    '../../apps/zfind-web/src/db.js'
   );
 
   // Verification assessments remain the durable source of verification truth.
@@ -451,7 +466,7 @@ test('Trust fixture cannot define an authoritative scoring policy', () => {
     'partners.trust_level must remain a legacy projection backed by verification truth'
   );
 
-  // The current domain deliberately defines Verification primitives only.
+  // The domain deliberately defines Verification primitives only.
   assert(
     /createVerificationAssessment/.test(trustDomain),
     'Trust domain must retain explicit Verification assessment primitives'
@@ -467,20 +482,33 @@ test('Trust fixture cannot define an authoritative scoring policy', () => {
     'Trust domain must not introduce authoritative score/level semantics implicitly'
   );
 
-  // Existing DB.trust values are prototype presentation data only.
+  // Sprint 1.10: the prototype fixture is retired completely rather than
+  // remaining available as a second presentation-truth source.
   assert(
-    /TRUST PRESENTATION FIXTURE[\s\S]*Prototype-only UI data/i.test(fixture),
-    'Fixture Trust values must be explicitly marked as prototype-only presentation data'
+    !fs.existsSync(fixturePath),
+    'Public Web runtime must not retain the prototype db.js fixture'
   );
 
   assert(
-    /NOT an authoritative Trust Score, scoring algorithm or persisted[\s\S]*Trust Engine projection/i.test(fixture),
-    'Fixture must explicitly reject authoritative scoring semantics'
+    !/read\(['"]db\.js['"]\)/.test(publicBuild) &&
+    !/\+\s*db\s*\+/.test(publicBuild),
+    'Public Web build must not load or concatenate db.js'
+  );
+
+  const publicRuntime = publicViewModels + '\n' + publicApp;
+
+  const executablePublicRuntime = publicRuntime
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/[^\n]*/g, '');
+
+  assert(
+    !/\bDB\.trust\b|\bgetTrustViewModel\b/.test(executablePublicRuntime),
+    'Public runtime must not recover Trust presentation data from the retired fixture'
   );
 
   assert(
-    /Verification truth lives in[\s\S]*verification_assessments/i.test(fixture),
-    'Fixture must point back to verification assessments as verification truth'
+    !/\b(?:derive|calculate|compute|create)TrustScore\b/i.test(executablePublicRuntime),
+    'Public runtime must not invent an authoritative Trust Score algorithm'
   );
 });
 

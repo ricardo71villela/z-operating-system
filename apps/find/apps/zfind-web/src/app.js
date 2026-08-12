@@ -940,9 +940,9 @@ function openModal(listingId, enquiryConfig, partnerId) {
   currentListingIdForEnquiry = listingId;
   currentPartnerIdForEnquiry = partnerId || null;
   // Supabase-backed detail pages pass their REAL listing_id and
-  // partner enquiry_policy directly. getEnquiryConfig() remains only
-  // as a conservative legacy fallback for callers that omit policy.
-  const cfg = enquiryConfig || getEnquiryConfig(listingId);
+  // Partner enquiry_policy directly. A caller that omits policy gets
+  // only the conservative schema-aligned default — never fixture data.
+  const cfg = enquiryConfig || DEFAULT_ENQUIRY_POLICY;
   // Sprint 1.6 final correction: 'assisted' can now be genuinely
   // selected AND rendered — previously it could be the silently
   // selected default with literally no visible option to click.
@@ -1093,9 +1093,9 @@ function render() {
   switch (state.view) {
     case 'home': renderHome(); break;
     case 'search': renderSearch(); break;
-    case 'property': renderProperty(state.id || 'asset_apt_boavista'); break;
-    case 'development': renderDevelopment(state.id || 'asset_dev_rionorte'); break;
-    case 'land': renderLand(state.id || 'asset_land_boavista'); break;
+    case 'property': renderProperty(state.id); break;
+    case 'development': renderDevelopment(state.id); break;
+    case 'land': renderLand(state.id); break;
     case 'partner': renderPartner(state.id); break;
     case 'simulator': renderSimulator(); break;
     case 'zone': renderZone(state.id); break;
