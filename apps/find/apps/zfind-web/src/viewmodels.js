@@ -65,89 +65,9 @@ function resolveAssetGeography(asset, lang) {
   };
 }
 
-/* ---------------- Registry-layer resolution ---------------- */
-function getRepresentationHistory(assetId) {
-  return Object.values(DB.representations)
-    .filter(r => r.assetId === assetId)
-    .sort((a,b) => new Date(a.startDate) - new Date(b.startDate));
-}
-function getActiveRepresentation(assetId) {
-  return getRepresentationHistory(assetId).find(r => r.status === 'Active') || null;
-}
-function getListingForAsset(assetId) {
-  const activeRep = getActiveRepresentation(assetId);
-  if (!activeRep) return null;
-  return Object.values(DB.listings).find(l => l.representationId === activeRep.id && l.state === 'Published') || null;
-}
-
-/* ---------------- Trust ---------------- */
-function getTrustViewModel(partnerId, lang) {
-  const partner = DB.partners[partnerId];
-  if (!partner || !partner.trustId) return null;
-  const trust = DB.trust[partner.trustId];
-  if (!trust) return null;
-  return {
-    level: trust.level,
-    label: t(lang, 'trust.level' + trust.level.charAt(0).toUpperCase() + trust.level.slice(1)),
-    checklist: trust.checklist.map(c => ({ key:c.key, positive:c.positive })),
-    limitations: trust.limitations || [],
-  };
-}
-
-/* ---------------- Card view-model (used by Home / Search / Partner grids) ---------------- */
-function getListingCardViewModel(listing, lang) {
-  const rep = DB.representations[listing.representationId];
-  const asset = DB.assets[rep.assetId];
-  const content = (DB.content[asset.id] && DB.content[asset.id][lang]) || (DB.content[asset.id] && DB.content[asset.id].en) || {};
-  const geo = resolveAssetGeography(asset, lang);
-
-  const priceLabel = listing.priceIsFrom
-    ? 'From ' + fmtCurrency(listing.priceCurrent, lang, geo.currencyIso)
-    : fmtCurrency(listing.priceCurrent, lang, geo.currencyIso);
-
-  const factsLine = t(lang, 'property.singleRepresentation'); // exactly one Listing per Active Representation, always
-
-  const meta = [];
-  if (asset.typology) meta.push(asset.typology);
-  if (asset.areaSqm) meta.push(fmtNumber(asset.areaSqm, lang) + ' m²');
-  if (asset.kind === 'Development') meta.push(t(lang, 'development.totalUnits', { n: asset.unitIds.length }));
-  if (asset.kind === 'Land') meta.push(geo.zoneLabel || geo.cityLabel);
-
-  let badgeLabel = 'Verified';
-  if (asset.kind === 'Land') badgeLabel = 'Land';
-  else if (asset.kind === 'Development') badgeLabel = 'Development';
-  else if (listing.channel === 'offmarket') badgeLabel = 'Off-market';
-
-  return {
-    listingId: listing.id,
-    assetId: asset.id,
-    kind: asset.kind,
-    subtype: asset.subtype || null,       // Registry-owned: what the asset is
-    channel: listing.channel || 'standard', // Marketplace-owned: how it's distributed
-    title: content.title || '',
-    description: content.description || '',
-    locationLabel: geo.zoneLabel ? (geo.zoneLabel + ', ' + geo.cityLabel) : geo.cityLabel,
-    zoneLabel: geo.zoneLabel,
-    cityLabel: geo.cityLabel,
-    countryLabel: geo.countryLabel,
-    currencyIso: geo.currencyIso,
-    partnerName: DB.partners[rep.partnerId].name,
-    priceLabel,
-    priceValue: listing.priceCurrent,
-    meta,
-    badgeLabel,
-    badgeGold: asset.kind === 'Land',
-    factsLine,
-  };
-}
-
-function getAllCardViewModels(lang) {
-  return Object.values(DB.listings).map(l => getListingCardViewModel(l, lang));
-}
-
 /* ---------------- Sprint 1.2: Supabase-backed Home data ----------------
-   Maps a real Supabase row into the EXACT SAME card view-model shape
-   getListingCardViewModel() above has always produced, so cardHTML()
+   Maps a real Supabase row into the shared public card view-model shape
+   consumed by cardHTML(), so Home/Search/Partner stay presentation-aligned
    in app.js never needs to change — this file's own header comment
    describes this exact seam ("when DB.js is replaced by real data...
    only this file needs to change"), now used for the first time.
@@ -336,77 +256,6 @@ async function loadHomeCards(lang) {
   return { properties: propertyCards, developments: developmentCards, error: null };
 }
 
-/* ---------------- Search selector ----------------
-   The UI never filters raw DB data itself — it always calls this.
-   Deduplication is guaranteed structurally: it iterates DB.listings,
-   which by construction holds exactly one Listing per Active
-   Representation, so a canonical Asset can never appear twice here
-   regardless of how many historical Representations it has had.
-
-   subtype  = Registry classification filter (apartment/villa/development/land)
-   channel  = Marketplace distribution filter (standard/offmarket)
-   These are two independent axes, never conflated into one field. */
-function searchCards(lang, filters) {
-  filters = filters || {};
-  const q = (filters.q || '').trim().toLowerCase();
-  const subtype = filters.subtype || '';       // '' = any; string OR array of strings
-  const channel = filters.channel || '';       // '' = any
-  const budgetMax = filters.budgetMax || null;
-  const budgetMin = filters.budgetMin || null;
-  const subtypeList = Array.isArray(subtype) ? subtype : (subtype ? [subtype] : []);
-
-  return getAllCardViewModels(lang).filter(card => {
-    if (subtypeList.length && !subtypeList.includes(card.subtype)) return false;
-    if (channel && card.channel !== channel) return false;
-    if (budgetMax != null && card.priceValue > budgetMax) return false;
-    if (budgetMin != null && card.priceValue < budgetMin) return false;
-    if (q) {
-      const haystack = (card.title + ' ' + card.zoneLabel + ' ' + card.cityLabel + ' ' + card.countryLabel + ' ' + card.partnerName).toLowerCase();
-      if (!haystack.includes(q)) return false;
-    }
-    return true;
-  });
-}
-
-/* ---------------- Property detail ---------------- */
-function getPropertyDetailViewModel(assetId, lang) {
-  const asset = DB.assets[assetId];
-  const listing = getListingForAsset(assetId);
-  const rep = getActiveRepresentation(assetId);
-  const partner = DB.partners[rep.partnerId];
-  const content = (DB.content[assetId] && DB.content[assetId][lang]) || DB.content[assetId].en;
-  const geo = resolveAssetGeography(asset, lang);
-  const obs = DB.observations[assetId] || [];
-  const intel = DB.intelligence[assetId];
-  const trust = getTrustViewModel(partner.id, lang);
-  const history = getRepresentationHistory(assetId);
-
-  const findObs = (metric) => obs.find(o => o.metric === metric);
-
-  return {
-    asset, listing, partner, geo, content, trust,
-    facts: [
-      { labelKey:'property.typology', value: asset.typology },
-      { labelKey:'property.grossArea', value: fmtNumber(asset.areaSqm, lang) + ' m²' },
-      { labelKey:'property.energyRating', value:'B' },
-      { labelKey:'property.bathrooms', value:'3' },
-      { labelKey:'property.parking', value:'2' },
-      { labelKey:'property.yearBuilt', value:'2019' },
-    ],
-    market: {
-      avgPriceZone: findObs('avg_price_sqm_zone'),
-      priceThis: findObs('price_sqm_this'),
-      trend: findObs('price_trend_12m'),
-      comparables: findObs('comparable_transactions_6m'),
-    },
-    intelligence: intel ? intel.yield : null,
-    priceLabel: fmtCurrency(listing.priceCurrent, lang, geo.currencyIso),
-    representationNote: history.length > 1
-      ? { multiple:true, activePartner: partner.name, activeSince: fmtDate(rep.startDate, lang) }
-      : { multiple:false },
-  };
-}
-
 /** Picks the best storage path to display for a media asset: a
     'large' variant if present (a web-optimized derivative — the whole
     point of media_variants existing), else any other variant, else
@@ -517,6 +366,9 @@ function mapSupabasePropertyRowToDetailViewModel(row, lang) {
     from a genuine network/service error, so the caller can show the
     right UI for each. */
 async function loadPropertyDetail(propertyId, lang) {
+  if (!propertyId) {
+    return { viewModel: null, notFound: true, error: null };
+  }
   const services = window.ZFindServices;
   if (!services || !services.properties) {
     return { viewModel: null, notFound: false, error: { type: 'malformed_response', message: 'Supabase services not loaded.' } };
@@ -582,6 +434,9 @@ function mapSupabaseLandRowToDetailViewModel(row, lang) {
     A non-Land Property id is treated as not-found for this route: the
     /land/:id route must never silently render an apartment or villa. */
 async function loadLandDetail(propertyId, lang) {
+  if (!propertyId) {
+    return { viewModel: null, notFound: true, error: null };
+  }
   const services = window.ZFindServices;
   if (!services || !services.properties) {
     return {
@@ -624,29 +479,6 @@ async function loadLandDetail(propertyId, lang) {
   return { viewModel, notFound: false, error: null };
 }
 
-
-function getDevelopmentDetailViewModel(assetId, lang) {
-  const asset = DB.assets[assetId];
-  const listing = getListingForAsset(assetId);
-  const rep = getActiveRepresentation(assetId);
-  const partner = DB.partners[rep.partnerId];
-  const content = (DB.content[assetId] && DB.content[assetId][lang]) || DB.content[assetId].en;
-  const geo = resolveAssetGeography(asset, lang);
-
-  const units = asset.unitIds.map(uid => {
-    const u = DB.assets[uid];
-    return {
-      id: u.id, typology: u.typology, areaSqm: u.areaSqm, floor: u.floor,
-      price: DB.unitPrice[uid], status: DB.unitStatus[uid],
-      priceLabel: fmtCurrency(DB.unitPrice[uid], lang, geo.currencyIso),
-    };
-  });
-
-  return {
-    asset, listing, partner, geo, content, units,
-    priceLabel: 'From ' + fmtCurrency(listing.priceCurrent, lang, geo.currencyIso),
-  };
-}
 
 /* ---------------- Sprint 1.5: Supabase-backed Development detail ----------------
    Deliberately its OWN function, not a variant of the Property mapper
@@ -708,6 +540,9 @@ function mapSupabaseDevelopmentRowToDetailViewModel(row, lang) {
 /** Loads one Development's full detail + its units, concurrently
     (Promise.all — the two are independent queries, never sequential). */
 async function loadDevelopmentDetail(developmentId, lang) {
+  if (!developmentId) {
+    return { viewModel: null, notFound: true, error: null };
+  }
   const services = window.ZFindServices;
   if (!services || !services.developments) {
     return { viewModel: null, notFound: false, error: { type: 'malformed_response', message: 'Supabase services not loaded.' } };
@@ -851,19 +686,4 @@ async function loadPartnerDetail(partnerId, lang) {
     notFound: false,
     error: null,
   };
-}
-
-/* ---------------- Enquiry config ----------------
-   Resolution order, per the approved Phase 2.5 refactor:
-   1. Listing.enquiryConfig, if this specific Listing overrides the default.
-   2. The representing Partner's enquiryPolicy (the new default source).
-   3. A safe, conservative fallback if neither exists. */
-function getEnquiryConfig(listingId) {
-  const listing = DB.listings[listingId];
-  if (!listing) return { direct:true, qualified:false, assisted:false };
-  if (listing.enquiryConfig) return listing.enquiryConfig;
-  const rep = DB.representations[listing.representationId];
-  const partner = rep ? DB.partners[rep.partnerId] : null;
-  if (partner && partner.enquiryPolicy) return partner.enquiryPolicy;
-  return { direct:true, qualified:false, assisted:false };
 }
