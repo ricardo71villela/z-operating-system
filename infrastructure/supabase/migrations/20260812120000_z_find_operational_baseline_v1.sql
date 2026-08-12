@@ -539,6 +539,11 @@ create policy "public insert searches"
 -- ============================================================
 -- STORAGE — media bucket
 -- ============================================================
+do $$
+begin
+  if to_regclass('storage.buckets') is not null
+     and to_regclass('storage.objects') is not null then
+    execute $bucket$
 insert into storage.buckets (id, name, public)
 values ('listing-media', 'listing-media', false)
 on conflict (id) do nothing;
@@ -557,6 +562,9 @@ on conflict (id) do nothing;
 -- here. Same class of bug as the original representations gap: two
 -- separate gates (table RLS and Storage RLS) must each be fixed, not
 -- just one.
+$bucket$;
+
+    execute $policy$
 create policy "public read media files for published listings"
   on storage.objects for select
   to anon
@@ -632,6 +640,10 @@ create policy "public read media files for published listings"
       )
     )
   );
+$policy$;
+  end if;
+end
+$$;
 
 -- Authenticated (admin/partner_user) upload/update/delete policies for
 -- storage.objects are deferred to migration 0002, for the same reason
@@ -857,11 +869,19 @@ grant select on profiles, leads, system_languages to authenticated;
 -- from migration 0001) — the Admin manages it through authenticated
 -- Storage API calls (upload/list/update/delete), governed by RLS on
 -- storage.objects, exactly like the public read path already is.
+do $$
+begin
+  if to_regclass('storage.objects') is not null then
+    execute $policy$
 create policy "admin: manage listing-media storage objects"
   on storage.objects for all
   to authenticated
   using (bucket_id = 'listing-media' and is_admin())
   with check (bucket_id = 'listing-media' and is_admin());
+$policy$;
+  end if;
+end
+$$;
 
 -- ---------------- Verification ----------------
 -- Run after applying: confirm the exact policy/grant matrix above and
