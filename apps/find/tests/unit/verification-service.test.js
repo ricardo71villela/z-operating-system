@@ -5,82 +5,107 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
+const SERVICE_PATH = path.join(
+  __dirname,
+  '../../apps/zfind-web/src/services/verification.js'
+);
+
 const source = fs.readFileSync(
-  path.join(__dirname, '../../apps/zfind-web/src/services/verification.js'),
+  SERVICE_PATH,
   'utf8'
 );
 
-function loadVerificationService({
-  profileResult = {
-    data: { id: 'admin-profile-1', role: 'admin' },
-    error: null
-  },
-  queryResult = {
-    data: null,
-    error: null
-  }
+function executableSource(text) {
+  return text
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/.*$/gm, '');
+}
+
+function plain(value) {
+  return JSON.parse(
+    JSON.stringify(value)
+  );
+}
+
+function loadService({
+  rpcResponder
 } = {}) {
-  const calls = [];
+  const rpcCalls = [];
+  const safeCalls = [];
 
-  const query = {
-    select(columns) {
-      calls.push(['select', columns]);
-      return this;
-    },
-    eq(column, value) {
-      calls.push(['eq', column, value]);
-      return this;
-    },
-    order(column, options) {
-      calls.push(['order', column, options]);
-      return Promise.resolve(queryResult);
-    },
-    insert(row) {
-      calls.push(['insert', row]);
-      return this;
-    },
-    single() {
-      calls.push(['single']);
-      return Promise.resolve(queryResult);
-    }
-  };
-
-  const client = {
-    from(table) {
-      calls.push(['from', table]);
-      return query;
-    }
-  };
-
-  const safeQuery = async (queryFn, context) => {
-    calls.push(['safeQuery', context]);
-    return queryFn();
-  };
-
-  const context = {
-    window: {
-      ZFindServices: {
-        supabaseClient: {
-          getSupabaseClient: () => client,
-          safeQuery
-        },
-        auth: {
-          getCurrentProfile: async () => profileResult
-        }
-      }
-    },
-    console
-  };
-
-  context.window.window = context.window;
-
-  vm.runInNewContext(source, context, {
-    filename: 'verification.js'
+  const defaultResponder = (
+    name
+  ) => ({
+    data:
+      name ===
+      'zfind_list_verification_assessments'
+        ? []
+        : {
+            id:
+              'assessment-created',
+            assessor_profile_id:
+              'database-derived'
+          },
+    error: null
   });
 
+  const responder =
+    rpcResponder ||
+    defaultResponder;
+
+  const client = {
+    rpc(name, args) {
+      rpcCalls.push({
+        name,
+        args
+      });
+
+      return Promise.resolve(
+        responder(name, args)
+      );
+    }
+  };
+
+  const supabaseClient = {
+    getSupabaseClient() {
+      return client;
+    },
+
+    async safeQuery(
+      fn,
+      context,
+      options
+    ) {
+      safeCalls.push({
+        context,
+        options
+      });
+
+      return fn();
+    }
+  };
+
+  const window = {
+    ZFindServices: {
+      supabaseClient
+    }
+  };
+
+  const context = vm.createContext({
+    window,
+    console
+  });
+
+  vm.runInContext(
+    source,
+    context
+  );
+
   return {
-    verification: context.window.ZFindServices.verification,
-    calls
+    verification:
+      window.ZFindServices.verification,
+    rpcCalls,
+    safeCalls
   };
 }
 
@@ -93,248 +118,366 @@ async function run() {
     console.log(`  ✅ ${name}`);
   }
 
-  console.log('\n=== Z FIND — VERIFICATION SERVICE TESTS ===');
+  console.log(
+    '\n=== Z FIND — VERIFICATION SERVICE / CANONICAL RPC ==='
+  );
 
-  await test('lists assessments for a supported verification subject', async () => {
-    const assessments = [
-      {
-        id: 'assessment-2',
-        subject_type: 'property',
-        property_id: 'property-123',
-        verification_kind: 'documentation',
-        outcome: 'verified',
-        confidence: 0.95
-      },
-      {
-        id: 'assessment-1',
-        subject_type: 'property',
-        property_id: 'property-123',
-        verification_kind: 'documentation',
-        outcome: 'pending',
-        confidence: null
+  await test(
+    'lists every approved Verification subject through the Find-owned RPC',
+    async () => {
+      const {
+        verification,
+        rpcCalls,
+        safeCalls
+      } = loadService();
+
+      const subjects = [
+        'partner',
+        'representation',
+        'property',
+        'development'
+      ];
+
+      assert.deepStrictEqual(
+        plain(
+          verification
+            .VERIFICATION_SUBJECTS
+        ),
+        subjects
+      );
+
+      for (
+        let index = 0;
+        index < subjects.length;
+        index += 1
+      ) {
+        const subjectType =
+          subjects[index];
+
+        const subjectId =
+          '11111111-1111-1111-1111-111111111111';
+
+        const result =
+          await verification
+            .listVerificationAssessments(
+              subjectType,
+              subjectId
+            );
+
+        assert.strictEqual(
+          result.error,
+          null
+        );
+
+        assert.strictEqual(
+          rpcCalls[index].name,
+          'zfind_list_verification_assessments'
+        );
+
+        assert.deepStrictEqual(
+          plain(
+            rpcCalls[index].args
+          ),
+          {
+            p_subject_type:
+              subjectType,
+            p_subject_id:
+              subjectId
+          }
+        );
+
+        assert.strictEqual(
+          safeCalls[index].context,
+          'verification.listVerificationAssessments'
+        );
       }
-    ];
+    }
+  );
 
-    const { verification, calls } = loadVerificationService({
-      queryResult: {
-        data: assessments,
-        error: null
+  await test(
+    'appends a complete assessment without accepting browser-supplied assessor identity',
+    async () => {
+      const {
+        verification,
+        rpcCalls,
+        safeCalls
+      } = loadService();
+
+      const subjectId =
+        '11111111-1111-1111-1111-111111111111';
+
+      const result =
+        await verification
+          .createVerificationAssessment({
+            subjectType:
+              'property',
+            subjectId,
+            verificationKind:
+              'documentation',
+            outcome:
+              'verified',
+            confidence:
+              0.95,
+            sourceReference:
+              'document:123',
+            evidence: {
+              documentType:
+                'registry_extract'
+            },
+            expiresAt:
+              '2027-08-12T12:00:00Z'
+          });
+
+      assert.strictEqual(
+        result.error,
+        null
+      );
+
+      assert.strictEqual(
+        rpcCalls.length,
+        1
+      );
+
+      assert.strictEqual(
+        rpcCalls[0].name,
+        'zfind_create_verification_assessment'
+      );
+
+      assert.deepStrictEqual(
+        plain(
+          rpcCalls[0].args
+        ),
+        {
+          p_subject_type:
+            'property',
+          p_subject_id:
+            subjectId,
+          p_verification_kind:
+            'documentation',
+          p_outcome:
+            'verified',
+          p_confidence:
+            0.95,
+          p_source_reference:
+            'document:123',
+          p_evidence: {
+            documentType:
+              'registry_extract'
+          },
+          p_expires_at:
+            '2027-08-12T12:00:00Z'
+        }
+      );
+
+      assert.strictEqual(
+        Object.prototype
+          .hasOwnProperty.call(
+            rpcCalls[0].args,
+            'assessor_profile_id'
+          ),
+        false
+      );
+
+      assert.strictEqual(
+        Object.prototype
+          .hasOwnProperty.call(
+            rpcCalls[0].args,
+            'p_assessor_profile_id'
+          ),
+        false
+      );
+
+      assert.strictEqual(
+        safeCalls[0].context,
+        'verification.createVerificationAssessment'
+      );
+    }
+  );
+
+  await test(
+    'rejects unsupported subjects before reaching Supabase',
+    async () => {
+      const {
+        verification,
+        rpcCalls
+      } = loadService();
+
+      const result =
+        await verification
+          .listVerificationAssessments(
+            'listing',
+            '11111111-1111-1111-1111-111111111111'
+          );
+
+      assert.strictEqual(
+        result.error.type,
+        'validation_error'
+      );
+
+      assert.strictEqual(
+        rpcCalls.length,
+        0
+      );
+    }
+  );
+
+  await test(
+    'rejects missing subject id before reaching Supabase',
+    async () => {
+      const {
+        verification,
+        rpcCalls
+      } = loadService();
+
+      const result =
+        await verification
+          .createVerificationAssessment({
+            subjectType:
+              'property',
+            subjectId: '',
+            verificationKind:
+              'documentation'
+          });
+
+      assert.strictEqual(
+        result.error.type,
+        'validation_error'
+      );
+
+      assert.strictEqual(
+        rpcCalls.length,
+        0
+      );
+    }
+  );
+
+  await test(
+    'rejects missing kind, invalid outcome and invalid confidence before RPC',
+    async () => {
+      const {
+        verification,
+        rpcCalls
+      } = loadService();
+
+      const subjectId =
+        '11111111-1111-1111-1111-111111111111';
+
+      const missingKind =
+        await verification
+          .createVerificationAssessment({
+            subjectType:
+              'property',
+            subjectId
+          });
+
+      const invalidOutcome =
+        await verification
+          .createVerificationAssessment({
+            subjectType:
+              'property',
+            subjectId,
+            verificationKind:
+              'documentation',
+            outcome:
+              'trusted'
+          });
+
+      const invalidLow =
+        await verification
+          .createVerificationAssessment({
+            subjectType:
+              'property',
+            subjectId,
+            verificationKind:
+              'documentation',
+            confidence:
+              -0.01
+          });
+
+      const invalidHigh =
+        await verification
+          .createVerificationAssessment({
+            subjectType:
+              'property',
+            subjectId,
+            verificationKind:
+              'documentation',
+            confidence:
+              1.01
+          });
+
+      for (const result of [
+        missingKind,
+        invalidOutcome,
+        invalidLow,
+        invalidHigh
+      ]) {
+        assert.strictEqual(
+          result.error.type,
+          'validation_error'
+        );
       }
-    });
 
-    const result = await verification.listVerificationAssessments(
-      'property',
-      'property-123'
-    );
+      assert.strictEqual(
+        rpcCalls.length,
+        0
+      );
+    }
+  );
 
-    assert.strictEqual(result.error, null);
-    assert.strictEqual(result.data.length, 2);
+  await test(
+    'Verification adapter remains append-only and separate from Trust',
+    async () => {
+      const executable =
+        executableSource(source);
 
-    assert.deepStrictEqual(
-      JSON.parse(JSON.stringify(calls)),
-      [
-        ['safeQuery', 'verification.listVerificationAssessments'],
-        ['from', 'verification_assessments'],
-        [
-          'select',
-          'id, subject_type, partner_id, representation_id, property_id, development_id, ' +
-          'verification_kind, outcome, confidence, source_reference, evidence, ' +
-          'assessor_profile_id, assessed_at, expires_at'
-        ],
-        ['eq', 'subject_type', 'property'],
-        ['eq', 'property_id', 'property-123'],
-        ['order', 'assessed_at', { ascending: false }]
-      ]
-    );
-  });
+      assert(
+        !/\.from\s*\(/.test(
+          executable
+        ),
+        'Verification must use the deliberate RPC boundary'
+      );
 
-  await test('appends a new assessment using the authenticated admin profile as assessor', async () => {
-    const created = {
-      id: 'assessment-new',
-      subject_type: 'partner',
-      partner_id: 'partner-123',
-      representation_id: null,
-      property_id: null,
-      development_id: null,
-      verification_kind: 'identity',
-      outcome: 'verified',
-      confidence: 1,
-      source_reference: 'document-check-123',
-      evidence: { documentType: 'registry_extract' },
-      assessor_profile_id: 'admin-profile-77',
-      assessed_at: '2026-08-11T20:00:00Z',
-      expires_at: null
-    };
+      assert(
+        !/\.update\s*\(/.test(
+          executable
+        ),
+        'Verification adapter must never UPDATE an assessment'
+      );
 
-    const { verification, calls } = loadVerificationService({
-      profileResult: {
-        data: {
-          id: 'admin-profile-77',
-          role: 'admin'
-        },
-        error: null
-      },
-      queryResult: {
-        data: created,
-        error: null
-      }
-    });
+      assert(
+        !/\.delete\s*\(/.test(
+          executable
+        ),
+        'Verification adapter must never DELETE an assessment'
+      );
 
-    const result = await verification.createVerificationAssessment({
-      subjectType: 'partner',
-      subjectId: 'partner-123',
-      verificationKind: 'identity',
-      outcome: 'verified',
-      confidence: 1,
-      sourceReference: 'document-check-123',
-      evidence: {
-        documentType: 'registry_extract'
-      }
-    });
+      assert(
+        !/trust_level/i.test(
+          executable
+        ),
+        'Verification executable code must never access partners.trust_level'
+      );
 
-    assert.strictEqual(result.error, null);
-    assert.strictEqual(result.data.id, 'assessment-new');
+      assert(
+        !/trust\s*score/i.test(
+          executable
+        ),
+        'Verification executable code must never calculate Trust Score'
+      );
 
-    const insertCall = calls.find(call => call[0] === 'insert');
+      assert(
+        !/assessor_profile_id/i.test(
+          executable
+        ),
+        'Browser executable code must not supply assessor_profile_id'
+      );
+    }
+  );
 
-    assert(insertCall, 'Expected an INSERT into verification_assessments');
-
-    assert.deepStrictEqual(
-      JSON.parse(JSON.stringify(insertCall[1])),
-      {
-        subject_type: 'partner',
-        verification_kind: 'identity',
-        outcome: 'verified',
-        confidence: 1,
-        source_reference: 'document-check-123',
-        evidence: {
-          documentType: 'registry_extract'
-        },
-        assessor_profile_id: 'admin-profile-77',
-        expires_at: null,
-        partner_id: 'partner-123'
-      }
-    );
-
-    assert.strictEqual(
-      calls.some(call => call[0] === 'update'),
-      false,
-      'Creating a new verification outcome must never UPDATE an old assessment'
-    );
-
-    assert.strictEqual(
-      calls.some(call => call[0] === 'delete'),
-      false,
-      'Creating a new verification outcome must never DELETE an old assessment'
-    );
-  });
-
-  await test('rejects unsupported verification subjects without querying Supabase', async () => {
-    const { verification, calls } = loadVerificationService();
-
-    const result = await verification.listVerificationAssessments(
-      'listing',
-      'listing-123'
-    );
-
-    assert.strictEqual(result.data, null);
-    assert.strictEqual(result.error.type, 'validation_error');
-
-    assert.strictEqual(
-      calls.some(call => call[0] === 'from'),
-      false,
-      'Unsupported subjects must not query verification_assessments'
-    );
-  });
-
-  await test('rejects invalid confidence before authentication or database access', async () => {
-    const { verification, calls } = loadVerificationService();
-
-    const result = await verification.createVerificationAssessment({
-      subjectType: 'development',
-      subjectId: 'development-123',
-      verificationKind: 'documentation',
-      outcome: 'verified',
-      confidence: 1.5
-    });
-
-    assert.strictEqual(result.data, null);
-    assert.strictEqual(result.error.type, 'validation_error');
-
-    assert.strictEqual(
-      calls.some(call => call[0] === 'from'),
-      false,
-      'Invalid confidence must not reach Supabase'
-    );
-  });
-
-  await test('propagates authentication/profile errors without inserting an assessment', async () => {
-    const authError = {
-      type: 'authorization_failure',
-      context: 'auth.getCurrentProfile',
-      message: 'No active session.'
-    };
-
-    const { verification, calls } = loadVerificationService({
-      profileResult: {
-        data: null,
-        error: authError
-      }
-    });
-
-    const result = await verification.createVerificationAssessment({
-      subjectType: 'property',
-      subjectId: 'property-456',
-      verificationKind: 'ownership',
-      outcome: 'pending'
-    });
-
-    assert.deepStrictEqual(
-      JSON.parse(JSON.stringify(result)),
-      {
-        data: null,
-        error: authError
-      }
-    );
-
-    assert.strictEqual(
-      calls.some(call => call[0] === 'from'),
-      false,
-      'No assessment must be inserted when the authenticated profile cannot be resolved'
-    );
-  });
-
-  await test('service remains append-only and separate from Trust projection', async () => {
-    assert(
-      !/\.update\s*\(/i.test(source),
-      'Verification service must never UPDATE verification assessments'
-    );
-
-    assert(
-      !/\.delete\s*\(/i.test(source),
-      'Verification service must never DELETE verification assessments'
-    );
-
-    assert(
-      !/trust_level/i.test(
-        source
-          .replace(/\/\*[\s\S]*?\*\//g, '')
-          .replace(/\/\/.*$/gm, '')
-      ),
-      'Verification service executable code must never write or derive partners.trust_level'
-    );
-
-    assert(
-      !/trust\s*score/i.test(
-        source
-          .replace(/\/\*[\s\S]*?\*\//g, '')
-          .replace(/\/\/.*$/gm, '')
-      ),
-      'Verification service executable code must not calculate a Trust Score'
-    );
-  });
-
-  console.log(`\nRESULT: ${passed} passed, 0 failed\n`);
+  console.log(
+    `\nRESULT: ${passed} passed, 0 failed\n`
+  );
 }
 
 run().catch(error => {

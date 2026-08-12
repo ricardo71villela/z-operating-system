@@ -1,29 +1,27 @@
 /* ============================================================
    Z FIND — services/observation.js
    ============================================================
-   Admin application adapter for Data Observations.
+   Admin adapter over canonical ZOS Data Observations.
 
-   Data Observations complement operational Property / Development /
-   Listing projections with source, time, validity and provenance.
+   Z Find operational columns remain runtime projections.
+   Canonical Observations preserve source, time and provenance.
 
-   Factual payload is immutable after creation.
-   Only lifecycle fields may evolve:
-   - status
-   - valid_to
+   Factual payload is never rewritten after creation.
+   Only lifecycle status / valid_to may evolve.
 
-   Observation evidence is append-only.
+   Canonical provenance requirements are explicit:
+   - sourceId;
+   - provenanceMethod;
+   - observedAt.
 
-   This service must never:
-   - delete an observation;
-   - rewrite factual observation payload;
-   - update or delete existing evidence.
-
-   Access remains subject to Migration 0010 RLS.
+   The adapter never invents any of them.
    ============================================================ */
 
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
-    module.exports = factory(require('./supabaseClient'));
+    module.exports = factory(
+      require('./supabaseClient')
+    );
   } else {
     root.ZFindServices = root.ZFindServices || {};
     root.ZFindServices.observation = factory(
@@ -34,13 +32,13 @@
 
 const { getSupabaseClient, safeQuery } = supabaseClientModule;
 
-const OBSERVATION_TARGET_COLUMNS = Object.freeze({
-  organisation: 'organisation_id',
-  partner: 'partner_id',
-  property: 'property_id',
-  development: 'development_id',
-  listing: 'listing_id'
-});
+const OBSERVATION_ENTITY_TYPES = Object.freeze([
+  'organisation',
+  'partner',
+  'property',
+  'development',
+  'listing'
+]);
 
 const OBSERVATION_STATUSES = Object.freeze([
   'recorded',
@@ -58,15 +56,6 @@ const EVIDENCE_TYPES = Object.freeze([
   'other'
 ]);
 
-const OBSERVATION_SELECT =
-  'id, entity_type, organisation_id, partner_id, property_id, development_id, listing_id, ' +
-  'metric_code, value_jsonb, unit, currency_iso, locale, source_id, status, confidence, ' +
-  'observed_at, valid_from, valid_to, provenance, created_at';
-
-const EVIDENCE_SELECT =
-  'id, observation_id, evidence_type, source_url, storage_path, content_hash, metadata, created_at';
-
-
 function validationError(context, message) {
   return {
     data: null,
@@ -78,84 +67,112 @@ function validationError(context, message) {
   };
 }
 
-
 function validateTarget(entityType, entityId, context) {
-  const targetColumn = OBSERVATION_TARGET_COLUMNS[entityType];
-
-  if (!targetColumn) {
-    return {
-      targetColumn: null,
-      result: validationError(
-        context,
-        `Unsupported observation entity type: ${entityType}`
-      )
-    };
+  if (!OBSERVATION_ENTITY_TYPES.includes(entityType)) {
+    return validationError(
+      context,
+      `Unsupported observation entity type: ${entityType}`
+    );
   }
 
   if (!entityId || typeof entityId !== 'string') {
-    return {
-      targetColumn: null,
-      result: validationError(
-        context,
-        'Observation requires a non-empty entity id.'
-      )
-    };
+    return validationError(
+      context,
+      'Observation requires a non-empty entity id.'
+    );
   }
 
-  return { targetColumn, result: null };
+  return null;
 }
 
-
-async function listObservations(entityType, entityId, metricCode = null) {
+async function listObservations(
+  entityType,
+  entityId,
+  metricCode = null
+) {
   const context = 'observation.listObservations';
-  const validation = validateTarget(entityType, entityId, context);
 
-  if (validation.result) return validation.result;
+  const targetError =
+    validateTarget(entityType, entityId, context);
+
+  if (targetError) return targetError;
 
   const client = getSupabaseClient();
 
-  let query = client
-    .from('data_observations')
-    .select(OBSERVATION_SELECT)
-    .eq('entity_type', entityType)
-    .eq(validation.targetColumn, entityId);
-
-  if (metricCode) {
-    query = query.eq('metric_code', metricCode);
-  }
-
   return safeQuery(
-    () => query.order('observed_at', { ascending: false }),
+    () => client.rpc(
+      'zfind_list_observations',
+      {
+        p_entity_type: entityType,
+        p_entity_id: entityId,
+        p_metric_code: metricCode
+      }
+    ),
     context
   );
 }
-
 
 async function createObservation({
   entityType,
   entityId,
   metricCode,
   value,
+
+  sourceId,
+  provenanceMethod,
+  observedAt,
+
   unit = null,
   currencyIso = null,
   locale = null,
-  sourceId = null,
   status = 'recorded',
   confidence = null,
-  observedAt = null,
   validFrom = null,
   validTo = null,
   provenance = {}
 }) {
   const context = 'observation.createObservation';
-  const validation = validateTarget(entityType, entityId, context);
 
-  if (validation.result) return validation.result;
+  const targetError =
+    validateTarget(entityType, entityId, context);
+
+  if (targetError) return targetError;
 
   if (!metricCode || typeof metricCode !== 'string') {
     return validationError(
       context,
       'Observation requires metricCode.'
+    );
+  }
+
+  if (value === undefined) {
+    return validationError(
+      context,
+      'Observation requires a value.'
+    );
+  }
+
+  if (!sourceId || typeof sourceId !== 'string') {
+    return validationError(
+      context,
+      'Canonical Observation requires sourceId.'
+    );
+  }
+
+  if (
+    !provenanceMethod ||
+    typeof provenanceMethod !== 'string'
+  ) {
+    return validationError(
+      context,
+      'Canonical Observation requires provenanceMethod.'
+    );
+  }
+
+  if (!observedAt || typeof observedAt !== 'string') {
+    return validationError(
+      context,
+      'Canonical Observation requires observedAt.'
     );
   }
 
@@ -193,55 +210,39 @@ async function createObservation({
     );
   }
 
-  if (value === undefined) {
-    return validationError(
-      context,
-      'Observation requires a value.'
-    );
-  }
-
-  const row = {
-    entity_type: entityType,
-    metric_code: metricCode,
-
-    // Explicit domain -> persistence boundary mapping.
-    value_jsonb: value,
-
-    unit,
-    currency_iso: currencyIso,
-    locale,
-    source_id: sourceId,
-    status,
-    confidence,
-    valid_from: validFrom,
-    valid_to: validTo,
-    provenance: provenance || {}
-  };
-
-  if (observedAt !== null) {
-    row.observed_at = observedAt;
-  }
-
-  row[validation.targetColumn] = entityId;
-
   const client = getSupabaseClient();
 
   return safeQuery(
-    () => client
-      .from('data_observations')
-      .insert(row)
-      .select(OBSERVATION_SELECT)
-      .single(),
+    () => client.rpc(
+      'zfind_create_observation',
+      {
+        p_entity_type: entityType,
+        p_entity_id: entityId,
+        p_metric_code: metricCode,
+        p_value_jsonb: value,
+        p_source_id: sourceId,
+        p_provenance_method: provenanceMethod,
+        p_observed_at: observedAt,
+        p_unit: unit,
+        p_currency_iso: currencyIso,
+        p_locale: locale,
+        p_status: status,
+        p_confidence: confidence,
+        p_valid_from: validFrom,
+        p_valid_to: validTo,
+        p_provenance: provenance || {}
+      }
+    ),
     context
   );
 }
-
 
 async function updateObservationLifecycle(
   observationId,
   { status, validTo } = {}
 ) {
-  const context = 'observation.updateObservationLifecycle';
+  const context =
+    'observation.updateObservationLifecycle';
 
   if (!observationId || typeof observationId !== 'string') {
     return validationError(
@@ -250,24 +251,19 @@ async function updateObservationLifecycle(
     );
   }
 
-  const patch = {};
-
-  if (status !== undefined) {
-    if (!OBSERVATION_STATUSES.includes(status)) {
-      return validationError(
-        context,
-        `Invalid observation status: ${status}`
-      );
-    }
-
-    patch.status = status;
+  if (
+    status !== undefined &&
+    !OBSERVATION_STATUSES.includes(status)
+  ) {
+    return validationError(
+      context,
+      `Invalid observation status: ${status}`
+    );
   }
 
-  if (validTo !== undefined) {
-    patch.valid_to = validTo;
-  }
+  const hasValidTo = validTo !== undefined;
 
-  if (!Object.keys(patch).length) {
+  if (status === undefined && !hasValidTo) {
     return validationError(
       context,
       'Observation lifecycle update requires status and/or validTo.'
@@ -277,19 +273,28 @@ async function updateObservationLifecycle(
   const client = getSupabaseClient();
 
   return safeQuery(
-    () => client
-      .from('data_observations')
-      .update(patch)
-      .eq('id', observationId)
-      .select(OBSERVATION_SELECT)
-      .single(),
+    () => client.rpc(
+      'zfind_update_observation_lifecycle',
+      {
+        p_observation_id: observationId,
+        p_status:
+          status === undefined
+            ? null
+            : status,
+        p_set_valid_to: hasValidTo,
+        p_valid_to:
+          hasValidTo
+            ? validTo
+            : null
+      }
+    ),
     context
   );
 }
 
-
 async function listObservationEvidence(observationId) {
-  const context = 'observation.listObservationEvidence';
+  const context =
+    'observation.listObservationEvidence';
 
   if (!observationId || typeof observationId !== 'string') {
     return validationError(
@@ -301,15 +306,15 @@ async function listObservationEvidence(observationId) {
   const client = getSupabaseClient();
 
   return safeQuery(
-    () => client
-      .from('observation_evidence')
-      .select(EVIDENCE_SELECT)
-      .eq('observation_id', observationId)
-      .order('created_at', { ascending: false }),
+    () => client.rpc(
+      'zfind_list_observation_evidence',
+      {
+        p_observation_id: observationId
+      }
+    ),
     context
   );
 }
-
 
 async function addObservationEvidence({
   observationId,
@@ -319,7 +324,8 @@ async function addObservationEvidence({
   contentHash = null,
   metadata = {}
 }) {
-  const context = 'observation.addObservationEvidence';
+  const context =
+    'observation.addObservationEvidence';
 
   if (!observationId || typeof observationId !== 'string') {
     return validationError(
@@ -338,25 +344,23 @@ async function addObservationEvidence({
   const client = getSupabaseClient();
 
   return safeQuery(
-    () => client
-      .from('observation_evidence')
-      .insert({
-        observation_id: observationId,
-        evidence_type: evidenceType,
-        source_url: sourceUrl,
-        storage_path: storagePath,
-        content_hash: contentHash,
-        metadata: metadata || {}
-      })
-      .select(EVIDENCE_SELECT)
-      .single(),
+    () => client.rpc(
+      'zfind_add_observation_evidence',
+      {
+        p_observation_id: observationId,
+        p_evidence_type: evidenceType,
+        p_source_url: sourceUrl,
+        p_storage_path: storagePath,
+        p_content_hash: contentHash,
+        p_metadata: metadata || {}
+      }
+    ),
     context
   );
 }
 
-
 return {
-  OBSERVATION_TARGET_COLUMNS,
+  OBSERVATION_ENTITY_TYPES,
   OBSERVATION_STATUSES,
   EVIDENCE_TYPES,
   listObservations,

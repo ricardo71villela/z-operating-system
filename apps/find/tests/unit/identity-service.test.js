@@ -5,65 +5,100 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
+const SERVICE_PATH = path.join(
+  __dirname,
+  '../../apps/zfind-web/src/services/identity.js'
+);
+
 const source = fs.readFileSync(
-  path.join(__dirname, '../../apps/zfind-web/src/services/identity.js'),
+  SERVICE_PATH,
   'utf8'
 );
 
-function loadIdentityService({ profileResult, queryResult }) {
-  const calls = [];
+function executableSource(text) {
+  return text
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/.*$/gm, '');
+}
 
-  const query = {
-    select(columns) {
-      calls.push(['select', columns]);
-      return this;
+function plain(value) {
+  return JSON.parse(
+    JSON.stringify(value)
+  );
+}
+
+function loadService({
+  rpcResponder
+} = {}) {
+  const rpcCalls = [];
+  const safeCalls = [];
+
+  const defaultResponder = () => ({
+    data: {
+      profile_id: 'profile-local',
+      zos_person_id: null,
+      binding_status: 'local_only',
+      linked_at: null
     },
-    eq(column, value) {
-      calls.push(['eq', column, value]);
-      return this;
-    },
-    single() {
-      calls.push(['single']);
-      return Promise.resolve(queryResult);
-    }
-  };
-
-  const client = {
-    from(table) {
-      calls.push(['from', table]);
-      return query;
-    }
-  };
-
-  const safeQuery = async (queryFn, context) => {
-    calls.push(['safeQuery', context]);
-    return queryFn();
-  };
-
-  const context = {
-    window: {
-      ZFindServices: {
-        supabaseClient: {
-          getSupabaseClient: () => client,
-          safeQuery
-        },
-        auth: {
-          getCurrentProfile: async () => profileResult
-        }
-      }
-    },
-    console
-  };
-
-  context.window.window = context.window;
-
-  vm.runInNewContext(source, context, {
-    filename: 'identity.js'
+    error: null
   });
 
+  const responder =
+    rpcResponder || defaultResponder;
+
+  const client = {
+    rpc(name, args) {
+      rpcCalls.push({
+        name,
+        args
+      });
+
+      return Promise.resolve(
+        responder(name, args)
+      );
+    }
+  };
+
+  const supabaseClient = {
+    getSupabaseClient() {
+      return client;
+    },
+
+    async safeQuery(
+      fn,
+      context,
+      options
+    ) {
+      safeCalls.push({
+        context,
+        options
+      });
+
+      return fn();
+    }
+  };
+
+  const window = {
+    ZFindServices: {
+      supabaseClient
+    }
+  };
+
+  const context = vm.createContext({
+    window,
+    console
+  });
+
+  vm.runInContext(
+    source,
+    context
+  );
+
   return {
-    identity: context.window.ZFindServices.identity,
-    calls
+    identity:
+      window.ZFindServices.identity,
+    rpcCalls,
+    safeCalls
   };
 }
 
@@ -76,136 +111,198 @@ async function run() {
     console.log(`  ✅ ${name}`);
   }
 
-  console.log('\n=== Z FIND — IDENTITY SERVICE TESTS ===');
+  console.log(
+    '\n=== Z FIND — IDENTITY SERVICE / CANONICAL RPC ==='
+  );
 
-  await test('reads the Identity Bridge for the authenticated local profile', async () => {
-    const expected = {
-      profile_id: 'profile-123',
-      zos_person_id: 'person-456',
-      binding_status: 'linked',
-      linked_at: '2026-08-11T18:00:00Z'
-    };
+  await test(
+    'reads local-only Find Identity through the canonical RPC',
+    async () => {
+      const {
+        identity,
+        rpcCalls,
+        safeCalls
+      } = loadService();
 
-    const { identity, calls } = loadIdentityService({
-      profileResult: {
-        data: {
-          id: 'profile-123',
-          partner_id: null,
-          role: 'admin'
-        },
-        error: null
-      },
-      queryResult: {
-        data: expected,
-        error: null
-      }
-    });
+      const result =
+        await identity.getCurrentIdentityBinding();
 
-    const result = await identity.getCurrentIdentityBinding();
+      assert.deepStrictEqual(
+        plain(result),
+        {
+          data: {
+            profile_id:
+              'profile-local',
+            zos_person_id: null,
+            binding_status:
+              'local_only',
+            linked_at: null
+          },
+          error: null
+        }
+      );
 
-    assert.deepStrictEqual(
-      JSON.parse(JSON.stringify(result)),
-      { data: expected, error: null }
-    );
+      assert.deepStrictEqual(
+        plain(rpcCalls),
+        [
+          {
+            name:
+              'zfind_current_identity_binding'
+          }
+        ]
+      );
 
-    assert.deepStrictEqual(calls, [
-      ['safeQuery', 'identity.getCurrentIdentityBinding'],
-      ['from', 'identity_bindings'],
-      ['select', 'profile_id, zos_person_id, binding_status, linked_at'],
-      ['eq', 'profile_id', 'profile-123'],
-      ['single']
-    ]);
-  });
+      assert.strictEqual(
+        safeCalls.length,
+        1
+      );
 
-  await test('allows a local-only profile with no ZOS Person yet', async () => {
-    const { identity } = loadIdentityService({
-      profileResult: {
-        data: {
-          id: 'profile-local',
-          partner_id: 'partner-1',
-          role: 'partner'
-        },
-        error: null
-      },
-      queryResult: {
-        data: {
-          profile_id: 'profile-local',
-          zos_person_id: null,
-          binding_status: 'local_only',
-          linked_at: null
-        },
-        error: null
-      }
-    });
+      assert.strictEqual(
+        safeCalls[0].context,
+        'identity.getCurrentIdentityBinding'
+      );
+    }
+  );
 
-    const result = await identity.getCurrentIdentityBinding();
+  await test(
+    'preserves a linked canonical Person distinct from the local profile UUID',
+    async () => {
+      const {
+        identity
+      } = loadService({
+        rpcResponder: () => ({
+          data: {
+            profile_id:
+              '11111111-1111-1111-1111-111111111111',
+            zos_person_id:
+              '22222222-2222-2222-2222-222222222222',
+            binding_status:
+              'linked',
+            linked_at:
+              '2026-08-12T12:00:00Z'
+          },
+          error: null
+        })
+      });
 
-    assert.strictEqual(result.error, null);
-    assert.strictEqual(result.data.profile_id, 'profile-local');
-    assert.strictEqual(result.data.zos_person_id, null);
-    assert.strictEqual(result.data.binding_status, 'local_only');
-  });
+      const result =
+        await identity.getCurrentIdentityBinding();
 
-  await test('propagates authentication/profile errors without querying Identity', async () => {
-    const profileError = {
-      type: 'authorization_failure',
-      context: 'auth.getCurrentProfile',
-      message: 'No active session.'
-    };
+      assert.strictEqual(
+        result.error,
+        null
+      );
 
-    const { identity, calls } = loadIdentityService({
-      profileResult: {
-        data: null,
-        error: profileError
-      },
-      queryResult: {
-        data: null,
-        error: null
-      }
-    });
+      assert.strictEqual(
+        result.data.profile_id,
+        '11111111-1111-1111-1111-111111111111'
+      );
 
-    const result = await identity.getCurrentIdentityBinding();
+      assert.strictEqual(
+        result.data.zos_person_id,
+        '22222222-2222-2222-2222-222222222222'
+      );
 
-    assert.deepStrictEqual(
-      JSON.parse(JSON.stringify(result)),
-      { data: null, error: profileError }
-    );
+      assert.notStrictEqual(
+        result.data.profile_id,
+        result.data.zos_person_id,
+        'Local profile UUID must never become the canonical Person UUID by derivation'
+      );
 
-    assert.strictEqual(
-      calls.some(call => call[0] === 'from'),
-      false,
-      'Identity table must not be queried when authentication/profile resolution failed'
-    );
-  });
+      assert.strictEqual(
+        result.data.binding_status,
+        'linked'
+      );
+    }
+  );
 
-  await test('never derives or invents a ZOS Person id from profiles.id', async () => {
-    const { identity } = loadIdentityService({
-      profileResult: {
-        data: {
-          id: 'profile-789',
-          partner_id: null,
-          role: 'admin'
-        },
-        error: null
-      },
-      queryResult: {
-        data: {
-          profile_id: 'profile-789',
-          zos_person_id: null,
-          binding_status: 'local_only',
-          linked_at: null
-        },
-        error: null
-      }
-    });
+  await test(
+    'propagates canonical RPC errors instead of manufacturing Identity data',
+    async () => {
+      const expectedError = {
+        code: '42501',
+        message:
+          'authentication required'
+      };
 
-    const result = await identity.getCurrentIdentityBinding();
+      const {
+        identity,
+        rpcCalls
+      } = loadService({
+        rpcResponder: () => ({
+          data: null,
+          error: expectedError
+        })
+      });
 
-    assert.strictEqual(result.data.profile_id, 'profile-789');
-    assert.strictEqual(result.data.zos_person_id, null);
-  });
+      const result =
+        await identity.getCurrentIdentityBinding();
 
-  console.log(`\nRESULT: ${passed} passed, 0 failed\n`);
+      assert.deepStrictEqual(
+        plain(result),
+        {
+          data: null,
+          error: expectedError
+        }
+      );
+
+      assert.strictEqual(
+        rpcCalls.length,
+        1
+      );
+    }
+  );
+
+  await test(
+    'adapter remains read-only and cannot create/link a canonical identity',
+    async () => {
+      const executable =
+        executableSource(source);
+
+      assert(
+        !/\.from\s*\(/.test(
+          executable
+        ),
+        'Identity adapter must not directly access persistence tables'
+      );
+
+      assert(
+        !/\.insert\s*\(/.test(
+          executable
+        )
+      );
+
+      assert(
+        !/\.update\s*\(/.test(
+          executable
+        )
+      );
+
+      assert(
+        !/\.delete\s*\(/.test(
+          executable
+        )
+      );
+
+      assert(
+        !/ensure_current_identity_binding/i.test(
+          executable
+        ),
+        'Read adapter must not automatically link Identity'
+      );
+
+      assert(
+        !/require\s*\(\s*['"]\.\/auth['"]\s*\)/.test(
+          executable
+        ),
+        'Identity ownership is enforced by the database RPC, not browser profile lookup'
+      );
+    }
+  );
+
+  console.log(
+    `\nRESULT: ${passed} passed, 0 failed\n`
+  );
 }
 
 run().catch(error => {

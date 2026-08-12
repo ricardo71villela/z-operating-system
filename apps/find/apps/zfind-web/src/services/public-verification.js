@@ -2,7 +2,7 @@
    Z FIND — services/public-verification.js
    ============================================================
    Public read-only adapter for the deliberately constrained
-   Property Verification RPC created by migration 0019.
+   Property Verification RPC maintained by the canonical Z Find database convergence migration.
 
    This adapter never reads verification_assessments directly.
 
