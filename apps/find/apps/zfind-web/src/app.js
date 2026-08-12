@@ -602,13 +602,54 @@ async function renderLand(assetId) {
 }
 
 /* ---------------- Partner profile ---------------- */
-function renderPartner(partnerId) {
-  const vm = getPartnerDetailViewModel(partnerId, state.lang);
+async function renderPartner(partnerId) {
+  const root = document.getElementById('partner-root');
   const L = state.lang;
-  document.getElementById('partner-root').innerHTML = `
+
+  root.innerHTML = detailStatusHTML('home.loadingTitle', 'home.loadingBody');
+
+  if (!partnerId) {
+    root.innerHTML = detailStatusHTML(
+      'partner.unavailableTitle',
+      'partner.unavailableBody'
+    );
+    return;
+  }
+
+  const result = await loadPartnerDetail(partnerId, L);
+
+  if (result.notFound) {
+    root.innerHTML = detailStatusHTML(
+      'partner.unavailableTitle',
+      'partner.unavailableBody'
+    );
+    return;
+  }
+
+  if (result.error) {
+    console.error('Partner load failed:', result.error);
+    root.innerHTML = detailStatusHTML('home.errorTitle', 'home.errorBody');
+    return;
+  }
+
+  const vm = result.viewModel;
+
+  document.title = vm.partner.name
+    ? (vm.partner.name + ' — Z Find')
+    : document.title;
+
+  const avatarStyle = vm.partner.logoUrl
+    ? `style="background-image:url('${vm.partner.logoUrl}'); background-size:contain; background-position:center; background-repeat:no-repeat;"`
+    : '';
+
+  const cardsHTML = vm.cards.length
+    ? vm.cards.map(cardHTML).join('')
+    : `<div class="empty-state">${t(L,'partner.noOpportunities')}</div>`;
+
+  root.innerHTML = `
   <div class="wrap">
     <div class="partner-header">
-      <div class="partner-avatar"></div>
+      <div class="partner-avatar" ${avatarStyle}></div>
       <div>
         <h1 style="font-size:2rem">${vm.partner.name}</h1>
         ${vm.trust ? `<div class="trust-chip">${vm.trust.label}</div>` : ''}
@@ -616,7 +657,7 @@ function renderPartner(partnerId) {
           <div><b>${vm.counts.total}</b>${t(L,'partner.activeOpportunities')}</div>
           <div><b>${vm.counts.developments}</b>${t(L,'partner.developments')}</div>
           <div><b>${vm.counts.land}</b>${t(L,'partner.landOpportunities')}</div>
-          ${vm.avgResponse ? `<div><b>${vm.avgResponse} hrs</b>${t(L,'partner.avgResponse')}</div>` : ''}
+          ${vm.avgResponse != null ? `<div><b>${vm.avgResponse} hrs</b>${t(L,'partner.avgResponse')}</div>` : ''}
         </div>
       </div>
     </div>
@@ -624,10 +665,14 @@ function renderPartner(partnerId) {
       <div class="tabs-row">
         <button class="pill active" data-filter="all" data-i18n="partner.filterAll"></button>
       </div>
-      <div class="grid">${vm.cards.map(cardHTML).join('')}</div>
+      <div class="grid">${cardsHTML}</div>
     </section>
   </div>`;
-  document.querySelector('#partner-root .pill').textContent = t(L, 'partner.filterAll', { n: vm.counts.total });
+
+  const allPill = document.querySelector('#partner-root .pill');
+  if (allPill) {
+    allPill.textContent = t(L, 'partner.filterAll', { n: vm.counts.total });
+  }
 }
 
 /** Acquisition-cost simulator — IMT + Imposto do Selo, rules-based,
@@ -1051,7 +1096,7 @@ function render() {
     case 'property': renderProperty(state.id || 'asset_apt_boavista'); break;
     case 'development': renderDevelopment(state.id || 'asset_dev_rionorte'); break;
     case 'land': renderLand(state.id || 'asset_land_boavista'); break;
-    case 'partner': renderPartner(state.id || 'partner_zimob'); break;
+    case 'partner': renderPartner(state.id); break;
     case 'simulator': renderSimulator(); break;
     case 'zone': renderZone(state.id); break;
     case 'legal': break; // static content, already in body.html — no render needed

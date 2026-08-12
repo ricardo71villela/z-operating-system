@@ -751,23 +751,105 @@ async function loadDevelopmentDetail(developmentId, lang) {
 }
 
 
-/* ---------------- Partner detail ---------------- */
-function getPartnerDetailViewModel(partnerId, lang) {
-  const partner = DB.partners[partnerId];
-  const trust = getTrustViewModel(partnerId, lang);
-  const portfolioListings = Object.values(DB.listings).filter(l => {
-    const rep = DB.representations[l.representationId];
-    return rep.partnerId === partnerId;
-  });
-  const cards = portfolioListings.map(l => getListingCardViewModel(l, lang));
+/* ---------------- Sprint 1.9: Supabase-backed Partner detail ----------------
+   A public Partner profile is a Z Find Marketplace projection of the real
+   Partner row plus ONLY the published opportunities that anonymous RLS allows
+   the visitor to see.
+
+   Important boundary: partners.trust_level is deliberately NOT consumed here.
+   That column is a legacy marketplace projection; Verification truth belongs
+   in verification_assessments. Until a public Trust projection exists, the
+   honest public Partner-detail value is trust:null.
+
+   Portfolio cards reuse the exact Property/Development Supabase card mappers
+   already used by Home/Search — no second card model and no fixture bridge. */
+async function loadPartnerDetail(partnerId, lang) {
+  const services = window.ZFindServices;
+
+  if (!partnerId) {
+    return { viewModel: null, notFound: true, error: null };
+  }
+
+  if (!services || !services.partners) {
+    return {
+      viewModel: null,
+      notFound: false,
+      error: {
+        type: 'malformed_response',
+        message: 'Supabase Partner service not loaded.'
+      }
+    };
+  }
+
+  const [partnerResult, propertiesResult, developmentsResult] = await Promise.all([
+    services.partners.getPublicPartnerById(partnerId),
+    services.partners.listPublishedProperties(partnerId),
+    services.partners.listPublishedDevelopments(partnerId),
+  ]);
+
+  if (partnerResult.error && partnerResult.error.type === 'empty_result') {
+    return { viewModel: null, notFound: true, error: null };
+  }
+
+  if (partnerResult.error) {
+    return { viewModel: null, notFound: false, error: partnerResult.error };
+  }
+
+  if (!partnerResult.data) {
+    return { viewModel: null, notFound: true, error: null };
+  }
+
+  if (propertiesResult.error && propertiesResult.error.type !== 'empty_result') {
+    return { viewModel: null, notFound: false, error: propertiesResult.error };
+  }
+
+  if (developmentsResult.error && developmentsResult.error.type !== 'empty_result') {
+    return { viewModel: null, notFound: false, error: developmentsResult.error };
+  }
+
+  const row = partnerResult.data;
+
+  const propertyCards = (propertiesResult.data || [])
+    .map(propertyRow => mapSupabasePropertyRowToCard(propertyRow, lang));
+
+  const developmentCards = (developmentsResult.data || [])
+    .map(developmentRow => mapSupabaseDevelopmentRowToCard(developmentRow, lang));
+
+  const cards = propertyCards.concat(developmentCards);
+
+  const partner = {
+    id: row.id,
+    name: row.name || '',
+    role: row.role || null,
+    enquiryPolicy: row.enquiry_policy || DEFAULT_ENQUIRY_POLICY,
+    logoStoragePath: row.logo_storage_path || null,
+    logoUrl: null,
+  };
+
+  if (
+    partner.logoStoragePath &&
+    services.supabaseClient &&
+    services.supabaseClient.resolveMediaUrl
+  ) {
+    partner.logoUrl = await services.supabaseClient.resolveMediaUrl(
+      partner.logoStoragePath
+    );
+  }
+
   return {
-    partner, trust, cards,
-    counts: {
-      total: cards.length,
-      developments: cards.filter(c => c.kind === 'Development').length,
-      land: cards.filter(c => c.kind === 'Land').length,
+    viewModel: {
+      partner,
+      trust: null,
+      cards,
+      counts: {
+        total: cards.length,
+        developments: cards.filter(card => card.kind === 'Development').length,
+        land: cards.filter(card => card.kind === 'Land').length,
+      },
+      avgResponse: row.avg_response_hours,
     },
-    avgResponse: partner.avgResponseHours,
+    notFound: false,
+    error: null,
   };
 }
 
