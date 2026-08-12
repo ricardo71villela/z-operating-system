@@ -65,6 +65,36 @@ const MOCK_UNITS = [
 ];
 
 async function mockSupabaseRoutes(page) {
+  await page.route('**/rest/v1/partners**', route => {
+    const url = new URL(route.request().url());
+    const idFilter = url.searchParams.get('id');
+
+    if (idFilter === 'eq.partner_zimob') {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: 'partner_zimob',
+          name: 'Z Imobiliária',
+          role: 'agency',
+          status: 'active',
+          avg_response_hours: 4.2,
+          enquiry_policy: { direct: true, qualified: true, assisted: false },
+          logo_storage_path: null,
+        })
+      });
+    }
+
+    return route.fulfill({
+      status: 406,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        code: 'PGRST116',
+        message: 'Results contain 0 rows'
+      })
+    });
+  });
+
   await page.route('**/rest/v1/properties**', route => {
     const url = new URL(route.request().url());
     const idFilter = url.searchParams.get('id'); // e.g. "eq.asset_apt_boavista"

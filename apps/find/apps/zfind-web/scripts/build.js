@@ -71,6 +71,7 @@ function build() {
   const supabaseClient = read('services/supabaseClient.js');
   const propertiesService = read('services/properties.js');
   const developmentsService = read('services/developments.js');
+  const partnersService = read('services/partners.js');
   const searchService = read('services/search.js');
   const authService = read('services/auth.js');
   const identityService = read('services/identity.js');
@@ -112,6 +113,7 @@ function build() {
     + supabaseClient + '\n'
     + propertiesService + '\n'
     + developmentsService + '\n'
+    + partnersService + '\n'
     + searchService + '\n'
     + authService + '\n'
     + identityService + '\n'

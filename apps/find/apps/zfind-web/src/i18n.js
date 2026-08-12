@@ -105,6 +105,7 @@ en: {
   partner: {
     activeOpportunities:'Active opportunities', developments:'Developments', landOpportunities:'Land opportunities', avgResponse:'Avg. response time',
     filterAll:'All ({{n}})', filterResidential:'Residential ({{n}})', filterDevelopments:'Developments ({{n}})', filterLand:'Land ({{n}})', filterOffmarket:'Off-market ({{n}})',
+    unavailableTitle:'Partner unavailable', unavailableBody:'This partner profile is not available or has no public opportunities.', noOpportunities:'No active opportunities available.',
   },
   enquiry: {
     title:'How would you like to connect?', sub:'This advertiser accepts both direct and qualified contact. Choose what works for you.',
@@ -220,6 +221,7 @@ pt: {
   partner: {
     activeOpportunities:'Oportunidades ativas', developments:'Empreendimentos', landOpportunities:'Oportunidades de terreno', avgResponse:'Tempo médio de resposta',
     filterAll:'Todas ({{n}})', filterResidential:'Residencial ({{n}})', filterDevelopments:'Empreendimentos ({{n}})', filterLand:'Terrenos ({{n}})', filterOffmarket:'Off-market ({{n}})',
+    unavailableTitle:'Parceiro indisponível', unavailableBody:'Este perfil de parceiro não está disponível ou não tem oportunidades públicas.', noOpportunities:'Não existem oportunidades ativas disponíveis.',
   },
   enquiry: {
     title:'Como prefere entrar em contacto?', sub:'Este anunciante aceita contacto direto e qualificado. Escolha o que funciona melhor para si.',
@@ -335,6 +337,7 @@ fr: {
   partner: {
     activeOpportunities:'Opportunités actives', developments:'Programmes neufs', landOpportunities:'Opportunités foncières', avgResponse:'Temps de réponse moyen',
     filterAll:'Toutes ({{n}})', filterResidential:'Résidentiel ({{n}})', filterDevelopments:'Programmes neufs ({{n}})', filterLand:'Terrains ({{n}})', filterOffmarket:'Hors marché ({{n}})',
+    unavailableTitle:'Partenaire indisponible', unavailableBody:"Ce profil partenaire n'est pas disponible ou ne présente aucune opportunité publique.", noOpportunities:'Aucune opportunité active disponible.',
   },
   enquiry: {
     title:'Comment souhaitez-vous entrer en contact ?', sub:'Cet annonceur accepte le contact direct et qualifié. Choisissez ce qui vous convient.',

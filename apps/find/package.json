@@ -2,7 +2,7 @@
   "name": "z-find-platform",
   "version": "0.2.0",
   "private": true,
-  "description": "Z Find \u2014 consolidated repository. Sprint A (infrastructure baseline, frozen) + Sprint B (Product Backbone, in progress).",
+  "description": "Z Find — consolidated repository. Sprint A (infrastructure baseline, frozen) + Sprint B (Product Backbone, in progress).",
   "scripts": {
     "build:zfind": "node -r dotenv/config apps/zfind-web/scripts/build.js",
     "build:seo-pages": "node -r dotenv/config apps/zfind-web/scripts/generate-seo-pages.js",
@@ -21,6 +21,7 @@
     "build:partner": "node -r dotenv/config apps/zfind-partner/scripts/build.js",
     "test:sprint-1-7": "node tests/browser/zfind-admin/sprint-1-7-verification.js",
     "test:sprint-1-8": "node tests/browser/zfind-web/sprint-1-8-verification.js",
+    "test:sprint-1-9": "node tests/browser/zfind-web/sprint-1-9-verification.js",
     "test:simulator": "node tests/browser/zfind-web/simulator-verification.js",
     "test:staging-smoke": "node -r dotenv/config tests/browser/zfind-web/staging-smoke-test.js",
     "test:connectivity": "node -r dotenv/config scripts/test-connectivity.js",
