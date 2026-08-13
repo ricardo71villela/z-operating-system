@@ -52,7 +52,7 @@ check(
 );
 
 check(
-  admin.includes("client.rpc('zfind_admin_replace_features'"),
+  admin.includes("client.rpc('zfind_replace_features'"),
   'Feature replacement routed through atomic RPC'
 );
 

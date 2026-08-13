@@ -127,7 +127,14 @@ async function updateDevelopment(id, fields) {
   if (fields.expectedCompletion !== undefined) patch.expected_completion = fields.expectedCompletion;
   if (fields.projectPhase !== undefined) patch.project_phase = fields.projectPhase;
   if (fields.developerName !== undefined) patch.developer_name = fields.developerName;
-  return safeQuery(() => client.from('developments').update(patch).eq('id', id).select().single(), 'admin.updateDevelopment');
+  return safeQuery(
+    () => client.rpc('zfind_update_asset', {
+      p_kind: 'development',
+      p_asset_id: id,
+      p_patch: patch
+    }),
+    'admin.updateDevelopment'
+  );
 }
 
 /** Safe delete — same discipline as deleteProperty above: never
@@ -196,7 +203,14 @@ async function getPropertyForEdit(id) {
 async function createProperty({ subtype, typology, areaSqm, floor, zoneLiteId, developmentId }) {
   const client = getSupabaseClient();
   return safeQuery(
-    () => client.from('properties').insert({ subtype, typology, area_sqm: areaSqm, floor, zone_lite_id: zoneLiteId, development_id: developmentId || null }).select().single(),
+    () => client.rpc('zfind_create_property', {
+      p_subtype: subtype,
+      p_typology: typology ?? null,
+      p_area_sqm: areaSqm ?? null,
+      p_floor: floor ?? null,
+      p_zone_lite_id: zoneLiteId ?? null,
+      p_development_id: developmentId || null
+    }),
     'admin.createProperty'
   );
 }
@@ -270,7 +284,14 @@ async function updateProperty(id, fields) {
   // References & multimedia
   if (fields.agencyReference !== undefined) patch.agency_reference = fields.agencyReference;
   if (fields.tour360Url !== undefined) patch.tour_360_url = fields.tour360Url;
-  return safeQuery(() => client.from('properties').update(patch).eq('id', id).select().single(), 'admin.updateProperty');
+  return safeQuery(
+    () => client.rpc('zfind_update_asset', {
+      p_kind: 'property',
+      p_asset_id: id,
+      p_patch: patch
+    }),
+    'admin.updateProperty'
+  );
 }
 
 /** Safe delete: a naive DELETE on properties fails silently-ish
@@ -609,7 +630,7 @@ async function getDevelopmentFeatureIds(developmentId) {
 async function setPropertyFeatures(propertyId, featureIds) {
   const client = getSupabaseClient();
   return safeQuery(
-    () => client.rpc('zfind_admin_replace_features', {
+    () => client.rpc('zfind_replace_features', {
       p_kind: 'property',
       p_asset_id: propertyId,
       p_feature_ids: featureIds
@@ -621,7 +642,7 @@ async function setPropertyFeatures(propertyId, featureIds) {
 async function setDevelopmentFeatures(developmentId, featureIds) {
   const client = getSupabaseClient();
   return safeQuery(
-    () => client.rpc('zfind_admin_replace_features', {
+    () => client.rpc('zfind_replace_features', {
       p_kind: 'development',
       p_asset_id: developmentId,
       p_feature_ids: featureIds
