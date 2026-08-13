@@ -182,6 +182,7 @@ async function openDetail(kind, id) {
   } else {
     unitsSection.style.display = 'none';
   }
+  ensurePartnerRemoveButton(kind, id);
 }
 
 let currentDevelopmentZoneLiteId = null;
@@ -215,6 +216,87 @@ function backToPortfolio() {
   document.getElementById('view-detail').style.display = 'none';
   document.getElementById('view-dashboard').style.display = '';
   loadPortfolio();
+}
+
+function ensurePartnerRemoveButton(kind, id) {
+  const host = document.getElementById('view-detail');
+  if (!host) return;
+
+  const previous = document.getElementById(
+    'partner-remove-asset-zone'
+  );
+  if (previous) previous.remove();
+
+  const zone = document.createElement('div');
+  zone.id = 'partner-remove-asset-zone';
+  zone.className = 'detail-panel';
+  zone.style.marginTop = '24px';
+  zone.style.borderColor = 'rgba(180,35,24,.25)';
+
+  const label = kind === 'development'
+    ? 'Delete development'
+    : 'Delete property';
+
+  zone.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;">
+      <div>
+        <div style="font-weight:600;">Remove from your portfolio</div>
+        <div style="font-size:.86rem;color:var(--gray-500);margin-top:4px;">
+          Protected leads, verification and audit history are preserved automatically when required.
+        </div>
+      </div>
+      <button
+        type="button"
+        class="btn"
+        style="border-color:#b42318;color:#b42318;background:#fff;"
+        onclick="removePartnerAsset('${kind}','${id}')"
+      >${label}</button>
+    </div>
+  `;
+
+  host.appendChild(zone);
+}
+
+async function removePartnerAsset(kind, id) {
+  const label = kind === 'development'
+    ? 'development'
+    : 'property';
+
+  const ok = window.confirm(
+    `Delete this ${label}?\n\n` +
+    'It will disappear from your portfolio and from the market. ' +
+    'If protected commercial or audit records exist, Z Find will ' +
+    'preserve them instead of physically destroying them.'
+  );
+
+  if (!ok) return;
+
+  const result =
+    await window.ZFindServices.admin.removeAssetForPartner(
+      kind,
+      id
+    );
+
+  if (result.error) {
+    showStatus(
+      'error',
+      result.error.message || `Could not delete ${label}.`
+    );
+    return;
+  }
+
+  const physicallyDeleted =
+    result.data &&
+    result.data.mode === 'hard_deleted';
+
+  showStatus(
+    'success',
+    physicallyDeleted
+      ? `${label === 'development' ? 'Development' : 'Property'} deleted.`
+      : `${label === 'development' ? 'Development' : 'Property'} removed. Protected history was preserved.`
+  );
+
+  backToPortfolio();
 }
 
 /** Reuses the exact same shared reader Admin uses — the 30+ field ids

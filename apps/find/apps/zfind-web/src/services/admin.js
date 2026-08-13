@@ -321,6 +321,29 @@ async function deleteProperty(id) {
     listing_content) — "practically free" per the brief's own
     condition for building it. Media stays with the original; the
     duplicate starts with none (duplicates the LISTING, not photos). */
+async function removeAssetForPartner(kind, id) {
+  if (!['property', 'development'].includes(kind) || !id) {
+    return {
+      data: null,
+      error: {
+        type: 'malformed_response',
+        context: 'admin.removeAssetForPartner',
+        message: 'kind must be property/development and id is required.'
+      }
+    };
+  }
+
+  const client = getSupabaseClient();
+
+  return safeQuery(
+    () => client.rpc('zfind_partner_remove_asset', {
+      p_kind: kind,
+      p_asset_id: id
+    }),
+    'admin.removeAssetForPartner'
+  );
+}
+
 async function duplicateProperty(id) {
   const client = getSupabaseClient();
   return safeQuery(
@@ -679,7 +702,7 @@ return {
   getDashboardCounts,
   listPartners, getPartnerById, createPartner, updatePartner, deletePartner, uploadPartnerLogo,
   listDevelopments, getDevelopmentForEdit, createDevelopment, updateDevelopment, deleteDevelopment, duplicateDevelopment, createDevelopmentForPartner,
-  listProperties, getPropertyForEdit, createProperty, updateProperty, deleteProperty, duplicateProperty, createPropertyForPartner,
+  listProperties, getPropertyForEdit, createProperty, updateProperty, deleteProperty, duplicateProperty, createPropertyForPartner, removeAssetForPartner,
   upsertListingContent, setListingStatus, setRepresentationStatus, createInitialListing,
   uploadListingMedia, listListingMedia, reorderListingMedia, setCoverMedia, deleteListingMedia,
   uploadDevelopmentMedia, listDevelopmentMedia, reorderDevelopmentMedia, setCoverDevelopmentMedia, deleteDevelopmentMedia,
