@@ -101,7 +101,7 @@ async function getDevelopmentForEdit(id) {
   return safeQuery(
     () => client.from('developments').select(`
       *, zones_lite(id,name,city,country_iso),
-      representations(id, status, partner_id, listings(id, price_current, currency_iso, price_is_from, status, listing_content(locale,title,description)))
+      representations(id, status, partner_id, listings(id, channel, transaction_type, rental_period, price_current, currency_iso, price_is_from, status, listing_content(locale,title,description)))
     `).eq('id', id).single(),
     'admin.getDevelopmentForEdit'
   );
@@ -170,7 +170,7 @@ async function listProperties(searchText) {
   const client = getSupabaseClient();
   const q = client.from('properties').select(`
     id, subtype, typology, area_sqm, zone_lite_id, zones_lite(name,city),
-    representations(id, status, partner_id, partners(name), listings(id, price_current, currency_iso, status, listing_content(locale,title)))
+    representations(id, status, partner_id, partners(name), listings(id, channel, transaction_type, rental_period, price_current, currency_iso, price_is_from, status, listing_content(locale,title)))
   `).order('created_at', { ascending: false });
   const result = await safeQuery(() => q, 'admin.listProperties');
   if (!searchText || result.error) return result;
@@ -194,7 +194,7 @@ async function getPropertyForEdit(id) {
   return safeQuery(
     () => client.from('properties').select(`
       *, zones_lite(id,name,city,country_iso),
-      representations(id, status, partner_id, listings(id, price_current, currency_iso, price_is_from, status, listing_content(locale,title,description)))
+      representations(id, status, partner_id, listings(id, channel, transaction_type, rental_period, price_current, currency_iso, price_is_from, status, listing_content(locale,title,description)))
     `).eq('id', id).single(),
     'admin.getPropertyForEdit'
   );
@@ -354,6 +354,183 @@ async function duplicateProperty(id) {
     'admin.duplicateProperty'
   );
 }
+
+
+/**
+ * Updates only the validated commercial projection of a Listing.
+ *
+ * IMPORTANT:
+ * - no lifecycle/status mutation;
+ * - no representation reassignment;
+ * - no ownership input;
+ * - Partner ownership remains enforced by Listing UPDATE RLS;
+ * - authenticated column grants remain the authority boundary.
+ *
+ * transaction_type and rental_period are submitted together whenever
+ * transaction intent changes so the database invariant is never
+ * transiently violated.
+ */
+async function updateListingCommercial(listingId, fields) {
+  if (!listingId) {
+    return {
+      data: null,
+      error: {
+        type: 'malformed_response',
+        context: 'admin.updateListingCommercial',
+        message: 'listingId is required.'
+      }
+    };
+  }
+
+  const input = fields || {};
+  const patch = {};
+
+  if (input.channel !== undefined) {
+    if (!['standard', 'offmarket'].includes(input.channel)) {
+      return {
+        data: null,
+        error: {
+          type: 'validation_error',
+          context: 'admin.updateListingCommercial',
+          message: 'channel must be standard or offmarket.'
+        }
+      };
+    }
+
+    patch.channel = input.channel;
+  }
+
+  if (input.transactionType !== undefined) {
+    if (!['sale', 'rent'].includes(input.transactionType)) {
+      return {
+        data: null,
+        error: {
+          type: 'validation_error',
+          context: 'admin.updateListingCommercial',
+          message: 'transactionType must be sale or rent.'
+        }
+      };
+    }
+
+    patch.transaction_type = input.transactionType;
+
+    if (input.transactionType === 'sale') {
+      patch.rental_period = null;
+    } else {
+      if (
+        !['monthly', 'seasonal', 'yearly']
+          .includes(input.rentalPeriod)
+      ) {
+        return {
+          data: null,
+          error: {
+            type: 'validation_error',
+            context: 'admin.updateListingCommercial',
+            message:
+              'A rental Listing requires monthly, seasonal or yearly.'
+          }
+        };
+      }
+
+      patch.rental_period = input.rentalPeriod;
+    }
+  } else if (input.rentalPeriod !== undefined) {
+    if (
+      input.rentalPeriod !== null &&
+      !['monthly', 'seasonal', 'yearly']
+        .includes(input.rentalPeriod)
+    ) {
+      return {
+        data: null,
+        error: {
+          type: 'validation_error',
+          context: 'admin.updateListingCommercial',
+          message: 'Invalid rentalPeriod.'
+        }
+      };
+    }
+
+    patch.rental_period = input.rentalPeriod;
+  }
+
+  if (input.priceCurrent !== undefined) {
+    const price = Number(input.priceCurrent);
+
+    if (!Number.isFinite(price) || price < 0) {
+      return {
+        data: null,
+        error: {
+          type: 'validation_error',
+          context: 'admin.updateListingCommercial',
+          message: 'priceCurrent must be a non-negative number.'
+        }
+      };
+    }
+
+    patch.price_current = price;
+  }
+
+  if (input.currencyIso !== undefined) {
+    const currency = String(input.currencyIso || '')
+      .trim()
+      .toUpperCase();
+
+    if (!/^[A-Z]{3}$/.test(currency)) {
+      return {
+        data: null,
+        error: {
+          type: 'validation_error',
+          context: 'admin.updateListingCommercial',
+          message: 'currencyIso must be a 3-letter ISO currency code.'
+        }
+      };
+    }
+
+    patch.currency_iso = currency;
+  }
+
+  if (input.priceIsFrom !== undefined) {
+    if (typeof input.priceIsFrom !== 'boolean') {
+      return {
+        data: null,
+        error: {
+          type: 'validation_error',
+          context: 'admin.updateListingCommercial',
+          message: 'priceIsFrom must be boolean.'
+        }
+      };
+    }
+
+    patch.price_is_from = input.priceIsFrom;
+  }
+
+  if (!Object.keys(patch).length) {
+    return {
+      data: null,
+      error: {
+        type: 'validation_error',
+        context: 'admin.updateListingCommercial',
+        message: 'No commercial Listing fields supplied.'
+      }
+    };
+  }
+
+  const client = getSupabaseClient();
+
+  return safeQuery(
+    () => client
+      .from('listings')
+      .update(patch)
+      .eq('id', listingId)
+      .select(
+        'id, channel, transaction_type, rental_period, ' +
+        'price_current, currency_iso, price_is_from, tier, status'
+      )
+      .single(),
+    'admin.updateListingCommercial'
+  );
+}
+
 
 /* ---------------- Translations (listing_content) ---------------- */
 
@@ -915,7 +1092,7 @@ return {
   listPartners, getPartnerById, createPartner, updatePartner, deletePartner, uploadPartnerLogo,
   listDevelopments, getDevelopmentForEdit, createDevelopment, updateDevelopment, deleteDevelopment, duplicateDevelopment, createDevelopmentForPartner,
   listProperties, getPropertyForEdit, createProperty, updateProperty, deleteProperty, duplicateProperty, createPropertyForPartner, removeAssetForPartner,
-  upsertListingContent, setListingStatus, setRepresentationStatus, createInitialListing,
+  upsertListingContent, updateListingCommercial, setListingStatus, setRepresentationStatus, createInitialListing,
   uploadListingMedia, listListingMedia, reorderListingMedia, setCoverMedia, deleteListingMedia,
   uploadDevelopmentMedia, listDevelopmentMedia, reorderDevelopmentMedia, setCoverDevelopmentMedia, deleteDevelopmentMedia,
   listLeads, getLeadById,

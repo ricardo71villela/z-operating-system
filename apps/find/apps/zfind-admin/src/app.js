@@ -628,6 +628,247 @@ async function deleteAsset(kind, id, backView) {
     so it cannot be published or photographed until one exists.
     Routed through admin.createInitialListing() — the UI itself never
     calls Supabase directly (this previously did, corrected here). */
+
+function renderListingCommercialEditor(listing) {
+  if (!listing) return '';
+
+  const transactionType =
+    listing.transaction_type === 'rent' ? 'rent' : 'sale';
+
+  const rentalPeriod =
+    ['monthly', 'seasonal', 'yearly']
+      .includes(listing.rental_period)
+      ? listing.rental_period
+      : 'monthly';
+
+  const channel =
+    listing.channel === 'offmarket'
+      ? 'offmarket'
+      : 'standard';
+
+  const currency =
+    String(listing.currency_iso || 'EUR')
+      .replace(/[^A-Za-z]/g, '')
+      .slice(0, 3)
+      .toUpperCase();
+
+  const price =
+    Number.isFinite(Number(listing.price_current))
+      ? Number(listing.price_current)
+      : 0;
+
+  return `
+    <div
+      id="listing-commercial-editor"
+      style="
+        margin:18px 0;
+        padding:18px;
+        border:1px solid #e7e7e7;
+        border-radius:10px;
+        background:#fff;
+      "
+    >
+      <div style="margin-bottom:14px;">
+        <strong>Commercial terms</strong>
+        <div style="font-size:.8rem;color:#777;margin-top:4px;">
+          Market terms only. Listing and Representation lifecycle remain
+          controlled separately.
+        </div>
+      </div>
+
+      <div
+        style="
+          display:grid;
+          grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+          gap:12px;
+        "
+      >
+        <label>
+          <span>Market</span>
+          <select
+            id="listing-transaction-type"
+            onchange="syncListingRentalPeriodControl()"
+          >
+            <option value="sale" ${
+              transactionType === 'sale' ? 'selected' : ''
+            }>Sale</option>
+            <option value="rent" ${
+              transactionType === 'rent' ? 'selected' : ''
+            }>Rental</option>
+          </select>
+        </label>
+
+        <label
+          id="listing-rental-period-wrap"
+          style="${
+            transactionType === 'rent'
+              ? ''
+              : 'display:none;'
+          }"
+        >
+          <span>Rental period</span>
+          <select id="listing-rental-period">
+            <option value="monthly" ${
+              rentalPeriod === 'monthly' ? 'selected' : ''
+            }>Monthly</option>
+            <option value="seasonal" ${
+              rentalPeriod === 'seasonal' ? 'selected' : ''
+            }>Seasonal</option>
+            <option value="yearly" ${
+              rentalPeriod === 'yearly' ? 'selected' : ''
+            }>Yearly</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Price</span>
+          <input
+            id="listing-price-current"
+            type="number"
+            min="0"
+            step="0.01"
+            value="${price}"
+          >
+        </label>
+
+        <label>
+          <span>Currency</span>
+          <input
+            id="listing-currency-iso"
+            type="text"
+            maxlength="3"
+            value="${currency}"
+            placeholder="EUR"
+          >
+        </label>
+
+        <label>
+          <span>Distribution</span>
+          <select id="listing-channel">
+            <option value="standard" ${
+              channel === 'standard' ? 'selected' : ''
+            }>Standard</option>
+            <option value="offmarket" ${
+              channel === 'offmarket' ? 'selected' : ''
+            }>Off-market</option>
+          </select>
+        </label>
+
+        <label style="display:flex;align-items:center;gap:8px;">
+          <input
+            id="listing-price-is-from"
+            type="checkbox"
+            ${listing.price_is_from ? 'checked' : ''}
+          >
+          <span>Price is “from”</span>
+        </label>
+      </div>
+
+      <button
+        class="btn btn-primary"
+        style="margin-top:14px;"
+        onclick="saveListingCommercial('${listing.id}')"
+      >
+        Save commercial terms
+      </button>
+    </div>
+  `;
+}
+
+
+function syncListingRentalPeriodControl() {
+  const type = document.getElementById(
+    'listing-transaction-type'
+  );
+
+  const wrap = document.getElementById(
+    'listing-rental-period-wrap'
+  );
+
+  const period = document.getElementById(
+    'listing-rental-period'
+  );
+
+  if (!type || !wrap) return;
+
+  const isRent = type.value === 'rent';
+
+  wrap.style.display = isRent ? '' : 'none';
+
+  if (
+    isRent &&
+    period &&
+    !['monthly', 'seasonal', 'yearly']
+      .includes(period.value)
+  ) {
+    period.value = 'monthly';
+  }
+}
+
+
+async function saveListingCommercial(listingId) {
+  const transactionType =
+    document.getElementById(
+      'listing-transaction-type'
+    ).value;
+
+  const rentalPeriod =
+    transactionType === 'rent'
+      ? document.getElementById(
+          'listing-rental-period'
+        ).value
+      : null;
+
+  const priceCurrent =
+    document.getElementById(
+      'listing-price-current'
+    ).value;
+
+  const currencyIso =
+    document.getElementById(
+      'listing-currency-iso'
+    ).value;
+
+  const channel =
+    document.getElementById(
+      'listing-channel'
+    ).value;
+
+  const priceIsFrom =
+    document.getElementById(
+      'listing-price-is-from'
+    ).checked;
+
+  const result =
+    await window.ZFindServices.admin
+      .updateListingCommercial(
+        listingId,
+        {
+          transactionType,
+          rentalPeriod,
+          priceCurrent,
+          currencyIso,
+          channel,
+          priceIsFrom
+        }
+      );
+
+  showStatus(
+    result.error ? 'error' : 'success',
+    result.error
+      ? (
+          result.error.message ||
+          'Could not save commercial terms.'
+        )
+      : 'Commercial terms saved.'
+  );
+
+  if (!result.error) {
+    syncListingRentalPeriodControl();
+  }
+}
+
+
 async function createInitialListingUi(kind, ownerId, existingPartnerId) {
   let partnerId = existingPartnerId;
   if (!partnerId) {

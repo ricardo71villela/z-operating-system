@@ -333,6 +333,244 @@ async function saveFeatures(kind, id) {
 
 /* ---------------- Partner Listing / Content / Media workspace ---------------- */
 
+
+function renderPartnerListingCommercialEditor(listing) {
+  const transactionType =
+    listing.transaction_type === 'rent'
+      ? 'rent'
+      : 'sale';
+
+  const rentalPeriod =
+    ['monthly', 'seasonal', 'yearly']
+      .includes(listing.rental_period)
+      ? listing.rental_period
+      : 'monthly';
+
+  const channel =
+    listing.channel === 'offmarket'
+      ? 'offmarket'
+      : 'standard';
+
+  const currency =
+    escapeHtmlPartner(
+      String(listing.currency_iso || 'EUR')
+        .replace(/[^A-Za-z]/g, '')
+        .slice(0, 3)
+        .toUpperCase()
+    );
+
+  const price =
+    Number.isFinite(Number(listing.price_current))
+      ? Number(listing.price_current)
+      : 0;
+
+  return `
+    <div
+      id="partner-listing-commercial-editor"
+      style="
+        border:1px solid #e5e5e5;
+        border-radius:10px;
+        padding:16px;
+        margin-bottom:18px;
+        background:#fff;
+      "
+    >
+      <h3 style="margin:0 0 5px;">Commercial terms</h3>
+
+      <p style="margin:0 0 14px;color:#777;font-size:.82rem;">
+        You control the commercial terms of your Listing.
+        Publication and lifecycle remain controlled by Z Find.
+      </p>
+
+      <div
+        style="
+          display:grid;
+          grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+          gap:12px;
+        "
+      >
+        <label>
+          <span>Market</span>
+          <select
+            id="partner-listing-transaction-type"
+            onchange="syncPartnerRentalPeriodControl()"
+          >
+            <option value="sale" ${
+              transactionType === 'sale' ? 'selected' : ''
+            }>Sale</option>
+            <option value="rent" ${
+              transactionType === 'rent' ? 'selected' : ''
+            }>Rental</option>
+          </select>
+        </label>
+
+        <label
+          id="partner-listing-rental-period-wrap"
+          style="${
+            transactionType === 'rent'
+              ? ''
+              : 'display:none;'
+          }"
+        >
+          <span>Rental period</span>
+          <select id="partner-listing-rental-period">
+            <option value="monthly" ${
+              rentalPeriod === 'monthly' ? 'selected' : ''
+            }>Monthly</option>
+            <option value="seasonal" ${
+              rentalPeriod === 'seasonal' ? 'selected' : ''
+            }>Seasonal</option>
+            <option value="yearly" ${
+              rentalPeriod === 'yearly' ? 'selected' : ''
+            }>Yearly</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Price</span>
+          <input
+            id="partner-listing-price-current"
+            type="number"
+            min="0"
+            step="0.01"
+            value="${price}"
+          >
+        </label>
+
+        <label>
+          <span>Currency</span>
+          <input
+            id="partner-listing-currency-iso"
+            type="text"
+            maxlength="3"
+            value="${currency}"
+            placeholder="EUR"
+          >
+        </label>
+
+        <label>
+          <span>Distribution</span>
+          <select id="partner-listing-channel">
+            <option value="standard" ${
+              channel === 'standard' ? 'selected' : ''
+            }>Standard</option>
+            <option value="offmarket" ${
+              channel === 'offmarket' ? 'selected' : ''
+            }>Off-market</option>
+          </select>
+        </label>
+
+        <label style="display:flex;align-items:center;gap:8px;">
+          <input
+            id="partner-listing-price-is-from"
+            type="checkbox"
+            ${listing.price_is_from ? 'checked' : ''}
+          >
+          <span>Price is “from”</span>
+        </label>
+      </div>
+
+      <button
+        class="btn btn-primary"
+        style="margin-top:14px;"
+        onclick="
+          savePartnerListingCommercial(
+            '${listing.id}'
+          )
+        "
+      >
+        Save commercial terms
+      </button>
+    </div>
+  `;
+}
+
+
+function syncPartnerRentalPeriodControl() {
+  const type = document.getElementById(
+    'partner-listing-transaction-type'
+  );
+
+  const wrap = document.getElementById(
+    'partner-listing-rental-period-wrap'
+  );
+
+  const period = document.getElementById(
+    'partner-listing-rental-period'
+  );
+
+  if (!type || !wrap) return;
+
+  const isRent = type.value === 'rent';
+
+  wrap.style.display = isRent ? '' : 'none';
+
+  if (
+    isRent &&
+    period &&
+    !['monthly', 'seasonal', 'yearly']
+      .includes(period.value)
+  ) {
+    period.value = 'monthly';
+  }
+}
+
+
+async function savePartnerListingCommercial(listingId) {
+  const transactionType =
+    document.getElementById(
+      'partner-listing-transaction-type'
+    ).value;
+
+  const rentalPeriod =
+    transactionType === 'rent'
+      ? document.getElementById(
+          'partner-listing-rental-period'
+        ).value
+      : null;
+
+  const result =
+    await window.ZFindServices.admin
+      .updateListingCommercial(
+        listingId,
+        {
+          transactionType,
+          rentalPeriod,
+          priceCurrent:
+            document.getElementById(
+              'partner-listing-price-current'
+            ).value,
+          currencyIso:
+            document.getElementById(
+              'partner-listing-currency-iso'
+            ).value,
+          channel:
+            document.getElementById(
+              'partner-listing-channel'
+            ).value,
+          priceIsFrom:
+            document.getElementById(
+              'partner-listing-price-is-from'
+            ).checked
+        }
+      );
+
+  showStatus(
+    result.error ? 'error' : 'success',
+    result.error
+      ? (
+          result.error.message ||
+          'Could not save commercial terms.'
+        )
+      : 'Commercial terms saved.'
+  );
+
+  if (!result.error) {
+    syncPartnerRentalPeriodControl();
+  }
+}
+
+
 async function loadPartnerListingWorkspace(kind, assetId) {
   const host = document.getElementById('view-detail');
   if (!host) return;
@@ -470,6 +708,7 @@ async function loadPartnerListingWorkspace(kind, assetId) {
   }).join('');
 
   body.innerHTML = `
+      ${renderPartnerListingCommercialEditor(listing)}
     <div
       style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px;"
     >
