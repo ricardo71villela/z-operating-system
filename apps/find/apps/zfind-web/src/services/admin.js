@@ -518,15 +518,37 @@ async function deleteDevelopmentMedia(developmentId, mediaAssetId, storagePath) 
     a direct Supabase call inside app.js — moved here so the UI never
     writes to Supabase directly, matching every other operation. */
 async function createInitialListing(kind, ownerId, partnerId) {
+  if (!['property', 'development'].includes(kind)) {
+    return {
+      data: null,
+      error: {
+        type: 'malformed_response',
+        context: 'admin.createInitialListing',
+        message: 'kind must be property or development.'
+      }
+    };
+  }
+
+  if (!ownerId || !partnerId) {
+    return {
+      data: null,
+      error: {
+        type: 'malformed_response',
+        context: 'admin.createInitialListing',
+        message: 'ownerId and partnerId are required.'
+      }
+    };
+  }
+
   const client = getSupabaseClient();
-  const repInsert = kind === 'development'
-    ? { target_type: 'development', development_id: ownerId, partner_id: partnerId, status: 'proposed' }
-    : { target_type: 'property', property_id: ownerId, partner_id: partnerId, status: 'proposed' };
-  const rep = await safeQuery(() => client.from('representations').insert(repInsert).select().single(), 'admin.createInitialListing:representation');
-  if (rep.error) return rep;
+
   return safeQuery(
-    () => client.from('listings').insert({ representation_id: rep.data.id, channel: 'standard', price_current: 0, currency_iso: 'EUR', status: 'draft' }).select().single(),
-    'admin.createInitialListing:listing'
+    () => client.rpc('zfind_admin_create_initial_listing', {
+      p_kind: kind,
+      p_owner_id: ownerId,
+      p_partner_id: partnerId
+    }),
+    'admin.createInitialListing'
   );
 }
 
