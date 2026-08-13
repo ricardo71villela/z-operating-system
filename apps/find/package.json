@@ -33,7 +33,7 @@
     "check:syntax": "node scripts/check-js-syntax.js",
     "check:migrations": "node scripts/validate-migrations.js",
     "check:zos": "node scripts/validate-zos-alignment.js",
-    "check": "npm run test && npm run test:seo-pages && npm run test:zos-alignment && npm run test:identity-service && npm run test:registry-service && npm run test:verification-service && npm run test:observation-service && npm run test:partner-dashboard-service && npm run test:partner-atomic-create-service && npm run test:admin-atomic-initial-listing && npm run check:syntax && npm run check:migrations && npm run check:zos && npm run test:admin-compound-atomic && npm run test:marketplace-lifecycle-hardening && npm run test:partner-asset-ownership-hardening && npm run test:partner-safe-remove && npm run test:partner-content-media-boundary && npm run test:final-surface-boundary && npm run test:rental-market-foundation && npm run test:rental-public-surface && npm run test:rental-authoring-surface && npm run test:rental-duplication-bootstrap",
+    "check": "npm run test && npm run test:seo-pages && npm run test:zos-alignment && npm run test:identity-service && npm run test:registry-service && npm run test:verification-service && npm run test:observation-service && npm run test:partner-dashboard-service && npm run test:partner-atomic-create-service && npm run test:admin-atomic-initial-listing && npm run check:syntax && npm run check:migrations && npm run check:zos && npm run test:admin-compound-atomic && npm run test:marketplace-lifecycle-hardening && npm run test:partner-asset-ownership-hardening && npm run test:partner-safe-remove && npm run test:partner-content-media-boundary && npm run test:final-surface-boundary && npm run test:rental-market-foundation && npm run test:rental-public-surface && npm run test:rental-authoring-surface && npm run test:rental-duplication-bootstrap && npm run test:public-rls-runtime-convergence",
     "test:identity-service": "node tests/unit/identity-service.test.js",
     "test:registry-service": "node tests/unit/registry-service.test.js",
     "test:verification-service": "node tests/unit/verification-service.test.js",
@@ -50,7 +50,8 @@
     "test:rental-market-foundation": "node tests/unit/rental-market-foundation.test.js",
     "test:rental-public-surface": "node tests/unit/rental-public-surface.test.js",
     "test:rental-authoring-surface": "node tests/unit/rental-authoring-surface.test.js",
-    "test:rental-duplication-bootstrap": "node tests/unit/rental-duplication-bootstrap.test.js"
+    "test:rental-duplication-bootstrap": "node tests/unit/rental-duplication-bootstrap.test.js",
+    "test:public-rls-runtime-convergence": "node tests/unit/public-rls-runtime-convergence.test.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.8",
