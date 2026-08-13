@@ -58,11 +58,43 @@ async function mockRoutes(page, { devData, devStatus, devFail, units }) {
   });
 }
 
+
+/*
+ * Browser compatibility for local/CI verification.
+ *
+ * Prefer Playwright's bundled Chromium. If that executable is
+ * unavailable on this development machine, use installed Chrome.
+ * Application/product behaviour is unaffected.
+ */
+async function launchCompatibleChromium() {
+  try {
+    return await chromium.launch({ headless: true });
+  } catch (error) {
+    const message = String(
+      error && error.message ? error.message : error
+    );
+
+    if (!/Executable doesn't exist/i.test(message)) {
+      throw error;
+    }
+
+    console.log(
+      'INFO: bundled Chromium unavailable; ' +
+      'using installed Google Chrome.'
+    );
+
+    return chromium.launch({
+      channel: 'chrome',
+      headless: true
+    });
+  }
+}
+
 async function run() {
   let pass = 0, fail = 0;
   function assert(cond, label) { if (cond) { pass++; console.log('  ✅', label); } else { fail++; console.log('  ❌', label); } }
 
-  const browser = await chromium.launch(process.env.LOCAL_SANDBOX_CHROMIUM_PATH ? { executablePath: process.env.LOCAL_SANDBOX_CHROMIUM_PATH } : {});
+  const browser = await launchCompatibleChromium();
 
   // ---- Scenario 1: Development loads correctly ----
   console.log('\n=== Scenario 1: Development loads correctly ===');
