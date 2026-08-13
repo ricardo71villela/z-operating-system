@@ -238,33 +238,34 @@ async function createProperty({ subtype, typology, areaSqm, floor, zoneLiteId, d
 /** For the Partner Dashboard's own "+ New" flow — a plain
     createProperty() leaves the partner unable to see their own new
     row again, since the SELECT policy (Migration 0006) requires an
-    existing representation. Creates both in sequence, using
+    existing representation. The Partner command creates both atomically, using
     'proposed' status (not yet an active, live listing — that's a
     separate, deliberate step, not implied by just creating a
     draft). Sensible minimal defaults; full field editing is a
     separate, later flow. */
-async function createPropertyForPartner(partnerId, fields) {
-  const propResult = await createProperty(fields);
-  if (propResult.error) return propResult;
+async function createPropertyForPartner(fields) {
   const client = getSupabaseClient();
-  const repResult = await safeQuery(
-    () => client.from('representations').insert({ target_type: 'property', property_id: propResult.data.id, partner_id: partnerId, status: 'proposed' }).select().single(),
-    'admin.createPropertyForPartner:representation'
+  return safeQuery(
+    () => client.rpc('zfind_partner_create_property', {
+      p_subtype: fields.subtype,
+      p_typology: fields.typology ?? null,
+      p_area_sqm: fields.areaSqm ?? null,
+      p_floor: fields.floor ?? null,
+      p_zone_lite_id: fields.zoneLiteId ?? null
+    }),
+    'admin.createPropertyForPartner'
   );
-  if (repResult.error) return repResult;
-  return { data: propResult.data, error: null };
 }
 
-async function createDevelopmentForPartner(partnerId, fields) {
-  const devResult = await createDevelopment(fields);
-  if (devResult.error) return devResult;
+async function createDevelopmentForPartner(fields) {
   const client = getSupabaseClient();
-  const repResult = await safeQuery(
-    () => client.from('representations').insert({ target_type: 'development', development_id: devResult.data.id, partner_id: partnerId, status: 'proposed' }).select().single(),
-    'admin.createDevelopmentForPartner:representation'
+  return safeQuery(
+    () => client.rpc('zfind_partner_create_development', {
+      p_name: fields.name,
+      p_zone_lite_id: fields.zoneLiteId ?? null
+    }),
+    'admin.createDevelopmentForPartner'
   );
-  if (repResult.error) return repResult;
-  return { data: devResult.data, error: null };
 }
 
 async function updateProperty(id, fields) {

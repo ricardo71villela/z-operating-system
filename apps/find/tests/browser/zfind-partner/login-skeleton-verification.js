@@ -136,58 +136,53 @@ async function run() {
     await page.close();
   }
 
-  console.log('\n=== 9. Creating a new property inserts BOTH the property and a representation linking it to this partner ===');
+  console.log('\n=== 9. Creating a new property uses one atomic Partner RPC ===');
   {
     const page = await browser.newPage();
     await mockAuth(page, { profileRole: 'partner_user', partnerId: 'partner-1', partnerName: 'Alma Imóveis' });
-    let propertyInsertPayload = null, representationInsertPayload = null;
-    await page.route('**/rest/v1/properties**', route => {
-      if (route.request().method() === 'POST') { propertyInsertPayload = route.request().postDataJSON(); return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ ...propertyInsertPayload, id: 'new-prop-1' }) }); }
-      route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
-    });
-    await page.route('**/rest/v1/representations**', route => {
-      if (route.request().method() === 'POST') { representationInsertPayload = route.request().postDataJSON(); return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ ...representationInsertPayload, id: 'new-rep-1' }) }); }
-      route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
-    });
-    await page.route('**/rest/v1/developments**', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
+    let propertyRpcPayload = null;
+await page.route('**/rest/v1/rpc/zfind_partner_create_property', route => {
+  propertyRpcPayload = route.request().postDataJSON();
+  return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'new-prop-1', subtype: 'apartment' }) });
+});
+await page.route('**/rest/v1/properties**', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
+await page.route('**/rest/v1/developments**', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
     await login(page);
     await page.waitForTimeout(400);
     await page.click('text=+ New property');
     await page.waitForTimeout(400);
-    assert(propertyInsertPayload && propertyInsertPayload.subtype === 'apartment', 'Property created with a sensible default (apartment)');
-    assert(representationInsertPayload && representationInsertPayload.partner_id === 'partner-1' && representationInsertPayload.property_id === 'new-prop-1', 'Representation correctly links the NEW property to THIS partner — never left orphaned');
-    assert(representationInsertPayload && representationInsertPayload.status === 'proposed', 'Starts as proposed, not silently live/active');
-    await page.close();
+    assert(propertyRpcPayload && propertyRpcPayload.p_subtype === 'apartment', 'Property RPC receives the sensible default subtype (apartment)');
+assert(propertyRpcPayload && propertyRpcPayload.p_typology === null && propertyRpcPayload.p_zone_lite_id === null, 'Property RPC preserves the minimal draft defaults');
+assert(propertyRpcPayload && !Object.prototype.hasOwnProperty.call(propertyRpcPayload, 'partner_id'), 'Partner ownership is never supplied by the browser — the RPC derives it from auth.uid()');
+await page.close();
   }
 
-  console.log('\n=== 10. Creating a new development: form flow requires a name, then creates + represents ===');
+  console.log('\n=== 10. Creating a new development validates the form, then uses one atomic Partner RPC ===');
   {
     const page = await browser.newPage();
     await mockAuth(page, { profileRole: 'partner_user', partnerId: 'partner-1', partnerName: 'Alma Imóveis' });
-    let devInsertPayload = null, representationInsertPayload = null;
-    await page.route('**/rest/v1/properties**', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
-    await page.route('**/rest/v1/developments**', route => {
-      if (route.request().method() === 'POST') { devInsertPayload = route.request().postDataJSON(); return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ ...devInsertPayload, id: 'new-dev-1' }) }); }
-      route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
-    });
-    await page.route('**/rest/v1/representations**', route => {
-      if (route.request().method() === 'POST') { representationInsertPayload = route.request().postDataJSON(); return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ ...representationInsertPayload, id: 'new-rep-1' }) }); }
-      route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
-    });
-    await login(page);
+    let developmentRpcPayload = null;
+await page.route('**/rest/v1/properties**', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
+await page.route('**/rest/v1/rpc/zfind_partner_create_development', route => {
+  developmentRpcPayload = route.request().postDataJSON();
+  return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'new-dev-1', name: 'Alma Living Test' }) });
+});
+await page.route('**/rest/v1/developments**', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
+await login(page);
     await page.waitForTimeout(400);
     await page.click('text=+ New development');
     await page.waitForTimeout(200);
     assert(await page.locator('#new-dev-form').isVisible(), 'Development form opens');
     await page.click('#new-dev-save');
     await page.waitForTimeout(200);
-    assert(!devInsertPayload, 'Refuses to create with an empty name — never sends the request');
+    assert(!developmentRpcPayload, 'Refuses to create with an empty name — never sends the RPC request');
     await page.fill('#new-dev-name', 'Alma Living Test');
     await page.click('#new-dev-save');
     await page.waitForTimeout(400);
-    assert(devInsertPayload && devInsertPayload.name === 'Alma Living Test', 'Development created with the real name entered');
-    assert(representationInsertPayload && representationInsertPayload.partner_id === 'partner-1' && representationInsertPayload.development_id === 'new-dev-1', 'Representation correctly links the new development to this partner');
-    assert(!(await page.locator('#new-dev-form').isVisible()), 'Form closes after a successful save');
+    assert(developmentRpcPayload && developmentRpcPayload.p_name === 'Alma Living Test', 'Development RPC receives the real name entered');
+assert(developmentRpcPayload && developmentRpcPayload.p_zone_lite_id === null, 'Development RPC preserves the minimal draft defaults');
+assert(developmentRpcPayload && !Object.prototype.hasOwnProperty.call(developmentRpcPayload, 'partner_id'), 'Partner ownership is never supplied by the browser — the RPC derives it from auth.uid()');
+assert(!(await page.locator('#new-dev-form').isVisible()), 'Form closes after a successful save');
     await page.close();
   }
 

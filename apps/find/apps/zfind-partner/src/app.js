@@ -44,7 +44,6 @@ async function handlePartnerLogin() {
   btn.textContent = 'Sign in';
 }
 
-let currentPartnerId = null;
 
 /** Same discipline as the Admin's role !== 'admin' check — a
     successful Supabase login is NOT the same as being allowed into
@@ -62,7 +61,6 @@ async function tryEnterDashboard() {
   }
 
   const partnerId = profileResult.data.partner_id;
-  currentPartnerId = partnerId;
   const partnerResult = await window.ZFindServices.partnerDashboard.getOwnPartnerSummary(partnerId);
 
   document.getElementById('view-login').style.display = 'none';
@@ -119,7 +117,7 @@ function escapeHtmlPartner(s) { return String(s == null ? '' : s).replace(/[&<>"
     established for the Admin. Full field editing is a separate,
     later step, not this one. */
 async function createNewProperty() {
-  const result = await window.ZFindServices.admin.createPropertyForPartner(currentPartnerId, { subtype: 'apartment', typology: null, areaSqm: null, floor: null, zoneLiteId: null });
+  const result = await window.ZFindServices.admin.createPropertyForPartner({ subtype: 'apartment', typology: null, areaSqm: null, floor: null, zoneLiteId: null });
   if (result.error) { alert('Could not create property.'); return; }
   loadPortfolio();
 }
@@ -137,7 +135,7 @@ async function saveNewDevelopment() {
   const name = document.getElementById('new-dev-name').value.trim();
   const errorEl = document.getElementById('new-dev-error');
   if (!name) { errorEl.textContent = 'Enter a name for the development.'; return; }
-  const result = await window.ZFindServices.admin.createDevelopmentForPartner(currentPartnerId, { name, zoneLiteId: null });
+  const result = await window.ZFindServices.admin.createDevelopmentForPartner({ name, zoneLiteId: null });
   if (result.error) { errorEl.textContent = 'Could not create development.'; return; }
   closeNewDevelopmentForm();
   loadPortfolio();
@@ -251,7 +249,6 @@ async function saveFeatures(kind, id) {
 
 async function handlePartnerSignOut() {
   await window.ZFindServices.auth.signOut();
-  currentPartnerId = null;
   document.getElementById('view-dashboard').style.display = 'none';
   document.getElementById('view-detail').style.display = 'none';
   document.getElementById('view-leads').style.display = 'none';
