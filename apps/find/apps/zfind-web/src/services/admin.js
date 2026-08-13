@@ -585,6 +585,218 @@ async function createInitialListing(kind, ownerId, partnerId) {
   );
 }
 
+
+/* ---------------- Partner Listing workspace ---------------- */
+
+async function getPartnerListingForAsset(kind, assetId) {
+  if (!['property', 'development'].includes(kind) || !assetId) {
+    return {
+      data: null,
+      error: {
+        type: 'malformed_response',
+        context: 'admin.getPartnerListingForAsset',
+        message: 'kind and assetId are required.'
+      }
+    };
+  }
+
+  const client = getSupabaseClient();
+
+  return safeQuery(
+    () => client.rpc('zfind_partner_get_listing_for_asset', {
+      p_kind: kind,
+      p_asset_id: assetId
+    }),
+    'admin.getPartnerListingForAsset',
+    { allowNullData: true }
+  );
+}
+
+async function ensurePartnerDraftListing(kind, assetId) {
+  if (!['property', 'development'].includes(kind) || !assetId) {
+    return {
+      data: null,
+      error: {
+        type: 'malformed_response',
+        context: 'admin.ensurePartnerDraftListing',
+        message: 'kind and assetId are required.'
+      }
+    };
+  }
+
+  const client = getSupabaseClient();
+
+  return safeQuery(
+    () => client.rpc('zfind_partner_ensure_draft_listing', {
+      p_kind: kind,
+      p_asset_id: assetId
+    }),
+    'admin.ensurePartnerDraftListing'
+  );
+}
+
+async function listPartnerEnabledLanguages() {
+  const client = getSupabaseClient();
+  return safeQuery(
+    () => client.rpc('zfind_partner_enabled_languages'),
+    'admin.listPartnerEnabledLanguages',
+    { allowNullData: true }
+  );
+}
+
+async function listPartnerListingContent(listingId) {
+  const client = getSupabaseClient();
+
+  return safeQuery(
+    () => client
+      .from('listing_content')
+      .select('listing_id, locale, title, description, translation_status, content_source, updated_at')
+      .eq('listing_id', listingId)
+      .order('locale'),
+    'admin.listPartnerListingContent',
+    { allowNullData: true }
+  );
+}
+
+async function savePartnerListingContent(listingId, locale, fields) {
+  const client = getSupabaseClient();
+
+  return safeQuery(
+    () => client.rpc('zfind_partner_upsert_listing_content', {
+      p_listing_id: listingId,
+      p_locale: locale,
+      p_title: fields && fields.title != null ? fields.title : '',
+      p_description: fields && fields.description != null
+        ? fields.description
+        : null
+    }),
+    'admin.savePartnerListingContent'
+  );
+}
+
+/*
+ * Upload still uses the mature shared image optimisation/storage
+ * implementation. Database + Storage RLS now prove that the path and
+ * association belong to the authenticated Partner.
+ */
+async function uploadPartnerListingMedia(listingId, file, opts) {
+  return _listingMediaOps.upload(listingId, file, opts);
+}
+
+async function uploadPartnerDevelopmentMedia(developmentId, file, opts) {
+  return _developmentMediaOps.upload(developmentId, file, opts);
+}
+
+async function reorderPartnerListingMedia(listingId, orderedIds) {
+  const client = getSupabaseClient();
+
+  return safeQuery(
+    () => client.rpc('zfind_partner_reorder_media', {
+      p_kind: 'listing',
+      p_owner_id: listingId,
+      p_media_asset_ids: orderedIds
+    }),
+    'admin.reorderPartnerListingMedia'
+  );
+}
+
+async function reorderPartnerDevelopmentMedia(developmentId, orderedIds) {
+  const client = getSupabaseClient();
+
+  return safeQuery(
+    () => client.rpc('zfind_partner_reorder_media', {
+      p_kind: 'development',
+      p_owner_id: developmentId,
+      p_media_asset_ids: orderedIds
+    }),
+    'admin.reorderPartnerDevelopmentMedia'
+  );
+}
+
+async function setPartnerListingMediaCover(listingId, mediaAssetId) {
+  const client = getSupabaseClient();
+
+  return safeQuery(
+    () => client.rpc('zfind_partner_set_media_cover', {
+      p_kind: 'listing',
+      p_owner_id: listingId,
+      p_media_asset_id: mediaAssetId
+    }),
+    'admin.setPartnerListingMediaCover'
+  );
+}
+
+async function setPartnerDevelopmentMediaCover(
+  developmentId,
+  mediaAssetId
+) {
+  const client = getSupabaseClient();
+
+  return safeQuery(
+    () => client.rpc('zfind_partner_set_media_cover', {
+      p_kind: 'development',
+      p_owner_id: developmentId,
+      p_media_asset_id: mediaAssetId
+    }),
+    'admin.setPartnerDevelopmentMediaCover'
+  );
+}
+
+async function _deletePartnerMedia(kind, ownerId, mediaAssetId) {
+  const client = getSupabaseClient();
+
+  const result = await safeQuery(
+    () => client.rpc('zfind_partner_unlink_media', {
+      p_kind: kind,
+      p_owner_id: ownerId,
+      p_media_asset_id: mediaAssetId
+    }),
+    'admin.deletePartnerMedia'
+  );
+
+  if (result.error) return result;
+
+  const payload = result.data || {};
+
+  if (payload.delete_storage && payload.storage_path) {
+    const storageResult = await safeQuery(
+      () => client.storage
+        .from('listing-media')
+        .remove([payload.storage_path]),
+      'admin.deletePartnerMedia:storage',
+      { allowNullData: true }
+    );
+
+    if (storageResult.error) {
+      return {
+        data: payload,
+        error: storageResult.error
+      };
+    }
+  }
+
+  return result;
+}
+
+async function deletePartnerListingMedia(listingId, mediaAssetId) {
+  return _deletePartnerMedia(
+    'listing',
+    listingId,
+    mediaAssetId
+  );
+}
+
+async function deletePartnerDevelopmentMedia(
+  developmentId,
+  mediaAssetId
+) {
+  return _deletePartnerMedia(
+    'development',
+    developmentId,
+    mediaAssetId
+  );
+}
+
 /* ---------------- Leads ---------------- */
 
 async function listLeads(opts) {
@@ -710,6 +922,19 @@ return {
   listUnitsForDevelopment,
   listFeatures, getPropertyFeatureIds, getDevelopmentFeatureIds, setPropertyFeatures, setDevelopmentFeatures,
   listZones,
+  getPartnerListingForAsset,
+  ensurePartnerDraftListing,
+  listPartnerEnabledLanguages,
+  listPartnerListingContent,
+  savePartnerListingContent,
+  uploadPartnerListingMedia,
+  uploadPartnerDevelopmentMedia,
+  reorderPartnerListingMedia,
+  reorderPartnerDevelopmentMedia,
+  setPartnerListingMediaCover,
+  setPartnerDevelopmentMediaCover,
+  deletePartnerListingMedia,
+  deletePartnerDevelopmentMedia,
 };
 
 });

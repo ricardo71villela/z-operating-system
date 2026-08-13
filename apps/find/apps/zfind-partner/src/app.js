@@ -183,6 +183,7 @@ async function openDetail(kind, id) {
     unitsSection.style.display = 'none';
   }
   ensurePartnerRemoveButton(kind, id);
+  loadPartnerListingWorkspace(kind, id);
 }
 
 let currentDevelopmentZoneLiteId = null;
@@ -327,6 +328,623 @@ async function saveFeatures(kind, id) {
     ? await window.ZFindServices.admin.setPropertyFeatures(id, checked)
     : await window.ZFindServices.admin.setDevelopmentFeatures(id, checked);
   showStatus(result.error ? 'error' : 'success', result.error ? 'Could not save features.' : `${checked.length} feature(s) saved.`);
+}
+
+
+/* ---------------- Partner Listing / Content / Media workspace ---------------- */
+
+async function loadPartnerListingWorkspace(kind, assetId) {
+  const host = document.getElementById('view-detail');
+  if (!host) return;
+
+  const old = document.getElementById(
+    'partner-listing-workspace'
+  );
+  if (old) old.remove();
+
+  const zone = document.createElement('div');
+  zone.id = 'partner-listing-workspace';
+  zone.className = 'detail-panel';
+  zone.style.marginTop = '24px';
+
+  zone.innerHTML = `
+    <div class="page-title" style="font-size:1.05rem;">
+      Listing content & media
+    </div>
+    <div id="partner-listing-workspace-body">
+      Loading…
+    </div>
+  `;
+
+  const removeZone = document.getElementById(
+    'partner-remove-asset-zone'
+  );
+
+  if (removeZone && removeZone.parentNode === host) {
+    host.insertBefore(zone, removeZone);
+  } else {
+    host.appendChild(zone);
+  }
+
+  const body = document.getElementById(
+    'partner-listing-workspace-body'
+  );
+
+  const listingResult =
+    await window.ZFindServices.admin
+      .getPartnerListingForAsset(kind, assetId);
+
+  if (listingResult.error) {
+    body.textContent =
+      listingResult.error.message ||
+      'Could not load listing workspace.';
+    return;
+  }
+
+  const listing = listingResult.data;
+
+  if (!listing) {
+    body.innerHTML = `
+      <p style="color:var(--gray-500);margin:0 0 14px;">
+        This asset does not yet have a working Listing.
+        Create a draft to add descriptions and photos.
+      </p>
+      <button
+        type="button"
+        class="btn btn-primary"
+        onclick="createPartnerDraftListing('${kind}','${assetId}')"
+      >Create draft listing</button>
+    `;
+    return;
+  }
+
+  const [
+    languagesResult,
+    contentResult
+  ] = await Promise.all([
+    window.ZFindServices.admin
+      .listPartnerEnabledLanguages(),
+    window.ZFindServices.admin
+      .listPartnerListingContent(listing.id)
+  ]);
+
+  if (languagesResult.error || contentResult.error) {
+    body.textContent = 'Could not load listing content.';
+    return;
+  }
+
+  const languages = languagesResult.data || [];
+  const rows = contentResult.data || [];
+
+  const byLocale = new Map(
+    rows.map(row => [row.locale, row])
+  );
+
+  const localePanels = languages.map(lang => {
+    const row = byLocale.get(lang.code) || {};
+    const label =
+      lang.native_name ||
+      lang.display_name ||
+      lang.code.toUpperCase();
+
+    return `
+      <div
+        style="border:1px solid var(--gray-200);border-radius:10px;padding:14px;margin-bottom:12px;"
+      >
+        <div style="font-weight:600;margin-bottom:10px;">
+          ${escapeHtmlPartner(label)}
+          <span style="font-weight:400;color:var(--gray-500);">
+            · ${escapeHtmlPartner(lang.code.toUpperCase())}
+          </span>
+        </div>
+
+        <div class="form-field" style="margin-bottom:10px;">
+          <label>Title</label>
+          <input
+            type="text"
+            id="partner-content-title-${lang.code}"
+            value="${escapeHtmlPartner(row.title || '')}"
+          >
+        </div>
+
+        <div class="form-field">
+          <label>Description</label>
+          <textarea
+            id="partner-content-description-${lang.code}"
+            rows="6"
+          >${escapeHtmlPartner(row.description || '')}</textarea>
+        </div>
+
+        <div style="margin-top:10px;">
+          <button
+            type="button"
+            class="btn"
+            onclick="savePartnerListingLocale(
+              '${listing.id}',
+              '${lang.code}'
+            )"
+          >Save ${escapeHtmlPartner(lang.code.toUpperCase())}</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  body.innerHTML = `
+    <div
+      style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px;"
+    >
+      <div>
+        <strong>Listing status:</strong>
+        ${escapeHtmlPartner(listing.status)}
+      </div>
+      <div style="font-size:.82rem;color:var(--gray-500);">
+        Publication/lifecycle approval remains controlled by Z Find.
+      </div>
+    </div>
+
+    <div class="page-title" style="font-size:.95rem;">
+      Descriptions
+    </div>
+
+    ${
+      localePanels ||
+      '<p style="color:var(--gray-500);">No enabled languages.</p>'
+    }
+
+    <div
+      class="page-title"
+      style="font-size:.95rem;margin-top:24px;"
+    >
+      Photos
+    </div>
+
+    <div
+      style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;"
+    >
+      <input
+        id="partner-media-file"
+        type="file"
+        accept="image/*"
+      >
+      <button
+        type="button"
+        class="btn btn-primary"
+        onclick="uploadPartnerWorkspaceMedia(
+          '${kind}',
+          '${assetId}',
+          '${listing.id}'
+        )"
+      >Upload photo</button>
+    </div>
+
+    <div
+      id="partner-media-grid"
+      data-asset-kind="${kind}"
+      data-asset-id="${assetId}"
+      data-listing-id="${listing.id}"
+    >
+      Loading photos…
+    </div>
+  `;
+
+  await loadPartnerWorkspaceMedia(
+    kind,
+    assetId,
+    listing.id
+  );
+}
+
+async function createPartnerDraftListing(kind, assetId) {
+  const result =
+    await window.ZFindServices.admin
+      .ensurePartnerDraftListing(kind, assetId);
+
+  if (result.error) {
+    showStatus(
+      'error',
+      result.error.message ||
+      'Could not create draft listing.'
+    );
+    return;
+  }
+
+  showStatus('success', 'Draft listing created.');
+  await loadPartnerListingWorkspace(kind, assetId);
+}
+
+async function savePartnerListingLocale(listingId, locale) {
+  const titleEl = document.getElementById(
+    `partner-content-title-${locale}`
+  );
+  const descriptionEl = document.getElementById(
+    `partner-content-description-${locale}`
+  );
+
+  const result =
+    await window.ZFindServices.admin
+      .savePartnerListingContent(
+        listingId,
+        locale,
+        {
+          title: titleEl ? titleEl.value.trim() : '',
+          description: descriptionEl
+            ? descriptionEl.value.trim()
+            : ''
+        }
+      );
+
+  showStatus(
+    result.error ? 'error' : 'success',
+    result.error
+      ? (
+          result.error.message ||
+          'Could not save content.'
+        )
+      : `${locale.toUpperCase()} content saved.`
+  );
+}
+
+function _partnerWorkspaceMediaFns(kind) {
+  if (kind === 'development') {
+    return {
+      list:
+        window.ZFindServices.admin
+          .listDevelopmentMedia,
+      upload:
+        window.ZFindServices.admin
+          .uploadPartnerDevelopmentMedia,
+      reorder:
+        window.ZFindServices.admin
+          .reorderPartnerDevelopmentMedia,
+      cover:
+        window.ZFindServices.admin
+          .setPartnerDevelopmentMediaCover,
+      remove:
+        window.ZFindServices.admin
+          .deletePartnerDevelopmentMedia
+    };
+  }
+
+  return {
+    list:
+      window.ZFindServices.admin
+        .listListingMedia,
+    upload:
+      window.ZFindServices.admin
+        .uploadPartnerListingMedia,
+    reorder:
+      window.ZFindServices.admin
+        .reorderPartnerListingMedia,
+    cover:
+      window.ZFindServices.admin
+        .setPartnerListingMediaCover,
+    remove:
+      window.ZFindServices.admin
+        .deletePartnerListingMedia
+  };
+}
+
+async function loadPartnerWorkspaceMedia(
+  kind,
+  assetId,
+  listingId
+) {
+  const grid = document.getElementById(
+    'partner-media-grid'
+  );
+  if (!grid) return;
+
+  const mediaKind =
+    kind === 'development'
+      ? 'development'
+      : 'listing';
+
+  const ownerId =
+    mediaKind === 'development'
+      ? assetId
+      : listingId;
+
+  const fns = _partnerWorkspaceMediaFns(kind);
+  const result = await fns.list(ownerId);
+
+  if (result.error) {
+    grid.textContent =
+      result.error.message ||
+      'Could not load photos.';
+    return;
+  }
+
+  const items = (result.data || []).slice().sort(
+    (a, b) =>
+      (a.position || 0) - (b.position || 0)
+  );
+
+  if (!items.length) {
+    grid.innerHTML =
+      '<p style="color:var(--gray-500);">No photos yet.</p>';
+    return;
+  }
+
+  grid.innerHTML = items.map((m, index) => {
+    const asset = m.media_assets || {};
+    const url = m.url || asset.url || '';
+
+    return `
+      <div
+        data-partner-media-id="${m.media_asset_id}"
+        style="display:flex;align-items:center;gap:12px;border:1px solid var(--gray-200);border-radius:10px;padding:10px;margin-bottom:8px;"
+      >
+        ${
+          url
+            ? `<img
+                src="${escapeHtmlPartner(url)}"
+                alt=""
+                style="width:72px;height:54px;object-fit:cover;border-radius:7px;"
+              >`
+            : `<div
+                style="width:72px;height:54px;background:var(--gray-100);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.75rem;"
+              >Photo</div>`
+        }
+
+        <div style="flex:1;">
+          <div style="font-size:.84rem;">
+            Photo ${index + 1}
+            ${
+              m.is_cover
+                ? ' · <strong>Cover</strong>'
+                : ''
+            }
+          </div>
+        </div>
+
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button
+            type="button"
+            class="btn"
+            onclick="movePartnerWorkspaceMedia(
+              '${kind}',
+              '${assetId}',
+              '${listingId}',
+              '${m.media_asset_id}',
+              -1
+            )"
+          >↑</button>
+
+          <button
+            type="button"
+            class="btn"
+            onclick="movePartnerWorkspaceMedia(
+              '${kind}',
+              '${assetId}',
+              '${listingId}',
+              '${m.media_asset_id}',
+              1
+            )"
+          >↓</button>
+
+          ${
+            !m.is_cover
+              ? `<button
+                  type="button"
+                  class="btn"
+                  onclick="setPartnerWorkspaceCover(
+                    '${kind}',
+                    '${assetId}',
+                    '${listingId}',
+                    '${m.media_asset_id}'
+                  )"
+                >Set cover</button>`
+              : ''
+          }
+
+          <button
+            type="button"
+            class="btn"
+            style="border-color:#b42318;color:#b42318;"
+            onclick="deletePartnerWorkspaceMedia(
+              '${kind}',
+              '${assetId}',
+              '${listingId}',
+              '${m.media_asset_id}'
+            )"
+          >Delete</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function uploadPartnerWorkspaceMedia(
+  kind,
+  assetId,
+  listingId
+) {
+  const input = document.getElementById(
+    'partner-media-file'
+  );
+
+  const file =
+    input &&
+    input.files &&
+    input.files[0];
+
+  if (!file) {
+    showStatus('error', 'Choose an image first.');
+    return;
+  }
+
+  const mediaKind =
+    kind === 'development'
+      ? 'development'
+      : 'listing';
+
+  const ownerId =
+    mediaKind === 'development'
+      ? assetId
+      : listingId;
+
+  const fns = _partnerWorkspaceMediaFns(kind);
+
+  const count = document.querySelectorAll(
+    '#partner-media-grid [data-partner-media-id]'
+  ).length;
+
+  const result = await fns.upload(
+    ownerId,
+    file,
+    {
+      position: count,
+      isCover: count === 0
+    }
+  );
+
+  if (result.error) {
+    showStatus(
+      'error',
+      result.error.message || 'Could not upload photo.'
+    );
+    return;
+  }
+
+  input.value = '';
+  showStatus('success', 'Photo uploaded.');
+
+  await loadPartnerWorkspaceMedia(
+    kind,
+    assetId,
+    listingId
+  );
+}
+
+async function movePartnerWorkspaceMedia(
+  kind,
+  assetId,
+  listingId,
+  mediaAssetId,
+  direction
+) {
+  const ids = Array.from(
+    document.querySelectorAll(
+      '#partner-media-grid [data-partner-media-id]'
+    )
+  ).map(el => el.dataset.partnerMediaId);
+
+  const index = ids.indexOf(mediaAssetId);
+  const next = index + direction;
+
+  if (
+    index < 0 ||
+    next < 0 ||
+    next >= ids.length
+  ) return;
+
+  [ids[index], ids[next]] = [
+    ids[next],
+    ids[index]
+  ];
+
+  const mediaKind =
+    kind === 'development'
+      ? 'development'
+      : 'listing';
+
+  const ownerId =
+    mediaKind === 'development'
+      ? assetId
+      : listingId;
+
+  const fns = _partnerWorkspaceMediaFns(kind);
+  const result = await fns.reorder(ownerId, ids);
+
+  if (result.error) {
+    showStatus(
+      'error',
+      result.error.message ||
+      'Could not reorder photos.'
+    );
+    return;
+  }
+
+  await loadPartnerWorkspaceMedia(
+    kind,
+    assetId,
+    listingId
+  );
+}
+
+async function setPartnerWorkspaceCover(
+  kind,
+  assetId,
+  listingId,
+  mediaAssetId
+) {
+  const ownerId =
+    kind === 'development'
+      ? assetId
+      : listingId;
+
+  const fns = _partnerWorkspaceMediaFns(kind);
+
+  const result = await fns.cover(
+    ownerId,
+    mediaAssetId
+  );
+
+  if (result.error) {
+    showStatus(
+      'error',
+      result.error.message ||
+      'Could not set cover.'
+    );
+    return;
+  }
+
+  showStatus('success', 'Cover updated.');
+
+  await loadPartnerWorkspaceMedia(
+    kind,
+    assetId,
+    listingId
+  );
+}
+
+async function deletePartnerWorkspaceMedia(
+  kind,
+  assetId,
+  listingId,
+  mediaAssetId
+) {
+  const ok = window.confirm('Delete this photo?');
+  if (!ok) return;
+
+  const ownerId =
+    kind === 'development'
+      ? assetId
+      : listingId;
+
+  const fns = _partnerWorkspaceMediaFns(kind);
+
+  const result = await fns.remove(
+    ownerId,
+    mediaAssetId
+  );
+
+  if (result.error) {
+    showStatus(
+      'error',
+      result.error.message ||
+      'Could not delete photo.'
+    );
+    return;
+  }
+
+  showStatus('success', 'Photo deleted.');
+
+  await loadPartnerWorkspaceMedia(
+    kind,
+    assetId,
+    listingId
+  );
 }
 
 async function handlePartnerSignOut() {
