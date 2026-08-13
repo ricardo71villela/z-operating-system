@@ -394,6 +394,66 @@ check(
 /* Result                                                    */
 /* --------------------------------------------------------- */
 
+
+const finalSqlAudit = fs.readFileSync(
+  path.join(
+    root,
+    'apps/find/tests/sql/final-surface-boundary.sql'
+  ),
+  'utf8'
+);
+
+check(
+  finalSqlAudit.includes('cp.column_name::text'),
+  'Final SQL audit normalizes information_schema identifiers before array comparison'
+);
+
+
+check(
+  finalSqlAudit.includes(
+    'Effective Z FIND anon write surface.'
+  ) &&
+  finalSqlAudit.includes(
+    "'anon' = any(p.roles)"
+  ) &&
+  finalSqlAudit.includes(
+    "'public' = any(p.roles)"
+  ),
+  'Final SQL audit evaluates domain-scoped effective anon RLS write authority'
+);
+
+check(
+  !finalSqlAudit.includes(
+    'unexpected anon public-table write privilege'
+  ),
+  'Final SQL audit does not confuse raw Supabase grants with effective RLS authority'
+);
+
+check(
+  finalSqlAudit.includes(
+    'anonymous Z Find intake path is not append-only'
+  ),
+  'Public Z Find intake surfaces remain append-only'
+);
+
+
+check(
+  finalSqlAudit.includes("'seller_leads'"),
+  'Final SQL audit includes seller_leads as deliberate Z Find public intake'
+);
+
+check(
+  finalSqlAudit.includes(
+    'expected Z Find anonymous intake INSERT policies are incomplete'
+  ),
+  'Final SQL audit requires all three Z Find public intake INSERT policies'
+);
+
+check(
+  !finalSqlAudit.includes("'mobility_leads'"),
+  'Z Find final audit does not absorb Z Mobility write surfaces'
+);
+
 console.log(
   `\nFINAL SURFACE STATIC AUDIT: ` +
   `${passed}/${passed + failed} PASSED`

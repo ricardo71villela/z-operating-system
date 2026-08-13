@@ -193,8 +193,8 @@ begin
   if (
     select coalesce(
       array_agg(
-        cp.column_name
-        order by cp.column_name
+        cp.column_name::text
+        order by cp.column_name::text
       ),
       array[]::text[]
     )
@@ -562,28 +562,150 @@ begin
 
 
   -- ----------------------------------------------------------
-  -- Q. Anon direct table writes remain limited to deliberate
-  -- marketplace intake paths.
+  -- Q. Effective Z FIND anon write surface.
+  --
+  -- IMPORTANT ARCHITECTURE:
+  -- the Supabase database is shared across ZOS verticals.
+  -- public schema therefore contains tables that do NOT belong
+  -- to Z Find.
+  --
+  -- This audit must prove the Z Find boundary only; it must not
+  -- reject legitimate RLS policies owned by Z Mobility, Z Jobs,
+  -- or another vertical.
+  --
+  -- Z Find deliberately has THREE anonymous append-only intake
+  -- surfaces:
+  --
+  --   leads
+  --   searches
+  --   seller_leads
+  --
+  -- No other Z Find public table may expose effective anonymous
+  -- INSERT / UPDATE / DELETE / ALL authority.
   -- ----------------------------------------------------------
 
   if exists (
     select 1
-    from information_schema.table_privileges tp
-    where tp.table_schema = 'public'
-      and tp.grantee = 'anon'
-      and tp.privilege_type in (
+    from pg_catalog.pg_policies p
+    where p.schemaname = 'public'
+
+      and p.tablename in (
+        'system_languages',
+        'organisations',
+        'partners',
+        'zones_lite',
+        'developments',
+        'properties',
+        'representations',
+        'listings',
+        'listing_content',
+        'media_assets',
+        'media_variants',
+        'listing_media',
+        'development_media',
+        'media_asset_content',
+        'leads',
+        'searches',
+        'profiles',
+        'features',
+        'property_features',
+        'seller_leads',
+        'development_features',
+        'price_history',
+        'partner_types',
+        'registry_bindings',
+        'listing_state_history',
+        'representation_state_history',
+        'verification_assessments',
+        'data_sources',
+        'data_metric_definitions',
+        'data_observations',
+        'observation_evidence',
+        'integration_outbox',
+        'identity_bindings',
+        'verification_publication_rules'
+      )
+
+      and p.cmd in (
+        'ALL',
         'INSERT',
         'UPDATE',
         'DELETE'
       )
-      and tp.table_name not in (
+
+      and (
+        'anon' = any(p.roles)
+        or
+        'public' = any(p.roles)
+      )
+
+      and p.tablename not in (
         'leads',
-        'searches'
+        'searches',
+        'seller_leads'
       )
   ) then
     raise exception
-      'FINAL AUDIT FAIL: unexpected anon public-table write privilege';
+      'FINAL AUDIT FAIL: unexpected effective anonymous Z Find write policy';
   end if;
+
+
+  -- All three intended anonymous Z Find entry points are
+  -- append-only. UPDATE / DELETE / ALL is forbidden.
+  if exists (
+    select 1
+    from pg_catalog.pg_policies p
+    where p.schemaname = 'public'
+
+      and p.tablename in (
+        'leads',
+        'searches',
+        'seller_leads'
+      )
+
+      and p.cmd in (
+        'ALL',
+        'UPDATE',
+        'DELETE'
+      )
+
+      and (
+        'anon' = any(p.roles)
+        or
+        'public' = any(p.roles)
+      )
+  ) then
+    raise exception
+      'FINAL AUDIT FAIL: anonymous Z Find intake path is not append-only';
+  end if;
+
+
+  -- Each deliberate intake surface must still have an INSERT
+  -- policy applicable to anon/public. This catches accidental
+  -- removal as well as accidental privilege expansion.
+  if (
+    select count(distinct p.tablename)
+    from pg_catalog.pg_policies p
+    where p.schemaname = 'public'
+
+      and p.tablename in (
+        'leads',
+        'searches',
+        'seller_leads'
+      )
+
+      and p.cmd = 'INSERT'
+
+      and (
+        'anon' = any(p.roles)
+        or
+        'public' = any(p.roles)
+      )
+  ) <> 3 then
+    raise exception
+      'FINAL AUDIT FAIL: expected Z Find anonymous intake INSERT policies are incomplete';
+  end if;
+
 
 end;
 $audit$;
@@ -658,7 +780,7 @@ select jsonb_build_object(
       and p.policyname like 'partner:%'
   ),
 
-  'anon_write_privileges',
+  'anon_raw_write_privileges',
   (
     select coalesce(
       jsonb_agg(
@@ -677,6 +799,74 @@ select jsonb_build_object(
         'INSERT',
         'UPDATE',
         'DELETE'
+      )
+  ),
+
+  'zfind_anon_effective_write_policies',
+  (
+    select coalesce(
+      jsonb_agg(
+        jsonb_build_object(
+          'table', p.tablename,
+          'policy', p.policyname,
+          'command', p.cmd,
+          'roles', p.roles
+        )
+        order by p.tablename, p.policyname
+      ),
+      '[]'::jsonb
+    )
+    from pg_catalog.pg_policies p
+    where p.schemaname = 'public'
+
+      and p.tablename in (
+        'system_languages',
+        'organisations',
+        'partners',
+        'zones_lite',
+        'developments',
+        'properties',
+        'representations',
+        'listings',
+        'listing_content',
+        'media_assets',
+        'media_variants',
+        'listing_media',
+        'development_media',
+        'media_asset_content',
+        'leads',
+        'searches',
+        'profiles',
+        'features',
+        'property_features',
+        'seller_leads',
+        'development_features',
+        'price_history',
+        'partner_types',
+        'registry_bindings',
+        'listing_state_history',
+        'representation_state_history',
+        'verification_assessments',
+        'data_sources',
+        'data_metric_definitions',
+        'data_observations',
+        'observation_evidence',
+        'integration_outbox',
+        'identity_bindings',
+        'verification_publication_rules'
+      )
+
+      and p.cmd in (
+        'ALL',
+        'INSERT',
+        'UPDATE',
+        'DELETE'
+      )
+
+      and (
+        'anon' = any(p.roles)
+        or
+        'public' = any(p.roles)
       )
   ),
 
