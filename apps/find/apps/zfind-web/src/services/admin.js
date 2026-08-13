@@ -135,60 +135,26 @@ async function updateDevelopment(id, fields) {
     cleanly through empty structural rows otherwise. */
 async function deleteDevelopment(id) {
   const client = getSupabaseClient();
-  const full = await getDevelopmentForEdit(id);
-  if (full.error) return full;
-
-  const rep = (full.data.representations || [])[0];
-  const listing = rep && (rep.listings || [])[0];
-
-  if (listing) {
-    const leadsCheck = await safeQuery(() => client.from('leads').select('id', { count: 'exact', head: true }).eq('listing_id', listing.id), 'admin.deleteDevelopment:leadsCheck', { allowNullData: true });
-    if (!leadsCheck.error && leadsCheck.count > 0) {
-      return { data: null, error: { type: 'has_real_leads', message: `Cannot delete — this development has ${leadsCheck.count} real lead(s) attached. Unpublish it instead of deleting, so the lead history is never lost.` } };
-    }
-    await safeQuery(() => client.from('listing_content').delete().eq('listing_id', listing.id), 'admin.deleteDevelopment:content', { allowNullData: true });
-    await safeQuery(() => client.from('listings').delete().eq('id', listing.id), 'admin.deleteDevelopment:listing', { allowNullData: true });
-  }
-  await safeQuery(() => client.from('development_media').delete().eq('development_id', id), 'admin.deleteDevelopment:media', { allowNullData: true });
-  if (rep) {
-    await safeQuery(() => client.from('representations').delete().eq('id', rep.id), 'admin.deleteDevelopment:representation', { allowNullData: true });
-  }
-  return safeQuery(() => client.from('developments').delete().eq('id', id), 'admin.deleteDevelopment', { allowNullData: true });
+  return safeQuery(
+    () => client.rpc('zfind_admin_delete_asset', {
+      p_kind: 'development',
+      p_asset_id: id
+    }),
+    'admin.deleteDevelopment'
+  );
 }
 
 /** Mirrors duplicateProperty exactly — same "practically free" three-
     insert shape, media stays with the original. */
 async function duplicateDevelopment(id) {
-  const original = await getDevelopmentForEdit(id);
-  if (original.error) return original;
-  const d = original.data;
-  const rep = (d.representations || [])[0];
-  const listing = rep && (rep.listings || [])[0];
-
   const client = getSupabaseClient();
-  const newDev = await safeQuery(
-    () => client.from('developments').insert({ name: d.name + ' (copy)', zone_lite_id: d.zone_lite_id, promoter_partner_id: d.promoter_partner_id }).select().single(),
-    'admin.duplicateDevelopment:development'
+  return safeQuery(
+    () => client.rpc('zfind_admin_duplicate_asset', {
+      p_kind: 'development',
+      p_asset_id: id
+    }),
+    'admin.duplicateDevelopment'
   );
-  if (newDev.error) return newDev;
-  if (!rep) return newDev;
-
-  const newRep = await safeQuery(
-    () => client.from('representations').insert({ target_type: 'development', development_id: newDev.data.id, partner_id: rep.partner_id, status: 'proposed' }).select().single(),
-    'admin.duplicateDevelopment:representation'
-  );
-  if (newRep.error || !listing) return newDev;
-
-  const newListing = await safeQuery(
-    () => client.from('listings').insert({ representation_id: newRep.data.id, channel: 'standard', price_current: listing.price_current, currency_iso: listing.currency_iso, price_is_from: listing.price_is_from, status: 'draft' }).select().single(),
-    'admin.duplicateDevelopment:listing'
-  );
-  if (newListing.error) return newDev;
-
-  const contentRows = (listing.listing_content || []).map(c => ({ listing_id: newListing.data.id, locale: c.locale, title: c.title, description: c.description }));
-  if (contentRows.length) await safeQuery(() => client.from('listing_content').insert(contentRows), 'admin.duplicateDevelopment:content', { allowNullData: true });
-
-  return newDev;
 }
 
 /* ---------------- Properties ---------------- */
@@ -321,25 +287,13 @@ async function updateProperty(id, fields) {
     listings, representations) when there is nothing real to lose. */
 async function deleteProperty(id) {
   const client = getSupabaseClient();
-  const full = await getPropertyForEdit(id);
-  if (full.error) return full;
-
-  const rep = (full.data.representations || [])[0];
-  const listing = rep && (rep.listings || [])[0];
-
-  if (listing) {
-    const leadsCheck = await safeQuery(() => client.from('leads').select('id', { count: 'exact', head: true }).eq('listing_id', listing.id), 'admin.deleteProperty:leadsCheck', { allowNullData: true });
-    if (!leadsCheck.error && leadsCheck.count > 0) {
-      return { data: null, error: { type: 'has_real_leads', message: `Cannot delete — this property has ${leadsCheck.count} real lead(s) attached. Unpublish it instead of deleting, so the lead history is never lost.` } };
-    }
-    await safeQuery(() => client.from('listing_content').delete().eq('listing_id', listing.id), 'admin.deleteProperty:content', { allowNullData: true });
-    await safeQuery(() => client.from('listing_media').delete().eq('listing_id', listing.id), 'admin.deleteProperty:media', { allowNullData: true });
-    await safeQuery(() => client.from('listings').delete().eq('id', listing.id), 'admin.deleteProperty:listing', { allowNullData: true });
-  }
-  if (rep) {
-    await safeQuery(() => client.from('representations').delete().eq('id', rep.id), 'admin.deleteProperty:representation', { allowNullData: true });
-  }
-  return safeQuery(() => client.from('properties').delete().eq('id', id), 'admin.deleteProperty', { allowNullData: true });
+  return safeQuery(
+    () => client.rpc('zfind_admin_delete_asset', {
+      p_kind: 'property',
+      p_asset_id: id
+    }),
+    'admin.deleteProperty'
+  );
 }
 
 /** Duplicates a property (row + its representation + listing +
@@ -347,36 +301,14 @@ async function deleteProperty(id) {
     condition for building it. Media stays with the original; the
     duplicate starts with none (duplicates the LISTING, not photos). */
 async function duplicateProperty(id) {
-  const original = await getPropertyForEdit(id);
-  if (original.error) return original;
-  const p = original.data;
-  const rep = (p.representations || [])[0];
-  const listing = rep && (rep.listings || [])[0];
-
   const client = getSupabaseClient();
-  const newProp = await safeQuery(
-    () => client.from('properties').insert({ subtype: p.subtype, typology: p.typology, area_sqm: p.area_sqm, floor: p.floor, zone_lite_id: p.zone_lite_id, development_id: p.development_id }).select().single(),
-    'admin.duplicateProperty:property'
+  return safeQuery(
+    () => client.rpc('zfind_admin_duplicate_asset', {
+      p_kind: 'property',
+      p_asset_id: id
+    }),
+    'admin.duplicateProperty'
   );
-  if (newProp.error) return newProp;
-  if (!rep) return newProp;
-
-  const newRep = await safeQuery(
-    () => client.from('representations').insert({ target_type: 'property', property_id: newProp.data.id, partner_id: rep.partner_id, status: 'proposed' }).select().single(),
-    'admin.duplicateProperty:representation'
-  );
-  if (newRep.error || !listing) return newProp;
-
-  const newListing = await safeQuery(
-    () => client.from('listings').insert({ representation_id: newRep.data.id, channel: 'standard', price_current: listing.price_current, currency_iso: listing.currency_iso, price_is_from: listing.price_is_from, status: 'draft' }).select().single(),
-    'admin.duplicateProperty:listing'
-  );
-  if (newListing.error) return newProp;
-
-  const contentRows = (listing.listing_content || []).map(c => ({ listing_id: newListing.data.id, locale: c.locale, title: c.title, description: c.description }));
-  if (contentRows.length) await safeQuery(() => client.from('listing_content').insert(contentRows), 'admin.duplicateProperty:content', { allowNullData: true });
-
-  return newProp;
 }
 
 /* ---------------- Translations (listing_content) ---------------- */
@@ -472,17 +404,28 @@ function _mediaOps(table, ownerColumn, pathPrefix) {
       what a drag-and-drop UI naturally produces for a single gallery. */
   async function reorder(ownerId, orderedMediaAssetIds) {
     const client = getSupabaseClient();
-    const results = await Promise.all(orderedMediaAssetIds.map((mediaAssetId, index) =>
-      safeQuery(() => client.from(table).update({ position: index }).eq('media_asset_id', mediaAssetId).eq(ownerColumn, ownerId), `admin.${table}.reorder`, { allowNullData: true })
-    ));
-    const firstError = results.find(r => r.error);
-    return firstError || { data: null, error: null };
+    const rpcKind = table === 'listing_media' ? 'listing' : 'development';
+    return safeQuery(
+      () => client.rpc('zfind_admin_reorder_media', {
+        p_kind: rpcKind,
+        p_owner_id: ownerId,
+        p_media_asset_ids: orderedMediaAssetIds
+      }),
+      `admin.${table}.reorder`
+    );
   }
 
   async function setCover(ownerId, mediaAssetId) {
     const client = getSupabaseClient();
-    await safeQuery(() => client.from(table).update({ is_cover: false }).eq(ownerColumn, ownerId), `admin.${table}.setCover:clear`, { allowNullData: true });
-    return safeQuery(() => client.from(table).update({ is_cover: true }).eq('media_asset_id', mediaAssetId).eq(ownerColumn, ownerId).select().single(), `admin.${table}.setCover:set`);
+    const rpcKind = table === 'listing_media' ? 'listing' : 'development';
+    return safeQuery(
+      () => client.rpc('zfind_admin_set_media_cover', {
+        p_kind: rpcKind,
+        p_owner_id: ownerId,
+        p_media_asset_id: mediaAssetId
+      }),
+      `admin.${table}.setCover`
+    );
   }
 
   async function remove(ownerId, mediaAssetId, storagePath) {
@@ -619,18 +562,26 @@ async function getDevelopmentFeatureIds(developmentId) {
     at most 36 rows. */
 async function setPropertyFeatures(propertyId, featureIds) {
   const client = getSupabaseClient();
-  const del = await safeQuery(() => client.from('property_features').delete().eq('property_id', propertyId), 'admin.setPropertyFeatures:clear', { allowNullData: true });
-  if (del.error) return del;
-  if (!featureIds.length) return { data: [], error: null };
-  return safeQuery(() => client.from('property_features').insert(featureIds.map(fid => ({ property_id: propertyId, feature_id: fid }))), 'admin.setPropertyFeatures:insert', { allowNullData: true });
+  return safeQuery(
+    () => client.rpc('zfind_admin_replace_features', {
+      p_kind: 'property',
+      p_asset_id: propertyId,
+      p_feature_ids: featureIds
+    }),
+    'admin.setPropertyFeatures'
+  );
 }
 
 async function setDevelopmentFeatures(developmentId, featureIds) {
   const client = getSupabaseClient();
-  const del = await safeQuery(() => client.from('development_features').delete().eq('development_id', developmentId), 'admin.setDevelopmentFeatures:clear', { allowNullData: true });
-  if (del.error) return del;
-  if (!featureIds.length) return { data: [], error: null };
-  return safeQuery(() => client.from('development_features').insert(featureIds.map(fid => ({ development_id: developmentId, feature_id: fid }))), 'admin.setDevelopmentFeatures:insert', { allowNullData: true });
+  return safeQuery(
+    () => client.rpc('zfind_admin_replace_features', {
+      p_kind: 'development',
+      p_asset_id: developmentId,
+      p_feature_ids: featureIds
+    }),
+    'admin.setDevelopmentFeatures'
+  );
 }
 
 /** Different from developments.js's own listUnitsForDevelopment,
