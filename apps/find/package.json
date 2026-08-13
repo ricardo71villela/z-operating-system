@@ -33,7 +33,7 @@
     "check:syntax": "node scripts/check-js-syntax.js",
     "check:migrations": "node scripts/validate-migrations.js",
     "check:zos": "node scripts/validate-zos-alignment.js",
-    "check": "npm run test && npm run test:seo-pages && npm run test:zos-alignment && npm run test:identity-service && npm run test:registry-service && npm run test:verification-service && npm run test:observation-service && npm run test:partner-dashboard-service && npm run test:partner-atomic-create-service && npm run test:admin-atomic-initial-listing && npm run check:syntax && npm run check:migrations && npm run check:zos && npm run test:admin-compound-atomic && npm run test:marketplace-lifecycle-hardening && npm run test:partner-asset-ownership-hardening && npm run test:partner-safe-remove && npm run test:partner-content-media-boundary && npm run test:final-surface-boundary",
+    "check": "npm run test && npm run test:seo-pages && npm run test:zos-alignment && npm run test:identity-service && npm run test:registry-service && npm run test:verification-service && npm run test:observation-service && npm run test:partner-dashboard-service && npm run test:partner-atomic-create-service && npm run test:admin-atomic-initial-listing && npm run check:syntax && npm run check:migrations && npm run check:zos && npm run test:admin-compound-atomic && npm run test:marketplace-lifecycle-hardening && npm run test:partner-asset-ownership-hardening && npm run test:partner-safe-remove && npm run test:partner-content-media-boundary && npm run test:final-surface-boundary && npm run test:rental-market-foundation",
     "test:identity-service": "node tests/unit/identity-service.test.js",
     "test:registry-service": "node tests/unit/registry-service.test.js",
     "test:verification-service": "node tests/unit/verification-service.test.js",
@@ -46,7 +46,8 @@
     "test:partner-asset-ownership-hardening": "node tests/unit/partner-asset-ownership-hardening.test.js",
     "test:partner-safe-remove": "node tests/unit/partner-safe-remove.test.js",
     "test:partner-content-media-boundary": "node tests/unit/partner-content-media-boundary.test.js",
-    "test:final-surface-boundary": "node tests/unit/final-surface-boundary.test.js"
+    "test:final-surface-boundary": "node tests/unit/final-surface-boundary.test.js",
+    "test:rental-market-foundation": "node tests/unit/rental-market-foundation.test.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.8",

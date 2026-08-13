@@ -209,7 +209,8 @@ begin
     'price_current',
     'price_is_from',
     'rental_period',
-    'tier'
+    'tier',
+    'transaction_type'
   ]::text[] then
     raise exception
       'FINAL AUDIT FAIL: Listing authenticated UPDATE columns drifted';

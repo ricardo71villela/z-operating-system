@@ -74,7 +74,7 @@ async function getPropertyById(propertyId, locale) {
           id, target_type, status,
           partners ( id, name, enquiry_policy ),
           listings!inner (
-            id, channel, price_current, currency_iso, price_is_from, status,
+            id, channel, transaction_type, rental_period, price_current, currency_iso, price_is_from, status,
             listing_content ( locale, title, description, translation_status ),
             ${MEDIA_EMBED}
           )

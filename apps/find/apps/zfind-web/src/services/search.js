@@ -47,7 +47,7 @@ async function search(filters) {
       id, subtype, typology, area_sqm, zone_lite_id,
       zones_lite ( name, city, country_iso ),
       representations!inner ( target_type, status, listings!inner (
-        id, channel, price_current, currency_iso, price_is_from, status,
+        id, channel, transaction_type, rental_period, price_current, currency_iso, price_is_from, status,
         listing_content ( locale, title )
       ) )
     `)
@@ -57,6 +57,7 @@ async function search(filters) {
   if (f.subtype) query = query.eq('subtype', f.subtype);
   if (f.zoneLiteId) query = query.eq('zone_lite_id', f.zoneLiteId);
   if (f.channel) query = query.eq('representations.listings.channel', f.channel);
+  if (f.transactionType) query = query.eq('representations.listings.transaction_type', f.transactionType);
   if (f.budgetMin != null) query = query.gte('representations.listings.price_current', f.budgetMin);
   if (f.budgetMax != null) query = query.lte('representations.listings.price_current', f.budgetMax);
 
