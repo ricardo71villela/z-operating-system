@@ -326,3 +326,81 @@ footer.site .bottom{ border-top:1px solid var(--gray-700); margin-top:44px; padd
 .legal-cta p{ color:var(--gray-300); margin-bottom:22px; }
 .legal-cta .btn{ display:inline-block; }
 @media(max-width:820px){ .legal-layout{ grid-template-columns:1fr; } .legal-toc{ position:static; display:flex; flex-wrap:wrap; gap:4px 16px; margin-bottom:32px; } }
+
+
+/* Z Find Rental Market — transaction intent is independent from subtype/channel */
+.transaction-filter-block{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  flex-wrap:wrap;
+  margin-bottom:12px;
+}
+
+.transaction-tabs{
+  display:inline-flex;
+  align-items:center;
+  padding:3px;
+  border:1px solid var(--gray-200);
+  border-radius:999px;
+  background:var(--gray-50);
+}
+
+.transaction-tab{
+  border:0;
+  background:transparent;
+  color:var(--gray-500);
+  padding:8px 18px;
+  border-radius:999px;
+  font:inherit;
+  font-size:0.82rem;
+  font-weight:600;
+  cursor:pointer;
+  transition:all .18s ease;
+}
+
+.transaction-tab.active{
+  background:var(--gray-900);
+  color:#fff;
+}
+
+.rental-period-control{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.rental-period-control label{
+  font-size:0.76rem;
+  color:var(--gray-500);
+}
+
+.rental-period-control select{
+  border:1px solid var(--gray-200);
+  border-radius:6px;
+  padding:7px 9px;
+  background:#fff;
+  color:var(--gray-900);
+  font:inherit;
+  font-size:0.8rem;
+}
+
+@media (max-width:700px){
+  .transaction-filter-block{
+    align-items:stretch;
+    gap:10px;
+  }
+
+  .transaction-tabs{
+    width:100%;
+  }
+
+  .transaction-tab{
+    flex:1;
+  }
+
+  .rental-period-control{
+    width:100%;
+    justify-content:space-between;
+  }
+}

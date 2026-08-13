@@ -98,7 +98,7 @@ async function listUnitsForDevelopment(developmentId) {
       .from('properties')
       .select(`
         id, subtype, typology, area_sqm, floor,
-        representations!inner ( target_type, status, listings!inner ( id, price_current, currency_iso, status ) )
+        representations!inner ( target_type, status, listings!inner ( id, transaction_type, rental_period, price_current, currency_iso, price_is_from, status ) )
       `)
       .eq('development_id', developmentId)
       .eq('representations.target_type', 'property')
@@ -113,7 +113,7 @@ async function listUnitsForDevelopment(developmentId) {
     development highlights. Deliberately minimal select (no media
     embed): the card component doesn't render an image at all, so
     fetching media here would be waste, not correctness. */
-async function listPublished(zoneLiteId) {
+async function listPublished(zoneLiteId, transactionType, rentalPeriod) {
   const client = getSupabaseClient();
   let query = client
     .from('developments')
@@ -128,6 +128,8 @@ async function listPublished(zoneLiteId) {
     .eq('representations.target_type', 'development')
     .eq('representations.listings.status', 'published');
   if (zoneLiteId) query = query.eq('zone_lite_id', zoneLiteId);
+  if (transactionType) query = query.eq('representations.listings.transaction_type', transactionType);
+  if (rentalPeriod) query = query.eq('representations.listings.rental_period', rentalPeriod);
   return safeQuery(() => query, 'developments.listPublished');
 }
 

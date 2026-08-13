@@ -41,6 +41,42 @@ function fmtCurrency(value, lang, currencyIso) {
   const locale = { en:'en-IE', pt:'pt-PT', fr:'fr-FR' }[lang] || 'en-IE';
   return new Intl.NumberFormat(locale, { style:'currency', currency: currencyIso || 'EUR', maximumFractionDigits:0 }).format(value);
 }
+
+/**
+ * Formats one Listing price without collapsing commercial semantics.
+ *
+ * sale:
+ *   €500,000
+ *
+ * rent/monthly:
+ *   €1,500 /month
+ *
+ * rent/seasonal:
+ *   €8,000 /season
+ *
+ * rent/yearly:
+ *   €18,000 /year
+ *
+ * Database constraints own validity. This function only projects it.
+ * Historical test fixtures that predate transaction_type safely read as sale.
+ */
+function formatListingPrice(listing, lang, currencyIso) {
+  const base = fmtCurrency(listing.price_current, lang, currencyIso);
+  const prefix = listing.price_is_from ? (t(lang, 'search.priceFrom') + ' ') : '';
+
+  if ((listing.transaction_type || 'sale') !== 'rent') {
+    return prefix + base;
+  }
+
+  const suffixKey = {
+    monthly: 'search.perMonth',
+    seasonal: 'search.perSeason',
+    yearly: 'search.perYear',
+  }[listing.rental_period];
+
+  return prefix + base + (suffixKey ? (' ' + t(lang, suffixKey)) : '');
+}
+
 function fmtNumber(value, lang) {
   const locale = { en:'en-IE', pt:'pt-PT', fr:'fr-FR' }[lang] || 'en-IE';
   return new Intl.NumberFormat(locale).format(value);
@@ -86,9 +122,7 @@ function mapSupabasePropertyRowToCard(row, lang) {
   const currencyIso = listing.currency_iso || 'EUR';
   const kind = row.subtype === 'land' ? 'Land' : 'Property';
 
-  const priceLabel = listing.price_is_from
-    ? 'From ' + fmtCurrency(listing.price_current, lang, currencyIso)
-    : fmtCurrency(listing.price_current, lang, currencyIso);
+  const priceLabel = formatListingPrice(listing, lang, currencyIso);
 
   const locationLabel = zone.name ? (zone.name + ', ' + zone.city) : (zone.city || '');
 
@@ -100,6 +134,7 @@ function mapSupabasePropertyRowToCard(row, lang) {
   let badgeLabel = 'Verified';
   if (kind === 'Land') badgeLabel = 'Land';
   else if (listing.channel === 'offmarket') badgeLabel = 'Off-market';
+  else if ((listing.transaction_type || 'sale') === 'rent') badgeLabel = t(lang, 'search.forRent');
 
   return {
     listingId: listing.id,
@@ -107,6 +142,8 @@ function mapSupabasePropertyRowToCard(row, lang) {
     kind,
     subtype: row.subtype || null,
     channel: listing.channel || 'standard',
+    transactionType: listing.transaction_type || 'sale',
+    rentalPeriod: listing.rental_period || null,
     title: content.title || '',
     locationLabel,
     zoneLabel: zone.name || null,
@@ -130,9 +167,7 @@ function mapSupabaseDevelopmentRowToCard(row, lang) {
   const content = contentRows.find(c => c.locale === lang) || contentRows.find(c => c.locale === 'en') || {};
   const currencyIso = listing.currency_iso || 'EUR';
 
-  const priceLabel = listing.price_is_from
-    ? 'From ' + fmtCurrency(listing.price_current, lang, currencyIso)
-    : fmtCurrency(listing.price_current, lang, currencyIso);
+  const priceLabel = formatListingPrice(listing, lang, currencyIso);
 
   const locationLabel = zone.name ? (zone.name + ', ' + zone.city) : (zone.city || '');
 
@@ -142,6 +177,8 @@ function mapSupabaseDevelopmentRowToCard(row, lang) {
     kind: 'Development',
     subtype: null,
     channel: listing.channel || 'standard',
+    transactionType: listing.transaction_type || 'sale',
+    rentalPeriod: listing.rental_period || null,
     title: content.title || row.name || '',
     locationLabel,
     zoneLabel: zone.name || null,
@@ -186,13 +223,15 @@ async function loadSearchResults(lang, filters) {
     calls.push(services.search.search({
       subtype: propertySubtypes.length === 1 ? propertySubtypes[0] : undefined, // service accepts one value; multi-subtype narrowing happens client-side below like the old searchCards() always did
       channel: f.channel || undefined,
+      transactionType: f.transactionType || undefined,
+      rentalPeriod: f.rentalPeriod || undefined,
       budgetMin: f.budgetMin,
       budgetMax: f.budgetMax,
       zoneLiteId: f.zoneLiteId || undefined,
     }));
   }
   if (wantsDevelopments && f.channel !== 'offmarket') { // Developments have no off-market channel concept in this schema
-    calls.push(services.developments.listPublished(f.zoneLiteId || undefined));
+    calls.push(services.developments.listPublished(f.zoneLiteId || undefined, f.transactionType || undefined, f.rentalPeriod || undefined));
   }
 
   const results = await Promise.all(calls);
@@ -328,13 +367,11 @@ function mapSupabasePropertyRowToDetailViewModel(row, lang) {
     return { storagePath: pickMediaStoragePath(asset), altText: (contentRow && contentRow.alt_text) || content.title || '' };
   });
 
-  const priceLabel = listing.price_is_from
-    ? 'From ' + fmtCurrency(listing.price_current, lang, currencyIso)
-    : fmtCurrency(listing.price_current, lang, currencyIso);
+  const priceLabel = formatListingPrice(listing, lang, currencyIso);
 
   return {
     asset: { id: row.id, typology: row.typology, areaSqm: row.area_sqm, subtype: row.subtype },
-    listing: { id: listing.id, priceCurrent: listing.price_current },
+    listing: { id: listing.id, priceCurrent: listing.price_current, transactionType: listing.transaction_type || 'sale', rentalPeriod: listing.rental_period || null },
     partner,
     geo: {
       zoneLabel: zone.name || null,
@@ -525,11 +562,11 @@ function mapSupabaseDevelopmentRowToDetailViewModel(row, lang) {
     return { storagePath: pickMediaStoragePath(asset), altText: (contentRow && contentRow.alt_text) || content.title || '' };
   });
 
-  const priceLabel = 'From ' + fmtCurrency(listing.price_current, lang, currencyIso);
+  const priceLabel = formatListingPrice(listing, lang, currencyIso);
 
   return {
     asset: { id: row.id, name: row.name },
-    listing: { id: listing.id, priceCurrent: listing.price_current },
+    listing: { id: listing.id, priceCurrent: listing.price_current, transactionType: listing.transaction_type || 'sale', rentalPeriod: listing.rental_period || null },
     partner: rep.partners ? { id: rep.partners.id, name: rep.partners.name, enquiryPolicy: rep.partners.enquiry_policy || DEFAULT_ENQUIRY_POLICY } : { id: null, name: '', enquiryPolicy: DEFAULT_ENQUIRY_POLICY },
     geo: { zoneLabel: zone.name || null, cityLabel: zone.city || null, countryLabel: zone.country_iso || '', currencyIso },
     content,
@@ -579,7 +616,7 @@ async function loadDevelopmentDetail(developmentId, lang) {
     return {
       id: u.id, typology: u.typology, areaSqm: u.area_sqm, floor: u.floor,
       price: ulisting.price_current,
-      priceLabel: fmtCurrency(ulisting.price_current, lang, ulisting.currency_iso || 'EUR'),
+      priceLabel: formatListingPrice(ulisting, lang, ulisting.currency_iso || 'EUR'),
     };
   });
 

@@ -9,7 +9,7 @@ let currentUnitContext = null;
 
 /* ---------------- Router ----------------
    Hash shape: #/{lang}/{view}/{id}?{queryString}
-   The query string carries search state (q, category, subtype, budget,
+   The query string carries search state (q, category, subtype, transactionType, rentalPeriod, budget,
    unit) so it survives back/forward navigation and language switching.
    Note: in-page wayfinding (land quick-nav chips) never touches the
    hash — it uses scrollIntoView — because the router treats the whole
@@ -107,6 +107,21 @@ function setHomeStatus(kind, titleKey, bodyKey) {
 }
 
 async function renderHome() {
+  syncTransactionTabs('home-transaction-tabs', homeTransactionType);
+  syncRentalPeriodControl(
+    'home-rental-period',
+    'home-rental-period-wrap',
+    homeTransactionType,
+    homeRentalPeriod
+  );
+  syncBudgetOptions(
+    'home-budget',
+    homeTransactionType,
+    homeRentalPeriod,
+    document.getElementById('home-budget')
+      ? document.getElementById('home-budget').value
+      : ''
+  );
   setHomeStatus('loading', 'home.loadingTitle', 'home.loadingBody');
 
   const result = await loadHomeCards(state.lang);
@@ -134,10 +149,177 @@ async function renderHome() {
 
 /* ---------------- Search page: filters, empty state, control sync ---------------- */
 function budgetToRange(code) {
+  // Sale budgets.
   if (code === 'u400') return { budgetMin:null, budgetMax:400000 };
   if (code === '400-700') return { budgetMin:400000, budgetMax:700000 };
   if (code === 'o700') return { budgetMin:700000, budgetMax:null };
+
+  // Monthly rental budgets. These codes are intentionally distinct
+  // from sale budgets. Seasonal/yearly rents do not use these ranges.
+  if (code === 'r-u1500') return { budgetMin:null, budgetMax:1500 };
+  if (code === 'r-1500-2500') return { budgetMin:1500, budgetMax:2500 };
+  if (code === 'r-2500-4000') return { budgetMin:2500, budgetMax:4000 };
+  if (code === 'r-o4000') return { budgetMin:4000, budgetMax:null };
+
   return { budgetMin:null, budgetMax:null };
+}
+
+let homeTransactionType = 'sale';
+let homeRentalPeriod = 'monthly';
+
+function effectiveTransactionType(query) {
+  return query && query.transactionType === 'rent' ? 'rent' : 'sale';
+}
+
+function effectiveRentalPeriod(query, transactionType) {
+  if (transactionType !== 'rent') return null;
+
+  const value = query && query.rentalPeriod;
+  return ['monthly', 'seasonal', 'yearly'].includes(value)
+    ? value
+    : 'monthly';
+}
+
+function syncTransactionTabs(containerId, transactionType) {
+  const root = document.getElementById(containerId);
+  if (!root) return;
+
+  root.querySelectorAll('.transaction-tab').forEach(button => {
+    button.classList.toggle(
+      'active',
+      button.dataset.transaction === transactionType
+    );
+  });
+}
+
+function rentalPeriodOptions() {
+  return [
+    ['monthly', t(state.lang, 'search.monthly')],
+    ['seasonal', t(state.lang, 'search.seasonal')],
+    ['yearly', t(state.lang, 'search.yearly')],
+  ];
+}
+
+function syncRentalPeriodControl(selectId, wrapperId, transactionType, rentalPeriod) {
+  const wrapper = document.getElementById(wrapperId);
+  const select = document.getElementById(selectId);
+
+  if (!wrapper || !select) return;
+
+  const isRent = transactionType === 'rent';
+  wrapper.style.display = isRent ? '' : 'none';
+
+  if (!isRent) return;
+
+  select.innerHTML = rentalPeriodOptions()
+    .map(([value, label]) => `<option value="${value}">${label}</option>`)
+    .join('');
+
+  select.value = rentalPeriod || 'monthly';
+}
+
+function budgetOptionsFor(transactionType, rentalPeriod) {
+  if (transactionType === 'rent' && rentalPeriod === 'monthly') {
+    return [
+      ['', t(state.lang, 'search.anyBudget')],
+      ['r-u1500', t(state.lang, 'search.rentBudgetUnder1500')],
+      ['r-1500-2500', t(state.lang, 'search.rentBudget1500to2500')],
+      ['r-2500-4000', t(state.lang, 'search.rentBudget2500to4000')],
+      ['r-o4000', t(state.lang, 'search.rentBudgetOver4000')],
+    ];
+  }
+
+  if (transactionType === 'rent') {
+    // Comparing seasonal or annual amounts against monthly thresholds
+    // would be dimensionally wrong, so no numeric budget is offered.
+    return [
+      ['', t(state.lang, 'search.anyBudget')],
+    ];
+  }
+
+  return [
+    ['', t(state.lang, 'search.anyBudget')],
+    ['u400', t(state.lang, 'search.budgetUnder400')],
+    ['400-700', t(state.lang, 'search.budget400to700')],
+    ['o700', t(state.lang, 'search.budgetOver700')],
+  ];
+}
+
+function syncBudgetOptions(selectId, transactionType, rentalPeriod, selectedValue) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+
+  const options = budgetOptionsFor(transactionType, rentalPeriod);
+
+  select.innerHTML = options
+    .map(([value, label]) => `<option value="${value}">${label}</option>`)
+    .join('');
+
+  const allowed = new Set(options.map(([value]) => value));
+  select.value = allowed.has(selectedValue) ? selectedValue : '';
+}
+
+function setHomeTransaction(transactionType) {
+  homeTransactionType = transactionType === 'rent' ? 'rent' : 'sale';
+
+  syncTransactionTabs(
+    'home-transaction-tabs',
+    homeTransactionType
+  );
+
+  syncRentalPeriodControl(
+    'home-rental-period',
+    'home-rental-period-wrap',
+    homeTransactionType,
+    homeRentalPeriod
+  );
+
+  syncBudgetOptions(
+    'home-budget',
+    homeTransactionType,
+    homeRentalPeriod,
+    ''
+  );
+}
+
+function setHomeRentalPeriod(rentalPeriod) {
+  homeRentalPeriod = ['monthly', 'seasonal', 'yearly'].includes(rentalPeriod)
+    ? rentalPeriod
+    : 'monthly';
+
+  syncBudgetOptions(
+    'home-budget',
+    homeTransactionType,
+    homeRentalPeriod,
+    ''
+  );
+}
+
+function setSearchTransaction(transactionType) {
+  const next = Object.assign({}, state.query || {});
+  next.transactionType = transactionType === 'rent' ? 'rent' : 'sale';
+  next.budget = '';
+
+  if (next.transactionType === 'rent') {
+    next.rentalPeriod = next.rentalPeriod || 'monthly';
+  } else {
+    delete next.rentalPeriod;
+  }
+
+  navigate('search', null, next);
+}
+
+function setSearchRentalPeriod(rentalPeriod) {
+  const next = Object.assign({}, state.query || {});
+  next.transactionType = 'rent';
+  next.rentalPeriod = ['monthly', 'seasonal', 'yearly'].includes(rentalPeriod)
+    ? rentalPeriod
+    : 'monthly';
+
+  // A budget from one rental period must never leak into another.
+  next.budget = '';
+
+  navigate('search', null, next);
 }
 
 function pillFilterToQuery(filterKey) {
@@ -169,11 +351,39 @@ function setSearchStatus(kind, titleKey, bodyKey) {
 
 async function renderSearch() {
   const q = state.query || {};
-  const range = budgetToRange(q.budget);
+  const transactionType = effectiveTransactionType(q);
+  const rentalPeriod = effectiveRentalPeriod(q, transactionType);
 
-  // sync controls immediately (don't wait on the network for this)
-  const qInput = document.getElementById('search-q'); if (qInput) qInput.value = q.q || '';
-  const budgetSel = document.getElementById('search-budget'); if (budgetSel) budgetSel.value = q.budget || '';
+  // Seasonal/yearly amounts are not compared against monthly rental ranges.
+  const range = (
+    transactionType === 'rent' && rentalPeriod !== 'monthly'
+  )
+    ? { budgetMin:null, budgetMax:null }
+    : budgetToRange(q.budget);
+
+  // Sync controls immediately (don't wait on the network for this).
+  const qInput = document.getElementById('search-q');
+  if (qInput) qInput.value = q.q || '';
+
+  syncTransactionTabs(
+    'search-transaction-tabs',
+    transactionType
+  );
+
+  syncRentalPeriodControl(
+    'search-rental-period',
+    'search-rental-period-wrap',
+    transactionType,
+    rentalPeriod
+  );
+
+  syncBudgetOptions(
+    'search-budget',
+    transactionType,
+    rentalPeriod,
+    q.budget || ''
+  );
+
   const activePill = currentPillForQuery(q);
   document.querySelectorAll('#view-search .tabs-row .pill').forEach(b => b.classList.toggle('active', b.dataset.filter === activePill));
 
@@ -184,6 +394,8 @@ async function renderSearch() {
     q: q.q || '',
     subtype: (q.subtype || '').split(',').filter(Boolean),
     channel: q.channel || '',
+    transactionType,
+    rentalPeriod,
     budgetMin: range.budgetMin,
     budgetMax: range.budgetMax,
   });
@@ -214,12 +426,13 @@ function applySearchBar() {
 }
 
 function clearSearchFilters() {
-  navigate('search', null, {});
+  navigate('search', null, { transactionType:'sale' });
 }
 
 function submitHomeSearch() {
   const activeTab = document.querySelector('#view-home .cat-tabs button.active');
   const tabCat = activeTab ? activeTab.dataset.cat : 'residential';
+  const transactionType = homeTransactionType;
   const typeVal = document.getElementById('home-type').value; // may override tab with a more specific choice
   const qVal = document.getElementById('home-q').value;
   const budgetVal = document.getElementById('home-budget').value;
@@ -232,7 +445,15 @@ function submitHomeSearch() {
     if (tabCat === 'offmarket') { query = { subtype:'', channel:'offmarket' }; }
     else { query = { subtype: catMap[tabCat] || '', channel:'' }; }
   }
-  query.q = qVal; query.budget = budgetVal;
+  query.transactionType = transactionType;
+
+  if (transactionType === 'rent') {
+    query.rentalPeriod = homeRentalPeriod;
+  }
+
+  query.q = qVal;
+  query.budget = budgetVal;
+
   navigate('search', null, query);
 }
 
@@ -272,6 +493,7 @@ async function renderProperty(assetId) {
 
   const vm = result.viewModel;
   const L = state.lang;
+  const isRentalListing = vm.listing.transactionType === 'rent';
   document.title = vm.content.title ? (vm.content.title + ' — Z Find') : document.title; // minimal SEO hygiene — see report for what this sprint does/doesn't cover
   const repNote = vm.representationNote.multiple
     ? `<div class="rep-history">${t(L,'property.nowRepresented',{partner:vm.representationNote.activePartner, start:vm.representationNote.activeSince})}</div>`
@@ -316,6 +538,7 @@ async function renderProperty(assetId) {
         <div class="row"><span class="label" style="color:var(--gray-400);">${t(L,'property.zInsightsComingSoonBody')}</span></div>
       </div>
 
+      ${isRentalListing ? '' : `
       <div class="section-title">${t(L,'property.investmentTitle')}</div>
       <div class="info-card">
         ${vm.intelligence ? `
@@ -323,9 +546,11 @@ async function renderProperty(assetId) {
         <div class="row"><span class="label">${t(L,'property.estRent')}</span><span class="val">${fmtCurrency(vm.intelligence.rentLow,L)} – ${fmtCurrency(vm.intelligence.rentHigh,L)}</span></div>
         ` : `<div class="row"><span class="label" style="color:var(--gray-400);">${t(L,'property.zIntelInvestmentComingSoonBody')}</span></div>`}
       </div>
+      `}
     </div>
     <div>
       <div class="sidebar-sticky">
+      ${isRentalListing ? '' : `
       <div class="sidebar-card">
         <h4>${t(L,'property.yieldSimTitle')}</h4>
         ${vm.intelligence ? `
@@ -335,6 +560,7 @@ async function renderProperty(assetId) {
         <div class="sim-row total"><span>${t(L,'property.estGrossYield')}</span><span style="color:var(--gold-dark)">${vm.intelligence.low}%</span></div>
         ` : `<div class="sim-row"><span style="color:var(--gray-400);">${t(L,'property.zIntelInvestmentComingSoonBody')}</span></div>`}
       </div>
+      `}
       <div class="sidebar-card">
         <h4>${t(L,'property.representedBy')}</h4>
         <div style="display:flex; gap:12px; align-items:center; ${vm.partner.id ? 'cursor:pointer;' : ''}" ${vm.partner.id ? `onclick="navigate('partner','${vm.partner.id}')"` : ''}>

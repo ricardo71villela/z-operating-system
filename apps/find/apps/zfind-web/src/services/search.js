@@ -58,6 +58,7 @@ async function search(filters) {
   if (f.zoneLiteId) query = query.eq('zone_lite_id', f.zoneLiteId);
   if (f.channel) query = query.eq('representations.listings.channel', f.channel);
   if (f.transactionType) query = query.eq('representations.listings.transaction_type', f.transactionType);
+  if (f.rentalPeriod) query = query.eq('representations.listings.rental_period', f.rentalPeriod);
   if (f.budgetMin != null) query = query.gte('representations.listings.price_current', f.budgetMin);
   if (f.budgetMax != null) query = query.lte('representations.listings.price_current', f.budgetMax);
 

@@ -50,6 +50,17 @@
             <button data-cat="land" data-i18n="search.tabLand"></button>
             <button data-cat="offmarket" data-i18n="search.tabOffmarket"></button>
           </div>
+
+          <div class="transaction-filter-block">
+            <div class="transaction-tabs" id="home-transaction-tabs" role="group" aria-label="Transaction type">
+              <button type="button" class="transaction-tab active" data-transaction="sale" onclick="setHomeTransaction('sale')" data-i18n="search.buy"></button>
+              <button type="button" class="transaction-tab" data-transaction="rent" onclick="setHomeTransaction('rent')" data-i18n="search.rent"></button>
+            </div>
+            <div class="rental-period-control" id="home-rental-period-wrap" style="display:none;">
+              <label for="home-rental-period" data-i18n="search.rentalPeriod"></label>
+              <select id="home-rental-period" onchange="setHomeRentalPeriod(this.value)"></select>
+            </div>
+          </div>
           <div class="search-fields">
             <input type="text" id="home-q" data-i18n-ph="search.locationPh">
             <div class="divider"></div>
@@ -113,6 +124,17 @@
     </div>
 
     <div class="searchbar" style="max-width:100%; margin-bottom:26px;">
+
+      <div class="transaction-filter-block">
+        <div class="transaction-tabs" id="search-transaction-tabs" role="group" aria-label="Transaction type">
+          <button type="button" class="transaction-tab active" data-transaction="sale" onclick="setSearchTransaction('sale')" data-i18n="search.buy"></button>
+          <button type="button" class="transaction-tab" data-transaction="rent" onclick="setSearchTransaction('rent')" data-i18n="search.rent"></button>
+        </div>
+        <div class="rental-period-control" id="search-rental-period-wrap" style="display:none;">
+          <label for="search-rental-period" data-i18n="search.rentalPeriod"></label>
+          <select id="search-rental-period" onchange="setSearchRentalPeriod(this.value)"></select>
+        </div>
+      </div>
       <div class="search-fields" style="padding:10px;">
         <input type="text" id="search-q" data-i18n-ph="search.locationPh">
         <div class="divider"></div>
