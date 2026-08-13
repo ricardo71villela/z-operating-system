@@ -317,12 +317,133 @@ async function renderPropertyEdit() {
 }
 
 /** Shared edit shell for Property/Development: translations (3
-    locale tabs), publish/unpublish, and a media manager. Photos use
+    locale tabs), explicit marketplace lifecycles, and a media manager. Photos use
     DIFFERENT tables depending on kind — a Development's own photos
     (development_media) exist independently of whether it has a
     listing yet; a Property's photos (listing_media) are tied to its
     listing. Both are supported, correctly, using the real composite
     key (media_asset_id + owner id) on each table. */
+
+const REPRESENTATION_ADMIN_TRANSITIONS = Object.freeze({
+  proposed: Object.freeze([
+    ['active', 'Activate'],
+    ['disputed', 'Dispute']
+  ]),
+  active: Object.freeze([
+    ['disputed', 'Dispute'],
+    ['ended', 'End']
+  ]),
+  disputed: Object.freeze([
+    ['active', 'Resolve → active'],
+    ['ended', 'End']
+  ]),
+  ended: Object.freeze([])
+});
+
+const LISTING_ADMIN_TRANSITIONS = Object.freeze({
+  draft: Object.freeze([
+    ['pending_review', 'Submit review'],
+    ['incomplete', 'Mark incomplete'],
+    ['archived', 'Archive']
+  ]),
+
+  incomplete: Object.freeze([
+    ['draft', 'Back to draft'],
+    ['pending_review', 'Submit review'],
+    ['archived', 'Archive']
+  ]),
+
+  pending_review: Object.freeze([
+    ['incomplete', 'Mark incomplete'],
+    ['ready', 'Mark ready'],
+    ['archived', 'Archive']
+  ]),
+
+  ready: Object.freeze([
+    ['pending_review', 'Return to review'],
+    ['published', 'Publish'],
+    ['archived', 'Archive']
+  ]),
+
+  published: Object.freeze([
+    ['suspended', 'Suspend'],
+    ['archived', 'Archive']
+  ]),
+
+  suspended: Object.freeze([
+    ['ready', 'Return to ready'],
+    ['archived', 'Archive']
+  ]),
+
+  archived: Object.freeze([])
+});
+
+
+function lifecycleTag(status) {
+  const visual =
+    status === 'published'
+      ? 'published'
+      : 'draft';
+
+  return `<span class="tag tag-${visual}">${escapeHtml(status)}</span>`;
+}
+
+
+function renderRepresentationLifecycleControls(rep) {
+  if (!rep) return '';
+
+  const transitions =
+    REPRESENTATION_ADMIN_TRANSITIONS[rep.status] || [];
+
+  const buttons = transitions
+    .map(([toStatus, label]) => (
+      `<button class="btn"
+        onclick="transitionRepresentation('${rep.id}','${toStatus}')"
+      >${label}</button>`
+    ))
+    .join('');
+
+  return `
+    <span style="margin-right:8px;">
+      Representation:
+      ${lifecycleTag(rep.status)}
+      ${buttons}
+    </span>
+  `;
+}
+
+
+function renderListingLifecycleControls(listing) {
+  if (!listing) return '';
+
+  const transitions =
+    LISTING_ADMIN_TRANSITIONS[listing.status] || [];
+
+  const buttons = transitions
+    .map(([toStatus, label]) => {
+      const cls =
+        toStatus === 'published'
+          ? 'btn btn-primary'
+          : 'btn';
+
+      return (
+        `<button class="${cls}"
+          onclick="transitionListing('${listing.id}','${toStatus}')"
+        >${label}</button>`
+      );
+    })
+    .join('');
+
+  return `
+    <span style="margin-right:8px;">
+      Listing:
+      ${lifecycleTag(listing.status)}
+      ${buttons}
+    </span>
+  `;
+}
+
+
 async function renderAssetEditShell(main, opts) {
   const rep = (opts.data.representations || [])[0];
   const listing = rep && (rep.listings || [])[0];
@@ -339,9 +460,10 @@ async function renderAssetEditShell(main, opts) {
     <div class="page-title">
       ${opts.kind === 'development' ? escapeHtml(d.name) : 'Edit property'}
       <span>
-        ${listing ? `<span class="tag tag-${isPublished?'published':'draft'}">${listing.status}</span>
-        <button class="btn" onclick="togglePublish('${listing.id}', ${isPublished})">${isPublished ? 'Unpublish' : 'Publish'}</button>`
-        : `<button class="btn btn-primary" onclick="createInitialListingUi('${opts.kind}','${d.id}','${rep ? rep.partner_id : ''}')">Create listing</button>`}
+        ${rep ? renderRepresentationLifecycleControls(rep) : ''}
+        ${listing
+          ? renderListingLifecycleControls(listing)
+          : `<button class="btn btn-primary" onclick="createInitialListingUi('${opts.kind}','${d.id}','${rep ? rep.partner_id : ''}')">Create listing</button>`}
         <button class="btn" onclick="duplicateAsset('${opts.kind}','${d.id}')">Duplicate</button>
         <button class="btn btn-danger" onclick="deleteAsset('${opts.kind}','${d.id}','${opts.backView}')">Delete</button>
       </span>
@@ -527,9 +649,42 @@ async function saveTranslation(listingId, locale) {
   const result = await window.ZFindServices.admin.upsertListingContent(listingId, locale, { title, description });
   showStatus(result.error ? 'error' : 'success', result.error ? 'Could not save translation.' : `Saved ${locale.toUpperCase()}.`);
 }
-async function togglePublish(listingId, currentlyPublished) {
-  const result = await window.ZFindServices.admin.setListingStatus(listingId, currentlyPublished ? 'draft' : 'published');
-  showStatus(result.error ? 'error' : 'success', result.error ? 'Could not update status.' : 'Status updated.');
+async function transitionListing(listingId, toStatus) {
+  const result =
+    await window.ZFindServices.admin
+      .setListingStatus(listingId, toStatus);
+
+  showStatus(
+    result.error ? 'error' : 'success',
+    result.error
+      ? (result.error.message || 'Could not update Listing status.')
+      : `Listing moved to ${toStatus}.`
+  );
+
+  if (!result.error) render();
+}
+
+async function transitionRepresentation(
+  representationId,
+  toStatus
+) {
+  const result =
+    await window.ZFindServices.admin
+      .setRepresentationStatus(
+        representationId,
+        toStatus
+      );
+
+  showStatus(
+    result.error ? 'error' : 'success',
+    result.error
+      ? (
+          result.error.message
+          || 'Could not update Representation status.'
+        )
+      : `Representation moved to ${toStatus}.`
+  );
+
   if (!result.error) render();
 }
 

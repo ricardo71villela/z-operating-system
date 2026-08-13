@@ -324,21 +324,67 @@ async function upsertListingContent(listingId, locale, fields) {
 /* ---------------- Publish / unpublish ---------------- */
 
 async function setListingStatus(listingId, status) {
-  if (!['published', 'draft'].includes(status)) {
-    return { data: null, error: { type: 'malformed_response', context: 'admin.setListingStatus', message: 'status must be published or draft.' } };
+  const allowed = [
+    'draft',
+    'incomplete',
+    'pending_review',
+    'ready',
+    'published',
+    'suspended',
+    'archived'
+  ];
+
+  if (!allowed.includes(status)) {
+    return {
+      data: null,
+      error: {
+        type: 'malformed_response',
+        context: 'admin.setListingStatus',
+        message: 'invalid Listing lifecycle status.'
+      }
+    };
   }
+
   const client = getSupabaseClient();
-  const result = await safeQuery(() => client.from('listings').update({ status }).eq('id', listingId).select().single(), 'admin.setListingStatus');
-  // SEO REGENERATION TRIGGER POINT: once the Vercel/domain phase is
-  // done, this is where a Vercel Deploy Hook gets called (or a
-  // Supabase Database Webhook on this same UPDATE does it server-side
-  // instead — either is valid, not decided yet) to regenerate the
-  // static SEO pages (services/seo-page-generator.js +
-  // scripts/generate-seo-pages.js) so publish/unpublish reflects on
-  // the indexable pages automatically. Not implemented here — no
-  // infrastructure exists yet to call. Left as a comment, not a stub
-  // function, so it isn't mistaken for something already wired up.
-  return result;
+
+  return safeQuery(
+    () => client.rpc('zfind_admin_transition_listing', {
+      p_listing_id: listingId,
+      p_to_status: status
+    }),
+    'admin.setListingStatus'
+  );
+}
+
+
+async function setRepresentationStatus(representationId, status) {
+  const allowed = [
+    'proposed',
+    'active',
+    'ended',
+    'disputed'
+  ];
+
+  if (!allowed.includes(status)) {
+    return {
+      data: null,
+      error: {
+        type: 'malformed_response',
+        context: 'admin.setRepresentationStatus',
+        message: 'invalid Representation lifecycle status.'
+      }
+    };
+  }
+
+  const client = getSupabaseClient();
+
+  return safeQuery(
+    () => client.rpc('zfind_admin_transition_representation', {
+      p_representation_id: representationId,
+      p_to_status: status
+    }),
+    'admin.setRepresentationStatus'
+  );
 }
 
 /* ---------------- Media ----------------
@@ -613,7 +659,7 @@ return {
   listPartners, getPartnerById, createPartner, updatePartner, deletePartner, uploadPartnerLogo,
   listDevelopments, getDevelopmentForEdit, createDevelopment, updateDevelopment, deleteDevelopment, duplicateDevelopment, createDevelopmentForPartner,
   listProperties, getPropertyForEdit, createProperty, updateProperty, deleteProperty, duplicateProperty, createPropertyForPartner,
-  upsertListingContent, setListingStatus, createInitialListing,
+  upsertListingContent, setListingStatus, setRepresentationStatus, createInitialListing,
   uploadListingMedia, listListingMedia, reorderListingMedia, setCoverMedia, deleteListingMedia,
   uploadDevelopmentMedia, listDevelopmentMedia, reorderDevelopmentMedia, setCoverDevelopmentMedia, deleteDevelopmentMedia,
   listLeads, getLeadById,
