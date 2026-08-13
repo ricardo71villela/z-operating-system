@@ -63,8 +63,7 @@ async function tryEnterDashboard() {
 
   const partnerId = profileResult.data.partner_id;
   currentPartnerId = partnerId;
-  const partnerResult = await window.ZFindServices.supabaseClient.getSupabaseClient()
-    .from('partners').select('name').eq('id', partnerId).single();
+  const partnerResult = await window.ZFindServices.partnerDashboard.getOwnPartnerSummary(partnerId);
 
   document.getElementById('view-login').style.display = 'none';
   document.getElementById('view-dashboard').style.display = '';

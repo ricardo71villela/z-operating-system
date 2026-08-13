@@ -48,6 +48,7 @@ function build() {
   const supabaseClient = readWeb('services/supabaseClient.js');
   const authService = readWeb('services/auth.js');
   const identityService = readWeb('services/identity.js');
+  const partnerDashboardService = readWeb('services/partner-dashboard.js');
   const adminService = readWeb('services/admin.js');
   const fieldFormsService = readWeb('services/field-forms.js');
   const imageOptimizeService = readWeb('services/image-optimize.js');
@@ -70,6 +71,7 @@ function build() {
     + supabaseClient + '\n'
     + authService + '\n'
     + identityService + '\n'
+    + partnerDashboardService + '\n'
     + imageOptimizeService + '\n'
     + adminService + '\n'
     + fieldFormsService + '\n'
