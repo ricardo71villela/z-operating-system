@@ -86,6 +86,27 @@ function fmtDate(iso, lang) {
   return new Date(iso).toLocaleDateString(locale, { year:'numeric', month:'short' });
 }
 
+/**
+ * Public routes use short language codes (/en, /pt, /fr), while
+ * persisted localized content follows the system-language contract
+ * (en, pt-PT, fr).
+ *
+ * Keep that distinction at this boundary: routing remains stable and
+ * content lookup uses the canonical persisted locale.
+ */
+function contentLocaleForLang(lang) {
+  return lang === 'pt' ? 'pt-PT' : lang;
+}
+
+function findLocalizedContentRow(rows, lang) {
+  const localizedRows = rows || [];
+  const locale = contentLocaleForLang(lang);
+
+  return localizedRows.find(c => c.locale === locale)
+    || localizedRows.find(c => c.locale === 'en')
+    || null;
+}
+
 /* ---------------- Geography resolution (Registry/Marketplace consuming Geography) ----------------
    The only place Asset.locationId is turned into actual place names
    and a currency. Never duplicates Geography's data — always resolves
@@ -118,7 +139,7 @@ function mapSupabasePropertyRowToCard(row, lang) {
   const listing = rep.listings[0];
   const zone = row.zones_lite || {};
   const contentRows = listing.listing_content || [];
-  const content = contentRows.find(c => c.locale === lang) || contentRows.find(c => c.locale === 'en') || {};
+  const content = findLocalizedContentRow(contentRows, lang) || {};
   const currencyIso = listing.currency_iso || 'EUR';
   const kind = row.subtype === 'land' ? 'Land' : 'Property';
 
@@ -164,7 +185,7 @@ function mapSupabaseDevelopmentRowToCard(row, lang) {
   const listing = rep.listings[0];
   const zone = row.zones_lite || {};
   const contentRows = listing.listing_content || [];
-  const content = contentRows.find(c => c.locale === lang) || contentRows.find(c => c.locale === 'en') || {};
+  const content = findLocalizedContentRow(contentRows, lang) || {};
   const currencyIso = listing.currency_iso || 'EUR';
 
   const priceLabel = formatListingPrice(listing, lang, currencyIso);
@@ -355,7 +376,7 @@ function mapSupabasePropertyRowToDetailViewModel(row, lang) {
   const zone = row.zones_lite || {};
   const partner = rep.partners ? { id: rep.partners.id, name: rep.partners.name, enquiryPolicy: rep.partners.enquiry_policy || DEFAULT_ENQUIRY_POLICY } : { id: null, name: '', enquiryPolicy: DEFAULT_ENQUIRY_POLICY };
   const contentRows = listing.listing_content || [];
-  const content = contentRows.find(c => c.locale === lang) || contentRows.find(c => c.locale === 'en') || { title: '', description: '' };
+  const content = findLocalizedContentRow(contentRows, lang) || { title: '', description: '' };
   const currencyIso = listing.currency_iso || 'EUR';
 
   // Gallery media, ordered, cover first — mirrors listing_media's own
@@ -363,7 +384,7 @@ function mapSupabasePropertyRowToDetailViewModel(row, lang) {
   const mediaRows = (listing.listing_media || []).slice().sort((a, b) => (b.is_cover - a.is_cover) || (a.position - b.position));
   const media = mediaRows.map(m => {
     const asset = m.media_assets || {};
-    const contentRow = (asset.media_asset_content || []).find(c => c.locale === lang) || (asset.media_asset_content || []).find(c => c.locale === 'en');
+    const contentRow = findLocalizedContentRow(asset.media_asset_content, lang);
     return { storagePath: pickMediaStoragePath(asset), altText: (contentRow && contentRow.alt_text) || content.title || '' };
   });
 
@@ -550,7 +571,7 @@ function mapSupabaseDevelopmentRowToDetailViewModel(row, lang) {
   const listing = rep.listings[0];
   const zone = row.zones_lite || {};
   const contentRows = listing.listing_content || [];
-  const content = contentRows.find(c => c.locale === lang) || contentRows.find(c => c.locale === 'en') || { title: row.name || '', description: '' };
+  const content = findLocalizedContentRow(contentRows, lang) || { title: row.name || '', description: '' };
   const currencyIso = listing.currency_iso || 'EUR';
 
   const ownMediaRows = (row.development_media || []).slice().sort((a, b) => (b.is_cover - a.is_cover) || (a.position - b.position));
@@ -558,7 +579,7 @@ function mapSupabaseDevelopmentRowToDetailViewModel(row, lang) {
   const mediaRows = ownMediaRows.length ? ownMediaRows : listingMediaRows; // prefer the Development's own photos; fall back to its listing's
   const media = mediaRows.map(m => {
     const asset = m.media_assets || {};
-    const contentRow = (asset.media_asset_content || []).find(c => c.locale === lang) || (asset.media_asset_content || []).find(c => c.locale === 'en');
+    const contentRow = findLocalizedContentRow(asset.media_asset_content, lang);
     return { storagePath: pickMediaStoragePath(asset), altText: (contentRow && contentRow.alt_text) || content.title || '' };
   });
 
