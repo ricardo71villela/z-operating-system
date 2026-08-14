@@ -42,8 +42,11 @@ check(
 
 check(
   src.includes(
-    "return lang === 'pt' ? 'pt-PT' : lang;"
-  ),
+    "ZFindServices.publicLocales.persistedLocaleFor(lang)"
+  ) &&
+    /return\s+lang\s*===\s*'pt'\s*\?\s*'pt-PT'\s*:\s*lang\s*;/.test(
+      src
+    ),
   'Portuguese maps pt → pt-PT'
 );
 

@@ -2,8 +2,24 @@
    Z FIND — APP (router, i18n binding, render)
    ============================================================ */
 
-const SUPPORTED_LANGS = ['en','pt','fr'];
-const state = { lang:'en', view:'home', id:null, query:{} };
+const PUBLIC_LOCALE_CONFIG =
+  (
+    typeof ZFindServices !== 'undefined' &&
+    ZFindServices.publicLocales
+  )
+    ? ZFindServices.publicLocales
+    : {
+        DEFAULT_PUBLIC_LOCALE: 'fr',
+        LEGACY_TRANSLATED_LOCALES: ['fr','en','pt']
+      };
+
+const SUPPORTED_LANGS =
+  PUBLIC_LOCALE_CONFIG.LEGACY_TRANSLATED_LOCALES.slice();
+
+const DEFAULT_LANG =
+  PUBLIC_LOCALE_CONFIG.DEFAULT_PUBLIC_LOCALE;
+
+const state = { lang:DEFAULT_LANG, view:'home', id:null, query:{} };
 let currentListingIdForEnquiry = null;
 let currentUnitContext = null;
 
@@ -21,7 +37,13 @@ function parseHash() {
   const parts = pathPart.split('/').filter(Boolean);
   let lang = parts[0];
   if (!SUPPORTED_LANGS.includes(lang)) {
-    lang = localStorage.getItem('zfind_lang') || 'en';
+    const storedLang =
+      localStorage.getItem('zfind_lang');
+
+    lang =
+      SUPPORTED_LANGS.includes(storedLang)
+        ? storedLang
+        : DEFAULT_LANG;
     location.hash = '/' + lang + (parts.length ? '/'+parts.join('/') : '/home') + (queryPart ? '?'+queryPart : '');
     return; // hashchange will re-fire parseHash
   }

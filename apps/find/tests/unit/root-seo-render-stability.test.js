@@ -57,8 +57,8 @@ vm.runInContext(
   sandbox
 );
 
-const EN =
-  sandbox.__I18N.en;
+const FR =
+  sandbox.__I18N.fr;
 
 let passed = 0;
 let failed = 0;
@@ -88,7 +88,7 @@ function resolveKey(key) {
         current == null
           ? undefined
           : current[part],
-      EN
+      FR
     );
 }
 
@@ -207,7 +207,7 @@ assert(
 
 
 console.log(
-  '\n=== 2. Initial English render ==='
+  '\n=== 2. Initial French render ==='
 );
 
 const keys = [
@@ -293,16 +293,16 @@ const home =
 
 assert(
   home.includes(
-    `placeholder="${EN.search.locationPh}"`
+    `placeholder="${FR.search.locationPh}"`
   ),
   'home location placeholder pre-rendered'
 );
 
 assert(
-  /<html lang="en">/.test(
+  /<html lang="fr">/.test(
     head
   ),
-  'static default language remains English'
+  'static default language remains French'
 );
 
 console.log(

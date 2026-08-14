@@ -1,21 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QA/wD/AP+gvaeTAAADxUlEQVRYhb3WTWhdRRTA8f85M3eeNiXGRLoRG7sQoRYKggUXEsSKBqmCCAWLLlQKShR0IRUkRaS6Uiq6KX5BEUqgLeoiXYWC4qa4UhHBVetOYkCsNO/Ox3GRpL4k9773Io2zefOYMzM/5szHlbl3nrCYMilmYkrElElppa6qhCoQQkUnBELorVeEEOis/oaqwjlFnaLO9dS1oe6u133lPW0lpkQd69b2jSVQDR27Vrz3rm/AdiN8NQCw3Qjv3GDAdiK8iDKkYQ1x1eCcGBcF+VURQ+Quw6ZAngJGt4LwqkopDIMw4JNE/VYdZUqMx014yWBHR+wylAsu69tm9iowA+gwCK+qAIMQBeyFInbFx/BtLGlPnQzkum2fGY8RurOduhwF+x74HHCDENcBfREisyYsglyIlito3RO7gPOIPq9avwZ8sNbQhvCq62dsQPxYSjqNdz+LrR+lBaHAKS3lPjN+Avb1Q6xbgSaEwXsdbDYmdq78twOYFIphIRBjJNVdrPBXyWkZ5BtgEux46OoJ4Ezv2BsRjYAeRKpI84I/2ZPwS0IGMUgZcY6Y0nK25Qckd97t1t3Jlf3KtMvLL9fSKaur0ohoBawiLgcX7hTKWGsQINhMN5aDdYlP9kBvxpfdwckvwN6NfdYQfQHAVaOMOdqPhyAfd+G3QD61eU/IOHVMbX0D1UDARMq6KNJyOoxL5vL7AfddXD1y6xAiS2A7+03gRRx9DLerVkuk/HcpjGxA/C7ZnsXCnPg83tuwivizqF7BbHdfwNpN2IKQysp00TIH+lzP6Ugielhg1lLa39Sxzvk89bVH69Jpf+/ZcBM2IYrxukemDTkMjKwg7JiI7TdzTzdeL8ZVvDsRl7tf1db/Adt0E25CFPZkDUfE4ouKngY7+8d4/eHYYmfGmz+GASYgIGKIeUzkB2I+gvf3DHpFvXPrZ2xGlDdF/ZFMOq7i7p9YGvnCMLwDwSEKRI+YOAtpNEQ5KGZTq/uy71Pu1TXfhBsQAnxWin9ENE9gvFIoSPn3KTcDMz71YgvAR+Cld4A2hNeWJ7ABcZP3fF3Qh8TSrcAza3HOgRnn1MlJ6dpFMaRpzCbEphQMQNxCKfNZ9UHFxoBDAMVY8J3yRq51wXt/G83zNyIaUzAAsQthPgkPqzGKssOSHsWYd67c0XewBsRAQCOiMFkJX2anh8jRxJezuejdQ35ZrUP0TUE/RIG9SjkDrlsK92pP3FYQQ61AGwI40BY3LGJLgBZEa9wwiKFTsF2I1nvg/0JsOQU3GvGfUnAjEf8AK0X+YixlLVoAAAAASUVORK5CYII=">
-<title>Z Find — Real opportunities, not repeated ones</title>
-<meta name="description" content="Search properties, developments, land and off-market opportunities — organised around what actually exists, not how many times it was listed.">
+<title>Z Find — De vraies opportunités immobilières</title>
+<meta name="description" content="Achetez, louez et investissez dans des biens et programmes immobiliers sur Z Find — un inventaire structuré, clair et sans doublons.">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://zfind.online/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Z Find">
-<meta property="og:title" content="Z Find — Real opportunities, not repeated ones">
-<meta property="og:description" content="Search properties, developments, land and off-market opportunities — organised around what actually exists, not how many times it was listed.">
+<meta property="og:title" content="Z Find — De vraies opportunités immobilières">
+<meta property="og:description" content="Achetez, louez et investissez dans des biens et programmes immobiliers sur Z Find — un inventaire structuré, clair et sans doublons.">
 <meta property="og:url" content="https://zfind.online/">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Z Find — Real opportunities, not repeated ones">
-<meta name="twitter:description" content="Search properties, developments, land and off-market opportunities — organised around what actually exists, not how many times it was listed.">
-<script type="application/ld+json" id="zfind-root-website-schema">{"@context":"https://schema.org","@type":"WebSite","name":"Z Find","url":"https://zfind.online/","description":"Search properties, developments, land and off-market opportunities — organised around what actually exists, not how many times it was listed."}</script>
+<meta name="twitter:title" content="Z Find — De vraies opportunités immobilières">
+<meta name="twitter:description" content="Achetez, louez et investissez dans des biens et programmes immobiliers sur Z Find — un inventaire structuré, clair et sans doublons.">
+<script type="application/ld+json" id="zfind-root-website-schema">{"@context":"https://schema.org","@type":"WebSite","name":"Z Find","url":"https://zfind.online/","description":"Achetez, louez et investissez dans des biens et programmes immobiliers sur Z Find — un inventaire structuré, clair et sans doublons.","inLanguage":"fr"}</script>
 <link rel="preload" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap">

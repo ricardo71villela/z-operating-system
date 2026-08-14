@@ -38,7 +38,7 @@ function t(lang, path, vars) {
  * a location somehow fails to resolve, not as the intended path.
  */
 function fmtCurrency(value, lang, currencyIso) {
-  const locale = { en:'en-IE', pt:'pt-PT', fr:'fr-FR' }[lang] || 'en-IE';
+  const locale = { fr:'fr-FR', en:'en-IE', pt:'pt-PT', es:'es-ES', de:'de-DE', it:'it-IT' }[lang] || 'fr-FR';
   return new Intl.NumberFormat(locale, { style:'currency', currency: currencyIso || 'EUR', maximumFractionDigits:0 }).format(value);
 }
 
@@ -78,11 +78,11 @@ function formatListingPrice(listing, lang, currencyIso) {
 }
 
 function fmtNumber(value, lang) {
-  const locale = { en:'en-IE', pt:'pt-PT', fr:'fr-FR' }[lang] || 'en-IE';
+  const locale = { fr:'fr-FR', en:'en-IE', pt:'pt-PT', es:'es-ES', de:'de-DE', it:'it-IT' }[lang] || 'fr-FR';
   return new Intl.NumberFormat(locale).format(value);
 }
 function fmtDate(iso, lang) {
-  const locale = { en:'en-GB', pt:'pt-PT', fr:'fr-FR' }[lang] || 'en-GB';
+  const locale = { fr:'fr-FR', en:'en-GB', pt:'pt-PT', es:'es-ES', de:'de-DE', it:'it-IT' }[lang] || 'fr-FR';
   return new Date(iso).toLocaleDateString(locale, { year:'numeric', month:'short' });
 }
 
@@ -95,7 +95,19 @@ function fmtDate(iso, lang) {
  * content lookup uses the canonical persisted locale.
  */
 function contentLocaleForLang(lang) {
-  return lang === 'pt' ? 'pt-PT' : lang;
+  if (
+    typeof ZFindServices !== 'undefined' &&
+    ZFindServices.publicLocales
+  ) {
+    return (
+      ZFindServices.publicLocales.persistedLocaleFor(lang)
+      || lang
+    );
+  }
+
+  return lang === 'pt'
+    ? 'pt-PT'
+    : lang;
 }
 
 function findLocalizedContentRow(rows, lang) {

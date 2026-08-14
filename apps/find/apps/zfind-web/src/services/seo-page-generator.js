@@ -35,6 +35,13 @@
 
 const LOCALES = ['en', 'pt', 'fr'];
 
+/*
+ * Legacy renderer keeps the three complete Phase-3 translations.
+ * The Phase-4 canonical renderer expands through public-locales
+ * only when genuine localized presentation/content exists.
+ */
+const DEFAULT_LOCALE = 'fr';
+
 function escapeHtml(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 }
@@ -60,7 +67,7 @@ function buildMetaDescription(text, maxLen) {
 
 function hreflangLinks(baseUrl, pathForLocale) {
   return LOCALES.map(l => `<link rel="alternate" hreflang="${l}" href="${baseUrl}${pathForLocale(l)}">`).join('\n  ')
-    + `\n  <link rel="alternate" hreflang="x-default" href="${baseUrl}${pathForLocale('en')}">`;
+    + `\n  <link rel="alternate" hreflang="x-default" href="${baseUrl}${pathForLocale(DEFAULT_LOCALE)}">`;
 }
 
 /** Property/Development share the same JSON-LD shape closely enough
@@ -209,6 +216,6 @@ ${absoluteImageUrl ? `<meta property="og:image" content="${escapeAttr(absoluteIm
 </html>`;
 }
 
-return { buildListingPage, buildZonePage, buildMetaDescription, MIN_LISTINGS_FOR_STATS, LOCALES };
+return { buildListingPage, buildZonePage, buildMetaDescription, MIN_LISTINGS_FOR_STATS, LOCALES, DEFAULT_LOCALE };
 
 });

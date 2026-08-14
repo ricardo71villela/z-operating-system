@@ -68,6 +68,8 @@ function build() {
   const pathD = read('path_data.txt');        // 9th source artifact — the traced logo SVG path
   const vendorSupabase = read('vendor-supabase.js'); // Supabase JS SDK (UMD build), inlined — no external CDN dependency at runtime
   const configTemplate = read('config.template.js'); // 10th source artifact — build-time Supabase config injection (Sprint 1.1)
+  const publicLocalesService = read('services/public-locales.js');
+  const publicRoutesService = read('services/public-routes.js');
   const supabaseClient = read('services/supabaseClient.js');
   const propertiesService = read('services/properties.js');
   const publicVerificationService = read('services/public-verification.js');
@@ -110,6 +112,8 @@ function build() {
     + '\n<script>\n'
     + vendorSupabase + '\n'
     + resolvedConfig + '\n'
+    + publicLocalesService + '\n'
+    + publicRoutesService + '\n'
     + supabaseClient + '\n'
     + propertiesService + '\n'
     + publicVerificationService + '\n'
