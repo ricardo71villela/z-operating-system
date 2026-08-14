@@ -15,10 +15,10 @@
   <div class="wrap nav-row">
     <div class="logo"><svg class="zf-mark" viewBox="0 0 1254 1254"><g transform="translate(0.000000,1254.000000) scale(0.100000,-0.100000)" fill="url(#zfindGold)"><path d="__PATH_D__"/></g></svg><em>Find</em></div>
     <nav class="nav-links">
-      <button class="nav-btn active" data-view="home" data-i18n="navigation.home"></button>
-      <button class="nav-btn" data-view="search" data-i18n="navigation.search"></button>
-      <button class="nav-btn" data-view="partner" data-i18n="navigation.partner"></button>
-      <button class="nav-btn" data-view="simulator" data-i18n="navigation.simulator"></button>
+      <button class="nav-btn active" data-view="home" data-i18n="navigation.home">Home</button>
+      <button class="nav-btn" data-view="search" data-i18n="navigation.search">Search</button>
+      <button class="nav-btn" data-view="partner" data-i18n="navigation.partner">Partner</button>
+      <button class="nav-btn" data-view="simulator" data-i18n="navigation.simulator">Simulators</button>
     </nav>
     <div class="nav-actions">
       <div class="lang-switch" role="group" aria-label="Language">
@@ -26,8 +26,8 @@
         <button data-lang="en">EN</button>
         <button data-lang="fr">FR</button>
       </div>
-      <button class="btn btn-ghost" data-i18n="common.publish"></button>
-      <button class="btn btn-outline" data-i18n="common.signIn"></button>
+      <button class="btn btn-ghost" data-i18n="common.publish">Publish your portfolio</button>
+      <button class="btn btn-outline" data-i18n="common.signIn">Sign in</button>
     </div>
   </div>
 </header>
@@ -38,56 +38,56 @@
 <section class="view active" id="view-home">
   <div class="hero">
     <div class="wrap">
-      <span class="eyebrow" data-i18n="hero.eyebrow"></span>
-      <h1><span data-i18n="hero.titleLine1"></span><br><i data-i18n="hero.titleLineEm"></i></h1>
-      <p class="lead" data-i18n="hero.lead"></p>
+      <span class="eyebrow" data-i18n="hero.eyebrow">A different kind of real-estate portal</span>
+      <h1><span data-i18n="hero.titleLine1">Not an opportunistic portal.</span><br><i data-i18n="hero.titleLineEm">A portal of real opportunities.</i></h1>
+      <p class="lead" data-i18n="hero.lead">Search properties, developments, land and off-market opportunities — organised around what actually exists, not how many times it was listed.</p>
 
       <div class="searchbar">
         <div class="searchbar-inner">
           <div class="cat-tabs">
-            <button class="active" data-cat="residential" data-i18n="search.tabResidential"></button>
-            <button data-cat="developments" data-i18n="search.tabDevelopments"></button>
-            <button data-cat="land" data-i18n="search.tabLand"></button>
-            <button data-cat="offmarket" data-i18n="search.tabOffmarket"></button>
+            <button class="active" data-cat="residential" data-i18n="search.tabResidential">Residential</button>
+            <button data-cat="developments" data-i18n="search.tabDevelopments">Developments</button>
+            <button data-cat="land" data-i18n="search.tabLand">Land & Development</button>
+            <button data-cat="offmarket" data-i18n="search.tabOffmarket">Off-Market</button>
           </div>
 
           <div class="transaction-filter-block">
             <div class="transaction-tabs" id="home-transaction-tabs" role="group" aria-label="Transaction type">
-              <button type="button" class="transaction-tab active" data-transaction="sale" onclick="setHomeTransaction('sale')" data-i18n="search.buy"></button>
-              <button type="button" class="transaction-tab" data-transaction="rent" onclick="setHomeTransaction('rent')" data-i18n="search.rent"></button>
+              <button type="button" class="transaction-tab active" data-transaction="sale" onclick="setHomeTransaction('sale')" data-i18n="search.buy">Buy</button>
+              <button type="button" class="transaction-tab" data-transaction="rent" onclick="setHomeTransaction('rent')" data-i18n="search.rent">Rent</button>
             </div>
             <div class="rental-period-control" id="home-rental-period-wrap" style="display:none;">
-              <label for="home-rental-period" data-i18n="search.rentalPeriod"></label>
+              <label for="home-rental-period" data-i18n="search.rentalPeriod">Rental period</label>
               <select id="home-rental-period" onchange="setHomeRentalPeriod(this.value)"></select>
             </div>
           </div>
           <div class="search-fields">
-            <input type="text" id="home-q" data-i18n-ph="search.locationPh">
+            <input type="text" id="home-q" data-i18n-ph="search.locationPh" placeholder="Location — city, zone or address">
             <div class="divider"></div>
             <select id="home-type">
-              <option value="" data-i18n="search.typeAny"></option>
-              <option value="apartment" data-i18n="search.typeApartment"></option>
-              <option value="villa" data-i18n="search.typeVilla"></option>
-              <option value="development" data-i18n="search.typeDevelopment"></option>
-              <option value="land" data-i18n="search.typeLand"></option>
-              <option value="offmarket" data-i18n="search.typeOffmarket"></option>
+              <option value="" data-i18n="search.typeAny">Any type</option>
+              <option value="apartment" data-i18n="search.typeApartment">Apartment</option>
+              <option value="villa" data-i18n="search.typeVilla">Villa</option>
+              <option value="development" data-i18n="search.typeDevelopment">Development</option>
+              <option value="land" data-i18n="search.typeLand">Land</option>
+              <option value="offmarket" data-i18n="search.typeOffmarket">Off-market</option>
             </select>
             <div class="divider"></div>
             <select id="home-budget">
-              <option value="" data-i18n="search.anyBudget"></option>
-              <option value="u400" data-i18n="search.budgetUnder400"></option>
-              <option value="400-700" data-i18n="search.budget400to700"></option>
-              <option value="o700" data-i18n="search.budgetOver700"></option>
+              <option value="" data-i18n="search.anyBudget">Any budget</option>
+              <option value="u400" data-i18n="search.budgetUnder400">Up to €400,000</option>
+              <option value="400-700" data-i18n="search.budget400to700">€400,000 – €700,000</option>
+              <option value="o700" data-i18n="search.budgetOver700">€700,000+</option>
             </select>
-            <button class="go" data-i18n="common.search" onclick="submitHomeSearch()"></button>
+            <button class="go" data-i18n="common.search" onclick="submitHomeSearch()">Search</button>
           </div>
         </div>
       </div>
 
       <div class="principle-strip">
-        <div class="p"><span class="num">I.</span><h4 data-i18n-html="hero.p1title"></h4><p data-i18n="hero.p1body"></p></div>
-        <div class="p"><span class="num">II.</span><h4 data-i18n-html="hero.p2title"></h4><p data-i18n="hero.p2body"></p></div>
-        <div class="p"><span class="num">III.</span><h4 data-i18n-html="hero.p3title"></h4><p data-i18n="hero.p3body"></p></div>
+        <div class="p"><span class="num">I.</span><h4 data-i18n-html="hero.p1title">More opportunities.<br>Less duplication.</h4><p data-i18n="hero.p1body">One real-world asset, one canonical record — however many partners represent it.</p></div>
+        <div class="p"><span class="num">II.</span><h4 data-i18n-html="hero.p2title">More information.<br>Less noise.</h4><p data-i18n="hero.p2body">Market context, planning facts and estimates, clearly labelled — not five inconsistent copies of the same listing.</p></div>
+        <div class="p"><span class="num">III.</span><h4 data-i18n-html="hero.p3title">More connection.<br>Less friction.</h4><p data-i18n="hero.p3body">Direct contact when you want speed. Qualified introduction when you want relevance.</p></div>
       </div>
     </div>
   </div>
