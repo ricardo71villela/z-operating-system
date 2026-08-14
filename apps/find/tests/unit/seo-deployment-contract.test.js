@@ -130,8 +130,8 @@ assert(
 
 assert(
   vercel.installCommand ===
-    'cd ../../../.. && npm ci',
-  'Vercel installs dependencies from the npm workspace root'
+    'cd ../../../.. && npm ci --workspace=apps/find',
+  'Vercel installs only the Z Find npm workspace from the monorepo root'
 );
 
 const monorepoRoot = path.resolve(

@@ -9,5 +9,5 @@
       "destination": "/index.html"
     }
   ],
-  "installCommand": "cd ../../../.. && npm ci"
+  "installCommand": "cd ../../../.. && npm ci --workspace=apps/find"
 }
