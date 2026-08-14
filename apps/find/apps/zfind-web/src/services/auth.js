@@ -30,7 +30,7 @@ async function signIn(email, password) {
 
 async function signOut() {
   const client = getSupabaseClient();
-  return safeQuery(() => client.auth.signOut(), 'auth.signOut');
+  return safeQuery(() => client.auth.signOut(), 'auth.signOut', { allowNullData: true });
 }
 
 async function getSession() {
