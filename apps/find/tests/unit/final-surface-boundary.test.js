@@ -317,8 +317,16 @@ const recentFindBoundaryMigrations = migrationFiles
   )
   .join('\n');
 
+// Cross-vertical safety must inspect executable SQL, not comments.
+// A migration may explicitly document that vehicle-images is untouched;
+// that sentence itself must not create a false positive.
+const recentFindBoundaryExecutableSql =
+  recentFindBoundaryMigrations
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/--.*$/gm, '');
+
 check(
-  !recentFindBoundaryMigrations.includes('vehicle-images'),
+  !recentFindBoundaryExecutableSql.includes('vehicle-images'),
   'Z Find Partner hardening does not touch Z Mobility vehicle-images'
 );
 

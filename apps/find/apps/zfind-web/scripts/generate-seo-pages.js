@@ -41,18 +41,104 @@ const path = require('path');
 
 const DIST_SEO_DIR = path.join(__dirname, '..', 'dist', 'seo');
 
+function normalizeBaseUrl(baseUrl) {
+  if (!baseUrl || typeof baseUrl !== 'string' || !/^https?:\/\//.test(baseUrl)) {
+    throw new Error(
+      'SEO deployment requires a real SITE_BASE_URL using http/https.'
+    );
+  }
+
+  return baseUrl.replace(/\/+$/, '');
+}
+
+function xmlEscape(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function buildRobotsTxt(baseUrl) {
+  const base = normalizeBaseUrl(baseUrl);
+
+  return [
+    'User-agent: *',
+    'Allow: /',
+    '',
+    `Sitemap: ${base}/sitemap.xml`,
+    '',
+  ].join('\n');
+}
+
+function buildSitemapXml(baseUrl, urls) {
+  const base = normalizeBaseUrl(baseUrl);
+
+  const canonicalUrls = Array.from(
+    new Set([
+      `${base}/`,
+      ...Array.from(urls || []),
+    ])
+  ).sort();
+
+  const body = canonicalUrls
+    .map(url => `  <url><loc>${xmlEscape(url)}</loc></url>`)
+    .join('\n');
+
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    body,
+    '</urlset>',
+    '',
+  ].join('\n');
+}
+
+function writeIndexingArtifacts(baseUrl, urls) {
+  fs.writeFileSync(
+    path.join(DIST_SEO_DIR, 'robots.txt'),
+    buildRobotsTxt(baseUrl)
+  );
+
+  fs.writeFileSync(
+    path.join(DIST_SEO_DIR, 'sitemap.xml'),
+    buildSitemapXml(baseUrl, urls)
+  );
+}
+
 async function main() {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
   const siteBaseUrl = process.env.SITE_BASE_URL;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.log('SEO page generation SKIPPED: SUPABASE_URL/SUPABASE_ANON_KEY not set (expected during a plain local build without Supabase access).');
-    return;
+    throw new Error(
+      'BUILD FAILED: SUPABASE_URL and SUPABASE_ANON_KEY are required for SEO generation.'
+    );
   }
+
   if (!siteBaseUrl) {
-    throw new Error('BUILD FAILED: SITE_BASE_URL is required to generate SEO pages (real domain, e.g. https://zfind.pt) — refusing to generate pages with a guessed canonical URL. Set it once the domain from the Vercel/DNS phase is known.');
+    throw new Error(
+      'BUILD FAILED: SITE_BASE_URL is required to generate SEO pages — refusing to generate guessed canonical URLs.'
+    );
   }
+
+  const baseUrl = normalizeBaseUrl(siteBaseUrl);
+
+  // Never carry stale pages from a previous publication state into
+  // a new deploy. A successful generation always starts from zero.
+  fs.rmSync(DIST_SEO_DIR, {
+    recursive: true,
+    force: true,
+  });
+
+  fs.mkdirSync(
+    DIST_SEO_DIR,
+    {
+      recursive: true,
+    }
+  );
 
   // Reuse the exact same UMD services already proven in the browser —
   // no new query logic here.
@@ -85,8 +171,8 @@ async function main() {
   const properties = propertiesResult.data || [];
   const developments = developmentsResult.data || [];
 
-  fs.mkdirSync(DIST_SEO_DIR, { recursive: true });
   let written = 0;
+  const sitemapUrls = new Set();
 
   async function writeListingPages(rows, kind) {
     for (const row of rows) {
@@ -109,7 +195,7 @@ async function main() {
         const contentRows = listing.listing_content || [];
         const content = contentRows.find(c => c.locale === locale) || contentRows.find(c => c.locale === 'en') || { title: row.name || '', description: '' };
         const html = generator.buildListingPage({
-          kind, baseUrl: siteBaseUrl, locale, id: row.id,
+          kind, baseUrl, locale, id: row.id,
           title: content.title, description: content.description,
           priceValue: listing.price_current, currencyIso: listing.currency_iso, priceIsFrom: !!listing.price_is_from,
           zoneLabel: zone.name || null, cityLabel: zone.city || null, countryIsoCode: zone.country_iso || null,
@@ -118,6 +204,11 @@ async function main() {
         const outPath = path.join(DIST_SEO_DIR, locale, kind, `${row.id}.html`);
         fs.mkdirSync(path.dirname(outPath), { recursive: true });
         fs.writeFileSync(outPath, html);
+
+        sitemapUrls.add(
+          `${baseUrl}/${locale}/${kind}/${row.id}`
+        );
+
         written++;
       }
     }
@@ -149,21 +240,39 @@ async function main() {
     const avgPrice = prices.length ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
     for (const locale of generator.LOCALES) {
       const html = generator.buildZonePage({
-        baseUrl: siteBaseUrl, locale, zoneId, zoneName: zone.name, cityName: zone.city, countryIsoCode: zone.country_iso,
+        baseUrl, locale, zoneId, zoneName: zone.name, cityName: zone.city, countryIsoCode: zone.country_iso,
         listingCount: prices.length, avgPrice, currencyIso: 'EUR', sampleListings: samples,
         imageUrl: zoneImages.getZoneImagePath(zone.name),
       });
       const outPath = path.join(DIST_SEO_DIR, locale, 'zone', `${zoneId}.html`);
       fs.mkdirSync(path.dirname(outPath), { recursive: true });
       fs.writeFileSync(outPath, html);
+
+      sitemapUrls.add(
+        `${baseUrl}/${locale}/zone/${zoneId}`
+      );
+
       written++;
     }
   }
 
+  // robots.txt and sitemap.xml exist even when public inventory is
+  // genuinely zero. sitemap.xml then contains only the canonical root.
+  writeIndexingArtifacts(
+    baseUrl,
+    sitemapUrls
+  );
+
   console.log(`SEO pages generated: ${written} files in ${DIST_SEO_DIR}`);
+  console.log('SEO indexing artifacts generated: robots.txt, sitemap.xml');
 }
 
 if (require.main === module) {
   main().catch(e => { console.error(e.message); process.exit(1); });
 }
-module.exports = { main };
+module.exports = {
+  main,
+  normalizeBaseUrl,
+  buildRobotsTxt,
+  buildSitemapXml,
+};

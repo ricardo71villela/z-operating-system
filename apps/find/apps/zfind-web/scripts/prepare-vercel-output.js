@@ -61,12 +61,34 @@ function main() {
   // an incoming request, e.g. a request for /en/property/xyz matches
   // this file on disk without needing the extension in the URL).
   const seoSrc = path.join(ROOT, 'dist', 'seo');
-  if (fs.existsSync(seoSrc)) {
-    copyRecursive(seoSrc, OUT);
-    console.log('Static SEO pages included in Vercel output.');
-  } else {
-    console.log('No dist/seo/ found — SEO pages were not generated for this build (expected if SITE_BASE_URL/Supabase creds were not set). The SPA still deploys correctly; SEO pages are additive, not required.');
+
+  if (!fs.existsSync(seoSrc)) {
+    throw new Error(
+      'BUILD FAILED: dist/seo/ not found — run SEO generation before assembling a Vercel deployment.'
+    );
   }
+
+  for (const requiredFile of ['robots.txt', 'sitemap.xml']) {
+    const requiredPath = path.join(
+      seoSrc,
+      requiredFile
+    );
+
+    if (!fs.existsSync(requiredPath)) {
+      throw new Error(
+        `BUILD FAILED: dist/seo/${requiredFile} is missing.`
+      );
+    }
+  }
+
+  copyRecursive(
+    seoSrc,
+    OUT
+  );
+
+  console.log(
+    'Static SEO pages and indexing artifacts included in Vercel output.'
+  );
 
   console.log('Vercel output assembled at:', OUT);
 }
