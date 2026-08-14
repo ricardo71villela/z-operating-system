@@ -1309,6 +1309,131 @@ async function submitEnquiry() {
   if (btn) btn.style.display = 'none'; // only hidden on genuine success — never re-shown until the modal reopens fresh
 }
 
+/* ---------------- Responsive primary navigation ----------------
+   Desktop remains the single source of truth. Mobile items are
+   rebuilt from .nav-links whenever the menu opens, so routes,
+   labels and future navigation changes cannot drift between two
+   independently maintained menus.
+---------------------------------------------------------------- */
+function initMobilePrimaryNavigation() {
+  const navRow = document.querySelector('.nav-row');
+  const desktopNav = document.querySelector('.nav-links');
+  const navActions = document.querySelector('.nav-actions');
+
+  if (
+    !navRow ||
+    !desktopNav ||
+    document.getElementById('mobile-nav-toggle')
+  ) {
+    return;
+  }
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'mobile-primary-nav';
+
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.id = 'mobile-nav-toggle';
+  toggle.className = 'menu-toggle';
+  toggle.setAttribute('aria-expanded', 'false');
+  toggle.setAttribute('aria-controls', 'mobile-primary-nav');
+  toggle.setAttribute('aria-label', 'Menu');
+  toggle.innerHTML = '<span aria-hidden="true">☰</span>';
+
+  const panel = document.createElement('div');
+  panel.id = 'mobile-primary-nav';
+  panel.className = 'mobile-primary-menu';
+  panel.setAttribute('role', 'navigation');
+  panel.setAttribute('aria-label', 'Primary navigation');
+  panel.hidden = true;
+
+  function closeMobileNavigation(restoreFocus) {
+    panel.hidden = true;
+    toggle.setAttribute('aria-expanded', 'false');
+
+    if (restoreFocus) {
+      toggle.focus();
+    }
+  }
+
+  function syncMobileNavigationItems() {
+    panel.innerHTML = '';
+
+    desktopNav
+      .querySelectorAll('button, a')
+      .forEach(original => {
+        const item = document.createElement('button');
+
+        item.type = 'button';
+        item.className = 'mobile-primary-menu-item';
+
+        if (original.classList.contains('active')) {
+          item.classList.add('active');
+        }
+
+        item.textContent =
+          (original.textContent || '').trim();
+
+        item.addEventListener('click', event => {
+          event.preventDefault();
+          original.click();
+          closeMobileNavigation(false);
+        });
+
+        panel.appendChild(item);
+      });
+  }
+
+  toggle.addEventListener('click', event => {
+    event.stopPropagation();
+
+    if (panel.hidden) {
+      syncMobileNavigationItems();
+      panel.hidden = false;
+      toggle.setAttribute('aria-expanded', 'true');
+    } else {
+      closeMobileNavigation(false);
+    }
+  });
+
+  wrapper.addEventListener('click', event => {
+    event.stopPropagation();
+  });
+
+  document.addEventListener('click', () => {
+    closeMobileNavigation(false);
+  });
+
+  document.addEventListener('keydown', event => {
+    if (
+      event.key === 'Escape' &&
+      !panel.hidden
+    ) {
+      closeMobileNavigation(true);
+    }
+  });
+
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 900) {
+      closeMobileNavigation(false);
+    }
+  });
+
+  window.addEventListener('hashchange', () => {
+    if (!panel.hidden) {
+      syncMobileNavigationItems();
+    }
+  });
+
+  wrapper.append(toggle, panel);
+
+  if (navActions) {
+    navActions.prepend(wrapper);
+  } else {
+    navRow.appendChild(wrapper);
+  }
+}
+
 /* ---------------- Main render dispatch ---------------- */
 function render() {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -1333,6 +1458,7 @@ function render() {
 
 /* ---------------- Event wiring ---------------- */
 document.addEventListener('DOMContentLoaded', () => {
+  initMobilePrimaryNavigation();
   document.querySelectorAll('.nav-btn').forEach(b => b.addEventListener('click', () => navigate(b.dataset.view)));
   document.querySelectorAll('.lang-switch button').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang)));
   document.querySelectorAll('#view-home .cat-tabs button').forEach(b => {

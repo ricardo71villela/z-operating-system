@@ -404,3 +404,119 @@ footer.site .bottom{ border-top:1px solid var(--gray-700); margin-top:44px; padd
     justify-content:space-between;
   }
 }
+
+/* ---------- responsive primary navigation ---------- */
+.mobile-primary-nav{
+  display:none;
+  flex:none;
+}
+
+.menu-toggle{
+  width:36px;
+  height:36px;
+  padding:0;
+  flex:none;
+  align-items:center;
+  justify-content:center;
+  border:1px solid var(--gray-200);
+  border-radius:var(--radius);
+  background:var(--white);
+  color:var(--gray-900);
+  font-size:1.15rem;
+  line-height:1;
+}
+
+.menu-toggle:hover,
+.menu-toggle:focus-visible{
+  border-color:var(--gray-900);
+}
+
+.mobile-primary-menu[hidden]{
+  display:none !important;
+}
+
+.mobile-primary-menu{
+  position:fixed;
+  z-index:80;
+  top:84px;
+  left:16px;
+  right:16px;
+  width:auto;
+  max-height:calc(100vh - 100px);
+  overflow-y:auto;
+  padding:8px;
+  border:1px solid var(--gray-200);
+  border-radius:var(--radius);
+  background:var(--white);
+  box-shadow:var(--shadow-soft);
+}
+
+.mobile-primary-menu-item{
+  display:block;
+  width:100%;
+  padding:13px 14px;
+  border-radius:6px;
+  text-align:left;
+  color:var(--gray-700);
+  font-size:0.9rem;
+}
+
+.mobile-primary-menu-item:hover,
+.mobile-primary-menu-item:focus-visible,
+.mobile-primary-menu-item.active{
+  background:var(--gray-50);
+  color:var(--gray-900);
+}
+
+@media(max-width:900px){
+  .mobile-primary-nav{
+    display:block;
+  }
+
+  .menu-toggle{
+    display:inline-flex;
+  }
+}
+
+@media(min-width:901px){
+  .mobile-primary-nav{
+    display:none !important;
+  }
+}
+
+/* ---------- compact small-mobile header ---------- */
+/*
+  Keep every header capability available on narrow phones:
+  primary menu, PT/EN/FR and Sign in.
+
+  360px only needs reduced shell padding.
+  <=340px additionally compacts the existing controls instead of
+  hiding functionality.
+*/
+@media(max-width:380px){
+  header.site .wrap{
+    padding-left:16px;
+    padding-right:16px;
+  }
+}
+
+@media(max-width:340px){
+  .nav-row{
+    gap:8px;
+  }
+
+  .nav-actions{
+    gap:4px;
+  }
+
+  .lang-switch button{
+    padding:8px 5px;
+    letter-spacing:0;
+  }
+
+  .nav-actions .btn-outline{
+    padding-left:8px;
+    padding-right:8px;
+    letter-spacing:0.06em;
+  }
+}
