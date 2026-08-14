@@ -129,6 +129,68 @@ assert(
 );
 
 assert(
+  vercel.installCommand ===
+    'cd ../../../.. && npm ci',
+  'Vercel installs dependencies from the npm workspace root'
+);
+
+const monorepoRoot = path.resolve(
+  ROOT,
+  '../..'
+);
+
+const monorepoPackage = JSON.parse(
+  fs.readFileSync(
+    path.join(
+      monorepoRoot,
+      'package.json'
+    ),
+    'utf8'
+  )
+);
+
+const findPackage = JSON.parse(
+  fs.readFileSync(
+    path.join(
+      ROOT,
+      'package.json'
+    ),
+    'utf8'
+  )
+);
+
+const monorepoLock = JSON.parse(
+  fs.readFileSync(
+    path.join(
+      monorepoRoot,
+      'package-lock.json'
+    ),
+    'utf8'
+  )
+);
+
+assert(
+  monorepoPackage.workspaces.includes(
+    'apps/find'
+  ),
+  'root npm workspace explicitly owns apps/find'
+);
+
+assert(
+  !!findPackage.dependencies[
+    '@supabase/supabase-js'
+  ],
+  'Z Find declares its Supabase build dependency'
+);
+
+assert(
+  !!monorepoLock.packages[
+    'node_modules/@supabase/supabase-js'
+  ],
+  'root lockfile contains the Supabase dependency required by deployment'
+);
+
+assert(
   vercel.buildCommand.includes(
     'generate-seo-pages.js'
   ),
