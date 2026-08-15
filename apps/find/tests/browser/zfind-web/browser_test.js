@@ -167,14 +167,14 @@ async function mockSupabaseRoutes(page) {
   await shot('02-search-villa');
 
   console.log('--- 3. SEARCH: clear filters ---');
-  await page.click('button:has-text("Clear filters")');
+  await page.click('#view-search .searchbar button[data-i18n="search.clearFilters"]');
   await page.waitForTimeout(300);
   const cardCountAll = await page.locator('#search-grid .card').count();
   console.log('Result cards (all):', cardCountAll, '(expect 7)');
   await shot('03-search-all');
 
   console.log('--- 4. SEARCH: pill click Land ---');
-  await page.click('#view-search .tabs-row .pill:has-text("Land")');
+  await page.click('#view-search .tabs-row .pill[data-filter="land"]');
   await page.waitForTimeout(300);
   console.log('URL:', page.url());
   console.log('Cards:', await page.locator('#search-grid .card').count(), '(expect 1)');
@@ -191,7 +191,7 @@ async function mockSupabaseRoutes(page) {
   await shot('05-search-empty');
 
   console.log('--- 6. SEARCH: clear, then click first card -> property detail ---');
-  await page.click('button:has-text("Clear filters")');
+  await page.click('#view-search .searchbar button[data-i18n="search.clearFilters"]');
   await page.waitForTimeout(300);
   await page.click('#search-grid .card >> nth=0');
   await page.waitForTimeout(300);
@@ -214,7 +214,7 @@ async function mockSupabaseRoutes(page) {
   await page.click('.units-table tbody tr >> nth=0');
   await page.waitForTimeout(300);
   console.log('URL with unit param:', page.url());
-  const unitPanelVisible = await page.locator('.scenario-card:has-text("Unit")').isVisible().catch(()=>false);
+  const unitPanelVisible = await page.locator('#development-root .scenario-card').isVisible().catch(()=>false);
   console.log('Unit panel visible:', unitPanelVisible);
   await shot('09-development-unit-open');
 
@@ -227,18 +227,18 @@ async function mockSupabaseRoutes(page) {
 
   console.log('--- 10. Navigate to Land, verify source-backed detail ---');
   await page.evaluate(() => navigate('land','asset_land_boavista'));
-  await page.waitForSelector('#land-root button:has-text("Contact about this opportunity")');
+  await page.waitForSelector('#land-root button.btn-gold[onclick^="openModal("]');
 
   const landText = await page.locator('#land-root').textContent();
-  const legacyScenarioButtons = await page.locator('button:has-text("Scenarios")').count();
+  const legacyScenarioCards = await page.locator('#land-root .scenario-card').count();
 
   console.log('Land title visible:', landText.includes('Land in Boavista'), '(expect true)');
-  console.log('Legacy Scenarios button present:', legacyScenarioButtons, '(expect 0)');
+  console.log('Legacy scenario cards present:', legacyScenarioCards, '(expect 0)');
   await shot('11-land-top');
 
 
   console.log('--- 11. Land enquiry uses Supabase Partner enquiry policy ---');
-  await page.click('#land-root button:has-text("Contact about this opportunity")');
+  await page.click('#land-root button.btn-gold[onclick^="openModal("]');
   await page.waitForSelector('#modal-overlay.active');
 
   const directOptVisible = await page.locator('.contact-opt[data-opt="direct"]').isVisible().catch(()=>false);
@@ -253,7 +253,7 @@ async function mockSupabaseRoutes(page) {
   console.log('--- 12. Normal property enquiry (both options) ---');
   await page.evaluate(() => navigate('property','asset_apt_boavista'));
   await page.waitForTimeout(300);
-  await page.click('button:has-text("Contact about this opportunity")');
+  await page.click('.sidebar-card button.btn-gold[onclick^="openModal("]');
   await page.waitForTimeout(300);
   console.log('Direct visible:', await page.locator('.contact-opt[data-opt=\"direct\"]').isVisible());
   console.log('Qualified visible:', await page.locator('.contact-opt[data-opt=\"qualified\"]').isVisible());
