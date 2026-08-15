@@ -1470,6 +1470,12 @@ function render() {
     case 'al-manual': break; // Portugal short-term-rental jurisdiction content
     case 'legal-es': break; // Spain static jurisdiction content in body.html
     case 'al-manual-es': break; // Spain tourist-rental jurisdiction content
+    case 'legal-fr': break; // France static jurisdiction content
+    case 'tourist-rental-fr': break; // France tourist-rental jurisdiction content
+    case 'legal-de': break; // Germany static jurisdiction content
+    case 'tourist-rental-de': break; // Germany tourist-rental jurisdiction content
+    case 'legal-it': break; // Italy static jurisdiction content
+    case 'tourist-rental-it': break; // Italy tourist-rental jurisdiction content
   }
   window.scrollTo({ top:0, behavior:'instant' in window ? 'instant' : 'auto' });
 }
