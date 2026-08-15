@@ -1491,6 +1491,10 @@ function render() {
     case 'tourist-rental-wales': break; // Wales short-term / visitor accommodation
     case 'legal-northern-ireland': break; // Northern Ireland jurisdiction content
     case 'tourist-rental-northern-ireland': break; // Northern Ireland tourist accommodation
+    case 'legal-netherlands': break; // Netherlands jurisdiction content
+    case 'tourist-rental-netherlands': break; // Netherlands short-term-rental jurisdiction
+    case 'legal-belgium': break; // Belgium jurisdiction content
+    case 'tourist-rental-belgium': break; // Belgium short-term-rental jurisdiction
   }
   window.scrollTo({ top:0, behavior:'instant' in window ? 'instant' : 'auto' });
 }

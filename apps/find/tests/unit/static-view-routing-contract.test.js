@@ -87,7 +87,11 @@ const staticRoutes = [
   'legal-wales',
   'tourist-rental-wales',
   'legal-northern-ireland',
-  'tourist-rental-northern-ireland'
+  'tourist-rental-northern-ireland',
+  'legal-netherlands',
+  'tourist-rental-netherlands',
+  'legal-belgium',
+  'tourist-rental-belgium',
 ];
 
 for (const route of staticRoutes) {
