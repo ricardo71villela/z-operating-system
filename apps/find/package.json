@@ -34,7 +34,7 @@
     "check:syntax": "node scripts/check-js-syntax.js",
     "check:migrations": "node scripts/validate-migrations.js",
     "check:zos": "node scripts/validate-zos-alignment.js",
-    "check": "npm run test && npm run test:seo-pages && npm run test:seo-deployment && npm run test:root-seo-stability && npm run test:zos-alignment && npm run test:identity-service && npm run test:registry-service && npm run test:verification-service && npm run test:observation-service && npm run test:partner-dashboard-service && npm run test:partner-atomic-create-service && npm run test:admin-atomic-initial-listing && npm run check:syntax && npm run check:migrations && npm run check:zos && npm run test:admin-compound-atomic && npm run test:marketplace-lifecycle-hardening && npm run test:partner-asset-ownership-hardening && npm run test:partner-safe-remove && npm run test:partner-content-media-boundary && npm run test:final-surface-boundary && npm run test:rental-market-foundation && npm run test:rental-public-surface && npm run test:rental-authoring-surface && npm run test:rental-duplication-bootstrap && npm run test:public-rls-runtime-convergence && npm run test:public-language-foundation && npm run test:phase4r-architecture-contract",
+    "check": "npm run test && npm run test:seo-pages && npm run test:seo-deployment && npm run test:root-seo-stability && npm run test:zos-alignment && npm run test:identity-service && npm run test:registry-service && npm run test:verification-service && npm run test:observation-service && npm run test:partner-dashboard-service && npm run test:partner-atomic-create-service && npm run test:admin-atomic-initial-listing && npm run check:syntax && npm run check:migrations && npm run check:zos && npm run test:admin-compound-atomic && npm run test:marketplace-lifecycle-hardening && npm run test:partner-asset-ownership-hardening && npm run test:partner-safe-remove && npm run test:partner-content-media-boundary && npm run test:final-surface-boundary && npm run test:rental-market-foundation && npm run test:rental-public-surface && npm run test:rental-authoring-surface && npm run test:rental-duplication-bootstrap && npm run test:public-rls-runtime-convergence && npm run test:public-language-foundation && npm run test:phase4r-architecture-contract && npm run test:property-classification-foundation",
     "test:identity-service": "node tests/unit/identity-service.test.js",
     "test:registry-service": "node tests/unit/registry-service.test.js",
     "test:verification-service": "node tests/unit/verification-service.test.js",
@@ -55,7 +55,8 @@
     "test:public-rls-runtime-convergence": "node tests/unit/public-rls-runtime-convergence.test.js",
     "test:root-seo-stability": "node tests/unit/root-seo-render-stability.test.js",
     "test:public-language-foundation": "node tests/unit/public-language-foundation.test.js",
-    "test:phase4r-architecture-contract": "node tests/unit/phase4r-architecture-contract.test.js"
+    "test:phase4r-architecture-contract": "node tests/unit/phase4r-architecture-contract.test.js",
+    "test:property-classification-foundation": "node tests/unit/property-classification-foundation.test.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.8",
