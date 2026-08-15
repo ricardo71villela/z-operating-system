@@ -282,9 +282,9 @@ check(
 
 check(
   body.includes(
-    'DRAFT pending qualified local legal review'
+    'Consulting this information does not replace advice from a qualified local legal professional.'
   ),
-  'public source retains DRAFT legal-review warning'
+  'public WLS/NIR surfaces retain local-legal-professional disclaimer'
 );
 
 check(
