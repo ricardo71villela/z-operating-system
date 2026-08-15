@@ -48,6 +48,7 @@ function build() {
   const vendorSupabase = readWeb('vendor-supabase.js');
   const configTemplate = readWeb('config.template.js');
   const supabaseClient = readWeb('services/supabaseClient.js');
+  const propertyTaxonomyService = readWeb('services/property-taxonomy.js');
   const authService = readWeb('services/auth.js');
   const identityService = readWeb('services/identity.js');
   const registryService = readWeb('services/registry.js');
@@ -70,6 +71,7 @@ function build() {
     + vendorSupabase + '\n'
     + resolvedConfig + '\n'
     + supabaseClient + '\n'
+    + propertyTaxonomyService + '\n'
     + authService + '\n'
     + identityService + '\n'
     + registryService + '\n'

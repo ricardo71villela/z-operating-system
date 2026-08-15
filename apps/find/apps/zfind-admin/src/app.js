@@ -253,6 +253,163 @@ async function renderDevelopmentEdit() {
   });
 }
 
+let authoringTaxonomyCache = null;
+
+async function getAuthoringTaxonomyCached() {
+  if (authoringTaxonomyCache) {
+    return {
+      data: authoringTaxonomyCache,
+      error: null
+    };
+  }
+
+  const result =
+    await window.ZFindServices.propertyTaxonomy
+      .getAuthoringTaxonomy();
+
+  if (!result.error) {
+    authoringTaxonomyCache = result.data;
+  }
+
+  return result;
+}
+
+function renderPropertySubtypeOptions(
+  taxonomy,
+  selectedCode
+) {
+  const service =
+    window.ZFindServices.propertyTaxonomy;
+
+  const choices =
+    service.listEnabledAuthoringSubtypes(taxonomy);
+
+  const enabledCodes = new Set(
+    choices.map(item => item.code)
+  );
+
+  let html = '';
+
+  /*
+   * Historical safety:
+   * If an existing Property carries a subtype that has since been
+   * disabled, keep it visible as the current classification while
+   * preventing it from becoming a NEW authoring choice.
+   */
+  if (
+    selectedCode &&
+    !enabledCodes.has(selectedCode)
+  ) {
+    const current = (
+      Array.isArray(taxonomy && taxonomy.subtypes)
+        ? taxonomy.subtypes
+        : []
+    ).find(item => item.code === selectedCode);
+
+    const currentLabel =
+      service.humanizeCode(
+        current ? current.code : selectedCode
+      );
+
+    html +=
+      `<option value="${escapeHtml(selectedCode)}" ` +
+      `selected disabled>` +
+      `${escapeHtml(currentLabel)} ` +
+      `(current — unavailable for new authoring)` +
+      `</option>`;
+  }
+
+  const classes = Array.isArray(
+    taxonomy && taxonomy.classes
+  )
+    ? taxonomy.classes
+        .filter(item => item && item.enabled === true)
+        .slice()
+        .sort(
+          (a, b) =>
+            Number(a.sortOrder || 0) -
+              Number(b.sortOrder || 0) ||
+            String(a.code).localeCompare(
+              String(b.code)
+            )
+        )
+    : [];
+
+  classes.forEach(propertyClass => {
+    const classChoices = choices.filter(
+      item =>
+        item.propertyClass === propertyClass.code
+    );
+
+    if (!classChoices.length) return;
+
+    html +=
+      `<optgroup label="${escapeHtml(
+        service.humanizeCode(propertyClass.code)
+      )}">`;
+
+    classChoices.forEach(item => {
+      const selected =
+        item.code === selectedCode
+          ? ' selected'
+          : '';
+
+      html +=
+        `<option value="${escapeHtml(item.code)}"` +
+        `${selected}>` +
+        `${escapeHtml(
+          service.humanizeCode(item.code)
+        )}` +
+        `</option>`;
+    });
+
+    html += '</optgroup>';
+  });
+
+  if (!html) {
+    return (
+      '<option value="" selected disabled>' +
+      'No enabled Property subtypes' +
+      '</option>'
+    );
+  }
+
+  return html;
+}
+
+async function getResidentialDefaultSubtype() {
+  const taxonomyResult =
+    await getAuthoringTaxonomyCached();
+
+  if (taxonomyResult.error) {
+    return {
+      data: null,
+      error: taxonomyResult.error
+    };
+  }
+
+  const subtype =
+    window.ZFindServices.propertyTaxonomy
+      .getDefaultSubtype(
+        taxonomyResult.data,
+        'residential'
+      );
+
+  if (!subtype) {
+    return {
+      data: null,
+      error: new Error(
+        'No enabled Residential Property subtype'
+      )
+    };
+  }
+
+  return {
+    data: subtype,
+    error: null
+  };
+}
+
 async function renderPropertiesList() {
   const main = document.getElementById('main');
   main.insertAdjacentHTML('beforeend', `
@@ -287,10 +444,42 @@ async function duplicatePropertyRow(id) {
   if (!result.error) loadPropertiesList();
 }
 async function showNewPropertyForm() {
-  const zones = await getZonesCached();
+  const [zones, taxonomyResult] = await Promise.all([
+    getZonesCached(),
+    getAuthoringTaxonomyCached()
+  ]);
+
+  if (taxonomyResult.error) {
+    showStatus(
+      'error',
+      'Could not load Property taxonomy.'
+    );
+    return;
+  }
+
+  const authoringChoices =
+    window.ZFindServices.propertyTaxonomy
+      .listEnabledAuthoringSubtypes(
+        taxonomyResult.data
+      );
+
+  if (!authoringChoices.length) {
+    showStatus(
+      'error',
+      'No Property subtype is currently available for authoring.'
+    );
+    return;
+  }
+
+  const subtypeOptions =
+    renderPropertySubtypeOptions(
+      taxonomyResult.data,
+      null
+    );
+
   document.getElementById('new-prop-form').innerHTML = `
     <div class="detail-panel" style="margin-bottom:16px;">
-      <div class="form-field"><label>Subtype</label><select id="npr-subtype"><option value="apartment">Apartment</option><option value="villa">Villa</option><option value="land">Land</option></select></div>
+      <div class="form-field"><label>Subtype</label><select id="npr-subtype">${subtypeOptions}</select></div>
       <div class="form-field"><label>Typology</label><input type="text" id="npr-typology" placeholder="e.g. T2"></div>
       <div class="form-field"><label>Area (m²)</label><input type="number" id="npr-area"></div>
       <div class="form-field"><label>Zone</label>${zoneComboHTML('npr-zone', zones, null)}</div>
@@ -455,6 +644,27 @@ async function renderAssetEditShell(main, opts) {
   const zones = await getZonesCached();
   const d = opts.data;
 
+  let subtypeOptions = '';
+
+  if (opts.kind === 'property') {
+    const taxonomyResult =
+      await getAuthoringTaxonomyCached();
+
+    if (taxonomyResult.error) {
+      showStatus(
+        'error',
+        'Could not load Property taxonomy.'
+      );
+      return;
+    }
+
+    subtypeOptions =
+      renderPropertySubtypeOptions(
+        taxonomyResult.data,
+        d.subtype
+      );
+  }
+
   main.insertAdjacentHTML('beforeend', `
     <a class="back-link" onclick="navigateAdmin('${opts.backView}')">← Back</a>
     <div class="page-title">
@@ -473,7 +683,7 @@ async function renderAssetEditShell(main, opts) {
     <div class="detail-panel" style="margin-bottom:20px;">
       ${opts.kind === 'property' ? `
         <div class="form-grid">
-          <div class="form-field"><label>Subtype</label><select id="attr-subtype"><option value="apartment" ${d.subtype==='apartment'?'selected':''}>Apartment</option><option value="villa" ${d.subtype==='villa'?'selected':''}>Villa</option><option value="land" ${d.subtype==='land'?'selected':''}>Land</option></select></div>
+          <div class="form-field"><label>Subtype</label><select id="attr-subtype">${subtypeOptions}</select></div>
           <div class="form-field"><label>Typology</label><input type="text" id="attr-typology" value="${escapeHtml(d.typology||'')}"></div>
           <div class="form-field"><label>Area (m²)</label><input type="number" id="attr-area" value="${d.area_sqm||''}"></div>
           <div class="form-field"><label>Floor</label><input type="number" id="attr-floor" value="${d.floor||''}"></div>
@@ -546,8 +756,35 @@ async function loadUnitsList(developmentId) {
     development), never forced (still editable afterward like any
     other field). */
 async function addUnitToDevelopment(developmentId, zoneLiteId) {
-  const result = await window.ZFindServices.admin.createProperty({ subtype: 'apartment', typology: null, areaSqm: null, floor: null, zoneLiteId: zoneLiteId || null, developmentId });
-  if (result.error) { showStatus('error', 'Could not create unit.'); return; }
+  const subtypeResult =
+    await getResidentialDefaultSubtype();
+
+  if (subtypeResult.error || !subtypeResult.data) {
+    showStatus(
+      'error',
+      'No Residential subtype is available for a new unit.'
+    );
+    return;
+  }
+
+  const result =
+    await window.ZFindServices.admin.createProperty({
+      subtype: subtypeResult.data,
+      typology: null,
+      areaSqm: null,
+      floor: null,
+      zoneLiteId: zoneLiteId || null,
+      developmentId
+    });
+
+  if (result.error) {
+    showStatus(
+      'error',
+      'Could not create unit.'
+    );
+    return;
+  }
+
   showStatus('success', 'Unit added.');
   loadUnitsList(developmentId);
 }

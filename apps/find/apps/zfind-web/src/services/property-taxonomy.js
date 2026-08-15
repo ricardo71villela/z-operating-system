@@ -117,6 +117,54 @@
       };
     }
 
+    /** Returns every subtype currently available for NEW authoring,
+        ordered first by authoritative Property-class sort order and
+        then by subtype sort order.
+
+        A subtype is authorable only when BOTH the subtype and its
+        owning Property class are enabled. */
+    function listEnabledAuthoringSubtypes(taxonomy) {
+      const source = taxonomy || {};
+      const classes = Array.isArray(source.classes)
+        ? source.classes
+        : [];
+      const subtypes = Array.isArray(source.subtypes)
+        ? source.subtypes
+        : [];
+
+      const enabledClassOrder = new Map();
+
+      classes.forEach(item => {
+        if (
+          item &&
+          typeof item.code === 'string' &&
+          item.enabled === true
+        ) {
+          enabledClassOrder.set(
+            item.code,
+            normalizedSortOrder(item.sortOrder)
+          );
+        }
+      });
+
+      return subtypes
+        .filter(
+          item =>
+            item &&
+            item.enabled === true &&
+            enabledClassOrder.has(item.propertyClass)
+        )
+        .slice()
+        .sort(
+          (a, b) =>
+            enabledClassOrder.get(a.propertyClass) -
+              enabledClassOrder.get(b.propertyClass) ||
+            normalizedSortOrder(a.sortOrder) -
+              normalizedSortOrder(b.sortOrder) ||
+            String(a.code).localeCompare(String(b.code))
+        );
+    }
+
     function listEnabledSubtypes(taxonomy, propertyClass) {
       const source = taxonomy || {};
       const classes = Array.isArray(source.classes)
@@ -174,6 +222,7 @@
     return {
       normalizeTaxonomy,
       getAuthoringTaxonomy,
+      listEnabledAuthoringSubtypes,
       listEnabledSubtypes,
       getDefaultSubtype,
       humanizeCode

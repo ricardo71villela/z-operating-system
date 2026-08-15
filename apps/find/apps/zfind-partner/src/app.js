@@ -111,14 +111,92 @@ async function loadPortfolio() {
 
 function escapeHtmlPartner(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
 
-/** No name field exists for a property — creates immediately with
-    sensible minimal defaults ('apartment', status 'proposed', not
-    yet a live listing), same "practically free" philosophy already
-    established for the Admin. Full field editing is a separate,
-    later step, not this one. */
+let authoringTaxonomyCache = null;
+
+async function getAuthoringTaxonomyCached() {
+  if (authoringTaxonomyCache) {
+    return {
+      data: authoringTaxonomyCache,
+      error: null
+    };
+  }
+
+  const result =
+    await window.ZFindServices.propertyTaxonomy
+      .getAuthoringTaxonomy();
+
+  if (!result.error) {
+    authoringTaxonomyCache = result.data;
+  }
+
+  return result;
+}
+
+async function getResidentialDefaultSubtype() {
+  const taxonomyResult =
+    await getAuthoringTaxonomyCached();
+
+  if (taxonomyResult.error) {
+    return {
+      data: null,
+      error: taxonomyResult.error
+    };
+  }
+
+  const subtype =
+    window.ZFindServices.propertyTaxonomy
+      .getDefaultSubtype(
+        taxonomyResult.data,
+        'residential'
+      );
+
+  if (!subtype) {
+    return {
+      data: null,
+      error: new Error(
+        'No enabled Residential Property subtype'
+      )
+    };
+  }
+
+  return {
+    data: subtype,
+    error: null
+  };
+}
+
+/** No name field exists for a Property. This one-click Partner
+    workflow preserves the existing lightweight creation UX, but
+    its initial Residential subtype is now derived from canonical
+    taxonomy sort order rather than hard-coded in the browser.
+    Representation still starts as proposed; creating an Asset does
+    not imply publication. */
 async function createNewProperty() {
-  const result = await window.ZFindServices.admin.createPropertyForPartner({ subtype: 'apartment', typology: null, areaSqm: null, floor: null, zoneLiteId: null });
-  if (result.error) { alert('Could not create property.'); return; }
+  const subtypeResult =
+    await getResidentialDefaultSubtype();
+
+  if (subtypeResult.error || !subtypeResult.data) {
+    alert(
+      'No Residential Property subtype is currently available.'
+    );
+    return;
+  }
+
+  const result =
+    await window.ZFindServices.admin
+      .createPropertyForPartner({
+        subtype: subtypeResult.data,
+        typology: null,
+        areaSqm: null,
+        floor: null,
+        zoneLiteId: null
+      });
+
+  if (result.error) {
+    alert('Could not create property.');
+    return;
+  }
+
   loadPortfolio();
 }
 
@@ -207,8 +285,35 @@ async function loadDetailUnits(developmentId) {
     real convenience already built for Admin, still fully editable
     afterward like any other field. */
 async function addUnitToCurrentDevelopment() {
-  const result = await window.ZFindServices.admin.createProperty({ subtype: 'apartment', typology: null, areaSqm: null, floor: null, zoneLiteId: currentDevelopmentZoneLiteId, developmentId: detailId });
-  if (result.error) { showStatus('error', 'Could not create unit.'); return; }
+  const subtypeResult =
+    await getResidentialDefaultSubtype();
+
+  if (subtypeResult.error || !subtypeResult.data) {
+    showStatus(
+      'error',
+      'No Residential subtype is available for a new unit.'
+    );
+    return;
+  }
+
+  const result =
+    await window.ZFindServices.admin.createProperty({
+      subtype: subtypeResult.data,
+      typology: null,
+      areaSqm: null,
+      floor: null,
+      zoneLiteId: currentDevelopmentZoneLiteId,
+      developmentId: detailId
+    });
+
+  if (result.error) {
+    showStatus(
+      'error',
+      'Could not create unit.'
+    );
+    return;
+  }
+
   showStatus('success', 'Unit added.');
   loadDetailUnits(detailId);
 }
