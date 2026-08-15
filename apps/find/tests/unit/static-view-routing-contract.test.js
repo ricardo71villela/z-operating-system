@@ -83,7 +83,11 @@ const staticRoutes = [
   'legal-england',
   'tourist-rental-england',
   'legal-scotland',
-  'tourist-rental-scotland'
+  'tourist-rental-scotland',
+  'legal-wales',
+  'tourist-rental-wales',
+  'legal-northern-ireland',
+  'tourist-rental-northern-ireland'
 ];
 
 for (const route of staticRoutes) {
