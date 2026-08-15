@@ -34,7 +34,7 @@
     "check:syntax": "node scripts/check-js-syntax.js",
     "check:migrations": "node scripts/validate-migrations.js",
     "check:zos": "node scripts/validate-zos-alignment.js",
-    "check": "npm run test && npm run test:seo-pages && npm run test:seo-deployment && npm run test:root-seo-stability && npm run test:zos-alignment && npm run test:identity-service && npm run test:registry-service && npm run test:verification-service && npm run test:observation-service && npm run test:partner-dashboard-service && npm run test:partner-atomic-create-service && npm run test:admin-atomic-initial-listing && npm run check:syntax && npm run check:migrations && npm run check:zos && npm run test:admin-compound-atomic && npm run test:marketplace-lifecycle-hardening && npm run test:partner-asset-ownership-hardening && npm run test:partner-safe-remove && npm run test:partner-content-media-boundary && npm run test:final-surface-boundary && npm run test:rental-market-foundation && npm run test:rental-public-surface && npm run test:rental-authoring-surface && npm run test:rental-duplication-bootstrap && npm run test:public-rls-runtime-convergence && npm run test:public-language-foundation && npm run test:phase4r-architecture-contract && npm run test:property-classification-foundation && npm run test:property-taxonomy-read-port && npm run test:property-taxonomy-authoring-consumption && npm run test:commercial-property-taxonomy-contract",
+    "check": "npm run test && npm run test:seo-pages && npm run test:seo-deployment && npm run test:root-seo-stability && npm run test:zos-alignment && npm run test:identity-service && npm run test:registry-service && npm run test:verification-service && npm run test:observation-service && npm run test:partner-dashboard-service && npm run test:partner-atomic-create-service && npm run test:admin-atomic-initial-listing && npm run check:syntax && npm run check:migrations && npm run check:zos && npm run test:admin-compound-atomic && npm run test:marketplace-lifecycle-hardening && npm run test:partner-asset-ownership-hardening && npm run test:partner-safe-remove && npm run test:partner-content-media-boundary && npm run test:final-surface-boundary && npm run test:rental-market-foundation && npm run test:rental-public-surface && npm run test:rental-authoring-surface && npm run test:rental-duplication-bootstrap && npm run test:public-rls-runtime-convergence && npm run test:public-language-foundation && npm run test:phase4r-architecture-contract && npm run test:property-classification-foundation && npm run test:property-taxonomy-read-port && npm run test:property-taxonomy-authoring-consumption && npm run test:commercial-property-taxonomy-contract && npm run test:public-property-taxonomy-read-port",
     "test:identity-service": "node tests/unit/identity-service.test.js",
     "test:registry-service": "node tests/unit/registry-service.test.js",
     "test:verification-service": "node tests/unit/verification-service.test.js",
@@ -59,7 +59,8 @@
     "test:property-classification-foundation": "node tests/unit/property-classification-foundation.test.js",
     "test:property-taxonomy-read-port": "node tests/unit/property-taxonomy-read-port.test.js",
     "test:property-taxonomy-authoring-consumption": "node tests/unit/property-taxonomy-authoring-consumption.test.js",
-    "test:commercial-property-taxonomy-contract": "node tests/unit/commercial-property-taxonomy-contract.test.js"
+    "test:commercial-property-taxonomy-contract": "node tests/unit/commercial-property-taxonomy-contract.test.js",
+    "test:public-property-taxonomy-read-port": "node tests/unit/public-property-taxonomy-read-port.test.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.8",
