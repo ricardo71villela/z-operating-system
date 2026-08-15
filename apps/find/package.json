@@ -11,7 +11,7 @@
     "test:seo-deployment": "node tests/unit/seo-deployment-contract.test.js",
     "test:import-engine": "node tests/integration/import-engine/test-v2.js",
     "test:import-engine-v1-archive": "node archive/import-engine-v1/test.js",
-    "test:browser": "node tests/browser/zfind-web/browser_test.js",
+    "test:browser": "node tests/browser/zfind-web/browser_test.js && node tests/browser/zfind-web/legal-routing-contract-verification.js",
     "test:sprint-1-1": "node tests/browser/zfind-web/sprint-1-1-verification.js",
     "test:sprint-1-2": "node tests/browser/zfind-web/sprint-1-2-verification.js",
     "test:sprint-1-3": "node tests/browser/zfind-web/sprint-1-3-verification.js",
