@@ -177,161 +177,370 @@
 <section class="view" id="view-legal">
   <div class="legal-page wrap">
     <div class="legal-header">
-      <div class="eyebrow">GUIA LEGAL</div>
-      <h1>Comprar, vender e arrendar em Portugal</h1>
-      <p>Um guia de referência sobre o processo, os impostos e os direitos e deveres de quem compra, vende ou arrenda imóveis em Portugal.</p>
-      <div class="disclaimer">Esta informação é de carácter geral e não substitui aconselhamento jurídico ou fiscal profissional para o seu caso concreto.</div>
+      <div class="eyebrow">GUIA LEGAL · PORTUGAL</div>
+      <h1>Comprar, vender e arrendar imóveis em Portugal</h1>
+      <p>Guia jurídico e fiscal de referência para compradores, vendedores, investidores e proprietários em Portugal.</p>
+
+      <div class="disclaimer">
+        Informação geral para fins exclusivamente informativos. Não constitui aconselhamento jurídico, fiscal, financeiro, urbanístico ou de investimento e não substitui a análise de profissional qualificado para o imóvel e situação concreta.
+      </div>
+
       <div class="legal-callout" style="margin-top:16px;">
         <strong>Jurisdição:</strong>
         <button class="btn btn-gold" type="button" disabled>Portugal</button>
         <button class="btn btn-outline" type="button" onclick="navigate('legal-es')">España</button>
-        <button class="btn btn-outline" type="button"
-                onclick="navigate('legal-fr')">France</button>
-        <button class="btn btn-outline" type="button"
-                onclick="navigate('legal-de')">Deutschland</button>
-        <button class="btn btn-outline" type="button"
-                onclick="navigate('legal-it')">Italia</button>
-
-        <button class="btn btn-outline" type="button"
-                onclick="navigate('legal-ie')">
-          Ireland
-        </button>
-        <button class="btn btn-outline" type="button"
-                onclick="navigate('legal-england')">
-          England
-        </button>
-        <button class="btn btn-outline" type="button"
-                onclick="navigate('legal-scotland')">
-          Scotland
-        </button>
+        <button class="btn btn-outline" type="button" onclick="navigate('legal-fr')">France</button>
+        <button class="btn btn-outline" type="button" onclick="navigate('legal-de')">Deutschland</button>
+        <button class="btn btn-outline" type="button" onclick="navigate('legal-it')">Italia</button>
+        <button class="btn btn-outline" type="button" onclick="navigate('legal-ie')">Ireland</button>
+        <button class="btn btn-outline" type="button" onclick="navigate('legal-england')">England</button>
+        <button class="btn btn-outline" type="button" onclick="navigate('legal-scotland')">Scotland</button>
+        <span style="margin-left:8px;font-size:.82rem;color:var(--gray-500);">
+          Master PT · re-audit 2026-08-15 · revisão jurídica final antes do lançamento.
+        </span>
       </div>
     </div>
 
     <div class="legal-layout">
       <nav class="legal-toc">
-        <a href="#lg-comprar">Comprar um Imóvel</a>
-        <a href="#lg-vender">Vender um Imóvel</a>
-        <a href="#lg-maisvalias">Mais-Valias</a>
-        <a href="#lg-impostos">Impostos sobre Imóveis</a>
-        <a href="#lg-arrendamento">Arrendamento</a>
-        <a href="#lg-condominios">Condomínios</a>
-        <a href="#lg-investidor">Investidor Estrangeiro</a>
-        <a href="#lg-faq">Perguntas Frequentes</a>
+        <a href="#pt-lg-a">COMPRAR UM IMÓVEL</a><a href="#pt-lg-b">VENDER UM IMÓVEL</a><a href="#pt-lg-c">TRIBUTAÇÃO DAS MAIS-VALIAS</a><a href="#pt-lg-d">IMPOSTOS NA AQUISIÇÃO E NA PROPRIEDADE</a><a href="#pt-lg-e">ARRENDAMENTO HABITACIONAL</a><a href="#pt-lg-f">PROPRIEDADE HORIZONTAL E CONDOMÍNIO</a><a href="#pt-lg-g">COMPRADOR ESTRANGEIRO</a><a href="#pt-lg-h">PERGUNTAS FREQUENTES</a><a href="#pt-lg-i">GLOSSÁRIO</a>
+        <a href="#"
+           onclick="navigate('al-manual');return false;">
+          <strong>MÓDULO SEPARADO: ALOJAMENTO LOCAL / ARRENDAMENTO DE CURTA DURAÇÃO</strong>
+        </a>
       </nav>
 
-      <div>
-        <div class="legal-section" id="lg-comprar">
-          <div class="section-num">Secção 1</div>
-          <h2>Comprar um Imóvel</h2>
-          <p class="section-intro">O processo de compra em Portugal segue, em regra, estas sete etapas — da procura à escritura.</p>
-          <div class="legal-card"><h3>1. Definir critérios e orçamento</h3><p>Zona, tipologia, orçamento máximo incluindo custos de aquisição (normalmente 6% a 10% acima do preço), e se vai recorrer a crédito habitação.</p></div>
-          <div class="legal-card"><h3>2. Procurar e visitar</h3><p>Compare imóveis semelhantes na mesma zona. Peça sempre o certificado energético antes da visita — é obrigatório desde 2013.</p></div>
-          <div class="legal-card"><h3>3. Obter o NIF</h3><p>Obrigatório para qualquer transação imobiliária em Portugal. Residentes e não residentes podem obtê-lo numa repartição de Finanças, ou não residentes através de procurador.</p></div>
-          <div class="legal-card"><h3>4. CPCV — Contrato-Promessa de Compra e Venda</h3><p>Vincula comprador e vendedor antes da escritura. O comprador paga um sinal (habitualmente 10% a 20%). Se o vendedor incumprir, devolve o dobro do sinal; se o comprador incumprir, perde o sinal.</p></div>
-          <div class="legal-card"><h3>5. Devida diligência</h3><p>Confirme a Certidão Permanente (histórico de proprietários, hipotecas, penhoras, ónus — consultada em predial.oa.pt), a Caderneta Predial, a Licença de Utilização e, se aplicável, a Ficha Técnica da Habitação (obrigatória para imóveis com licença pós-2004).</p></div>
-          <div class="legal-card"><h3>6. Crédito habitação (se aplicável)</h3><p>Os bancos financiam tipicamente até 90% do menor valor entre a avaliação bancária e o preço de compra, com taxa de esforço máxima de 35–40%. A Euribor (3, 6 ou 12 meses) é o indexante mais comum.</p></div>
-          <div class="legal-card"><h3>7. Escritura e registo</h3><p>O IMT e o Imposto do Selo devem estar pagos antes da escritura — sem comprovativo, a escritura não pode realizar-se. A <strong>Casa Pronta</strong> é um balcão único que permite escritura, pagamento de impostos e registo predial num único ato, geralmente mais rápido e económico.</p></div>
-        </div>
-
-        <div class="legal-section" id="lg-vender">
-          <div class="section-num">Secção 2</div>
-          <h2>Vender um Imóvel</h2>
-          <p class="section-intro">Documentos obrigatórios e o essencial do processo do lado do vendedor.</p>
-          <table class="legal-table">
-            <tr><th>Documento</th><th>Onde obter</th></tr>
-            <tr><td>Caderneta Predial</td><td>Portal das Finanças</td></tr>
-            <tr><td>Certidão Permanente</td><td>predial.oa.pt</td></tr>
-            <tr><td>Certificado Energético</td><td>Perito qualificado (ADENE)</td></tr>
-            <tr><td>Licença de Utilização</td><td>Câmara Municipal</td></tr>
-            <tr><td>Ficha Técnica da Habitação</td><td>Obrigatória para licenças pós-2004</td></tr>
-            <tr><td>Declaração do Condomínio</td><td>Administração do condomínio</td></tr>
-            <tr><td>Distrate de Hipoteca</td><td>Banco, se aplicável</td></tr>
-          </table>
-          <div class="legal-callout">Se o imóvel tiver hipoteca, o valor da venda liquida o crédito em simultâneo com a escritura — o comprador paga diretamente ao banco do vendedor, que emite o distrate.</div>
-        </div>
-
-        <div class="legal-section" id="lg-maisvalias">
-          <div class="section-num">Secção 3</div>
-          <h2>Mais-Valias na Venda</h2>
-          <p class="section-intro">A mais-valia é a diferença entre o valor de venda e o valor de compra, ajustada por despesas e desvalorização.</p>
-          <div class="legal-card"><h3>Fórmula</h3><p>Mais-Valia = Valor de Venda − (Valor de Compra × Coeficiente de Desvalorização) − Despesas de Aquisição − Despesas de Venda − Obras de Valorização.</p></div>
-          <div class="legal-card"><h3>Tributação</h3><p>Para residentes, apenas 50% da mais-valia é tributada em sede de IRS, à taxa progressiva do agregado. Para não residentes, a totalidade é tributada a uma taxa fixa.</p></div>
-          <div class="legal-card"><h3>Isenção por reinvestimento</h3><p>Isenção quando o valor de venda é reinvestido em habitação própria permanente em Portugal ou no Espaço Económico Europeu, no prazo de 36 meses. Para maiores de 65 anos, o reinvestimento pode ser feito em PPR, fundo de pensões ou seguro de vida.</p></div>
-        </div>
-
-        <div class="legal-section" id="lg-custos">
-          <div class="section-num">Secção 4</div>
-          <h2>Custos de Aquisição — IMT e Imposto do Selo</h2>
-          <div class="legal-callout link-out">Os escalões do IMT são actualizados anualmente pela Autoridade Tributária. Em vez de publicar uma tabela que fica desactualizada, use o nosso <a href="#" onclick="navigate('simulator');return false;">Simulador de Custos de Aquisição</a> — está sempre atualizado com os valores em vigor.</div>
-          <p style="color:var(--gray-500); font-size:0.9rem;">De forma geral: habitação própria e permanente até um limite tem taxa 0%, com taxas progressivas até 8% acima disso; segunda habitação ou investimento é tributado desde o primeiro euro. Para compradores não residentes fiscais, aplica-se desde maio de 2026 uma taxa fixa de 7,5% (ver <a href="#lg-investidor" style="color:var(--gold-dark);">Investidor Estrangeiro</a>). O Imposto do Selo é de 0,8% sobre o valor da transação, mais 0,6% sobre o valor do crédito (para empréstimos com prazo igual ou superior a 5 anos).</p>
-        </div>
-
-        <div class="legal-section" id="lg-impostos">
-          <div class="section-num">Secção 5</div>
-          <h2>Impostos sobre Imóveis</h2>
-          <div class="legal-card"><h3>IMI — Imposto Municipal sobre Imóveis</h3><p>Imposto anual pago pelo proprietário. Taxa entre 0,3% e 0,45% para prédios urbanos (definida por cada município), calculada sobre o Valor Patrimonial Tributário (VPT).</p></div>
-          <div class="legal-card"><h3>Isenção de IMI</h3><p>Habitação própria e permanente com VPT ≤ €125.000 e rendimento do agregado ≤ €153.300 pode beneficiar de isenção temporária de 3 anos, renovável. Imóveis em reabilitação urbana: isenção de 5 anos.</p></div>
-          <div class="legal-card"><h3>AIMI — Adicional ao IMI</h3><p>Incide sobre o VPT global de imóveis acima de €600.000 por titular: 0,7% até €1.000.000, 1% acima disso. Para pessoas coletivas, taxa de 0,4% sem mínimo isento.</p></div>
-          <div class="legal-card"><h3>VPT — Valor Patrimonial Tributário</h3><p>Valor fiscal do imóvel determinado pelas Finanças, com base na área, localização, qualidade e idade. Serve de base ao IMI, AIMI e IMT.</p></div>
-        </div>
-
-        <div class="legal-section" id="lg-arrendamento">
-          <div class="section-num">Secção 6</div>
-          <h2>Arrendamento — Senhorio e Inquilino</h2>
-          <div class="legal-card"><h3>Prazo e renovação</h3><p>O prazo mínimo legal para arrendamento habitacional é de 1 ano, com renovação automática, salvo oposição de qualquer das partes com pré-aviso adequado.</p></div>
-          <div class="legal-card"><h3>Rescisão pelo inquilino</h3><p>Pré-aviso entre 30 e 120 dias, consoante a duração do contrato. Nos primeiros 6 meses, o pré-aviso é sempre de 120 dias.</p></div>
-          <div class="legal-card"><h3>Caução</h3><p>A prática habitual é 1 a 2 rendas, sem limite legal máximo em Portugal. Deve ser formalizada por escrito e devolvida no final do contrato, deduzida de eventuais danos.</p></div>
-          <div class="legal-card"><h3>Direito de preferência</h3><p>Em caso de venda do imóvel arrendado, o inquilino tem direito de preferência na compra pelo mesmo preço, com notificação de 30 dias de antecedência por carta registada.</p></div>
-          <div class="legal-card"><h3>Obras</h3><p>Obras de conservação são responsabilidade do senhorio; pequenas reparações do uso normal, do inquilino. Qualquer acordo diferente deve constar do contrato.</p></div>
-          <div class="legal-card"><h3>Tributação das rendas</h3><p>Declaradas no Anexo F do IRS, taxa base de 28%. Com contrato registado nas Finanças, a taxa pode ser reduzida consoante a duração: 26% (2–5 anos), 23% (5–10 anos), 14% (10–20 anos), 10% (mais de 20 anos).</p><p style="font-size:0.8rem; color:var(--gray-500); margin-top:6px;">⚠ Este regime tem sido objeto de alterações recentes na legislação fiscal. Confirme sempre a taxa aplicável ao seu contrato com um contabilista antes de declarar.</p></div>
-        </div>
-
-        <div class="legal-section" id="lg-condominios">
-          <div class="section-num">Secção 7</div>
-          <h2>Condomínios</h2>
-          <p class="section-intro">A propriedade horizontal implica direitos e deveres perante o condomínio (Código Civil, art. 1414.º e seguintes).</p>
-          <div class="legal-card"><h3>Quotas e Fundo de Reserva</h3><p>Cada condómino contribui na proporção da sua fração (permilagem). O fundo de reserva é obrigatório por lei, com contribuição mínima de 10% das quotas ordinárias, depositado em conta separada.</p></div>
-          <div class="legal-card"><h3>Dívidas de condomínio</h3><p>As dívidas seguem o imóvel, não o proprietário — o comprador de um imóvel com dívidas de condomínio pode ficar responsável pelo seu pagamento. Exija sempre a declaração do condomínio antes de comprar.</p></div>
-          <div class="legal-card"><h3>Direitos dos condóminos</h3><p>Participar e votar em assembleia, consultar a documentação do condomínio, exigir prestação de contas, e impugnar judicialmente deliberações ilegais.</p></div>
-        </div>
-
-        <div class="legal-section" id="lg-investidor">
-          <div class="section-num">Secção 8</div>
-          <h2>Investidor Estrangeiro</h2>
-          <p class="section-intro">Portugal não tem restrições de nacionalidade para a compra de imóveis.</p>
-          <div class="legal-card"><h3>NIF Português</h3><p>Obrigatório para qualquer transação imobiliária. Pode ser obtido numa repartição de Finanças com passaporte, no consulado português, ou através de procurador.</p></div>
-          <div class="legal-card"><h3>Representante Fiscal</h3><p>Não residentes fora da UE/EEE são obrigados a nomear um representante fiscal em Portugal — pessoa singular ou coletiva que atua como intermediário junto da Autoridade Tributária.</p></div>
-          <div class="legal-card"><h3>Tributação de não residentes</h3><p>Rendimentos prediais (rendas): 25% para residentes UE/EEE, 28% para outros países. Mais-valias: 28% sobre a totalidade, sem a exclusão de 50% aplicável a residentes. Imposto do Selo: mesma taxa que para residentes.</p></div>
-          <div class="legal-callout link-out">Desde o Decreto-Lei n.º 97/2026 (20 de maio de 2026), a compra de habitação por não residentes fiscais está sujeita a uma taxa fixa de IMT de 7,5%, em vez da escala progressiva de residentes — com 3 exceções possíveis (tornar-se residente fiscal, tornar-se residente fiscal nos 2 anos seguintes, ou arrendamento de longa duração a renda moderada). Use o nosso <a href="#" onclick="navigate('simulator');return false;">Simulador de Custos de Aquisição</a> para calcular o valor exato.</div>
-          <div class="legal-card"><h3>Convenções de Dupla Tributação</h3><p>Portugal tem acordos com mais de 70 países — incluindo todos os da UE, EUA, Reino Unido, Brasil e China — que evitam a dupla tributação de rendimentos imobiliários.</p></div>
-          <div class="legal-callout">O programa Golden Visa (ARI) foi encerrado para aquisição de imóveis em outubro de 2023 (Lei n.º 56/2023). Continuam elegíveis outras modalidades de investimento qualificado para residência em Portugal.</div>
-        </div>
-
-        <div class="legal-section" id="lg-faq">
-          <div class="section-num">Secção 9</div>
-          <h2>Perguntas Frequentes</h2>
-          <div class="legal-faq">
-            <details><summary>O certificado energético é obrigatório?</summary><p>Sim, desde 2013, para venda e arrendamento. Sem este documento não é possível publicar anúncios nem realizar a escritura. A validade é de 10 anos (6 em caso de obras de remodelação significativas).</p></details>
-            <details><summary>Posso vender uma casa com hipoteca?</summary><p>Sim. O valor da venda liquida o crédito em simultâneo com a escritura. O banco emite o distrate de hipoteca e o comprador paga diretamente ao banco do vendedor.</p></details>
-            <details><summary>Quem paga a escritura?</summary><p>Por regra, o comprador suporta IMT, Imposto do Selo, notário e registo predial. O vendedor suporta o distrate de hipoteca e a mais-valia resultante da venda.</p></details>
-            <details><summary>Qual é o prazo mínimo de arrendamento?</summary><p>1 ano, com renovação automática, salvo oposição das partes com pré-aviso adequado.</p></details>
-            <details><summary>Um estrangeiro pode comprar imóveis em Portugal?</summary><p>Sim, sem restrições. É necessário um NIF português e, para não residentes fora da UE/EEE, nomear um representante fiscal. Desde maio de 2026, compradores não residentes fiscais pagam uma taxa fixa de IMT de 7,5% (ver <a href="#lg-investidor" style="color:var(--gold-dark); text-decoration:underline;">Investidor Estrangeiro</a>) — o resto do processo é idêntico ao de um comprador residente.</p></details>
-            <details><summary>Quais os custos totais na compra de um imóvel?</summary><p>Além do preço: IMT (variável), Imposto do Selo (0,8%), escritura e registo (tipicamente €750 a €2.000), Imposto do Selo sobre o crédito (0,6%, se aplicável). Use o nosso <a href="#" onclick="navigate('simulator');return false;" style="color:var(--gold-dark); text-decoration:underline;">Simulador de Custos</a> para uma estimativa exata.</p></details>
-            <details><summary>Posso deduzir juros do crédito habitação no IRS?</summary><p>Apenas para contratos celebrados até 31 de dezembro de 2011. Para contratos posteriores, não existe dedução dos juros no IRS.</p></details>
-            <details><summary>O que é o VPT?</summary><p>O Valor Patrimonial Tributário é o valor fiscal do imóvel determinado pelas Finanças, com base na área, localização, qualidade e idade. Serve de base ao IMI, AIMI e IMT.</p></details>
-            <details><summary>Quem paga as obras num imóvel arrendado?</summary><p>Obras de conservação são responsabilidade do senhorio. Pequenas reparações do uso normal são responsabilidade do inquilino. Qualquer acordo diferente deve constar do contrato.</p></details>
-            <details><summary>O que é o direito de preferência?</summary><p>Em caso de venda do imóvel arrendado, o inquilino tem direito de preferência na compra pelo mesmo preço, com notificação de 30 dias de antecedência por carta registada.</p></details>
-            <details><summary>Posso arrendar sem registar o contrato?</summary><p>Legalmente possível mas fortemente desaconselhado — implica coimas entre €200 e €1.650, perda de benefícios fiscais e impossibilidade de emitir recibos eletrónicos.</p></details>
-            <details><summary>Como funciona a Casa Pronta?</summary><p>Balcão único que permite escritura, pagamento de impostos e registo predial num único ato. Disponível em lojas de Registo Civil e Predial — geralmente mais rápido e económico.</p></details>
-          </div>
+      <div class="legal-content">
+                <div class="legal-section" id="pt-lg-a">
+          <div class="section-num">1</div>
+          <h2>COMPRAR UM IMÓVEL</h2>
+          <p><strong>Nível principal: NACIONAL</strong>, com verificações <strong>MUNICIPAIS/REGIONAIS</strong> relevantes para urbanismo, preferência e utilização.</p>
+<h3>1. Estrutura jurídica da aquisição</h3>
+<p>A compra e venda de bens imóveis só é válida, sem prejuízo de regimes especiais, se for celebrada por <strong>escritura pública</strong> ou <strong>documento particular autenticado (DPA)</strong>. O registo predial deve depois refletir a aquisição e é o instrumento central para tornar pública a situação jurídica do imóvel. <strong>Fontes:</strong> [PT-01], [PT-02], [PT-03].</p>
+<p>O serviço <strong>Casa Pronta</strong> permite concentrar, num mesmo procedimento, atos como compra e venda, mútuo com hipoteca e registos. Não é a única via de formalização: a transação pode ser titulada por outros profissionais/entidades legalmente habilitados, consoante o caso. <strong>Fonte:</strong> [PT-04].</p>
+<h3>2. Contrato-promessa de compra e venda (CPCV)</h3>
+<p>O CPCV é comum, mas não substitui o contrato definitivo. Quando o contrato prometido esteja sujeito a forma documental, o contrato-promessa deve respeitar as exigências legais aplicáveis. Em negócios de transmissão onerosa de edifício ou fração autónoma, a redação do artigo 410.º do Código Civil contém formalidades próprias que devem ser verificadas por profissional no negócio concreto, especialmente depois das reformas urbanísticas de 2024-2026. <strong>Fontes:</strong> [PT-05], [PT-06].</p>
+<p>O <strong>sinal</strong> deve ser tratado com precisão contratual. Em regra, se o incumprimento definitivo for imputável ao promitente-comprador que entregou o sinal, a contraparte pode fazê-lo seu; se for imputável ao promitente-vendedor que o recebeu, pode haver lugar à restituição em dobro. A qualificação de mera mora versus incumprimento definitivo, cláusulas resolutivas, execução específica e outras consequências dependem do contrato e dos factos. <strong>Fonte:</strong> [PT-07].</p>
+<h3>3. Due diligence documental mínima</h3>
+<p>Antes de assumir uma obrigação irreversível, a análise deve abranger, conforme o imóvel:</p>
+<ul class="legal-list">
+<li><strong>certidão permanente de registo predial</strong>, que apresenta registos em vigor e pedidos de registo pendentes;</li>
+<li>identificação matricial/caderneta predial e VPT;</li>
+<li>titularidade, hipotecas, penhoras, usufrutos, servidões e outros ónus;</li>
+<li>descrição da fração/prédio e correspondência física;</li>
+<li>situação urbanística, utilização e histórico relevante;</li>
+<li>certificado energético válido;</li>
+<li>situação do condomínio, se houver propriedade horizontal;</li>
+<li>direitos legais de preferência;</li>
+<li>arrendamentos, ocupantes ou outros direitos de terceiros;</li>
+<li>coerência entre documentação predial, matricial e realidade construída.</li>
+</ul>
+<p>A certidão permanente predial é um documento essencial de verificação e, segundo o IRN, mantém-se atualizada durante o respetivo período de validade, incluindo pedidos de registo pendentes. <strong>Fontes:</strong> [PT-08], [PT-09].</p>
+<h3>4. Autorização de utilização e ficha técnica — alteração importante</h3>
+<p>O Decreto-Lei n.º 10/2024 eliminou, <strong>no momento da celebração do contrato de compra e venda</strong>, a exigência de exibição ou prova da existência da <strong>ficha técnica de habitação</strong> e da <strong>autorização de utilização</strong>, ou da demonstração da sua inexigibilidade. Isto não equivale a declarar irrelevante a legalidade urbanística do imóvel: a due diligence deve continuar a verificar a situação urbanística e a utilização aplicável. <strong>Fonte:</strong> [PT-10].</p>
+<p><strong>LEGAL_STATUS: REQUIRES_LOCAL_CONFIRMATION</strong> — existe uma inconsistência operacional entre a simplificação legal e a página do <strong>Casa Pronta</strong>, que ainda apresenta na sua checklist referências à ficha técnica “se existir” e a uma escritura com menção de licença de utilização/dispensa em determinados casos. Para uma transação concreta deve ser confirmada a lista documental vigente junto do IRN/notário/advogado/solicitador e do município competente. <strong>Fontes:</strong> [PT-04], [PT-10].</p>
+<h3>5. Certificado energético</h3>
+<p>A certificação energética é relevante na venda e no arrendamento; a DGEG indica a necessidade de certificado válido e a obrigação de incluir a classe energética nos anúncios abrangidos. <strong>Fonte:</strong> [PT-11].</p>
+<h3>6. Direito legal de preferência</h3>
+<p>Não existe uma única regra universal de preferência para todo e qualquer imóvel. Pode haver direitos de preferência públicos e privados em função da localização, classificação, reabilitação urbana, arrendamento ou de outros regimes.</p>
+<p>O serviço Justiça/Casa Pronta refere, entre os casos de preferência pública, imóveis classificados ou em vias de classificação, áreas protegidas e áreas de reabilitação urbana. As entidades públicas dispõem, no serviço indicado, de <strong>10 dias úteis</strong> para responder ao anúncio. Existem ainda regras específicas no regime da reabilitação urbana e na Lei de Bases da Habitação. <strong>Fontes:</strong> [PT-12], [PT-13], [PT-14].</p>
+<p><strong>LEGAL_STATUS: REQUIRES_LOCAL_CONFIRMATION</strong> — verificar sempre município, ARU, património cultural, eventual arrendatário com direito de preferência e outros titulares legalmente preferentes antes do fecho.</p>
+<h3>7. Mediação imobiliária</h3>
+<p>O exercício da atividade de mediação imobiliária por prestador estabelecido em Portugal depende, em regra, de licença do <strong>IMPIC, I.P.</strong>, nos termos da Lei n.º 15/2013, sem prejuízo dos regimes aplicáveis a prestadores de outros Estados do EEE. O comprador/vendedor deve confirmar a licença do mediador quando recorra a mediação. <strong>Fontes:</strong> [PT-15], [PT-16].</p>
+        </div>        <div class="legal-section" id="pt-lg-b">
+          <div class="section-num">2</div>
+          <h2>VENDER UM IMÓVEL</h2>
+          <p><strong>Nível principal: NACIONAL</strong>, com obrigações específicas dependentes do imóvel.</p>
+<h3>1. Preparação jurídica e documental</h3>
+<p>O vendedor deve confirmar antecipadamente:</p>
+<ul class="legal-list">
+<li>titularidade e ónus no registo predial;</li>
+<li>matriz/caderneta predial e VPT;</li>
+<li>identidade e poderes dos vendedores;</li>
+<li>hipoteca e procedimento de cancelamento/distrate, se aplicável;</li>
+<li>certificado energético;</li>
+<li>situação de preferência;</li>
+<li>situação de condomínio;</li>
+<li>situação de arrendamento/ocupação;</li>
+<li>situação urbanística e correspondência do imóvel com a documentação;</li>
+<li>tratamento fiscal da mais-valia.</li>
+</ul>
+<p><strong>Fontes:</strong> [PT-08], [PT-09], [PT-11], [PT-12], [PT-17].</p>
+<h3>2. Hipotecas e registos</h3>
+<p>Se existir financiamento garantido por hipoteca, a venda exige coordenação com o credor para liquidação e cancelamento do encargo nos termos aplicáveis. O registo predial é a fonte central para confirmar os encargos que oneram o prédio. <strong>Fontes:</strong> [PT-02], [PT-08].</p>
+<h3>3. Venda de fração em condomínio</h3>
+<p>Antes da alienação de uma fração, o condómino deve solicitar ao administrador declaração escrita sobre encargos e dívidas ao condomínio. A declaração é emitida no prazo máximo de <strong>10 dias</strong> e constitui documento instrutório obrigatório da escritura/DPA, salvo se o adquirente declarar expressamente que prescinde dela e aceita, em consequência, a responsabilidade por dívidas do vendedor ao condomínio. Encargos que se vençam depois da transmissão são, em regra, responsabilidade do novo proprietário. <strong>Fonte:</strong> [PT-18].</p>
+<h3>4. Preferência</h3>
+<p>Se o imóvel estiver sujeito a direito legal de preferência, o vendedor deve cumprir o procedimento aplicável antes da conclusão do negócio. O anúncio Casa Pronta é uma via operacional para comunicar a entidades públicas os elementos essenciais do negócio nos casos abrangidos. <strong>Fonte:</strong> [PT-12].</p>
+<h3>5. Mediação e publicidade</h3>
+<p>Quando exista mediação profissional, a empresa deve estar habilitada nos termos do regime do IMPIC. A publicidade do imóvel deve respeitar ainda as exigências aplicáveis, incluindo a informação energética quando exigida. <strong>Fontes:</strong> [PT-11], [PT-15], [PT-16].</p>
+        </div>        <div class="legal-section" id="pt-lg-c">
+          <div class="section-num">3</div>
+          <h2>TRIBUTAÇÃO DAS MAIS-VALIAS</h2>
+          <p><strong>Nível: NACIONAL</strong>, com forte dependência da situação fiscal individual, natureza do imóvel, residência, datas e convenções internacionais.</p>
+<h3>1. Princípio geral</h3>
+<p>A alienação onerosa de direitos reais sobre imóveis pode gerar uma mais-valia tributável em IRS. Não deve ser publicada no Z Find uma “taxa única de mais-valias imobiliárias” para pessoas singulares, porque a tributação concreta depende, entre outros fatores, da residência fiscal, enquadramento em IRS, valor de aquisição, valor de realização, despesas elegíveis, reinvestimento e convenção de dupla tributação. <strong>Fontes:</strong> [PT-19], [PT-20].</p>
+<h3>2. Habitação própria e permanente — reinvestimento</h3>
+<p>O Código do IRS prevê exclusão de tributação, total ou proporcional, quando se verifiquem cumulativamente as condições legais de reinvestimento da realização de habitação própria e permanente (HPP). Entre os elementos centrais atualmente previstos:</p>
+<ul class="legal-list">
+<li>reinvestimento em nova HPP em Portugal ou, nas condições legais, noutro Estado da UE/EEE com intercâmbio de informações;</li>
+<li>janela de reinvestimento entre os <strong>24 meses anteriores</strong> e os <strong>36 meses posteriores</strong> à realização;</li>
+<li>manifestação da intenção de reinvestir na declaração fiscal;</li>
+<li>em regra, afetação do imóvel transmitido a HPP comprovada pelo domicílio fiscal nos <strong>12 meses anteriores</strong>, sem prejuízo das exceções previstas na lei;</li>
+<li>cumprimento dos prazos de afetação do novo imóvel.</li>
+</ul>
+<p><strong>Fonte:</strong> [PT-19].</p>
+<h3>3. Novo reinvestimento em habitação para arrendamento — 2026 a 2029</h3>
+<p>O Decreto-Lei n.º 97/2026 criou uma nova exclusão para ganhos de certas transmissões de imóveis destinados a habitação quando o valor elegível é reinvestido na aquisição de imóveis, em Portugal, destinados a <strong>arrendamento habitacional a renda moderada</strong>, com condições rigorosas. Entre elas:</p>
+<ul class="legal-list">
+<li>reinvestimento entre 24 meses antes e 36 meses depois;</li>
+<li>celebração de contrato de arrendamento dentro do prazo legal, em regra <strong>6 meses</strong>;</li>
+<li>manutenção em arrendamento por pelo menos <strong>36 meses</strong>, seguidos ou interpolados, nos primeiros cinco anos;</li>
+<li>respeito pelos limites de renda;</li>
+<li>não alienação do imóvel reinvestido durante o período legal relevante.</li>
+</ul>
+<p>Este regime aplica-se, segundo o próprio Decreto-Lei n.º 97/2026, a transmissões realizadas entre <strong>1 de janeiro de 2026 e 31 de dezembro de 2029</strong>. <strong>Fontes:</strong> [PT-19], [PT-21].</p>
+<h3>4. Valor tributável e despesas</h3>
+<p>A determinação da mais-valia exige cálculo fiscal individualizado. Devem ser considerados apenas custos e correções que a lei admita e que sejam devidamente documentados; não se devem apresentar genericamente todas as despesas de manutenção como dedutíveis.</p>
+<p><strong>LEGAL_STATUS: REQUIRES_LOCAL_CONFIRMATION</strong> — antes de publicação de qualquer simulador ou taxa efetiva de mais-valias no Z Find, validar a versão corrente dos artigos 43.º, 50.º e 51.º do CIRS, bem como a situação específica de residentes/não residentes e eventual convenção de dupla tributação. <strong>Fontes:</strong> [PT-19], [PT-20].</p>
+        </div>        <div class="legal-section" id="pt-lg-d">
+          <div class="section-num">4</div>
+          <h2>IMPOSTOS NA AQUISIÇÃO E NA PROPRIEDADE</h2>
+          <p><strong>Nível: NACIONAL para IMT/IS/AIMI; MUNICIPAL para a taxa concreta de IMI dentro dos limites legais.</strong></p>
+<h3>1. Base do IMT</h3>
+<p>Na compra onerosa de imóvel, o comprador paga IMT, salvo isenção aplicável. Em regra, o imposto é calculado sobre o maior entre o valor do ato/contrato e o VPT, aplicando-se taxas diferentes consoante natureza e destino do imóvel. <strong>Fontes:</strong> [PT-22], [PT-23].</p>
+<h3>2. Tabelas de IMT — Continente, 2026</h3>
+<p>#### Habitação própria e permanente — regime geral</p>
+<div class="legal-card"><p>Valor tributável (€) · Taxa</p></div>
+<div class="legal-card"><p>Até 106 346 · 0%</p></div>
+<div class="legal-card"><p>&gt; 106 346 até 145 470 · 2% marginal</p></div>
+<div class="legal-card"><p>&gt; 145 470 até 198 347 · 5% marginal</p></div>
+<div class="legal-card"><p>&gt; 198 347 até 330 539 · 7% marginal</p></div>
+<div class="legal-card"><p>&gt; 330 539 até 660 982 · 8% marginal</p></div>
+<div class="legal-card"><p>&gt; 660 982 até 1 150 853 · 6% taxa única</p></div>
+<div class="legal-card"><p>&gt; 1 150 853 · 7,5% taxa única</p></div>
+<p>#### Habitação que não seja HPP / não abrangida pelas tabelas HPP</p>
+<div class="legal-card"><p>Valor tributável (€) · Taxa</p></div>
+<div class="legal-card"><p>Até 106 346 · 1%</p></div>
+<div class="legal-card"><p>&gt; 106 346 até 145 470 · 2% marginal</p></div>
+<div class="legal-card"><p>&gt; 145 470 até 198 347 · 5% marginal</p></div>
+<div class="legal-card"><p>&gt; 198 347 até 330 539 · 7% marginal</p></div>
+<div class="legal-card"><p>&gt; 330 539 até 633 931 · 8% marginal</p></div>
+<div class="legal-card"><p>&gt; 633 931 até 1 150 853 · 6% taxa única</p></div>
+<div class="legal-card"><p>&gt; 1 150 853 · 7,5% taxa única</p></div>
+<p>Outras referências do artigo 17.º:</p>
+<ul class="legal-list">
+<li>prédios rústicos: <strong>5%</strong>;</li>
+<li>outros prédios urbanos e outras aquisições onerosas: <strong>6,5%</strong>.</li>
+</ul>
+<p><strong>Fonte:</strong> [PT-23].</p>
+<p><strong>Nota:</strong> as Regiões Autónomas têm regras/limiares próprios que devem ser consultados para a operação concreta.</p>
+<h3>3. IMT Jovem</h3>
+<p>Em 2026, o regime para primeira aquisição de HPP por jovens elegíveis até aos 35 anos continua previsto. A página atual da AT exige, entre outros pontos, que o adquirente não seja dependente para IRS e que não seja titular de propriedade ou figura parcelar sobre prédio urbano habitacional no momento da compra nem nos três anos anteriores. No Continente, a AT indica isenção até ao limite atualmente aplicável de <strong>€330.539</strong>, sem prejuízo da aplicação da tabela legal nas aquisições de valor superior e dos requisitos integrais do regime. <strong>Fontes:</strong> [PT-22], [PT-23].</p>
+<h3>4. ALTERAÇÃO MATERIAL DE 2026 — IMT para adquirente não residente</h3>
+<p><strong>ATENÇÃO: esta é uma das principais correções do re-audit.</strong></p>
+<p>O artigo 17.º do CIMT, na redação introduzida pelo Decreto-Lei n.º 97/2026, passou a determinar, para aquisição por <strong>não residente</strong> de prédio urbano/fração destinada exclusivamente a habitação, uma taxa de IMT de <strong>7,5%</strong>, sem isenção ou redução, salvo as exceções legais. Entre as exceções:</p>
+<ol class="legal-list">
+<li>adquirente já considerado residente fiscal em Portugal;</li>
+<li>adquirente que se torne residente fiscal em Portugal no prazo de <strong>2 anos</strong> após a aquisição;</li>
+<li>imóvel destinado, no prazo de <strong>6 meses</strong>, a arrendamento habitacional dentro dos limites de renda legalmente previstos, sendo arrendado por pelo menos <strong>36 meses</strong> nos primeiros cinco anos.</li>
+</ol>
+<p>Quando as situações posteriores de residência ou arrendamento se verifiquem, a AT pode anular, mediante requerimento, a diferença entre o imposto pago e o que resultaria das taxas gerais; o requerimento tem prazo próprio de <strong>6 meses</strong> a contar do evento relevante.</p>
+<p><strong>Fontes:</strong> [PT-21], [PT-23].</p>
+<p>Isto significa que qualquer versão anterior do guia que afirmasse genericamente que o comprador não residente suporta o mesmo IMT que o residente ficou materialmente desatualizada em 2026.</p>
+<h3>5. Aquisições envolvendo jurisdições de tributação privilegiada</h3>
+<p>O artigo 17.º prevê uma taxa agravada de <strong>10%</strong> em certas aquisições por adquirentes com domicílio fiscal, ou entidades dominadas/controladas, em jurisdições constantes da lista de regimes fiscais claramente mais favoráveis. O próprio artigo contém exceções e, designadamente, o n.º 7 afasta o n.º 4 quando o adquirente seja pessoa singular. <strong>Fonte:</strong> [PT-23].</p>
+<p><strong>LEGAL_STATUS: REQUIRES_LOCAL_CONFIRMATION</strong> — estruturas societárias, trusts, veículos estrangeiros e controlo indireto exigem análise fiscal específica; não extrapolar a regra de 10%.</p>
+<h3>6. Imposto do Selo na aquisição</h3>
+<p>A aquisição onerosa de imóvel está sujeita, em regra, a <strong>0,8% de Imposto do Selo</strong>, sobre a base aplicável ao IMT. O crédito/financiamento pode ter tributação de Imposto do Selo própria. <strong>Fontes:</strong> [PT-22], [PT-24].</p>
+<h3>7. IMI</h3>
+<p>O IMI incide sobre o <strong>VPT</strong> dos prédios situados em Portugal. É devido pelo proprietário, usufrutuário ou superficiário constante da matriz em 31 de dezembro do ano em causa. A taxa dos prédios urbanos é definida anualmente pelo município dentro dos limites legais, atualmente <strong>0,3% a 0,45%</strong>, podendo chegar a <strong>0,5%</strong> em situações excecionais; para prédios rústicos a AT indica taxa até <strong>0,8%</strong>. <strong>Fonte:</strong> [PT-25].</p>
+<h3>8. AIMI</h3>
+<p>O AIMI incide, em regra, sobre a soma do VPT de prédios urbanos habitacionais e terrenos para construção. Para pessoas singulares:</p>
+<ul class="legal-list">
+<li>dedução geral de <strong>€600.000</strong>;</li>
+<li><strong>€1.200.000</strong> se casal/unidos de facto optarem pela tributação conjunta;</li>
+<li>taxas por escalões: <strong>0,7%</strong>, <strong>1%</strong> e <strong>1,5%</strong>;</li>
+<li>heranças indivisas: taxa única de <strong>0,7%</strong>, com regras próprias.</li>
+</ul>
+<p><strong>Fonte:</strong> [PT-25].</p>
+        </div>        <div class="legal-section" id="pt-lg-e">
+          <div class="section-num">5</div>
+          <h2>ARRENDAMENTO HABITACIONAL</h2>
+          <p><strong>Nível: NACIONAL</strong>, sem prejuízo de programas públicos e medidas locais específicas.</p>
+<h3>1. Regime geral</h3>
+<p>O arrendamento urbano é regulado pelo Código Civil, NRAU e legislação complementar. A redação aplicável em agosto de 2026 deve prevalecer sobre resumos históricos. <strong>Fontes:</strong> [PT-26], [PT-27], [PT-28].</p>
+<h3>2. Rendas antecipadas e caução — correção importante</h3>
+<p>O <strong>artigo 1076.º do Código Civil</strong>, na redação dada pela Lei n.º 24-D/2022, permite, havendo acordo escrito:</p>
+<ul class="legal-list">
+<li>antecipação de rendas por período <strong>não superior a 2 meses</strong>;</li>
+<li>caução, por formas legalmente admissíveis, até ao valor correspondente a <strong>2 rendas</strong>.</li>
+</ul>
+<p><strong>Fontes:</strong> [PT-26], [PT-29].</p>
+<p><strong>Nota metodológica:</strong> algumas páginas consolidadas do NRAU continuam a reproduzir uma redação antiga de “três meses”. Para efeitos deste Master Pack prevaleceu a redação atual do Código Civil e a lei modificativa de 2022, que estabelecem dois meses/duas rendas. Este ponto deve ser revisto juridicamente antes da publicação final, precisamente por existir divergência de apresentação entre páginas oficiais consolidadas. <strong>Fontes:</strong> [PT-26], [PT-29].</p>
+<h3>3. Atualização de renda</h3>
+<p>Na falta de regime contratual diferente permitido por lei, a renda pode ser atualizada anualmente de acordo com o coeficiente em vigor; a primeira atualização pode ser exigida um ano após o início do contrato e o senhorio deve comunicar por escrito o coeficiente e a nova renda com antecedência mínima de <strong>30 dias</strong>. <strong>Fonte:</strong> [PT-27].</p>
+<h3>4. Renovação automática e oposição do senhorio</h3>
+<p>Salvo estipulação em contrário, o contrato com prazo certo renova-se automaticamente por períodos de igual duração ou de três anos se esta for inferior. Para oposição à renovação pelo senhorio, o artigo 1097.º prevê atualmente antecedências mínimas de:</p>
+<ul class="legal-list">
+<li><strong>240 dias</strong>: prazo inicial/renovação igual ou superior a 6 anos;</li>
+<li><strong>120 dias</strong>: igual ou superior a 1 ano e inferior a 6 anos;</li>
+<li><strong>60 dias</strong>: igual ou superior a 6 meses e inferior a 1 ano;</li>
+<li><strong>1/3 do prazo</strong>: inferior a 6 meses.</li>
+</ul>
+<p>A oposição à primeira renovação pelo senhorio só produz, em regra, efeitos após decorridos três anos da celebração, com a exceção legal relativa à necessidade de habitação pelo próprio ou descendentes em 1.º grau. <strong>Fonte:</strong> [PT-28].</p>
+<h3>5. BAS — despejo e injunção em matéria de arrendamento</h3>
+<p>O <strong>Balcão do Arrendatário e do Senhorio (BAS)</strong> concentra a receção e tramitação do procedimento especial de despejo e do procedimento de injunção em matéria de arrendamento, sucedendo ao BNA e ao SIMA. <strong>Fonte:</strong> [PT-30].</p>
+<h3>6. Comunicação fiscal do contrato e recibos</h3>
+<p>A AT exige a comunicação, pelo senhorio/subsenhorio quando abrangido, do início, alterações e cessação do contrato dentro dos prazos aplicáveis, e gere a emissão de recibos eletrónicos de renda, com exceções previstas na lei. <strong>Fontes:</strong> [PT-31], [PT-32].</p>
+<h3>7. Tributação de rendas habitacionais</h3>
+<p>O artigo 72.º do CIRS prevê atualmente uma taxa autónoma base de <strong>25%</strong> para rendimentos prediais decorrentes de arrendamento habitacional, com reduções para determinadas durações de contratos de habitação permanente e possibilidade de englobamento em situações previstas na lei. <strong>Fonte:</strong> [PT-33].</p>
+<p>O artigo 45.º-C do EBF, aditado pelo Decreto-Lei n.º 97/2026, estabelece, para rendimentos prediais de contratos destinados exclusivamente a habitação com renda dentro dos limites legais, uma taxa de <strong>10%</strong> até 31 de dezembro de 2029, salvo taxa mais favorável; a norma produz efeitos a partir de 1 de janeiro de 2026. <strong>Fontes:</strong> [PT-34], [PT-21].</p>
+<h3>8. Reforma do arrendamento anunciada em julho de 2026</h3>
+<p><strong>LEGAL_STATUS: PROPOSED_NOT_IN_FORCE</strong></p>
+<p>Em 9 de julho de 2026, o Conselho de Ministros aprovou uma <strong>Proposta de Lei</strong> de reforma do arrendamento urbano. O Governo anunciou, entre outras medidas propostas, maior liberdade contratual, alterações a cauções/rendas antecipadas, comunicações, oposição à renovação e procedimentos de despejo.</p>
+<p>À data de corte deste Master Pack (<strong>15 de agosto de 2026</strong>), esta informação é tratada como <strong>proposta legislativa</strong>, não como substituição das regras vigentes acima identificadas, salvo diploma posterior efetivamente publicado no Diário da República que venha a produzir efeitos. <strong>Fonte:</strong> [PT-35].</p>
+        </div>        <div class="legal-section" id="pt-lg-f">
+          <div class="section-num">6</div>
+          <h2>PROPRIEDADE HORIZONTAL E CONDOMÍNIO</h2>
+          <p><strong>Nível: NACIONAL.</strong></p>
+<h3>1. Estrutura</h3>
+<p>Na propriedade horizontal, frações independentes e suficientemente individualizadas podem pertencer a proprietários distintos, coexistindo com partes comuns. O <strong>título constitutivo da propriedade horizontal</strong> é essencial para identificar frações, permilagens e destino juridicamente fixado. <strong>Fonte:</strong> [PT-36].</p>
+<h3>2. Assembleia e administrador</h3>
+<p>A gestão do condomínio cabe aos órgãos previstos no Código Civil, designadamente assembleia de condóminos e administrador, com competências legalmente definidas. Antes de comprar, é prudente analisar atas recentes, orçamento, obras aprovadas, litígios e dívidas. <strong>Fontes:</strong> [PT-36], [PT-37].</p>
+<h3>3. Fundo comum de reserva</h3>
+<p>É obrigatória a constituição de <strong>fundo comum de reserva</strong> destinado a despesas de conservação. Cada condómino contribui com montante correspondente a, pelo menos, <strong>10% da sua quota-parte nas restantes despesas do condomínio</strong>. <strong>Fonte:</strong> [PT-37].</p>
+<h3>4. Declaração de encargos/dívida na venda</h3>
+<p>Para alienação da fração, a Lei n.º 8/2022 prevê a declaração do administrador sobre encargos e dívidas, emitida em até <strong>10 dias</strong>. É documento instrutório obrigatório, salvo renúncia expressa do comprador com aceitação da responsabilidade nos termos legais. Os encargos que se vençam depois da transmissão são, em regra, da responsabilidade do novo proprietário. <strong>Fonte:</strong> [PT-18].</p>
+<h3>5. Alojamento Local e condomínio</h3>
+<p>A possibilidade de exploração de AL numa fração deve ser analisada também à luz do título constitutivo, do regulamento de condomínio e das regras introduzidas pelo Decreto-Lei n.º 76/2024. Uma deliberação posterior para proibir o AL, nos termos desse regime, exige maioria representativa de <strong>dois terços da permilagem</strong> e produz efeitos para futuro, aplicando-se aos pedidos de registo apresentados depois da deliberação. <strong>Fonte:</strong> [PT-38].</p>
+        </div>        <div class="legal-section" id="pt-lg-g">
+          <div class="section-num">7</div>
+          <h2>COMPRADOR ESTRANGEIRO</h2>
+          <p><strong>Nível: NACIONAL</strong>, com implicações fiscais e migratórias separadas.</p>
+<h3>1. Capacidade de aquisição e NIF</h3>
+<p>As fontes primárias analisadas não identificam uma proibição geral de aquisição de imóvel baseada apenas em nacionalidade estrangeira. Todavia, sanções internacionais, prevenção de branqueamento de capitais, capacidade jurídica, estruturas societárias e origem de fundos podem impor controlos ou restrições específicas.</p>
+<p>O <strong>NIF</strong> é necessário para atos e contratos relevantes em Portugal e pode ser pedido por pessoas estrangeiras; a administração pública mantém serviços próprios para atribuição do NIF. <strong>Fontes:</strong> [PT-39], [PT-40].</p>
+<h3>2. Representação fiscal</h3>
+<p>Para residentes na UE, Noruega, Islândia ou Liechtenstein, a nomeação de representante fiscal ou adesão a notificações eletrónicas é facultativa.</p>
+<p>Para residentes noutros países/territórios que estabeleçam relação jurídico-tributária com a AT — incluindo serem proprietários de imóvel em Portugal — existe, em regra, obrigação de <strong>designar representante fiscal ou aderir a um canal de notificações eletrónicas</strong>, com exceções e regras especiais; atividade por conta própria sujeita a IVA mantém exigências próprias. <strong>Fontes:</strong> [PT-41], [PT-42].</p>
+<h3>3. IMT para não residentes — 2026</h3>
+<p>O comprador estrangeiro não deve ser confundido com “não residente fiscal”. A alteração de 2026 usa a <strong>residência fiscal</strong> como elemento determinante para a taxa especial de 7,5% do IMT em certas aquisições habitacionais. Uma pessoa estrangeira residente fiscal em Portugal pode ter tratamento diferente de uma pessoa portuguesa não residente fiscal. <strong>Fonte:</strong> [PT-23].</p>
+<h3>4. Compra de imóvel não concede residência</h3>
+<p>A compra direta de imóvel deixou de constar das atividades elegíveis para a <strong>Autorização de Residência para Investimento (ARI)</strong>. A lista atual da AIMA inclui, entre outras, criação de postos de trabalho, investigação, cultura, determinados organismos de investimento coletivo não imobiliários e capitalização empresarial, mas não a aquisição direta de uma casa como fundamento autónomo de ARI. <strong>Fonte:</strong> [PT-43].</p>
+<p>Portanto, <strong>propriedade imobiliária e direito de residência são matérias distintas</strong>.</p>
+<h3>5. Financiamento, AML/KYC e origem de fundos</h3>
+<p>Bancos, mediadores imobiliários e outros sujeitos obrigados podem ter deveres de identificação, diligência e reporte em matéria de prevenção de branqueamento de capitais. A disponibilidade de crédito a não residentes é matéria contratual/comercial e não deve ser apresentada como um direito garantido.</p>
+<p><strong>LEGAL_STATUS: REQUIRES_LOCAL_CONFIRMATION</strong> — estruturas fiduciárias, beneficiários efetivos, PEP, sanções e origem de fundos exigem análise caso a caso.</p>
+        </div>        <div class="legal-section" id="pt-lg-h">
+          <div class="section-num">8</div>
+          <h2>PERGUNTAS FREQUENTES</h2>
+          <ol class="legal-list">
+<li><strong>Preciso de escritura pública para comprar casa?</strong></li>
+<p>A compra e venda de imóvel tem de respeitar a forma legal: escritura pública ou documento particular autenticado, sem prejuízo de regimes especiais. [PT-01]</p>
+</ol>
+<ol class="legal-list">
+<li><strong>O CPCV transfere a propriedade?</strong></li>
+<p>Não. O CPCV cria obrigações de celebrar o contrato definitivo; a transmissão da propriedade ocorre através do negócio definitivo validamente formalizado. [PT-01], [PT-05]</p>
+</ol>
+<ol class="legal-list">
+<li><strong>Se der sinal e não cumprir o CPCV, perco-o sempre?</strong></li>
+<p>Não se deve responder “sempre”. O regime do sinal depende de quem incumpriu, da existência de incumprimento definitivo, do contrato e dos factos. Em regra, o sinal pode ser perdido pelo promitente que o prestou ou devolvido em dobro quando o incumprimento definitivo seja imputável a quem o recebeu. [PT-07]</p>
+</ol>
+<ol class="legal-list">
+<li><strong>Ainda é obrigatório apresentar licença de utilização e ficha técnica na escritura?</strong></li>
+<p>O Decreto-Lei n.º 10/2024 eliminou a sua exibição/prova como formalidade da compra e venda, mas isso não elimina a necessidade de verificar a legalidade urbanística do imóvel. A checklist operacional do Casa Pronta ainda contém referências documentais que justificam confirmação concreta. [PT-04], [PT-10]</p>
+</ol>
+<ol class="legal-list">
+<li><strong>Quanto pago de Imposto do Selo na compra?</strong></li>
+<p>Em regra, 0,8% sobre a base aplicável ao IMT; financiamentos podem estar sujeitos a Imposto do Selo adicional. [PT-22], [PT-24]</p>
+</ol>
+<ol class="legal-list">
+<li><strong>Um não residente paga o mesmo IMT que um residente em 2026?</strong></li>
+<p>Não necessariamente. Desde a alteração de 2026, certas aquisições habitacionais por não residentes ficam sujeitas a taxa de 7,5%, com exceções legais para residência fiscal ou afetação a arrendamento moderado nas condições previstas. [PT-21], [PT-23]</p>
+</ol>
+<ol class="legal-list">
+<li><strong>O IMT Jovem continua a existir em 2026?</strong></li>
+<p>Sim, para aquisições elegíveis de primeira HPP por jovens até 35 anos, sujeito aos requisitos e limites legais em vigor. [PT-22], [PT-23]</p>
+</ol>
+<ol class="legal-list">
+<li><strong>Qual é a taxa anual de IMI?</strong></li>
+<p>Para prédios urbanos, o município fixa a taxa dentro dos limites legais; atualmente a AT indica 0,3% a 0,45%, podendo chegar a 0,5% em casos excecionais. [PT-25]</p>
+</ol>
+<ol class="legal-list">
+<li><strong>Existe imposto adicional para património imobiliário elevado?</strong></li>
+<p>Sim. O AIMI incide, em regra, sobre VPT agregado de habitação e terrenos para construção, com deduções e taxas próprias. [PT-25]</p>
+</ol>
+<ol class="legal-list">
+<li><strong>Quanto pode o senhorio pedir de rendas antecipadas e caução?</strong></li>
+<p>A redação atual do Código Civil permite antecipação por até dois meses mediante acordo escrito e caução até ao equivalente a duas rendas. [PT-26], [PT-29]</p>
+</ol>
+<ol class="legal-list">
+<li><strong>O senhorio pode atualizar a renda todos os meses?</strong></li>
+<p>Não pelo regime legal supletivo: a atualização é anual, a primeira após um ano, com comunicação escrita da nova renda e coeficiente com pelo menos 30 dias de antecedência. [PT-27]</p>
+</ol>
+<ol class="legal-list">
+<li><strong>Existe um “Golden Visa imobiliário” para comprar casa em Portugal?</strong></li>
+<p>Não. A aquisição direta de imóvel não consta da atual lista de atividades elegíveis para ARI. [PT-43]</p>
+</ol>
+<ol class="legal-list">
+<li><strong>Um estrangeiro precisa de NIF para comprar imóvel?</strong></li>
+<p>Sim, o NIF é necessário para os atos fiscais e contratuais relevantes associados à aquisição. [PT-39], [PT-40]</p>
+</ol>
+<ol class="legal-list">
+<li><strong>Posso abrir um Alojamento Local em qualquer apartamento?</strong></li>
+<p>Não pode ser presumido. É necessário verificar registo, município, áreas de contenção/crescimento sustentável, condomínio, uso, seguro e, nas Regiões Autónomas, adaptações regionais. [PT-38], [PT-44], [PT-45]</p>
+</ol>
+<ol class="legal-list">
+<li><strong>Comprar uma fração torna-me responsável pelas dívidas antigas do condomínio?</strong></li>
+<p>A lei estrutura a responsabilidade pela data de vencimento das dívidas e exige declaração do administrador; se o comprador prescindir expressamente da declaração, pode aceitar responsabilidade pelas dívidas do vendedor. A situação deve ser verificada antes da escritura/DPA. [PT-18]</p>
+</ol>
+        </div>        <div class="legal-section" id="pt-lg-i">
+          <div class="section-num">9</div>
+          <h2>GLOSSÁRIO</h2>
+          <ul class="legal-list">
+<li><strong>AIMI:</strong> Adicional ao Imposto Municipal sobre Imóveis, incidente nas condições legais sobre VPT agregado de determinados prédios urbanos habitacionais e terrenos para construção.</li>
+<li><strong>AL / Alojamento Local:</strong> regime de alojamento temporário remunerado que não reúne os requisitos para empreendimento turístico.</li>
+<li><strong>ARI:</strong> Autorização de Residência para Investimento; a aquisição direta de imóveis já não integra a lista atual de investimentos elegíveis.</li>
+<li><strong>BAS:</strong> Balcão do Arrendatário e do Senhorio.</li>
+<li><strong>Casa Pronta:</strong> serviço do IRN que concentra atos associados a aquisição, financiamento e registo de imóveis.</li>
+<li><strong>Caderneta predial:</strong> documento fiscal/matricial do imóvel, acessível através da AT.</li>
+<li><strong>Certidão permanente predial:</strong> certidão eletrónica que disponibiliza registos prediais em vigor e pedidos pendentes durante a validade.</li>
+<li><strong>Certificado energético:</strong> documento do SCE que contém a classe/desempenho energético aplicável ao edifício/fração.</li>
+<li><strong>Condomínio:</strong> organização dos titulares de frações em propriedade horizontal relativamente às partes e interesses comuns.</li>
+<li><strong>CPCV:</strong> contrato-promessa de compra e venda.</li>
+<li><strong>DPA:</strong> documento particular autenticado.</li>
+<li><strong>Fundo comum de reserva:</strong> fundo obrigatório do condomínio para despesas de conservação, com contribuição mínima legal.</li>
+<li><strong>HPP:</strong> habitação própria e permanente.</li>
+<li><strong>IMI:</strong> Imposto Municipal sobre Imóveis, incidente sobre o VPT.</li>
+<li><strong>IMT:</strong> Imposto Municipal sobre as Transmissões Onerosas de Imóveis.</li>
+<li><strong>Imposto do Selo:</strong> imposto que incide, entre outras situações, sobre aquisições onerosas de imóveis e operações de crédito nos termos da TGIS.</li>
+<li><strong>NIF:</strong> Número de Identificação Fiscal.</li>
+<li><strong>Permilagem:</strong> proporção atribuída a uma fração no título constitutivo da propriedade horizontal.</li>
+<li><strong>Registo predial:</strong> sistema público que dá publicidade à situação jurídica do imóvel.</li>
+<li><strong>Sinal:</strong> quantia ou coisa entregue no contexto contratual com o regime previsto no Código Civil, quando aplicável.</li>
+<li><strong>VPT:</strong> Valor Patrimonial Tributário.</li>
+<li><strong>Direito de preferência:</strong> direito legal ou convencional que pode atribuir prioridade na aquisição a determinado titular ou entidade.</li>
+<li><strong>Área de contenção de AL:</strong> área municipal onde podem ser impostas restrições a novos registos de alojamento local.</li>
+<li><strong>Área de crescimento sustentável de AL:</strong> área municipal sujeita a monitorização e requisitos adicionais para evitar sobrecarga de alojamento local.</li>
+</ul>
         </div>
       </div>
     </div>
 
     <div class="legal-cta wrap">
-      <h3>Pronto para procurar?</h3>
-      <p>Explore oportunidades reais e verificadas em Portugal.</p>
-      <button class="btn btn-gold" onclick="navigate('search')">Pesquisar imóveis</button>
+      <h3>Guia Legal de Portugal</h3>
+      <p>Informação estruturada por jurisdição, sujeita a revisão jurídica final antes da publicação.</p>
+
+      <button class="btn btn-gold"
+              onclick="navigate('search')">
+        Pesquisar imóveis
+      </button>
+
+      <button class="btn btn-outline"
+              onclick="navigate('al-manual')">
+        Alojamento Local
+      </button>
     </div>
   </div>
 </section>
@@ -339,176 +548,99 @@
 <section class="view" id="view-al-manual">
   <div class="legal-page wrap">
     <div class="legal-header">
-      <div class="eyebrow">GUIA DE ALOJAMENTO LOCAL</div>
-      <h1>Alojamento Local no Grande Porto</h1>
-      <p>Do licenciamento à fiscalidade — um guia de referência para proprietários e investidores que consideram o Alojamento Local (AL) em Porto, Matosinhos e Vila Nova de Gaia.</p>
-      <div class="disclaimer">A legislação do AL está sujeita a alterações frequentes. Este guia reflete o quadro legal em vigor em 2026, mas deve ser sempre confirmado junto da câmara municipal competente e de um contabilista certificado antes de qualquer decisão.</div>
+      <div class="eyebrow">ALOJAMENTO LOCAL · PORTUGAL</div>
+      <h1>Alojamento Local e arrendamento de curta duração em Portugal</h1>
+      <p>Regime nacional com dependências regionais, municipais, de microzona, imóvel, condomínio e data do pedido.</p>
+
+      <div class="disclaimer">
+        Informação geral para fins exclusivamente informativos. Não constitui aconselhamento jurídico, fiscal, financeiro, urbanístico ou de investimento e não substitui a análise de profissional qualificado para o imóvel e situação concreta.
+      </div>
+
       <div class="legal-callout" style="margin-top:16px;">
         <strong>Jurisdição:</strong>
         <button class="btn btn-gold" type="button" disabled>Portugal</button>
         <button class="btn btn-outline" type="button" onclick="navigate('al-manual-es')">España</button>
-        <button class="btn btn-outline" type="button"
-                onclick="navigate('tourist-rental-fr')">France</button>
-        <button class="btn btn-outline" type="button"
-                onclick="navigate('tourist-rental-de')">Deutschland</button>
-        <button class="btn btn-outline" type="button"
-                onclick="navigate('tourist-rental-it')">Italia</button>
+        <button class="btn btn-outline" type="button" onclick="navigate('tourist-rental-fr')">France</button>
+        <button class="btn btn-outline" type="button" onclick="navigate('tourist-rental-de')">Deutschland</button>
+        <button class="btn btn-outline" type="button" onclick="navigate('tourist-rental-it')">Italia</button>
+        <button class="btn btn-outline" type="button" onclick="navigate('tourist-rental-ie')">Ireland</button>
+        <button class="btn btn-outline" type="button" onclick="navigate('tourist-rental-england')">England</button>
+        <button class="btn btn-outline" type="button" onclick="navigate('tourist-rental-scotland')">Scotland</button>
 
-        <button class="btn btn-outline" type="button"
-                onclick="navigate('tourist-rental-ie')">
-          Ireland
-        </button>
-        <button class="btn btn-outline" type="button"
-                onclick="navigate('tourist-rental-england')">
-          England
-        </button>
-        <button class="btn btn-outline" type="button"
-                onclick="navigate('tourist-rental-scotland')">
-          Scotland
+        <button class="btn btn-outline"
+                type="button"
+                onclick="navigate('legal')">
+          Voltar ao Guia Legal de Portugal
         </button>
       </div>
     </div>
 
     <div class="legal-layout">
       <nav class="legal-toc">
-        <a href="#al-oque">O que é o AL</a>
-        <a href="#al-elegibilidade">Elegibilidade</a>
-        <a href="#al-processo">Processo de Licenciamento</a>
-        <a href="#al-obrigacoes">Obrigações Legais</a>
-        <a href="#al-fiscalidade">Fiscalidade</a>
-        <a href="#al-rentabilidade">Rentabilidade</a>
-        <a href="#al-checklist">Checklist</a>
-        <a href="#al-faq">Perguntas Frequentes</a>
-        <a href="#al-glossario">Glossário</a>
+        <a href="#pt-al-main">
+          MÓDULO SEPARADO: ALOJAMENTO LOCAL / ARRENDAMENTO DE CURTA DURAÇÃO
+        </a>
+
+        <a href="#"
+           onclick="navigate('legal');return false;">
+          <strong>Voltar ao Guia Legal</strong>
+        </a>
       </nav>
 
-      <div>
-        <div class="legal-section" id="al-oque">
+      <div class="legal-content">
+        <div class="legal-section"
+             id="pt-al-main">
           <div class="section-num">01</div>
-          <h2>O que é o Alojamento Local</h2>
-          <p class="section-intro">O AL é o regime jurídico que permite prestar serviços de alojamento temporário a turistas, mediante remuneração, num imóvel mobilado — sem cumprir os requisitos exigidos a empreendimentos turísticos tradicionais. Distingue-se do arrendamento habitacional pela duração das estadias (normalmente inferior a 30 dias) e pelos serviços que costuma incluir, como limpeza e roupa de cama.</p>
-          <div class="legal-card"><h3>As quatro modalidades</h3><p><strong>Apartamento</strong> — fração autónoma, a modalidade mais comum. <strong>Moradia</strong> — edifício autónomo, a única isenta da placa "AL" obrigatória. <strong>Estabelecimento de Hospedagem</strong> — unidades por quarto, inclui o "Hostel". <strong>Quartos</strong> — até 3 quartos, na residência fiscal do titular.</p></div>
-          <table class="legal-table">
-            <tr><th>Critério</th><th>Alojamento Local</th><th>Arrendamento Tradicional</th></tr>
-            <tr><td>Duração típica</td><td>Dias a poucas semanas</td><td>12 meses ou mais</td></tr>
-            <tr><td>Registo exigido</td><td>RNAL</td><td>Nenhum registo específico</td></tr>
-            <tr><td>Categoria de IRS</td><td>B — atividade empresarial</td><td>F — rendimentos prediais</td></tr>
-            <tr><td>Seguro obrigatório</td><td>Responsabilidade civil específico</td><td>Não obrigatório por lei</td></tr>
-            <tr><td>Taxa turística municipal</td><td>Aplicável, por dormida</td><td>Não aplicável</td></tr>
-          </table>
-          <p class="section-intro" style="margin-top:16px;">O AL é adequado a quem aceita gestão ativa (própria ou delegada) e valoriza flexibilidade de uso pessoal do imóvel. Para quem procura rendimento estável e totalmente passivo, o arrendamento tradicional costuma ser mais adequado.</p>
-        </div>
-
-        <div class="legal-section" id="al-elegibilidade">
-          <div class="section-num">02</div>
-          <h2>É o Seu Imóvel Elegível?</h2>
-          <p class="section-intro">Três verificações determinam se um imóvel pode ser registado como AL — ignorar esta etapa é o motivo mais comum de pedidos rejeitados.</p>
-          <div class="legal-card"><h3>1. Licença de Utilização</h3><p>O imóvel precisa de licença de utilização válida para fins habitacionais, emitida pela Câmara Municipal. Imóveis construídos antes de 1951 estão dispensados, mas é preciso comprovar a antiguidade (caderneta predial, certidão de registo predial).</p></div>
-          <div class="legal-card"><h3>2. Áreas de Contenção</h3><p>Cada câmara pode declarar zonas com sobrecarga de AL, restringindo novos registos. No Porto, correspondem às freguesias de Santo Ildefonso, Sé, Miragaia, São Nicolau e Vitória. Nestas zonas, novos registos só em situações excecionais.</p></div>
-          <div class="legal-card"><h3>3. Regulamento de Condomínio</h3><p>Desde o Decreto-Lei n.º 76/2024, a autorização prévia da assembleia deixou de ser, em regra, obrigatória — exceto para hostels. <strong>Mas o condomínio mantém poder real:</strong> pode proibir a atividade por deliberação de dois terços da permilagem, ou opor-se a uma unidade específica por maioria de mais de metade, com fundamento em perturbação reiterada.</p></div>
-          <table class="legal-table">
-            <tr><th>Concelho</th><th>Áreas de contenção</th></tr>
-            <tr><td>Porto</td><td>Santo Ildefonso, Sé, Miragaia, São Nicolau, Vitória</td></tr>
-            <tr><td>Matosinhos</td><td>A confirmar junto da câmara municipal</td></tr>
-            <tr><td>Vila Nova de Gaia</td><td>Regulamento municipal em desenvolvimento — pode incluir suspensões temporárias</td></tr>
-          </table>
-        </div>
-
-        <div class="legal-section" id="al-processo">
-          <div class="section-num">03</div>
-          <h2>O Processo de Licenciamento</h2>
-          <p class="section-intro">Confirmada a elegibilidade, o registo é inteiramente eletrónico, através do Balcão Único Eletrónico.</p>
-          <div class="legal-card"><h3>1. Reunir a documentação</h3><p>Identificação do titular, comprovativo do direito de exploração do imóvel, licença de utilização ou comprovativo de antiguidade pré-1951.</p></div>
-          <div class="legal-card"><h3>2. Autenticar-se no eportugal.gov.pt</h3><p>Área "Iniciar Atividade". Autenticação via Chave Móvel Digital, Cartão de Cidadão ou certificado digital.</p></div>
-          <div class="legal-card"><h3>3. Submeter a Comunicação Prévia</h3><p>Morada, modalidade, capacidade em quartos e camas, com toda a documentação anexada.</p></div>
-          <div class="legal-card"><h3>4. Aguardar o período de oposição</h3><p>A câmara municipal tem 60 dias úteis para se opor (90 em área de contenção). Sem oposição, o registo é tacitamente deferido, gerando o número de RNAL.</p></div>
-          <div class="legal-callout">Depois do RNAL, faltam ainda 3 registos antes do primeiro hóspede: registo na Plataforma da Taxa Municipal Turística, submissão do comprovativo de seguro de responsabilidade civil (obrigatório desde março de 2025), e abertura de atividade nas Finanças em Categoria B.</div>
-          <p style="font-size:0.85rem; color:var(--gray-500);">A falta de comprovativo do seguro foi o principal motivo de anulação de registos em 2025/2026 a nível nacional — só em Lisboa, mais de 6.700 registos foram cancelados por este motivo até fevereiro de 2026.</p>
-        </div>
-
-        <div class="legal-section" id="al-obrigacoes">
-          <div class="section-num">04</div>
-          <h2>Obrigações Legais Contínuas</h2>
-          <div class="legal-card"><h3>Comunicação de hóspedes — SIBA</h3><p>Todos os hóspedes não nacionais devem ser comunicados no SIBA (Sistema de Informação de Boletins de Alojamento, operado pela PSP) até três dias após a entrada. Coimas entre €100 e €2.000 por hóspede não comunicado.</p></div>
-          <div class="legal-card"><h3>Placa de identificação "AL"</h3><p>Obrigatória em todos os estabelecimentos, exceto moradias, afixada no exterior em local visível. A omissão é contraordenação leve, com coima entre €50 e €750.</p></div>
-          <div class="legal-card"><h3>Seguro de responsabilidade civil</h3><p>Deve cobrir danos a hóspedes e terceiros. Prémios entre €100 e €300/ano em média. Sem comprovativo submetido, a câmara pode cancelar o registo em qualquer momento.</p></div>
-          <div class="legal-card"><h3>Requisitos de segurança</h3><p>Janela para o exterior com bloqueio de luz, porta com fechadura de privacidade, pelo menos uma casa de banho por cada 4 quartos, extintor e kit de primeiros socorros (até 10 hóspedes), número 112 visível, livro de reclamações físico e eletrónico.</p></div>
-        </div>
-
-        <div class="legal-section" id="al-fiscalidade">
-          <div class="section-num">05</div>
-          <h2>Fiscalidade do Alojamento Local</h2>
-          <p class="section-intro">O rendimento do AL é tributado como atividade empresarial (Categoria B), distinta do arrendamento tradicional (Categoria F).</p>
-          <div class="legal-card"><h3>Regime simplificado — obrigações regulares</h3><p>Abertura de atividade em Categoria B antes do primeiro recibo. Recibo emitido até 5 dias após pagamento ou check-in. Ficheiro SAF-T até dia 20 de cada mês, quando os recibos não são emitidos diretamente no Portal das Finanças. Declaração anual de IRS, Anexo B.</p></div>
-          <table class="legal-table">
-            <tr><th>Concelho</th><th>TMT por dormida</th><th>Limite</th></tr>
-            <tr><td>Porto</td><td>€3,00 (subida prevista para €4,00 em 2026)</td><td>7 noites consecutivas</td></tr>
-            <tr><td>Matosinhos</td><td>€2,00</td><td>Confirmar regulamento municipal</td></tr>
-            <tr><td>Vila Nova de Gaia</td><td>€2,50</td><td>7 noites</td></tr>
-          </table>
-          <p style="font-size:0.85rem; color:var(--gray-500);">Em Vila Nova de Gaia, o proprietário é responsável pela cobrança e entrega da TMT em todas as plataformas — não há parceria direta com a câmara. No Porto, existem acordos que permitem a algumas plataformas cobrar e entregar a taxa diretamente. Confirme sempre o regime da sua plataforma.</p>
-          <div class="legal-callout">A CEAL (Contribuição Extraordinária sobre o Alojamento Local) foi eliminada a partir do exercício fiscal de 2025.</div>
-        </div>
-
-        <div class="legal-section" id="al-rentabilidade">
-          <div class="section-num">06</div>
-          <h2>Quanto Pode Rentabilizar</h2>
-          <p class="section-intro">Não existe resposta universal — depende do imóvel, da zona e do perfil do proprietário.</p>
-          <table class="legal-table">
-            <tr><th>Critério</th><th>Favorece AL</th><th>Favorece Arrendamento</th></tr>
-            <tr><td>Localização</td><td>Zona turística central</td><td>Zona predominantemente residencial</td></tr>
-            <tr><td>Disponibilidade</td><td>Aceita gestão ativa ou delegada</td><td>Procura rendimento totalmente passivo</td></tr>
-            <tr><td>Uso pessoal</td><td>Quer usar o imóvel em períodos próprios</td><td>Não precisa de usar o imóvel</td></tr>
-            <tr><td>Tolerância a variação</td><td>Conforto com receita sazonal</td><td>Prefere receita fixa e previsível</td></tr>
-          </table>
-          <div class="legal-callout link-out">Compare os dois cenários para o seu imóvel — investimento, custos operacionais, financiamento e retorno — no nosso <a href="#" onclick="navigate('simulator');return false;">Simulador de Rentabilidade</a>.</div>
-        </div>
-
-        <div class="legal-section" id="al-checklist">
-          <div class="section-num">07</div>
-          <h2>Checklist de Conformidade</h2>
-          <p class="section-intro">Autoavaliação rápida. Se responder "não" a qualquer ponto, recomenda-se ação corretiva imediata.</p>
-          <div class="legal-card"><h3>Antes de abrir</h3><p>Imóvel fora de área de contenção (ou reúne exceção) · Licença de utilização válida ou antiguidade pré-1951 · Regulamento de condomínio revisto · Comunicação prévia submetida, número de RNAL recebido.</p></div>
-          <div class="legal-card"><h3>Antes do primeiro hóspede</h3><p>Registo na Plataforma da Taxa Municipal Turística · Seguro de responsabilidade civil submetido · Atividade aberta nas Finanças, Categoria B · Placa "AL" afixada (exceto moradias) · Livro de reclamações disponível · Equipamento de segurança confirmado.</p></div>
-          <div class="legal-card"><h3>Em cada estadia</h3><p>Hóspedes não nacionais comunicados no SIBA (3 dias) · Taxa Municipal Turística cobrada e registada · Recibo emitido dentro do prazo legal.</p></div>
-          <div class="legal-card"><h3>Periodicamente</h3><p>Ficheiro SAF-T enviado até dia 20 · Seguro renovado antes da expiração · Alterações comunicadas à câmara no prazo de 10 dias.</p></div>
-        </div>
-
-        <div class="legal-section" id="al-faq">
-          <div class="section-num">08</div>
-          <h2>Perguntas Frequentes</h2>
-          <div class="legal-faq">
-            <details><summary>Posso ter mais de um Alojamento Local?</summary><p>Sim. Não há limite ao número de registos, desde que cada unidade seja registada individualmente e cumpra todas as obrigações regulamentares e fiscais.</p></details>
-            <details><summary>O condomínio pode opor-se à minha atividade de AL?</summary><p>Em regra, não precisa de autorização prévia (exceto hostels). Mas a assembleia pode requerer o cancelamento por perturbação reiterada, com deliberação de mais de metade da permilagem — ou proibir a atividade por completo, com dois terços.</p></details>
-            <details><summary>O que acontece ao registo se eu vender o imóvel?</summary><p>A titularidade deve ser atualizada junto da câmara municipal no prazo de 10 dias. Em algumas áreas de contenção, a venda pode determinar a caducidade automática do registo — confirme sempre o regulamento municipal antes da transação.</p></details>
-            <details><summary>Quantos hóspedes posso receber em simultâneo?</summary><p>Máximo de 9 quartos e 30 hóspedes em simultâneo (exceto quartos singulares e hostels). O número total de utentes não deve exceder o dobro do número de quartos.</p></details>
-            <details><summary>O que acontece se eu não comunicar os hóspedes estrangeiros no SIBA?</summary><p>Constitui contraordenação, com coima entre €100 e €2.000 por hóspede não comunicado. Não há tolerância para esta obrigação.</p></details>
-            <details><summary>Preciso de um seguro específico, ou o seguro de habitação normal serve?</summary><p>Não. O seguro de responsabilidade civil para AL é distinto do seguro multirriscos comum, e deve cobrir especificamente danos a hóspedes e terceiros. Consulte um corretor especializado em AL.</p></details>
-            <details><summary>Quanto tempo demora, desde a decisão até ao primeiro hóspede?</summary><p>Em condições normais, sem oposição da câmara, o processo completo demora tipicamente entre 2 a 4 meses, dependendo do concelho e de eventuais obras de adequação.</p></details>
-          </div>
-        </div>
-
-        <div class="legal-section" id="al-glossario">
-          <div class="section-num">09</div>
-          <h2>Glossário de Termos</h2>
-          <table class="legal-table">
-            <tr><td><strong>AL</strong></td><td>Alojamento Local — regime jurídico de alojamento temporário a turistas, mediante remuneração.</td></tr>
-            <tr><td><strong>RNAL</strong></td><td>Registo Nacional de Alojamento Local, gerido pelo Turismo de Portugal.</td></tr>
-            <tr><td><strong>TMT</strong></td><td>Taxa Municipal Turística — encargo por dormida, definido por cada município.</td></tr>
-            <tr><td><strong>CEAL</strong></td><td>Contribuição Extraordinária sobre o Alojamento Local — eliminada a partir do exercício de 2025.</td></tr>
-            <tr><td><strong>SAF-T</strong></td><td>Standard Audit File for Tax — ficheiro normalizado submetido à Autoridade Tributária.</td></tr>
-            <tr><td><strong>Área de Contenção</strong></td><td>Zona com sobrecarga de AL, com restrições à instalação de novos estabelecimentos.</td></tr>
-            <tr><td><strong>SIBA</strong></td><td>Sistema de Informação de Boletins de Alojamento, para comunicação de hóspedes não nacionais.</td></tr>
-            <tr><td><strong>SIIAL</strong></td><td>Sistema de Informação Integrado do Alojamento Local — consulta o rácio de pressão por freguesia.</td></tr>
-          </table>
+          <h2>MÓDULO SEPARADO: ALOJAMENTO LOCAL / ARRENDAMENTO DE CURTA DURAÇÃO</h2>
+          <h3>1. Natureza do regime</h3>
+<p>Em Portugal, <strong>Alojamento Local (AL)</strong> designa estabelecimentos que prestam serviços de alojamento temporário, designadamente a turistas, mediante remuneração, sem reunirem os requisitos para serem considerados empreendimentos turísticos. O regime deve ser lido em conjunto com as alterações introduzidas, entre outros diplomas, pelo Decreto-Lei n.º 76/2024 e com os regulamentos municipais e adaptações regionais aplicáveis. <strong>Fontes:</strong> [PT-44], [PT-45].</p>
+<h3>2. Registo</h3>
+<p>O início da exploração depende de <strong>comunicação prévia com prazo</strong> apresentada através dos canais oficiais ao município competente. O guia oficial gov.pt indica, em regra, prazo de <strong>60 dias</strong> para oposição municipal, alargado a <strong>90 dias</strong> quando o pedido respeite a área de contenção. O operador não deve iniciar a exploração sem título/registo válido e sem cumprir os restantes requisitos aplicáveis. <strong>Fonte:</strong> [PT-44].</p>
+<h3>3. Seguro</h3>
+<p>O regime exige seguro de responsabilidade civil adequado e prevê obrigações de cobertura próprias. A falta de seguro válido pode constituir fundamento de cancelamento do registo. Em edifícios constituídos em propriedade horizontal existem ainda exigências específicas de cobertura de riscos nos termos legais. <strong>Fonte:</strong> [PT-45].</p>
+<h3>4. Poder municipal: áreas de contenção e áreas de crescimento sustentável</h3>
+<p>O Decreto-Lei n.º 76/2024 reforçou a intervenção municipal e permite ao município criar:</p>
+<ul class="legal-list">
+<li><strong>áreas de contenção</strong>, quando exista sobrecarga de estabelecimentos de AL que justifique restrições;</li>
+<li><strong>áreas de crescimento sustentável</strong>, destinadas a monitorizar e evitar uma pressão excessiva de AL.</li>
+</ul>
+<p>A delimitação deve ser fundamentada e reavaliada pelo menos de <strong>três em três anos</strong>. <strong>Fonte:</strong> [PT-45].</p>
+<p>Nas áreas de contenção, o regulamento municipal pode, dentro dos limites legais:</p>
+<ul class="legal-list">
+<li>limitar novos registos;</li>
+<li>estabelecer condições para novos AL;</li>
+<li>restringir novos AL em imóveis que tenham estado afetos a arrendamento habitacional permanente em período legalmente relevante;</li>
+<li>definir exceções;</li>
+<li>fixar duração/condições de novos registos;</li>
+<li>prever limitações proporcionais à transmissibilidade de novos números de registo, sem prejuízo das exceções legais.</li>
+</ul>
+<p>Enquanto prepara ou altera regulamentação, o município pode deliberar a suspensão de novos registos numa área delimitada por período máximo de <strong>um ano</strong>, nos termos do regime aplicável. <strong>Fonte:</strong> [PT-45].</p>
+<p>Nas áreas de crescimento sustentável podem ser exigidos requisitos adicionais relativos, designadamente, a conservação do imóvel, eficiência energética ou manutenção de uma proporção de habitação disponível para residência permanente. <strong>Fonte:</strong> [PT-45].</p>
+<h3>5. Condomínio</h3>
+<p>A admissibilidade de AL numa fração deve ser analisada à luz do título constitutivo da propriedade horizontal, do regulamento do condomínio que dele faça parte e das deliberações posteriores juridicamente eficazes.</p>
+<p>O Decreto-Lei n.º 76/2024 prevê que uma assembleia possa deliberar a proibição de exercício futuro de AL no edifício por maioria representativa de <strong>dois terços da permilagem</strong>, produzindo essa deliberação efeitos para pedidos de registo apresentados depois dela, sem prejuízo das demais situações previstas na lei. Perturbações reiteradas e comprovadas podem também desencadear os mecanismos legais aplicáveis. <strong>Fonte:</strong> [PT-38].</p>
+<h3>6. Lisboa</h3>
+<p><strong>Nível: MUNICIPAL.</strong></p>
+<p>Lisboa mantém regulamentação própria de Alojamento Local. A página oficial do Município identifica uma alteração ao Regulamento Municipal de Alojamento Local aprovada pela Assembleia Municipal em <strong>2 de dezembro de 2025</strong> e publicada em <strong>5 de dezembro de 2025</strong>, além de informação sobre zonas e medidas de suspensão. <strong>Fonte:</strong> [PT-46].</p>
+<p><strong>LEGAL_STATUS: REQUIRES_LOCAL_CONFIRMATION</strong> — o Z Find não deve congelar numa base estática uma lista de ruas, freguesias ou zonas de Lisboa como se fosse permanente. A admissibilidade de um novo AL deve ser resolvida pela versão municipal em vigor <strong>na data da consulta</strong> e pelo endereço exato do imóvel.</p>
+<h3>7. Porto</h3>
+<p><strong>Nível: MUNICIPAL.</strong></p>
+<p>A página oficial do Município do Porto identifica atualmente como áreas de contenção <strong>Santo Ildefonso, Sé, Miragaia, São Nicolau e Vitória</strong> e informa que os registos são reapreciados após <strong>cinco anos</strong>, sendo renováveis por iguais períodos, nos termos do regime municipal aplicável. <strong>Fonte:</strong> [PT-47].</p>
+<p><strong>LEGAL_STATUS: REQUIRES_LOCAL_CONFIRMATION</strong> — confirmar sempre a redação municipal vigente, a localização exata do imóvel e eventuais suspensões, exceções ou condições adicionais antes de afirmar que um novo AL é admissível.</p>
+<h3>8. Região Autónoma da Madeira</h3>
+<p><strong>Nível: REGIONAL + MUNICIPAL.</strong></p>
+<p>O Decreto Legislativo Regional n.º 13/2015/M adaptou o regime nacional à Região Autónoma da Madeira e atribuiu competências regionais próprias. A organização administrativa regional foi entretanto atualizada, pelo que a operação concreta deve ser confirmada junto da <strong>Direção Regional do Turismo</strong>/entidade regional competente e do município. <strong>Fontes:</strong> [PT-48], [PT-49].</p>
+<p><strong>LEGAL_STATUS: REQUIRES_LOCAL_CONFIRMATION</strong> — verificar legislação regional posterior, competências orgânicas e procedimento operacional atualizado antes de publicação de instruções específicas.</p>
+<h3>9. Região Autónoma dos Açores</h3>
+<p><strong>Nível: REGIONAL + MUNICIPAL.</strong></p>
+<p>O portal oficial do Turismo dos Açores mantém legislação regional própria para AL, incluindo a <strong>Portaria n.º 83/2016</strong> e a <strong>Portaria n.º 23/2018</strong>, respeitantes a tipologias, requisitos, capacidade, segurança, publicidade e registo no quadro regional. <strong>Fonte:</strong> [PT-50].</p>
+<p><strong>LEGAL_STATUS: REQUIRES_LOCAL_CONFIRMATION</strong> — confirmar as regras vigentes na ilha/município e eventuais diplomas posteriores antes de orientar um pedido de registo.</p>
+<h3>10. Regra de produto para o Z Find</h3>
+<p>O Z Find não deve apresentar <strong>“AL permitido: sim/não”</strong> apenas com base no país ou na cidade. A futura lógica deve tratar esta informação como juridicamente dependente de:</p>
+<p><strong>jurisdição nacional → região autónoma, quando aplicável → município → área/subzona → imóvel → condomínio → data do pedido</strong>.</p>
+<p>Isto é conteúdo regulatório contextual, não uma simples tradução de interface.</p>
         </div>
       </div>
-    </div>
-
-    <div class="legal-cta wrap">
-      <h3>Pronto para procurar?</h3>
-      <p>Explore oportunidades reais e verificadas em Portugal.</p>
-      <button class="btn btn-gold" onclick="navigate('search')">Pesquisar imóveis</button>
     </div>
   </div>
 </section>
