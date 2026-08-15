@@ -1466,8 +1466,10 @@ function render() {
     case 'partner': renderPartner(state.id); break;
     case 'simulator': renderSimulator(); break;
     case 'zone': renderZone(state.id); break;
-    case 'legal': break; // static content, already in body.html — no render needed
-    case 'al-manual': break; // same
+    case 'legal': break; // Portugal static jurisdiction content in body.html
+    case 'al-manual': break; // Portugal short-term-rental jurisdiction content
+    case 'legal-es': break; // Spain static jurisdiction content in body.html
+    case 'al-manual-es': break; // Spain tourist-rental jurisdiction content
   }
   window.scrollTo({ top:0, behavior:'instant' in window ? 'instant' : 'auto' });
 }
