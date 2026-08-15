@@ -1476,6 +1476,12 @@ function render() {
     case 'tourist-rental-de': break; // Germany tourist-rental jurisdiction content
     case 'legal-it': break; // Italy static jurisdiction content
     case 'tourist-rental-it': break; // Italy tourist-rental jurisdiction content
+    case 'legal-ie': break; // Republic of Ireland jurisdiction content
+    case 'tourist-rental-ie': break; // Ireland short-term-rental jurisdiction
+    case 'legal-england': break; // England jurisdiction content
+    case 'tourist-rental-england': break; // England short-term-rental jurisdiction
+    case 'legal-scotland': break; // Scotland jurisdiction content
+    case 'tourist-rental-scotland': break; // Scotland short-term-rental jurisdiction
   }
   window.scrollTo({ top:0, behavior:'instant' in window ? 'instant' : 'auto' });
 }
