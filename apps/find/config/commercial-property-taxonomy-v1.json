@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "propertyClass": "commercial",
+  "canonicalSubtypes": [
+    {
+      "code": "office",
+      "sortOrder": 1
+    },
+    {
+      "code": "retail",
+      "sortOrder": 2
+    },
+    {
+      "code": "industrial_logistics",
+      "sortOrder": 3
+    },
+    {
+      "code": "hospitality",
+      "sortOrder": 4
+    }
+  ],
+  "normalizationAliases": {
+    "shop": "retail",
+    "store": "retail",
+    "warehouse": "industrial_logistics",
+    "logistics": "industrial_logistics",
+    "industrial": "industrial_logistics",
+    "hotel": "hospitality",
+    "aparthotel": "hospitality",
+    "hostel": "hospitality",
+    "resort": "hospitality"
+  },
+  "orthogonalOperatingModels": [
+    "btr",
+    "pbsa",
+    "senior_living"
+  ],
+  "nonSubtypeStructuralConcepts": [
+    "commercial",
+    "development",
+    "building",
+    "mixed_use"
+  ],
+  "deferredConcepts": [
+    "healthcare",
+    "clinic",
+    "medical",
+    "coworking",
+    "restaurant",
+    "serviced_apartments"
+  ],
+  "labelsArePresentationLayer": true,
+  "propertyClassDerivedServerSide": true,
+  "listingTransactionIndependent": true,
+  "listingDistributionIndependent": true,
+  "developmentRemainsFirstClassEntity": true
+}
