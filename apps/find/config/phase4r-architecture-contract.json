@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "status": "locked",
+  "phase": "4R",
+  "name": "Z Find Foundation Realignment",
+  "publicLocales": [
+    "fr",
+    "en",
+    "pt",
+    "es",
+    "de",
+    "it"
+  ],
+  "persistedLocaleByPublicLocale": {
+    "fr": "fr",
+    "en": "en",
+    "pt": "pt-PT",
+    "es": "es",
+    "de": "de",
+    "it": "it"
+  },
+  "defaultPublicLocale": "fr",
+  "xDefaultLocale": "fr",
+  "propertyClasses": [
+    "residential",
+    "commercial",
+    "land"
+  ],
+  "propertySubtypePolicy": "class-scoped-extensible",
+  "commercialIsPropertyClass": true,
+  "commercialIsPropertySubtype": false,
+  "developmentIsFirstClassEntity": true,
+  "developmentIsPropertySubtype": false,
+  "unitIsProperty": true,
+  "propertyListingRepresentationAreDistinct": true,
+  "transactionTypes": [
+    "sale",
+    "rent"
+  ],
+  "rentalPeriods": [
+    "monthly",
+    "seasonal",
+    "yearly"
+  ],
+  "saleRequiresNullRentalPeriod": true,
+  "rentRequiresRentalPeriod": true,
+  "offMarketIsProductCapability": false,
+  "targetListingChannelDimension": false,
+  "canonicalPublicEntity": "property",
+  "canonicalOwnedByListing": false,
+  "leadTarget": "listing_id",
+  "publicIntents": [
+    "buy",
+    "rent",
+    "invest",
+    "developments"
+  ],
+  "publicationRequiresCanonicalPublicPage": true,
+  "sixLanguagePhase4SurfaceRequired": true,
+  "historicalMigrationsImmutable": true,
+  "databaseChangeStrategy": "forward-only-expand-migrate-contract"
+}
