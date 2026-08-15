@@ -1453,7 +1453,12 @@ function initMobilePrimaryNavigation() {
 /* ---------------- Main render dispatch ---------------- */
 function render() {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.getElementById('view-' + (['home','search','property','development','land','partner','simulator','zone','legal','al-manual'].includes(state.view) ? state.view : 'home')).classList.add('active');
+  const requestedView = document.getElementById('view-' + state.view);
+  const activeView =
+    requestedView && requestedView.classList.contains('view')
+      ? requestedView
+      : document.getElementById('view-home');
+  activeView.classList.add('active');
 
   applyI18n();
 
