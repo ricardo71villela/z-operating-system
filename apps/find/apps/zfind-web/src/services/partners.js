@@ -81,7 +81,7 @@ async function listPublishedProperties(partnerId) {
         representations!inner (
           partner_id, target_type, status,
           listings!inner (
-            id, channel, transaction_type, rental_period, price_current, currency_iso, price_is_from, status,
+            id, transaction_type, rental_period, price_current, currency_iso, price_is_from, status,
             listing_content ( locale, title )
           )
         )
@@ -121,7 +121,7 @@ async function listPublishedDevelopments(partnerId) {
         representations!inner (
           partner_id, target_type, status,
           listings!inner (
-            id, channel, transaction_type, rental_period, price_current, currency_iso, price_is_from, status,
+            id, transaction_type, rental_period, price_current, currency_iso, price_is_from, status,
             listing_content ( locale, title )
           )
         )

@@ -229,10 +229,10 @@ check(
 );
 
 check(
-  search.includes(
+  !search.includes(
     "representations.listings.channel"
   ),
-  'Existing standard/offmarket channel remains an independent filter'
+  'Current public Rental search is independent from historical Listing channel'
 );
 
 check(

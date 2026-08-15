@@ -345,15 +345,11 @@ function setSearchRentalPeriod(rentalPeriod) {
 }
 
 function pillFilterToQuery(filterKey) {
-  // subtype (Registry: what it is) and channel (Marketplace: how it's
-  // distributed) are two independent axes now — never conflated.
-  if (filterKey === 'all') return { subtype:'', channel:'' };
-  if (filterKey === 'offmarket') return { subtype:'', channel:'offmarket' };
-  return { subtype:filterKey, channel:'' }; // apartment / villa / development / land
+  if (filterKey === 'all') return { subtype:'' };
+  return { subtype:filterKey }; // apartment / villa / development / land
 }
 
 function currentPillForQuery(q) {
-  if (q.channel === 'offmarket') return 'offmarket';
   if (q.subtype === 'apartment') return 'apartment';
   if (q.subtype === 'villa') return 'villa';
   if (q.subtype === 'development') return 'development';
@@ -415,7 +411,6 @@ async function renderSearch() {
   const result = await loadSearchResults(state.lang, {
     q: q.q || '',
     subtype: (q.subtype || '').split(',').filter(Boolean),
-    channel: q.channel || '',
     transactionType,
     rentalPeriod,
     budgetMin: range.budgetMin,
@@ -463,9 +458,8 @@ function submitHomeSearch() {
   if (typeVal) {
     query = pillFilterToQuery(typeVal);
   } else {
-    const catMap = { residential:'apartment,villa', developments:'development', land:'land', offmarket:'' };
-    if (tabCat === 'offmarket') { query = { subtype:'', channel:'offmarket' }; }
-    else { query = { subtype: catMap[tabCat] || '', channel:'' }; }
+    const catMap = { residential:'apartment,villa', developments:'development', land:'land' };
+    query = { subtype: catMap[tabCat] || '' };
   }
   query.transactionType = transactionType;
 

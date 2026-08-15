@@ -74,7 +74,7 @@ async function getPropertyById(propertyId, locale) {
           id, target_type, status,
           partners ( id, name, enquiry_policy ),
           listings!inner (
-            id, channel, transaction_type, rental_period, price_current, currency_iso, price_is_from, status,
+            id, transaction_type, rental_period, price_current, currency_iso, price_is_from, status,
             listing_content ( locale, title, description, translation_status ),
             ${MEDIA_EMBED}
           )
@@ -89,7 +89,7 @@ async function getPropertyById(propertyId, locale) {
 }
 
 /** Lists published properties in a zone — the minimal read the public
-    Home page needs for Week 1. Filtering by subtype/channel/budget is
+    Home page needs for Week 1. Filtering by subtype/budget is
     Week 2 scope (search.js), not duplicated here. subtype now includes
     'land' — this function is subtype-agnostic, so no change to its
     own logic was needed beyond the schema supporting it. */

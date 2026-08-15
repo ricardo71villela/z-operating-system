@@ -878,11 +878,6 @@ function renderListingCommercialEditor(listing) {
       ? listing.rental_period
       : 'monthly';
 
-  const channel =
-    listing.channel === 'offmarket'
-      ? 'offmarket'
-      : 'standard';
-
   const currency =
     String(listing.currency_iso || 'EUR')
       .replace(/[^A-Za-z]/g, '')
@@ -979,18 +974,6 @@ function renderListingCommercialEditor(listing) {
           >
         </label>
 
-        <label>
-          <span>Distribution</span>
-          <select id="listing-channel">
-            <option value="standard" ${
-              channel === 'standard' ? 'selected' : ''
-            }>Standard</option>
-            <option value="offmarket" ${
-              channel === 'offmarket' ? 'selected' : ''
-            }>Off-market</option>
-          </select>
-        </label>
-
         <label style="display:flex;align-items:center;gap:8px;">
           <input
             id="listing-price-is-from"
@@ -1066,11 +1049,6 @@ async function saveListingCommercial(listingId) {
       'listing-currency-iso'
     ).value;
 
-  const channel =
-    document.getElementById(
-      'listing-channel'
-    ).value;
-
   const priceIsFrom =
     document.getElementById(
       'listing-price-is-from'
@@ -1085,7 +1063,6 @@ async function saveListingCommercial(listingId) {
           rentalPeriod,
           priceCurrent,
           currencyIso,
-          channel,
           priceIsFrom
         }
       );

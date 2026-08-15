@@ -156,10 +156,10 @@ check(
 );
 
 check(
-  commercialFn.includes(
+  !commercialFn.includes(
     "patch.channel = input.channel"
   ),
-  'standard/offmarket remains independently authorable'
+  'Current Listing terms authoring no longer writes historical channel'
 );
 
 check(
@@ -177,7 +177,7 @@ check(
 
 check(
   service.includes(
-    'channel, transaction_type, rental_period, price_current'
+    'transaction_type, rental_period, price_current'
   ),
   'Admin edit reads expose Rental commercial state'
 );
@@ -214,10 +214,10 @@ check(
 );
 
 check(
-  adminUi.includes(
+  !adminUi.includes(
     'listing-channel'
   ),
-  'Admin keeps distribution channel separate'
+  'Admin no longer exposes historical Listing channel authoring'
 );
 
 check(

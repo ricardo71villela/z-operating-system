@@ -101,7 +101,7 @@ async function getDevelopmentForEdit(id) {
   return safeQuery(
     () => client.from('developments').select(`
       *, zones_lite(id,name,city,country_iso),
-      representations(id, status, partner_id, listings(id, channel, transaction_type, rental_period, price_current, currency_iso, price_is_from, status, listing_content(locale,title,description)))
+      representations(id, status, partner_id, listings(id, transaction_type, rental_period, price_current, currency_iso, price_is_from, status, listing_content(locale,title,description)))
     `).eq('id', id).single(),
     'admin.getDevelopmentForEdit'
   );
@@ -170,7 +170,7 @@ async function listProperties(searchText) {
   const client = getSupabaseClient();
   const q = client.from('properties').select(`
     id, subtype, typology, area_sqm, zone_lite_id, zones_lite(name,city),
-    representations(id, status, partner_id, partners(name), listings(id, channel, transaction_type, rental_period, price_current, currency_iso, price_is_from, status, listing_content(locale,title)))
+    representations(id, status, partner_id, partners(name), listings(id, transaction_type, rental_period, price_current, currency_iso, price_is_from, status, listing_content(locale,title)))
   `).order('created_at', { ascending: false });
   const result = await safeQuery(() => q, 'admin.listProperties');
   if (!searchText || result.error) return result;
@@ -194,7 +194,7 @@ async function getPropertyForEdit(id) {
   return safeQuery(
     () => client.from('properties').select(`
       *, zones_lite(id,name,city,country_iso),
-      representations(id, status, partner_id, listings(id, channel, transaction_type, rental_period, price_current, currency_iso, price_is_from, status, listing_content(locale,title,description)))
+      representations(id, status, partner_id, listings(id, transaction_type, rental_period, price_current, currency_iso, price_is_from, status, listing_content(locale,title,description)))
     `).eq('id', id).single(),
     'admin.getPropertyForEdit'
   );
@@ -385,21 +385,6 @@ async function updateListingCommercial(listingId, fields) {
   const input = fields || {};
   const patch = {};
 
-  if (input.channel !== undefined) {
-    if (!['standard', 'offmarket'].includes(input.channel)) {
-      return {
-        data: null,
-        error: {
-          type: 'validation_error',
-          context: 'admin.updateListingCommercial',
-          message: 'channel must be standard or offmarket.'
-        }
-      };
-    }
-
-    patch.channel = input.channel;
-  }
-
   if (input.transactionType !== undefined) {
     if (!['sale', 'rent'].includes(input.transactionType)) {
       return {
@@ -523,7 +508,7 @@ async function updateListingCommercial(listingId, fields) {
       .update(patch)
       .eq('id', listingId)
       .select(
-        'id, channel, transaction_type, rental_period, ' +
+        'id, transaction_type, rental_period, ' +
         'price_current, currency_iso, price_is_from, tier, status'
       )
       .single(),

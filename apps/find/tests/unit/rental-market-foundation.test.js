@@ -165,10 +165,10 @@ check(
 );
 
 check(
-  search.includes(
+  !search.includes(
     'representations.listings.channel'
   ),
-  'Existing channel filter remains independent'
+  'Current public search no longer depends on historical Listing channel'
 );
 
 check(

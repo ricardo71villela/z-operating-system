@@ -69,7 +69,7 @@ async function getDevelopmentById(developmentId) {
           id, target_type, status,
           partners ( id, name, enquiry_policy ),
           listings!inner (
-            id, channel, transaction_type, rental_period, price_current, currency_iso, price_is_from, status,
+            id, transaction_type, rental_period, price_current, currency_iso, price_is_from, status,
             listing_content ( locale, title, description, translation_status ),
             listing_media ( position, is_cover, ${MEDIA_EMBED} )
           )
@@ -121,7 +121,7 @@ async function listPublished(zoneLiteId, transactionType, rentalPeriod) {
       id, name, zone_lite_id,
       zones_lite ( name, city, country_iso ),
       representations!inner ( target_type, status, listings!inner (
-        id, channel, transaction_type, rental_period, price_current, currency_iso, price_is_from, status,
+        id, transaction_type, rental_period, price_current, currency_iso, price_is_from, status,
         listing_content ( locale, title )
       ) )
     `)

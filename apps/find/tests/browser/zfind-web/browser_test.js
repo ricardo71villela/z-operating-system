@@ -30,7 +30,7 @@ const MOCK_PROPERTIES = [
   mockProperty('asset_apt_foz', 'apartment', 'standard', 'Apartment in Foz', 'Foz do Douro'),
   mockProperty('asset_apt_paris_marais', 'apartment', 'standard', 'Apartment in Le Marais', 'Le Marais'),
   mockProperty('asset_townhouse_cedofeita', 'villa', 'standard', 'Villa in Cedofeita', 'Cedofeita'),
-  mockProperty('asset_villa_offmarket_foz', 'villa', 'offmarket', 'Off-market Villa in Foz', 'Foz do Douro'),
+  mockProperty('asset_villa_foz', 'villa', 'standard', 'Villa in Foz', 'Foz do Douro'),
   mockProperty('asset_land_boavista', 'land', 'standard', 'Land in Boavista', 'Boavista'),
 ];
 const MOCK_DEVELOPMENTS = [{
@@ -163,7 +163,7 @@ async function mockSupabaseRoutes(page) {
   await page.waitForTimeout(300);
   console.log('URL after search:', page.url());
   const cardCount1 = await page.locator('#search-grid .card').count();
-  console.log('Result cards (villa filter):', cardCount1, '(expect 2: Cedofeita + off-market villa — subtype and channel are independent axes now)');
+  console.log('Result cards (villa filter):', cardCount1, '(expect 2: Cedofeita + Foz villa)');
   await shot('02-search-villa');
 
   console.log('--- 3. SEARCH: clear filters ---');

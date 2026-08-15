@@ -40,19 +40,19 @@ en: {
   hero: {
     eyebrow:'A different kind of real-estate portal',
     titleLine1:'Not an opportunistic portal.', titleLineEm:'A portal of real opportunities.',
-    lead:'Search properties, developments, land and off-market opportunities — organised around what actually exists, not how many times it was listed.',
+    lead:'Search properties, developments and land — organised around what actually exists, not how many times it was listed.',
     p1title:'More opportunities.\nLess duplication.', p1body:'One real-world asset, one canonical record — however many partners represent it.',
     p2title:'More information.\nLess noise.', p2body:'Market context, planning facts and estimates, clearly labelled — not five inconsistent copies of the same listing.',
     p3title:'More connection.\nLess friction.', p3body:'Direct contact when you want speed. Qualified introduction when you want relevance.',
   },
   search: {
-    tabResidential:'Residential', tabDevelopments:'Developments', tabLand:'Land & Development', tabOffmarket:'Off-Market',
+    tabResidential:'Residential', tabDevelopments:'Developments', tabLand:'Land & Development',
     locationPh:'Location — city, zone or address', anyType:'Any type', anyBudget:'Any budget',
     buy:'Buy', rent:'Rent', rentalPeriod:'Rental period',
     monthly:'Monthly', seasonal:'Seasonal', yearly:'Yearly',
     priceFrom:'From', perMonth:'/month', perSeason:'/season', perYear:'/year',
     forRent:'For rent',
-    typeAny:'Any type', typeApartment:'Apartment', typeVilla:'Villa', typeDevelopment:'Development', typeLand:'Land', typeOffmarket:'Off-market',
+    typeAny:'Any type', typeApartment:'Apartment', typeVilla:'Villa', typeDevelopment:'Development', typeLand:'Land',
     budgetUnder400:'Up to €400,000', budget400to700:'€400,000 – €700,000', budgetOver700:'€700,000+',
     rentBudgetUnder1500:'Up to €1,500 / month',
     rentBudget1500to2500:'€1,500 – €2,500 / month',
@@ -61,7 +61,7 @@ en: {
     applyFilters:'Search', clearFilters:'Clear filters',
     noResultsTitle:'No opportunities match these filters', noResultsBody:'Try a broader location, a different category, or a wider budget range.',
     resultsTitle:'{{count}} opportunities{{market}}', resultsSub:'Deduplicated — every card below is one distinct, canonical opportunity.',
-    filterAll:'All', filterApartments:'Apartments', filterVillas:'Villas', filterDevelopments:'Developments', filterLand:'Land', filterOffmarket:'Off-market',
+    filterAll:'All', filterApartments:'Apartments', filterVillas:'Villas', filterDevelopments:'Developments', filterLand:'Land',
   },
   home: {
     landTitle:'Land & development intelligence', landSub:'Where traditional portals stop, Z Find turns fragments into structured opportunity intelligence.',
@@ -112,7 +112,7 @@ en: {
   dataStatus: { fact:'Fact', observation:'Observation', estimate:'Estimate', modelOutput:'Model output', professionalInterpretation:'Professional interpretation', legalDetermination:'Legal determination', data:'Data' },
   partner: {
     activeOpportunities:'Active opportunities', developments:'Developments', landOpportunities:'Land opportunities', avgResponse:'Avg. response time',
-    filterAll:'All ({{n}})', filterResidential:'Residential ({{n}})', filterDevelopments:'Developments ({{n}})', filterLand:'Land ({{n}})', filterOffmarket:'Off-market ({{n}})',
+    filterAll:'All ({{n}})', filterResidential:'Residential ({{n}})', filterDevelopments:'Developments ({{n}})', filterLand:'Land ({{n}})',
     unavailableTitle:'Partner unavailable', unavailableBody:'This partner profile is not available or has no public opportunities.', noOpportunities:'No active opportunities available.',
   },
   enquiry: {
@@ -164,19 +164,19 @@ pt: {
   hero: {
     eyebrow:'Um portal imobiliário diferente',
     titleLine1:'Não é um portal oportunista.', titleLineEm:'É um portal de oportunidades reais.',
-    lead:'Pesquise imóveis, empreendimentos, terrenos e oportunidades off-market — organizados pelo que realmente existe, não por quantas vezes foi anunciado.',
+    lead:'Pesquise imóveis, empreendimentos e terrenos — organizados pelo que realmente existe, não por quantas vezes foi anunciado.',
     p1title:'Mais oportunidades.\nMenos duplicação.', p1body:'Um ativo real, um registo canónico único — independentemente de quantos parceiros o representem.',
     p2title:'Mais informação.\nMenos ruído.', p2body:'Contexto de mercado, factos de planeamento e estimativas, claramente identificados — não cinco cópias inconsistentes do mesmo anúncio.',
     p3title:'Mais conexão.\nMenos fricção.', p3body:'Contacto direto quando quer rapidez. Apresentação qualificada quando quer relevância.',
   },
   search: {
-    tabResidential:'Residencial', tabDevelopments:'Empreendimentos', tabLand:'Terrenos e Desenvolvimento', tabOffmarket:'Off-Market',
+    tabResidential:'Residencial', tabDevelopments:'Empreendimentos', tabLand:'Terrenos e Desenvolvimento',
     locationPh:'Localização — cidade, zona ou morada', anyType:'Qualquer tipo', anyBudget:'Qualquer orçamento',
     buy:'Comprar', rent:'Arrendar', rentalPeriod:'Período do arrendamento',
     monthly:'Mensal', seasonal:'Sazonal', yearly:'Anual',
     priceFrom:'A partir de', perMonth:'/mês', perSeason:'/época', perYear:'/ano',
     forRent:'Para arrendar',
-    typeAny:'Qualquer tipo', typeApartment:'Apartamento', typeVilla:'Moradia', typeDevelopment:'Empreendimento', typeLand:'Terreno', typeOffmarket:'Off-market',
+    typeAny:'Qualquer tipo', typeApartment:'Apartamento', typeVilla:'Moradia', typeDevelopment:'Empreendimento', typeLand:'Terreno',
     budgetUnder400:'Até €400.000', budget400to700:'€400.000 – €700.000', budgetOver700:'€700.000+',
     rentBudgetUnder1500:'Até €1.500 / mês',
     rentBudget1500to2500:'€1.500 – €2.500 / mês',
@@ -185,7 +185,7 @@ pt: {
     applyFilters:'Pesquisar', clearFilters:'Limpar filtros',
     noResultsTitle:'Nenhuma oportunidade corresponde a estes filtros', noResultsBody:'Experimente uma localização mais ampla, outra categoria, ou um intervalo de orçamento maior.',
     resultsTitle:'{{count}} oportunidades{{market}}', resultsSub:'Sem duplicações — cada cartão abaixo é uma oportunidade canónica distinta.',
-    filterAll:'Todas', filterApartments:'Apartamentos', filterVillas:'Moradias', filterDevelopments:'Empreendimentos', filterLand:'Terrenos', filterOffmarket:'Off-market',
+    filterAll:'Todas', filterApartments:'Apartamentos', filterVillas:'Moradias', filterDevelopments:'Empreendimentos', filterLand:'Terrenos',
   },
   home: {
     landTitle:'Inteligência de terrenos e desenvolvimento', landSub:'Onde os portais tradicionais param, o Z Find transforma fragmentos em inteligência de oportunidade estruturada.',
@@ -236,7 +236,7 @@ pt: {
   dataStatus: { fact:'Facto', observation:'Observação', estimate:'Estimativa', modelOutput:'Resultado de modelo', professionalInterpretation:'Interpretação profissional', legalDetermination:'Determinação legal', data:'Dados' },
   partner: {
     activeOpportunities:'Oportunidades ativas', developments:'Empreendimentos', landOpportunities:'Oportunidades de terreno', avgResponse:'Tempo médio de resposta',
-    filterAll:'Todas ({{n}})', filterResidential:'Residencial ({{n}})', filterDevelopments:'Empreendimentos ({{n}})', filterLand:'Terrenos ({{n}})', filterOffmarket:'Off-market ({{n}})',
+    filterAll:'Todas ({{n}})', filterResidential:'Residencial ({{n}})', filterDevelopments:'Empreendimentos ({{n}})', filterLand:'Terrenos ({{n}})',
     unavailableTitle:'Parceiro indisponível', unavailableBody:'Este perfil de parceiro não está disponível ou não tem oportunidades públicas.', noOpportunities:'Não existem oportunidades ativas disponíveis.',
   },
   enquiry: {
@@ -288,19 +288,19 @@ fr: {
   hero: {
     eyebrow:'Un portail immobilier différent',
     titleLine1:"Pas un portail opportuniste.", titleLineEm:'Un portail d\'opportunités réelles.',
-    lead:'Recherchez des biens, des programmes neufs, des terrains et des opportunités hors marché — organisés selon ce qui existe réellement, pas selon le nombre de fois où ils ont été publiés.',
+    lead:'Recherchez des biens, des programmes neufs et des terrains — organisés selon ce qui existe réellement, pas selon le nombre de fois où ils ont été publiés.',
     p1title:"Plus d'opportunités.\nMoins de duplication.", p1body:"Un actif réel, une fiche canonique unique — quel que soit le nombre de partenaires qui le représentent.",
     p2title:"Plus d'information.\nMoins de bruit.", p2body:"Contexte de marché, faits d'urbanisme et estimations, clairement identifiés — pas cinq copies incohérentes de la même annonce.",
     p3title:'Plus de connexion.\nMoins de friction.', p3body:'Contact direct quand vous voulez la rapidité. Introduction qualifiée quand vous voulez la pertinence.',
   },
   search: {
-    tabResidential:'Résidentiel', tabDevelopments:'Programmes neufs', tabLand:'Terrains et Développement', tabOffmarket:'Hors marché',
+    tabResidential:'Résidentiel', tabDevelopments:'Programmes neufs', tabLand:'Terrains et Développement',
     locationPh:'Localisation — ville, quartier ou adresse', anyType:'Tout type', anyBudget:'Tout budget',
     buy:'Acheter', rent:'Louer', rentalPeriod:'Période de location',
     monthly:'Mensuel', seasonal:'Saisonnier', yearly:'Annuel',
     priceFrom:'À partir de', perMonth:'/mois', perSeason:'/saison', perYear:'/an',
     forRent:'À louer',
-    typeAny:'Tout type', typeApartment:'Appartement', typeVilla:'Villa', typeDevelopment:'Programme neuf', typeLand:'Terrain', typeOffmarket:'Hors marché',
+    typeAny:'Tout type', typeApartment:'Appartement', typeVilla:'Villa', typeDevelopment:'Programme neuf', typeLand:'Terrain',
     budgetUnder400:"Jusqu'à 400 000 €", budget400to700:'400 000 € – 700 000 €', budgetOver700:'700 000 €+',
     rentBudgetUnder1500:"Jusqu'à 1 500 € / mois",
     rentBudget1500to2500:'1 500 € – 2 500 € / mois',
@@ -309,7 +309,7 @@ fr: {
     applyFilters:'Rechercher', clearFilters:'Effacer les filtres',
     noResultsTitle:'Aucune opportunité ne correspond à ces filtres', noResultsBody:'Essayez une localisation plus large, une autre catégorie, ou une fourchette de budget plus étendue.',
     resultsTitle:'{{count}} opportunités{{market}}', resultsSub:'Dédupliqué — chaque fiche ci-dessous est une opportunité canonique distincte.',
-    filterAll:'Toutes', filterApartments:'Appartements', filterVillas:'Villas', filterDevelopments:'Programmes neufs', filterLand:'Terrains', filterOffmarket:'Hors marché',
+    filterAll:'Toutes', filterApartments:'Appartements', filterVillas:'Villas', filterDevelopments:'Programmes neufs', filterLand:'Terrains',
   },
   home: {
     landTitle:'Intelligence terrains et développement', landSub:"Là où les portails traditionnels s'arrêtent, Z Find transforme des fragments en intelligence d'opportunité structurée.",
@@ -360,7 +360,7 @@ fr: {
   dataStatus: { fact:'Fait', observation:'Observation', estimate:'Estimation', modelOutput:'Résultat de modèle', professionalInterpretation:'Interprétation professionnelle', legalDetermination:'Détermination légale', data:'Données' },
   partner: {
     activeOpportunities:'Opportunités actives', developments:'Programmes neufs', landOpportunities:'Opportunités foncières', avgResponse:'Temps de réponse moyen',
-    filterAll:'Toutes ({{n}})', filterResidential:'Résidentiel ({{n}})', filterDevelopments:'Programmes neufs ({{n}})', filterLand:'Terrains ({{n}})', filterOffmarket:'Hors marché ({{n}})',
+    filterAll:'Toutes ({{n}})', filterResidential:'Résidentiel ({{n}})', filterDevelopments:'Programmes neufs ({{n}})', filterLand:'Terrains ({{n}})',
     unavailableTitle:'Partenaire indisponible', unavailableBody:"Ce profil partenaire n'est pas disponible ou ne présente aucune opportunité publique.", noOpportunities:'Aucune opportunité active disponible.',
   },
   enquiry: {

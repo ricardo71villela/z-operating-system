@@ -166,7 +166,6 @@ function mapSupabasePropertyRowToCard(row, lang) {
 
   let badgeLabel = 'Verified';
   if (kind === 'Land') badgeLabel = 'Land';
-  else if (listing.channel === 'offmarket') badgeLabel = 'Off-market';
   else if ((listing.transaction_type || 'sale') === 'rent') badgeLabel = t(lang, 'search.forRent');
 
   return {
@@ -174,7 +173,6 @@ function mapSupabasePropertyRowToCard(row, lang) {
     assetId: row.id,
     kind,
     subtype: row.subtype || null,
-    channel: listing.channel || 'standard',
     transactionType: listing.transaction_type || 'sale',
     rentalPeriod: listing.rental_period || null,
     title: content.title || '',
@@ -209,7 +207,6 @@ function mapSupabaseDevelopmentRowToCard(row, lang) {
     assetId: row.id,
     kind: 'Development',
     subtype: null,
-    channel: listing.channel || 'standard',
     transactionType: listing.transaction_type || 'sale',
     rentalPeriod: listing.rental_period || null,
     title: content.title || row.name || '',
@@ -255,7 +252,6 @@ async function loadSearchResults(lang, filters) {
   if (wantsProperties) {
     calls.push(services.search.search({
       subtype: propertySubtypes.length === 1 ? propertySubtypes[0] : undefined, // service accepts one value; multi-subtype narrowing happens client-side below like the old searchCards() always did
-      channel: f.channel || undefined,
       transactionType: f.transactionType || undefined,
       rentalPeriod: f.rentalPeriod || undefined,
       budgetMin: f.budgetMin,
@@ -263,14 +259,14 @@ async function loadSearchResults(lang, filters) {
       zoneLiteId: f.zoneLiteId || undefined,
     }));
   }
-  if (wantsDevelopments && f.channel !== 'offmarket') { // Developments have no off-market channel concept in this schema
+  if (wantsDevelopments) {
     calls.push(services.developments.listPublished(f.zoneLiteId || undefined, f.transactionType || undefined, f.rentalPeriod || undefined));
   }
 
   const results = await Promise.all(calls);
   let idx = 0;
   const propertiesResult = wantsProperties ? results[idx++] : { data: [], error: null };
-  const developmentsResult = (wantsDevelopments && f.channel !== 'offmarket') ? results[idx++] : { data: [], error: null };
+  const developmentsResult = wantsDevelopments ? results[idx++] : { data: [], error: null };
 
   if (propertiesResult.error && propertiesResult.error.type !== 'empty_result') {
     return { cards: [], error: propertiesResult.error };
