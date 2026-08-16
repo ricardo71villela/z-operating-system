@@ -102,6 +102,20 @@ const staticRoutes = [
   'tourist-rental-brazil',
   'legal-argentina',
   'tourist-rental-argentina',
+  'legal-chile',
+  'tourist-rental-chile',
+  'legal-dominican-republic',
+  'tourist-rental-dominican-republic',
+  'legal-poland',
+  'tourist-rental-poland',
+  'legal-greece',
+  'tourist-rental-greece',
+  'legal-croatia',
+  'tourist-rental-croatia',
+  'legal-cyprus',
+  'tourist-rental-cyprus',
+  'legal-dubai',
+  'tourist-rental-dubai',
 ];
 
 for (const route of staticRoutes) {
