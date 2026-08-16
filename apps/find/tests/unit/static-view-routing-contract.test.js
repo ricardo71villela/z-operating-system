@@ -92,6 +92,16 @@ const staticRoutes = [
   'tourist-rental-netherlands',
   'legal-belgium',
   'tourist-rental-belgium',
+  'legal-united-states',
+  'tourist-rental-united-states',
+  'legal-canada',
+  'tourist-rental-canada',
+  'legal-mexico',
+  'tourist-rental-mexico',
+  'legal-brazil',
+  'tourist-rental-brazil',
+  'legal-argentina',
+  'tourist-rental-argentina',
 ];
 
 for (const route of staticRoutes) {

@@ -1495,6 +1495,16 @@ function render() {
     case 'tourist-rental-netherlands': break; // Netherlands short-term-rental jurisdiction
     case 'legal-belgium': break; // Belgium jurisdiction content
     case 'tourist-rental-belgium': break; // Belgium short-term-rental jurisdiction
+    case 'legal-united-states': break; // Americas independent jurisdiction
+    case 'tourist-rental-united-states': break; // Americas independent jurisdiction
+    case 'legal-canada': break; // Americas independent jurisdiction
+    case 'tourist-rental-canada': break; // Americas independent jurisdiction
+    case 'legal-mexico': break; // Americas independent jurisdiction
+    case 'tourist-rental-mexico': break; // Americas independent jurisdiction
+    case 'legal-brazil': break; // Americas independent jurisdiction
+    case 'tourist-rental-brazil': break; // Americas independent jurisdiction
+    case 'legal-argentina': break; // Americas independent jurisdiction
+    case 'tourist-rental-argentina': break; // Americas independent jurisdiction
   }
   window.scrollTo({ top:0, behavior:'instant' in window ? 'instant' : 'auto' });
 }
