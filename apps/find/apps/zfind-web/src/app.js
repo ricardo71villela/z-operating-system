@@ -1505,6 +1505,20 @@ function render() {
     case 'tourist-rental-brazil': break; // Americas independent jurisdiction
     case 'legal-argentina': break; // Americas independent jurisdiction
     case 'tourist-rental-argentina': break; // Americas independent jurisdiction
+    case 'legal-chile': break; // Global legal wave independent jurisdiction
+    case 'tourist-rental-chile': break; // Global legal wave independent jurisdiction
+    case 'legal-dominican-republic': break; // Global legal wave independent jurisdiction
+    case 'tourist-rental-dominican-republic': break; // Global legal wave independent jurisdiction
+    case 'legal-poland': break; // Global legal wave independent jurisdiction
+    case 'tourist-rental-poland': break; // Global legal wave independent jurisdiction
+    case 'legal-greece': break; // Global legal wave independent jurisdiction
+    case 'tourist-rental-greece': break; // Global legal wave independent jurisdiction
+    case 'legal-croatia': break; // Global legal wave independent jurisdiction
+    case 'tourist-rental-croatia': break; // Global legal wave independent jurisdiction
+    case 'legal-cyprus': break; // Global legal wave independent jurisdiction
+    case 'tourist-rental-cyprus': break; // Global legal wave independent jurisdiction
+    case 'legal-dubai': break; // Global legal wave independent jurisdiction
+    case 'tourist-rental-dubai': break; // Global legal wave independent jurisdiction
   }
   window.scrollTo({ top:0, behavior:'instant' in window ? 'instant' : 'auto' });
 }
