@@ -1,0 +1,35 @@
+name: Z Studio AI Authority
+
+on:
+  push:
+    paths:
+      - 'apps/studio/backend/**'
+      - '.github/workflows/zstudio-ai-authority.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/studio/backend/**'
+      - '.github/workflows/zstudio-ai-authority.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  backend-ai-contract:
+    name: Backend AI Contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Syntax contract
+        run: npm run check --prefix apps/studio/backend
+
+      - name: Backend AI tests
+        run: npm test --prefix apps/studio/backend
