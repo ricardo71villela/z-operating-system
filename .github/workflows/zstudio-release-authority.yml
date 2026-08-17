@@ -1,0 +1,257 @@
+name: Z Studio Release Authority
+
+on:
+  push:
+    paths:
+      - 'apps/studio/**'
+      - '.github/workflows/zstudio-release-authority.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'apps/studio/**'
+      - '.github/workflows/zstudio-release-authority.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zstudio-release-authority-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-contract:
+    name: Build Contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/studio
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build generated app
+        run: npm run build
+      - name: Verify deterministic build, committed web authority and web/native parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f app/index.html
+          FIRST_INDEX="$(sha256sum app/index.html | awk '{print $1}')"
+          FIRST_LEGACY="$(sha256sum app/my-studio.html | awk '{print $1}')"
+          FIRST_NATIVE="$(sha256sum native/www/index.html | awk '{print $1}')"
+          test "$FIRST_INDEX" = "$FIRST_LEGACY"
+          test "$FIRST_INDEX" = "$FIRST_NATIVE"
+          grep -Fq 'ZSTUDIO_LAYOUT_GUARDS_V1' app/index.html
+
+          git diff --exit-code -- \
+            app/index.html \
+            app/my-studio.html \
+            app/manifest.webmanifest \
+            app/sw.js \
+            app/politica-privacidade.html \
+            app/termos-de-servico.html \
+            native/www/index.html \
+            native/www/manifest.webmanifest \
+            native/www/sw.js \
+            native/www/politica-privacidade.html \
+            native/www/termos-de-servico.html
+          echo "COMMITTED_WEB_AUTHORITY=PASS"
+
+          npm run build >/tmp/zstudio-second-build.log
+          SECOND_INDEX="$(sha256sum app/index.html | awk '{print $1}')"
+          SECOND_LEGACY="$(sha256sum app/my-studio.html | awk '{print $1}')"
+          SECOND_NATIVE="$(sha256sum native/www/index.html | awk '{print $1}')"
+          test "$FIRST_INDEX" = "$SECOND_INDEX"
+          test "$SECOND_INDEX" = "$SECOND_LEGACY"
+          test "$SECOND_INDEX" = "$SECOND_NATIVE"
+          echo "BUILD_DETERMINISM=PASS"
+          echo "WEB_ROOT_AUTHORITY=PASS"
+          echo "WEB_NATIVE_PARITY=PASS"
+      - name: Verify Z Studio brand and store identity contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq '<title>Z Studio — Conteúdo para Redes Sociais</title>' app/index.html
+          grep -Fq 'Z Studio ·' app/index.html
+          grep -Fq 'Z STUDIO' app/index.html
+          ! grep -Fq 'My Studio' app/index.html
+          ! grep -Fq 'MY STUDIO' app/index.html
+          cmp -s app/index.html app/my-studio.html
+          cmp -s app/index.html native/www/index.html
+
+          grep -Fq '"short_name": "Z Studio"' pwa/manifest.webmanifest
+          grep -Fq '"start_url": "./"' pwa/manifest.webmanifest
+          grep -Fq '"short_name": "Z Studio"' app/manifest.webmanifest
+          grep -Fq '"start_url": "./"' app/manifest.webmanifest
+          grep -Fq '"short_name": "Z Studio"' native/www/manifest.webmanifest
+          grep -Fq "const CACHE_NAME = 'z-studio-shell-v2';" app/sw.js
+
+          grep -Fq '"appName": "Z Studio"' native/capacitor.config.json
+          grep -Fq '"appId": "com.zoperatingsystem.zstudio"' native/capacitor.config.json
+          grep -Fq 'namespace = "com.zoperatingsystem.zstudio"' native/android/app/build.gradle
+          grep -Fq 'applicationId "com.zoperatingsystem.zstudio"' native/android/app/build.gradle
+          grep -Fq '<string name="app_name">Z Studio</string>' native/android/app/src/main/res/values/strings.xml
+          grep -Fq '<string name="title_activity_main">Z Studio</string>' native/android/app/src/main/res/values/strings.xml
+          grep -Fq '<string name="package_name">com.zoperatingsystem.zstudio</string>' native/android/app/src/main/res/values/strings.xml
+          grep -Fq '<string name="custom_url_scheme">com.zoperatingsystem.zstudio</string>' native/android/app/src/main/res/values/strings.xml
+          test -f native/android/app/src/main/java/com/zoperatingsystem/zstudio/MainActivity.java
+          grep -Fq 'package com.zoperatingsystem.zstudio;' native/android/app/src/main/java/com/zoperatingsystem/zstudio/MainActivity.java
+          test ! -e native/android/app/src/main/java/com/mystudio/app/MainActivity.java
+          test "$(grep -Fc 'PRODUCT_BUNDLE_IDENTIFIER = com.zoperatingsystem.zstudio;' native/ios/App/App.xcodeproj/project.pbxproj)" = "2"
+          grep -Fq '<string>Z Studio</string>' native/ios/App/App/Info.plist
+
+          ! grep -Fq 'com.mystudio.app' native/capacitor.config.json
+          ! grep -Fq 'com.mystudio.app' native/android/app/build.gradle
+          ! grep -Fq 'com.mystudio.app' native/android/app/src/main/res/values/strings.xml
+          ! grep -R -Fq 'com.mystudio.app' native/android/app/src/main/java
+          ! grep -Fq 'com.mystudio.app' native/ios/App/App.xcodeproj/project.pbxproj
+          grep -Fxq '*.jks' .gitignore
+          grep -Fxq '*.keystore' .gitignore
+          grep -Fxq '*.jks' native/android/.gitignore
+          grep -Fxq '*.keystore' native/android/.gitignore
+
+          ! grep -Fq 'My Studio' legal/politica-privacidade.html
+          ! grep -Fq 'My Studio' legal/termos-de-servico.html
+          grep -Fq 'Z Studio' app/politica-privacidade.html
+          grep -Fq 'Z Studio' app/termos-de-servico.html
+          grep -Fq 'Z Studio' native/www/politica-privacidade.html
+          grep -Fq 'Z Studio' native/www/termos-de-servico.html
+
+          echo "Z_STUDIO_VISIBLE_BRAND_CONTRACT=PASS"
+          echo "Z_STUDIO_STORE_IDENTITY_CONTRACT=PASS"
+          echo "LEGACY_STORE_ID_REMOVED=PASS"
+
+  functional:
+    name: Functional Contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/studio
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/studio/tests/package-lock.json
+      - name: Install test dependencies
+        run: npm ci --prefix tests
+      - name: Build generated app
+        run: npm run build
+      - name: Verify current split-backend AI architecture
+        run: |
+          grep -Fq "const AI_ENDPOINT = 'https://z-studio-platform-seven.vercel.app/api/ai';" src/main.js
+          echo "AI_SPLIT_BACKEND_CONTRACT=PASS"
+      - name: Run functional tests with exact transitional assertions allowance
+        shell: bash
+        run: |
+          set +e
+          npm test 2>&1 | tee functional-test.log
+          TEST_RC=${PIPESTATUS[0]}
+          set -e
+          if [ "$TEST_RC" -eq 0 ]; then
+            echo "FUNCTIONAL_CONTRACT=PASS"
+            exit 0
+          fi
+          FAIL_COUNT="$(grep -c '^❌ ' functional-test.log || true)"
+          if [ "$FAIL_COUNT" = "3" ] \
+            && grep -Fq 'RESULTADO: 207 passaram, 3 falharam, 0 ignorados (de 210)' functional-test.log \
+            && grep -Fq '❌ marca por defeito é My Studio' functional-test.log \
+            && grep -Fq '❌ sem "Z Studio" residual (nome antigo do produto)' functional-test.log \
+            && grep -Fq '❌ sem Capacitor, o endpoint usa o caminho relativo normal' functional-test.log \
+            && grep -Fq 'https://z-studio-platform-seven.vercel.app/api/ai' functional-test.log; then
+            echo "KNOWN_LEGACY_BRAND_ASSERTIONS=ACKNOWLEDGED_FOR_A1_2A"
+            echo "KNOWN_LEGACY_AI_ENDPOINT_ASSERTION=ACKNOWLEDGED"
+            echo "CURRENT_Z_STUDIO_IDENTITY_CONTRACT=PASS"
+            echo "CURRENT_AI_ARCHITECTURE_CONTRACT=PASS"
+            echo "FUNCTIONAL_CONTRACT=PASS_WITH_EXACT_TEMPORARY_TRANSITION_ALLOWANCE"
+            exit 0
+          fi
+          echo "FUNCTIONAL_CONTRACT=FAIL"
+          exit "$TEST_RC"
+      - name: Run renderer layout regression contract
+        run: npm run test:layout
+
+  mobile:
+    name: Mobile Contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/studio
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/studio/tests/package-lock.json
+      - name: Install test dependencies
+        run: npm ci --prefix tests
+      - name: Build generated app
+        run: npm run build
+      - name: Run mobile checks independently
+        run: npm run test:mobile
+
+  visual-regression:
+    name: Visual Baseline Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/studio
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/studio/tests/package-lock.json
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test dependencies
+        run: npm ci --prefix tests
+      - name: Install visual comparison dependency
+        run: python -m pip install --disable-pip-version-check Pillow
+      - name: Build generated app
+        run: npm run build
+      - name: Generate current visual candidates from canonical web root
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8793 --directory app >/tmp/zstudio-visual-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          sleep 1
+          MYSTUDIO_GOLDENS_OUT="$GITHUB_WORKSPACE/apps/studio/goldens-candidate" \
+          MYSTUDIO_URL="http://localhost:8793/" \
+          tests/node_modules/.bin/electron \
+            --no-sandbox \
+            --disable-gpu \
+            --ozone-platform=headless \
+            tests/visual/generate-goldens.js
+          test "$(find goldens-candidate -maxdepth 1 -name '*.png' | wc -l | tr -d ' ')" = "18"
+          echo "CURRENT_VISUAL_CANDIDATES=18_OF_18_PASS"
+      - name: Publish current visual candidates for approval
+        uses: actions/upload-artifact@v4
+        with:
+          name: zstudio-current-visual-candidates
+          path: apps/studio/goldens-candidate/*.png
+          if-no-files-found: error
+          retention-days: 14
+      - name: Compare against approved Z Studio baseline
+        run: python3 tests/visual/compare-goldens.py

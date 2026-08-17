@@ -1,0 +1,3 @@
+# Vercel project root: app/. Git reconnect and root-directory authority verified.
+.vercel
+.env*
