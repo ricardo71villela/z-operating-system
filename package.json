@@ -2,7 +2,7 @@
   "name": "zos-platform",
   "version": "0.1.0",
   "private": true,
-  "description": "ZOS Platform monorepo — Z Mobility, Z Jobs, Z Find and shared platform capabilities.",
+  "description": "ZOS Platform monorepo — Z Mobility, Z Jobs, Z Find, Z Studio and shared platform capabilities.",
   "workspaces": [
     "apps/jobs/apps/*",
     "apps/jobs/packages/*",
@@ -25,7 +25,14 @@
     "find:build": "npm run build:zfind --workspace=z-find-platform && npm run build:admin --workspace=z-find-platform && npm run build:partner --workspace=z-find-platform",
     "mobility:typecheck": "npm run typecheck --workspace=z-mobility-next",
     "mobility:test": "npm run test:automotive --workspace=z-mobility-next",
-    "mobility:build": "npm run build --workspace=z-mobility-next"
+    "mobility:build": "npm run build --workspace=z-mobility-next",
+    "studio:setup": "npm run setup --prefix apps/studio",
+    "studio:build": "npm run build --prefix apps/studio",
+    "studio:test": "npm test --prefix apps/studio",
+    "studio:test:mobile": "npm run test:mobile --prefix apps/studio",
+    "studio:test:layout": "npm run test:layout --prefix apps/studio",
+    "studio:test:visual": "npm run test:visual --prefix apps/studio",
+    "studio:ai:check": "npm run check --prefix apps/studio/backend && npm test --prefix apps/studio/backend"
   },
   "engines": {
     "node": ">=22 <25",
