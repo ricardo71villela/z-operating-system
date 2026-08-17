@@ -1,0 +1,11 @@
+{
+  "name": "z-studio-ai-backend",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Z Studio — production AI gateway boundary",
+  "scripts": {
+    "check": "node --check api/ai.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "engines": { "node": ">=18" }
+}

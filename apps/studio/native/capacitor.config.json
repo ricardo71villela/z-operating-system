@@ -1,0 +1,14 @@
+{
+  "appId": "com.zoperatingsystem.zstudio",
+  "appName": "Z Studio",
+  "webDir": "www",
+  "backgroundColor": "#0A0A0A",
+  "ios": {
+    "contentInset": "automatic",
+    "backgroundColor": "#0A0A0A"
+  },
+  "android": {
+    "backgroundColor": "#0A0A0A",
+    "allowMixedContent": false
+  }
+}

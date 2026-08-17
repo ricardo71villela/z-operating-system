@@ -1,0 +1,15 @@
+{
+  "name": "my-studio-testes",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Testes automatizados do My Studio — correm num Chromium real (Electron), não apenas verificação de sintaxe.",
+  "scripts": {
+    "pretest": "echo 'A instalar o Electron na primeira vez pode demorar um pouco...'",
+    "test": "electron --no-sandbox --disable-gpu --ozone-platform=headless run-tests.js",
+    "test:mobile": "electron --no-sandbox --disable-gpu --ozone-platform=headless run-mobile-check.js",
+    "test:layout": "electron --no-sandbox --disable-gpu --ozone-platform=headless run-layout-regression.js"
+  },
+  "devDependencies": {
+    "electron": "^43.0.0"
+  }
+}

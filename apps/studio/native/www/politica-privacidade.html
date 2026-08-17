@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Política de Privacidade — Z Studio</title>
+<style>
+  body { font-family: Georgia, serif; max-width: 720px; margin: 0 auto; padding: 40px 24px 80px; line-height: 1.7; color: #1a1a1a; background: #fdfdfb; }
+  h1 { font-size: 1.7rem; margin-bottom: 4px; }
+  h2 { font-size: 1.15rem; margin-top: 2.2em; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+  .meta { color: #666; font-size: 0.9rem; margin-bottom: 2em; }
+  .draft-notice { background: #fff3cd; border: 1px solid #e0c46c; border-radius: 6px; padding: 16px 20px; font-family: -apple-system, sans-serif; font-size: 0.92rem; margin-bottom: 2.5em; }
+  .draft-notice strong { display: block; margin-bottom: 6px; }
+  .placeholder { background: #fde8e8; padding: 1px 5px; border-radius: 3px; font-family: monospace; font-size: 0.9em; }
+  ul { padding-left: 1.3em; }
+  li { margin-bottom: 0.5em; }
+  code { background: #f0f0ec; padding: 1px 5px; border-radius: 3px; font-size: 0.9em; }
+</style>
+</head>
+<body>
+
+<div class="draft-notice">
+  <strong>⚠️ Isto é um rascunho, não um documento legal final.</strong>
+  Foi escrito para descrever com precisão o que a app tecnicamente faz — mas precisa de ser revisto por um advogado
+  antes de ser publicado, sobretudo para confirmar a conformidade com o RGPD e com as regras da App Store/Play Store.
+  Preenche os campos assinalados a <span class="placeholder">vermelho</span> antes de publicar.
+</div>
+
+<h1>Política de Privacidade</h1>
+<p class="meta">Z Studio · Última atualização: <span class="placeholder">[DATA]</span></p>
+
+<h2>1. Quem somos</h2>
+<p>
+  O Z Studio é operado por <span class="placeholder">[NOME LEGAL / EMPRESA]</span>, com sede em
+  <span class="placeholder">[MORADA]</span>, contribuinte <span class="placeholder">[NIF]</span>.
+  Para questões sobre privacidade, contacta <span class="placeholder">[EMAIL DE CONTACTO]</span>.
+</p>
+
+<h2>2. O que a app faz com os teus dados</h2>
+<p>O Z Studio foi construído para guardar o mínimo possível fora do teu dispositivo. Em concreto:</p>
+<ul>
+  <li><strong>Fotos e vídeos que carregas</strong> — nunca saem do teu dispositivo. Ficam guardados localmente no
+    teu browser (através de uma tecnologia chamada IndexedDB) e nunca são enviados para nenhum servidor nosso.</li>
+  <li><strong>Textos que escreves</strong> (título, preço, localização, características do produto) — também ficam
+    só no teu dispositivo, <em>exceto</em> quando usas explicitamente a funcionalidade "Legenda com IA" ou
+    "Traduzir para todos os idiomas". Nesse caso, esse texto (nunca as fotos) é enviado ao nosso servidor, que o
+    reencaminha para a Anthropic (o fornecedor do modelo de IA que gera a legenda) e devolve o resultado.</li>
+  <li><strong>Definições de marca</strong> (nome, cor, logótipo que carregues, site) — guardadas localmente, da
+    mesma forma.</li>
+</ul>
+
+<h2>3. Com quem partilhamos dados</h2>
+<ul>
+  <li><strong>Anthropic</strong> (fornecedor do modelo de IA) — recebe o texto que envias explicitamente para gerar
+    uma legenda. Não recebe fotos. Ver a política de privacidade da Anthropic em
+    <a href="https://www.anthropic.com/legal/privacy">anthropic.com/legal/privacy</a>.</li>
+  <li><strong><span class="placeholder">[FORNECEDOR DE ALOJAMENTO — ex.: Vercel/Netlify]</span></strong> — aloja a
+    aplicação; pode registar informação técnica básica de acesso (endereço IP, data/hora) por razões de segurança.</li>
+  <li>Não vendemos nem partilhamos dados pessoais para fins de publicidade.</li>
+</ul>
+
+<h2>4. Pagamentos <span class="placeholder">(se aplicável)</span></h2>
+<p>
+  Se subscreveres um plano pago, o processamento do pagamento é feito por
+  <span class="placeholder">[Stripe / outro processador]</span>, que trata diretamente os dados do cartão — nunca
+  vemos nem guardamos o número do teu cartão.
+</p>
+
+<h2>5. Quanto tempo guardamos os dados</h2>
+<p>
+  As fotos, textos e definições de marca ficam guardados no teu dispositivo até os apagares — através do botão
+  "Limpar rascunho" dentro da app, ou ao limpar os dados de navegação do teu browser. Não temos acesso a esses
+  dados e, por isso, não os podemos apagar por ti remotamente.
+</p>
+
+<h2>6. Os teus direitos</h2>
+<p>Ao abrigo do RGPD, tens direito a:</p>
+<ul>
+  <li><strong>Acesso e portabilidade</strong> — os teus dados já estão acessíveis a qualquer momento no teu próprio
+    dispositivo.</li>
+  <li><strong>Apagamento</strong> — usa o botão "Limpar rascunho" ou limpa os dados do site no teu browser.</li>
+  <li><strong>Informação</strong> — contacta-nos em <span class="placeholder">[EMAIL]</span> para qualquer dúvida.</li>
+  <li><strong>Reclamação</strong> — podes apresentar queixa junto da Comissão Nacional de Proteção de Dados (CNPD),
+    em <a href="https://www.cnpd.pt">cnpd.pt</a>.</li>
+</ul>
+
+<h2>7. Menores</h2>
+<p>O Z Studio destina-se a utilizadores com 18 ou mais anos, ou à idade mínima de consentimento digital no teu país.</p>
+
+<h2>8. Alterações a esta política</h2>
+<p>Podemos atualizar esta política. Alterações relevantes serão assinaladas na app.</p>
+
+</body>
+</html>
