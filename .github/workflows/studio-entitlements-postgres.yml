@@ -1,0 +1,642 @@
+name: Z Studio Entitlement PostgreSQL
+
+on:
+  workflow_dispatch:
+
+  push:
+    paths:
+      - "infrastructure/supabase/migrations/**"
+      - ".github/workflows/studio-entitlements-postgres.yml"
+
+  pull_request:
+    branches: [main]
+    paths:
+      - "infrastructure/supabase/migrations/**"
+      - ".github/workflows/studio-entitlements-postgres.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  postgres:
+    name: Studio identity + commercial invariants
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: zstudio_test_pw
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create disposable Supabase-compatible database
+        env:
+          PGPASSWORD: zstudio_test_pw
+        run: |
+          psql -h localhost -U postgres -v ON_ERROR_STOP=1 \
+            -c "CREATE DATABASE zstudio_test;"
+
+          psql -h localhost -U postgres -d zstudio_test -v ON_ERROR_STOP=1 \
+            -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+
+          psql -h localhost -U postgres -d zstudio_test -v ON_ERROR_STOP=1 <<'SQL'
+          create role anon nologin;
+          create role authenticated nologin;
+          create role service_role nologin bypassrls;
+
+          create schema if not exists auth;
+
+          create table auth.users (
+            id uuid primary key default gen_random_uuid(),
+            email text unique,
+            created_at timestamptz not null default now()
+          );
+
+          create or replace function auth.uid()
+          returns uuid
+          language sql
+          stable
+          as $$
+            select nullif(
+              current_setting('request.jwt.claim.sub', true),
+              ''
+            )::uuid;
+          $$;
+
+          revoke all on function auth.uid() from public;
+
+          grant usage on schema auth
+            to anon, authenticated, service_role;
+
+          grant execute on function auth.uid()
+            to anon, authenticated, service_role;
+
+          -- CI-only minimal Supabase Storage fixture. Real Supabase remains
+          -- production authority; this exists only in disposable PostgreSQL.
+          create schema if not exists storage;
+
+          create table storage.buckets (
+            id text primary key,
+            name text not null unique,
+            public boolean not null default false
+          );
+
+          create table storage.objects (
+            id uuid primary key default gen_random_uuid(),
+            bucket_id text not null,
+            name text not null,
+            owner_id uuid
+          );
+
+          -- Auth-only user deliberately predates migrations. The Studio bridge
+          -- must NOT materialize this identity merely because auth.users exists.
+          insert into auth.users (id, email)
+          values (
+            '11111111-1111-4111-8111-111111111111',
+            'existing-auth@example.test'
+          );
+          SQL
+
+      - name: Apply all Supabase migrations in order
+        env:
+          PGPASSWORD: zstudio_test_pw
+        run: |
+          for f in $(ls infrastructure/supabase/migrations/*.sql | sort); do
+            echo "--- APPLYING $f ---"
+            psql \
+              -h localhost \
+              -U postgres \
+              -d zstudio_test \
+              -v ON_ERROR_STOP=1 \
+              -f "$f"
+          done
+
+      - name: Verify Studio extends existing ZOS Identity Bridge
+        env:
+          PGPASSWORD: zstudio_test_pw
+        run: |
+          psql -h localhost -U postgres -d zstudio_test -v ON_ERROR_STOP=1 <<'SQL'
+          -- Mere Auth presence must not create a canonical person.
+          do $$
+          begin
+            if exists (
+              select 1 from zos.persons
+              where auth_user_id = '11111111-1111-4111-8111-111111111111'
+            ) then
+              raise exception 'Auth-only user was incorrectly materialized as a canonical ZOS person';
+            end if;
+
+            if exists (
+              select 1 from zos.registry_bindings
+              where local_entity_id = '11111111-1111-4111-8111-111111111111'
+            ) then
+              raise exception 'Auth-only user was incorrectly pre-registered in the ZOS registry';
+            end if;
+          end;
+          $$;
+
+          -- Existing Find identity creates the canonical person first.
+          select platform_internal.register_local_person_identity(
+            'find',
+            '11111111-1111-4111-8111-111111111111'
+          );
+
+          set role authenticated;
+          select set_config(
+            'request.jwt.claim.sub',
+            '11111111-1111-4111-8111-111111111111',
+            false
+          );
+
+          select * from zos_api.ensure_current_identity_binding('find');
+          select public.zstudio_ensure_account();
+          -- Second call must be idempotent.
+          select public.zstudio_ensure_account();
+
+          reset role;
+
+          do $$
+          declare
+            v_person_id uuid;
+            v_find_person_id text;
+            v_studio_person_id text;
+          begin
+            select p.id
+              into v_person_id
+            from zos.persons p
+            where p.auth_user_id = '11111111-1111-4111-8111-111111111111';
+
+            if v_person_id is null then
+              raise exception 'Canonical person was not created through the existing ZOS bridge';
+            end if;
+
+            if (select count(*) from studio.accounts where id = '11111111-1111-4111-8111-111111111111') <> 1 then
+              raise exception 'Studio account bootstrap is not idempotent';
+            end if;
+
+            select rb.canonical_entity_id
+              into v_find_person_id
+            from zos.registry_bindings rb
+            where rb.domain_code = 'find'
+              and rb.local_entity_type = 'profile'
+              and rb.local_entity_id = '11111111-1111-4111-8111-111111111111'
+              and rb.retired_at is null;
+
+            select rb.canonical_entity_id
+              into v_studio_person_id
+            from zos.registry_bindings rb
+            where rb.domain_code = 'studio'
+              and rb.local_entity_type = 'account'
+              and rb.local_entity_id = '11111111-1111-4111-8111-111111111111'
+              and rb.retired_at is null;
+
+            if v_find_person_id is distinct from v_person_id::text
+               or v_studio_person_id is distinct from v_person_id::text then
+              raise exception 'Find and Studio did not converge on the same canonical ZOS person';
+            end if;
+          end;
+          $$;
+
+          -- Studio-only user also enters ZOS lawfully through a local account.
+          insert into auth.users (id, email)
+          values (
+            '22222222-2222-4222-8222-222222222222',
+            'studio-only@example.test'
+          );
+
+          set role authenticated;
+          select set_config(
+            'request.jwt.claim.sub',
+            '22222222-2222-4222-8222-222222222222',
+            false
+          );
+
+          select public.zstudio_ensure_account();
+          select * from zos_api.current_identity_bindings();
+
+          reset role;
+
+          do $$
+          begin
+            if (select count(*) from zos.persons where auth_user_id = '22222222-2222-4222-8222-222222222222') <> 1 then
+              raise exception 'Studio-only user did not materialize exactly one canonical person';
+            end if;
+
+            if not exists (
+              select 1
+              from zos.registry_bindings rb
+              where rb.domain_code = 'studio'
+                and rb.local_entity_type = 'account'
+                and rb.local_entity_id = '22222222-2222-4222-8222-222222222222'
+                and rb.binding_status = 'linked'
+                and rb.canonical_entity_type = 'person'
+                and rb.retired_at is null
+            ) then
+              raise exception 'Studio-only identity is not linked through zos.registry_bindings';
+            end if;
+          end;
+          $$;
+
+          -- Unrelated Auth users remain outside the canonical person registry.
+          insert into auth.users (id, email)
+          values (
+            '33333333-3333-4333-8333-333333333333',
+            'auth-only@example.test'
+          );
+
+          do $$
+          begin
+            if exists (
+              select 1 from zos.persons
+              where auth_user_id = '33333333-3333-4333-8333-333333333333'
+            ) then
+              raise exception 'Unrelated Auth user leaked into canonical ZOS persons';
+            end if;
+
+            if exists (
+              select 1 from studio.accounts
+              where id = '33333333-3333-4333-8333-333333333333'
+            ) then
+              raise exception 'Unrelated Auth user leaked into Studio accounts';
+            end if;
+          end;
+          $$;
+
+          -- The extension must not silently enable Mobility human identities.
+          do $$
+          begin
+            begin
+              perform platform_internal.register_local_person_identity(
+                'mobility',
+                '33333333-3333-4333-8333-333333333333'
+              );
+              raise exception 'Mobility human identity was unexpectedly accepted';
+            exception
+              when sqlstate '22023' then
+                null;
+            end;
+          end;
+          $$;
+
+          -- Studio identity must not create or depend on Z Find public.profiles.
+          do $$
+          begin
+            if to_regclass('public.profiles') is not null and exists (
+              select 1
+              from public.profiles
+              where id in (
+                '11111111-1111-4111-8111-111111111111',
+                '22222222-2222-4222-8222-222222222222'
+              )
+            ) then
+              raise exception 'Studio identity bridge leaked into public.profiles';
+            end if;
+          end;
+          $$;
+          SQL
+
+      - name: Verify Studio schema isolation and privileges
+        env:
+          PGPASSWORD: zstudio_test_pw
+        run: |
+          psql -h localhost -U postgres -d zstudio_test -v ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          declare
+            secured_tables integer;
+          begin
+            if to_regnamespace('studio') is null then
+              raise exception 'studio schema is missing';
+            end if;
+
+            if to_regclass('studio.accounts') is null
+               or to_regclass('studio.subscriptions') is null
+               or to_regclass('studio.entitlements') is null
+               or to_regclass('studio.ai_usage') is null then
+              raise exception 'Studio domain relation is missing';
+            end if;
+
+            select count(*)
+              into secured_tables
+            from pg_class c
+            join pg_namespace n on n.oid = c.relnamespace
+            where n.nspname = 'studio'
+              and c.relname in ('accounts', 'subscriptions', 'entitlements', 'ai_usage')
+              and c.relrowsecurity;
+
+            if secured_tables <> 4 then
+              raise exception 'RLS is not enabled on all Studio tables: %', secured_tables;
+            end if;
+
+            if has_schema_privilege('anon', 'studio', 'USAGE')
+               or has_schema_privilege('authenticated', 'studio', 'USAGE') then
+              raise exception 'Browser roles unexpectedly have direct studio schema access';
+            end if;
+
+            if has_table_privilege('anon', 'studio.accounts', 'SELECT')
+               or has_table_privilege('authenticated', 'studio.accounts', 'SELECT')
+               or has_table_privilege('authenticated', 'studio.accounts', 'INSERT')
+               or has_table_privilege('authenticated', 'studio.subscriptions', 'SELECT')
+               or has_table_privilege('authenticated', 'studio.subscriptions', 'INSERT')
+               or has_table_privilege('authenticated', 'studio.entitlements', 'SELECT')
+               or has_table_privilege('authenticated', 'studio.entitlements', 'INSERT')
+               or has_table_privilege('authenticated', 'studio.ai_usage', 'SELECT')
+               or has_table_privilege('authenticated', 'studio.ai_usage', 'INSERT') then
+              raise exception 'Browser role unexpectedly has direct Studio table privilege';
+            end if;
+
+            if not has_schema_privilege('service_role', 'studio', 'USAGE')
+               or not has_table_privilege('service_role', 'studio.accounts', 'SELECT')
+               or not has_table_privilege('service_role', 'studio.subscriptions', 'SELECT')
+               or not has_table_privilege('service_role', 'studio.subscriptions', 'INSERT')
+               or not has_table_privilege('service_role', 'studio.entitlements', 'SELECT')
+               or not has_table_privilege('service_role', 'studio.entitlements', 'INSERT')
+               or not has_table_privilege('service_role', 'studio.ai_usage', 'SELECT')
+               or not has_table_privilege('service_role', 'studio.ai_usage', 'INSERT') then
+              raise exception 'Server authority is missing required Studio privileges';
+            end if;
+
+            if has_table_privilege('service_role', 'studio.ai_usage', 'UPDATE')
+               or has_table_privilege('service_role', 'studio.ai_usage', 'DELETE') then
+              raise exception 'AI usage must remain append-only for service_role';
+            end if;
+
+            if has_function_privilege('anon', 'public.zstudio_ensure_account()', 'EXECUTE')
+               or has_function_privilege('anon', 'public.zstudio_has_entitlement(text)', 'EXECUTE') then
+              raise exception 'anon unexpectedly has Studio RPC execution';
+            end if;
+
+            if not has_function_privilege('authenticated', 'public.zstudio_ensure_account()', 'EXECUTE')
+               or not has_function_privilege('authenticated', 'public.zstudio_has_entitlement(text)', 'EXECUTE') then
+              raise exception 'authenticated role is missing Studio RPC execution';
+            end if;
+          end;
+          $$;
+          SQL
+
+      - name: Verify paid entitlement semantics
+        env:
+          PGPASSWORD: zstudio_test_pw
+        run: |
+          psql -h localhost -U postgres -d zstudio_test -v ON_ERROR_STOP=1 <<'SQL'
+          insert into studio.subscriptions (
+            id,
+            person_id,
+            plan_code,
+            status,
+            billing_source,
+            current_period_start,
+            current_period_end
+          )
+          select
+            'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+            p.id,
+            'monthly',
+            'active',
+            'manual',
+            now(),
+            now() + interval '1 month'
+          from zos.persons p
+          where p.auth_user_id = '11111111-1111-4111-8111-111111111111';
+
+          insert into studio.entitlements (
+            id,
+            person_id,
+            subscription_id,
+            entitlement_code,
+            status,
+            source,
+            starts_at,
+            expires_at
+          )
+          select
+            'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+            p.id,
+            'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+            'studio_access',
+            'active',
+            'subscription',
+            now() - interval '1 minute',
+            now() + interval '1 month'
+          from zos.persons p
+          where p.auth_user_id = '11111111-1111-4111-8111-111111111111';
+
+          insert into studio.entitlements (
+            id,
+            person_id,
+            subscription_id,
+            entitlement_code,
+            status,
+            source,
+            starts_at,
+            expires_at
+          )
+          select
+            'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+            p.id,
+            'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+            'ai_access',
+            'active',
+            'subscription',
+            now() - interval '1 minute',
+            now() + interval '1 month'
+          from zos.persons p
+          where p.auth_user_id = '11111111-1111-4111-8111-111111111111';
+
+          -- Expired standalone entitlement for user 2 must not grant access.
+          insert into studio.entitlements (
+            id,
+            person_id,
+            entitlement_code,
+            status,
+            source,
+            starts_at,
+            expires_at
+          )
+          select
+            'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+            p.id,
+            'ai_access',
+            'active',
+            'manual',
+            now() - interval '2 days',
+            now() - interval '1 day'
+          from zos.persons p
+          where p.auth_user_id = '22222222-2222-4222-8222-222222222222';
+
+          set role authenticated;
+          select set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', false);
+
+          do $$
+          begin
+            if not public.zstudio_has_entitlement('studio_access') then
+              raise exception 'Paid user is missing active studio_access entitlement';
+            end if;
+            if not public.zstudio_has_entitlement('ai_access') then
+              raise exception 'Paid user is missing active ai_access entitlement';
+            end if;
+          end;
+          $$;
+
+          select set_config('request.jwt.claim.sub', '22222222-2222-4222-8222-222222222222', false);
+
+          do $$
+          begin
+            if public.zstudio_has_entitlement('studio_access') then
+              raise exception 'User 2 inherited user 1 product entitlement';
+            end if;
+            if public.zstudio_has_entitlement('ai_access') then
+              raise exception 'Expired AI entitlement incorrectly granted access';
+            end if;
+          end;
+          $$;
+
+          reset role;
+
+          update studio.entitlements
+          set status = 'revoked', updated_at = now()
+          where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+
+          set role authenticated;
+          select set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', false);
+
+          do $$
+          begin
+            if public.zstudio_has_entitlement('ai_access') then
+              raise exception 'Revoked AI entitlement incorrectly granted access';
+            end if;
+            if not public.zstudio_has_entitlement('studio_access') then
+              raise exception 'Revoking AI access unexpectedly removed product access';
+            end if;
+          end;
+          $$;
+
+          reset role;
+
+          update studio.subscriptions
+          set status = 'expired', updated_at = now()
+          where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+
+          set role authenticated;
+          select set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', false);
+
+          do $$
+          begin
+            if public.zstudio_has_entitlement('studio_access') then
+              raise exception 'Expired subscription incorrectly kept subscription entitlement active';
+            end if;
+          end;
+          $$;
+
+          reset role;
+
+          -- The schema encodes only paid plans. A permanent free plan is invalid.
+          do $$
+          declare
+            p_id uuid;
+          begin
+            select id into p_id
+            from zos.persons
+            where auth_user_id = '22222222-2222-4222-8222-222222222222';
+
+            begin
+              insert into studio.subscriptions (
+                person_id, plan_code, status, billing_source
+              ) values (
+                p_id, 'free', 'active', 'manual'
+              );
+              raise exception 'free plan_code was unexpectedly accepted';
+            exception
+              when check_violation then
+                null;
+            end;
+          end;
+          $$;
+          SQL
+
+      - name: Verify AI metering and ZOS non-contamination
+        env:
+          PGPASSWORD: zstudio_test_pw
+        run: |
+          psql -h localhost -U postgres -d zstudio_test -v ON_ERROR_STOP=1 <<'SQL'
+          insert into studio.ai_usage (
+            person_id,
+            subscription_id,
+            entitlement_id,
+            request_id,
+            usage_units,
+            model,
+            input_tokens,
+            output_tokens
+          )
+          select
+            p.id,
+            'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+            'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+            'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+            1,
+            'anthropic/claude-3-haiku',
+            15,
+            5
+          from zos.persons p
+          where p.auth_user_id = '11111111-1111-4111-8111-111111111111';
+
+          do $$
+          begin
+            if (select count(*) from studio.ai_usage where request_id = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee') <> 1 then
+              raise exception 'AI usage event was not recorded exactly once';
+            end if;
+
+            if exists (
+              select 1
+              from information_schema.columns
+              where table_schema = 'zos'
+                and table_name = 'persons'
+                and column_name in (
+                  'studio_plan', 'plan_code', 'ai_credits', 'ai_usage',
+                  'subscription_id', 'billing_source'
+                )
+            ) then
+              raise exception 'Studio commercial state contaminated zos.persons';
+            end if;
+
+            -- Dependency direction must be Studio -> ZOS, never ZOS -> Studio.
+            if exists (
+              select 1
+              from pg_constraint c
+              join pg_class src on src.oid = c.conrelid
+              join pg_namespace src_ns on src_ns.oid = src.relnamespace
+              join pg_class ref on ref.oid = c.confrelid
+              join pg_namespace ref_ns on ref_ns.oid = ref.relnamespace
+              where c.contype = 'f'
+                and src_ns.nspname = 'zos'
+                and ref_ns.nspname = 'studio'
+            ) then
+              raise exception 'ZOS Core unexpectedly depends on Studio domain';
+            end if;
+
+            if not exists (
+              select 1
+              from pg_constraint c
+              join pg_class src on src.oid = c.conrelid
+              join pg_namespace src_ns on src_ns.oid = src.relnamespace
+              join pg_class ref on ref.oid = c.confrelid
+              join pg_namespace ref_ns on ref_ns.oid = ref.relnamespace
+              where c.contype = 'f'
+                and src_ns.nspname = 'studio'
+                and ref_ns.nspname = 'zos'
+                and ref.relname = 'persons'
+            ) then
+              raise exception 'Studio commercial domain is not anchored to canonical zos.persons';
+            end if;
+          end;
+          $$;
+          SQL
