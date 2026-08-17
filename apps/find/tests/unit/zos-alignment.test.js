@@ -164,16 +164,37 @@ test('Geography binding remains optional and command-owned', () => {
     'utf8'
   );
 
+  const infrastructureConvergence = fs.readFileSync(
+    path.join(
+      __dirname,
+      '../../../../infrastructure/supabase/migrations/20260812135037_z_find_database_convergence_v1.sql'
+    ),
+    'utf8'
+  );
+
   const geographyPort = fs.readFileSync(
     path.join(__dirname, '../../packages/import-engine/geography-port.js'),
     'utf8'
   );
 
-  // zones_lite remains a marketplace projection and may legitimately
-  // exist without a canonical Geography binding.
+  // Historical 0012 is preserved as an immutable migration artifact.
+  // Current database type authority is the later ZOS infrastructure
+  // convergence migration, which upgrades the bridge to a UUID FK.
   assert(
     /geography_entity_id\s+text/i.test(migration),
-    'zones_lite must expose an optional canonical Geography reference'
+    'Historical 0012 Geography bridge artifact must remain unchanged'
+  );
+
+  assert(
+    /geography_entity_id\s+uuid[\s\S]*?references\s+zos\.geography_locations\s*\(\s*id\s*\)/i
+      .test(infrastructureConvergence),
+    'Current zones_lite Geography bridge authority must be UUID-backed and reference canonical ZOS Geography'
+  );
+
+  assert(
+    /geography_binding_status\s+text[\s\S]*?not\s+null[\s\S]*?default\s+'unbound'/i
+      .test(infrastructureConvergence),
+    'Current infrastructure bridge must preserve optional unbound-by-default Geography binding'
   );
 
   assert(
@@ -192,7 +213,9 @@ test('Geography binding remains optional and command-owned', () => {
     'zones_lite must not auto-bind to canonical Geography on insert'
   );
 
-  // Canonical Geography mutations remain behind the command port.
+  // General runtime/import Geography mutations remain behind the
+  // command port. One-time reviewed infrastructure bootstrap migrations
+  // are a separate database-governance boundary.
   assert(
     /function\s+createGeographyPort\s*\(/i.test(geographyPort),
     'Canonical Geography writes must remain behind the Geography command port'

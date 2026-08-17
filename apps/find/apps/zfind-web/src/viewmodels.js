@@ -179,6 +179,7 @@ function mapSupabasePropertyRowToCard(row, lang) {
     locationLabel,
     zoneLabel: zone.name || null,
     cityLabel: zone.city || null,
+    countryIso: zone.country_iso || null,
     countryLabel: null, // see known simplification above
     currencyIso,
     priceLabel,
@@ -213,6 +214,7 @@ function mapSupabaseDevelopmentRowToCard(row, lang) {
     locationLabel,
     zoneLabel: zone.name || null,
     cityLabel: zone.city || null,
+    countryIso: zone.country_iso || null,
     countryLabel: null,
     currencyIso,
     priceLabel,
@@ -237,12 +239,253 @@ function mapSupabaseDevelopmentRowToCard(row, lang) {
     when the current subtype filter could include them (empty filter,
     or explicitly includes 'development') — avoiding a wasted request
     when a user has filtered them out entirely. */
+async function resolveSearchMarketScope(services, marketKey) {
+  if (!marketKey) {
+    return {
+      supported: true,
+      zoneLiteIds: null,
+      marketKey: null
+    };
+  }
+
+  if (
+    !services.marketRegistry ||
+    !services.marketSearchScope ||
+    !services.zones
+  ) {
+    return {
+      supported: false,
+      reason: 'market_scope_services_unavailable',
+      marketKey
+    };
+  }
+
+  const market = services.marketRegistry.getMarket(marketKey);
+  const resolved =
+    services.marketSearchScope.resolveMarketScope(market);
+
+  if (!resolved.supported) {
+    return {
+      supported: false,
+      reason: resolved.reason,
+      marketKey
+    };
+  }
+
+  if (resolved.kind === 'country_iso') {
+    const zonesResult =
+      await services.zones.listByCountryIso(
+        resolved.countryIso
+      );
+
+    if (
+      zonesResult.error &&
+      zonesResult.error.type !== 'empty_result'
+    ) {
+      return {
+        supported: true,
+        error: zonesResult.error,
+        marketKey
+      };
+    }
+
+    return {
+      supported: true,
+      zoneLiteIds: (zonesResult.data || [])
+        .map(zone => zone.id)
+        .filter(Boolean),
+      marketKey,
+      countryIso: resolved.countryIso
+    };
+  }
+
+  if (resolved.kind === 'exact_market') {
+    if (
+      typeof services.zones.resolveExactMarketScope !==
+      'function'
+    ) {
+      return {
+        supported: false,
+        reason: 'exact_market_rpc_unavailable',
+        marketKey
+      };
+    }
+
+    const exactResult =
+      await services.zones.resolveExactMarketScope(
+        resolved.exactMarketKey
+      );
+
+    if (exactResult.error) {
+      return {
+        supported: true,
+        error: exactResult.error,
+        marketKey
+      };
+    }
+
+    const payload = exactResult.data;
+
+    if (
+      !payload ||
+      payload.market_key !== resolved.exactMarketKey ||
+      typeof payload.resolved !== 'boolean' ||
+      !Array.isArray(payload.zone_lite_ids)
+    ) {
+      return {
+        supported: true,
+        error: {
+          type: 'malformed_response',
+          context: 'viewmodels.resolveSearchMarketScope',
+          message:
+            'Exact-market Geography RPC returned an invalid payload.'
+        },
+        marketKey
+      };
+    }
+
+    if (!payload.resolved) {
+      return {
+        supported: false,
+        reason: 'exact_market_unresolved',
+        marketKey
+      };
+    }
+
+    return {
+      supported: true,
+      zoneLiteIds: payload.zone_lite_ids.filter(Boolean),
+      marketKey,
+      exactMarketKey: resolved.exactMarketKey
+    };
+  }
+
+  return {
+    supported: false,
+    reason: 'unsupported_scope_kind',
+    marketKey
+  };
+}
+
+
+/**
+ * Search-only cover-image resolution.
+ *
+ * Uses the same private media URL contract as existing detail views:
+ * resolveMediaUrl(storagePath). The resolver already defaults to the
+ * listing-media bucket and a one-hour live-browsing expiry.
+ */
+async function resolveSearchCardImageUrl(
+  services,
+  associations
+) {
+  const rows =
+    Array.isArray(associations)
+      ? associations.slice()
+      : [];
+
+  rows.sort((a, b) => {
+    const coverDelta =
+      Number(Boolean(b && b.is_cover)) -
+      Number(Boolean(a && a.is_cover));
+
+    if (coverDelta) return coverDelta;
+
+    return (
+      Number((a && a.position) || 0) -
+      Number((b && b.position) || 0)
+    );
+  });
+
+  const association = rows[0] || null;
+  const rawAsset =
+    association
+      ? association.media_assets
+      : null;
+
+  const asset =
+    Array.isArray(rawAsset)
+      ? (rawAsset[0] || null)
+      : rawAsset;
+
+  if (!asset) return null;
+
+  const storagePath =
+    pickMediaStoragePath(asset);
+
+  if (!storagePath) return null;
+
+  if (
+    !services ||
+    !services.supabaseClient ||
+    typeof services.supabaseClient.resolveMediaUrl !==
+      'function'
+  ) {
+    return null;
+  }
+
+  return services.supabaseClient.resolveMediaUrl(
+    storagePath
+  );
+}
+
 async function loadSearchResults(lang, filters) {
   const services = window.ZFindServices;
   if (!services || !services.search || !services.developments) {
     return { cards: [], error: { type: 'malformed_response', message: 'Supabase services not loaded.' } };
   }
   const f = filters || {};
+
+  const marketScope =
+    await resolveSearchMarketScope(
+      services,
+      f.marketKey || null
+    );
+
+  if (!marketScope.supported) {
+    return {
+      cards: [],
+      error: null,
+      scopeUnavailable: true,
+      marketKey: f.marketKey || null,
+      reason: marketScope.reason
+    };
+  }
+
+  if (marketScope.error) {
+    return {
+      cards: [],
+      error: marketScope.error
+    };
+  }
+
+  // An authoritative empty market scope means zero marketplace
+  // inventory. Never omit the zone filter for [] because that would
+  // silently widen the query to every market.
+  if (
+    Array.isArray(marketScope.zoneLiteIds) &&
+    marketScope.zoneLiteIds.length === 0
+  ) {
+    return {
+      cards: [],
+      error: null,
+      scopeUnavailable: false,
+      marketKey: f.marketKey || null
+    };
+  }
+
+  if (
+    f.zoneLiteId &&
+    Array.isArray(marketScope.zoneLiteIds) &&
+    !marketScope.zoneLiteIds.includes(f.zoneLiteId)
+  ) {
+    return {
+      cards: [],
+      error: null,
+      scopeUnavailable: false,
+      marketKey: f.marketKey || null
+    };
+  }
   const subtypeList = Array.isArray(f.subtype) ? f.subtype : (f.subtype ? [f.subtype] : []);
   const wantsDevelopments = subtypeList.length === 0 || subtypeList.includes('development');
   const propertySubtypes = subtypeList.filter(s => s !== 'development');
@@ -257,10 +500,17 @@ async function loadSearchResults(lang, filters) {
       budgetMin: f.budgetMin,
       budgetMax: f.budgetMax,
       zoneLiteId: f.zoneLiteId || undefined,
+      zoneLiteIds: marketScope.zoneLiteIds || undefined,
+      marketKey: f.marketKey || undefined,
     }));
   }
   if (wantsDevelopments) {
-    calls.push(services.developments.listPublished(f.zoneLiteId || undefined, f.transactionType || undefined, f.rentalPeriod || undefined));
+    calls.push(services.developments.listPublishedScoped(
+      f.zoneLiteId || undefined,
+      f.transactionType || undefined,
+      f.rentalPeriod || undefined,
+      marketScope.zoneLiteIds || undefined
+    ));
   }
 
   const results = await Promise.all(calls);
@@ -275,10 +525,88 @@ async function loadSearchResults(lang, filters) {
     return { cards: [], error: developmentsResult.error };
   }
 
-  let propertyCards = (propertiesResult.data || []).map(row => mapSupabasePropertyRowToCard(row, lang));
+  const propertyRows =
+    propertiesResult.data || [];
+
+  let propertyCards =
+    await Promise.all(
+      propertyRows.map(async row => {
+        const card =
+          mapSupabasePropertyRowToCard(
+            row,
+            lang
+          );
+
+        const rep =
+          Array.isArray(row.representations)
+            ? row.representations[0]
+            : null;
+
+        const listing =
+          rep &&
+          Array.isArray(rep.listings)
+            ? rep.listings[0]
+            : null;
+
+        const imageUrl =
+          await resolveSearchCardImageUrl(
+            services,
+            listing &&
+            Array.isArray(listing.listing_media)
+              ? listing.listing_media
+              : []
+          );
+
+        return Object.assign({}, card, { imageUrl });
+      })
+    );
   if (propertySubtypes.length > 1) propertyCards = propertyCards.filter(c => propertySubtypes.includes(c.subtype)); // multi-select narrowing, service only accepts one
 
-  let developmentCards = (developmentsResult.data || []).map(row => mapSupabaseDevelopmentRowToCard(row, lang));
+  const developmentRows =
+    developmentsResult.data || [];
+
+  let developmentCards =
+    await Promise.all(
+      developmentRows.map(async row => {
+        const card =
+          mapSupabaseDevelopmentRowToCard(
+            row,
+            lang
+          );
+
+        const rep =
+          Array.isArray(row.representations)
+            ? row.representations[0]
+            : null;
+
+        const listing =
+          rep &&
+          Array.isArray(rep.listings)
+            ? rep.listings[0]
+            : null;
+
+        const ownMedia =
+          Array.isArray(row.development_media)
+            ? row.development_media
+            : [];
+
+        const listingMedia =
+          listing &&
+          Array.isArray(listing.listing_media)
+            ? listing.listing_media
+            : [];
+
+        const imageUrl =
+          await resolveSearchCardImageUrl(
+            services,
+            ownMedia.length
+              ? ownMedia
+              : listingMedia
+          );
+
+        return Object.assign({}, card, { imageUrl });
+      })
+    );
   // Client-side budget/text filtering for developments (listPublished has no filter params):
   if (f.budgetMin != null) developmentCards = developmentCards.filter(c => c.priceValue >= f.budgetMin);
   if (f.budgetMax != null) developmentCards = developmentCards.filter(c => c.priceValue <= f.budgetMax);
@@ -290,7 +618,85 @@ async function loadSearchResults(lang, filters) {
     cards = cards.filter(c => (c.title + ' ' + (c.locationLabel || '')).toLowerCase().includes(q));
   }
 
-  return { cards, error: null };
+  return {
+    cards,
+    error: null,
+    scopeUnavailable: false,
+    marketKey: f.marketKey || null
+  };
+}
+
+
+/**
+ * Candidate inventory for Country Market Featured.
+ *
+ * This is intentionally not Search:
+ * - Property candidates use search.listPublished(), which performs no
+ *   Search analytics write.
+ * - Development candidates use its existing published read port.
+ * - Market scoping and six-slot selection are owned by
+ *   services/market-featured.js.
+ */
+async function loadFeaturedCandidateCards(lang) {
+  const services = window.ZFindServices;
+
+  if (
+    !services ||
+    !services.search ||
+    typeof services.search.listPublished !== 'function' ||
+    !services.developments
+  ) {
+    return {
+      cards: [],
+      error: {
+        type: 'malformed_response',
+        message: 'Published inventory services not loaded.'
+      }
+    };
+  }
+
+  const [propertiesResult, developmentsResult] =
+    await Promise.all([
+      services.search.listPublished(),
+      services.developments.listPublished(),
+    ]);
+
+  if (
+    propertiesResult.error &&
+    propertiesResult.error.type !== 'empty_result'
+  ) {
+    return {
+      cards: [],
+      error: propertiesResult.error
+    };
+  }
+
+  if (
+    developmentsResult.error &&
+    developmentsResult.error.type !== 'empty_result'
+  ) {
+    return {
+      cards: [],
+      error: developmentsResult.error
+    };
+  }
+
+  const propertyCards =
+    (propertiesResult.data || [])
+      .map(row =>
+        mapSupabasePropertyRowToCard(row, lang)
+      );
+
+  const developmentCards =
+    (developmentsResult.data || [])
+      .map(row =>
+        mapSupabaseDevelopmentRowToCard(row, lang)
+      );
+
+  return {
+    cards: propertyCards.concat(developmentCards),
+    error: null
+  };
 }
 
 

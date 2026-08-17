@@ -520,3 +520,1139 @@ footer.site .bottom{ border-top:1px solid var(--gray-700); margin-top:44px; padd
     letter-spacing:0.06em;
   }
 }
+
+/* ---------- DESIGN.1B international market-guide navigation ---------- */
+.market-switch{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding-right:14px;
+  border-right:1px solid var(--gray-200);
+}
+
+.market-switch label{
+  font-size:0.67rem;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  color:var(--gray-500);
+  font-weight:500;
+  white-space:nowrap;
+}
+
+.market-switch select{
+  max-width:190px;
+  padding:8px 26px 8px 9px;
+  border:1px solid var(--gray-200);
+  border-radius:var(--radius);
+  background:var(--white);
+  color:var(--gray-900);
+  font:inherit;
+  font-size:0.76rem;
+}
+
+.market-explorer{
+  margin-top:28px;
+  max-width:900px;
+  min-height:76px;
+  padding:16px 18px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:24px;
+  border:1px solid var(--gray-200);
+  background:rgba(255,255,255,0.82);
+  box-shadow:var(--shadow-soft);
+}
+
+.market-explorer .eyebrow{
+  margin-bottom:5px;
+}
+
+.market-explorer-copy p{
+  color:var(--gray-500);
+  font-size:0.82rem;
+  line-height:1.45;
+  max-width:520px;
+}
+
+.market-explorer select{
+  width:270px;
+  flex:none;
+  padding:11px 34px 11px 12px;
+  border:1px solid var(--gray-300);
+  border-radius:var(--radius);
+  background:var(--white);
+  color:var(--gray-900);
+  font:inherit;
+  font-size:0.84rem;
+}
+
+.market-explorer + .searchbar{
+  margin-top:18px;
+}
+
+.lang-menu{
+  position:relative;
+  flex:none;
+}
+
+.lang-menu-summary{
+  min-width:58px;
+  height:38px;
+  padding:0 9px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  border:1px solid var(--gray-200);
+  border-radius:var(--radius);
+  background:var(--white);
+  color:var(--gray-900);
+  font-size:0.75rem;
+  font-weight:500;
+  letter-spacing:0.05em;
+  cursor:pointer;
+  list-style:none;
+}
+
+.lang-menu-summary::-webkit-details-marker{
+  display:none;
+}
+
+.lang-menu[open] .lang-menu-summary,
+.lang-menu-summary:hover,
+.lang-menu-summary:focus-visible{
+  border-color:var(--gray-900);
+}
+
+.lang-menu-panel{
+  position:absolute;
+  z-index:90;
+  top:calc(100% + 10px);
+  right:0;
+  width:210px;
+  padding:7px;
+  border:1px solid var(--gray-200);
+  border-radius:var(--radius);
+  background:var(--white);
+  box-shadow:var(--shadow-soft);
+}
+
+.lang-menu-panel button{
+  width:100%;
+  min-height:38px;
+  padding:8px 10px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  border-radius:6px;
+  color:var(--gray-700);
+  text-align:left;
+  font-size:0.84rem;
+}
+
+.lang-menu-panel button:hover:not(:disabled),
+.lang-menu-panel button:focus-visible:not(:disabled),
+.lang-menu-panel button.active{
+  background:var(--gray-50);
+  color:var(--gray-900);
+}
+
+.lang-menu-panel button:disabled{
+  cursor:not-allowed;
+  opacity:0.52;
+}
+
+.lang-menu-panel small{
+  color:var(--gray-400);
+  font-size:0.67rem;
+  letter-spacing:0.05em;
+  white-space:nowrap;
+}
+
+@media(max-width:1180px){
+  .market-switch label{
+    display:none;
+  }
+
+  .market-switch select{
+    max-width:155px;
+  }
+}
+
+@media(max-width:900px){
+  .nav-actions .market-switch{
+    display:none;
+  }
+}
+
+@media(max-width:700px){
+  .hero{
+    padding-top:56px;
+  }
+
+  .hero h1{
+    font-size:2.75rem;
+  }
+
+  .market-explorer{
+    align-items:stretch;
+    flex-direction:column;
+    gap:12px;
+  }
+
+  .market-explorer select{
+    width:100%;
+  }
+}
+
+/* ---------- DESIGN.1C-R1 rhythm ---------- */
+.sr-only{
+  position:absolute !important;
+  width:1px !important;
+  height:1px !important;
+  padding:0 !important;
+  margin:-1px !important;
+  overflow:hidden !important;
+  clip:rect(0,0,0,0) !important;
+  white-space:nowrap !important;
+  border:0 !important;
+}
+
+.cat-tabs.design-balanced-categories{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+}
+
+.cat-tabs.design-balanced-categories .cat-tab{
+  min-width:0;
+  padding-left:16px;
+  padding-right:16px;
+  white-space:normal;
+  line-height:1.3;
+}
+
+.search-fields.search-fields-balanced{
+  display:grid;
+  grid-template-columns:
+    auto 1px
+    minmax(220px,2.2fr) 1px
+    minmax(130px,1fr) 1px
+    minmax(140px,1fr)
+    auto;
+  align-items:center;
+  min-height:72px;
+  padding:12px;
+}
+
+.search-fields-balanced .transaction-filter-inline{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:0 14px 0 0;
+  border:0;
+}
+
+.search-fields-balanced .transaction-tabs{
+  flex:none;
+  margin:0;
+}
+
+.search-fields-balanced .rental-period-control{
+  margin:0;
+}
+
+.search-fields-balanced .rental-period-control select{
+  min-width:116px;
+  height:38px;
+  padding:0 28px 0 10px;
+}
+
+.search-fields-balanced .divider{
+  height:30px;
+  align-self:center;
+}
+
+.search-fields-balanced > input,
+.search-fields-balanced > select{
+  width:100%;
+  min-width:0;
+}
+
+.search-fields-balanced .go{
+  min-height:44px;
+  margin-left:10px;
+  padding-left:28px;
+  padding-right:28px;
+}
+
+.principle-strip.design-balanced-principles{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  margin-top:56px;
+  align-items:stretch;
+}
+
+.principle-strip.design-balanced-principles .p{
+  padding:28px 28px 30px;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+}
+
+.principle-strip.design-balanced-principles .p .num{
+  display:block;
+  margin-bottom:10px;
+}
+
+.principle-strip.design-balanced-principles .p h4{
+  min-height:64px;
+  margin:0 0 10px;
+  display:flex;
+  align-items:flex-start;
+}
+
+.principle-strip.design-balanced-principles .p p{
+  margin:0;
+  max-width:340px;
+  line-height:1.55;
+}
+
+#home-status.design-home-status{
+  margin-top:56px !important;
+  margin-bottom:72px !important;
+  padding-top:54px !important;
+  padding-bottom:54px !important;
+}
+
+#home-status.design-home-status #home-status-body{
+  max-width:680px;
+  margin-left:auto;
+  margin-right:auto;
+  line-height:1.55;
+}
+
+@media(max-width:900px){
+  .cat-tabs.design-balanced-categories{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  .search-fields.search-fields-balanced{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    padding:14px;
+  }
+
+  .search-fields-balanced .transaction-filter-inline{
+    width:100%;
+    justify-content:space-between;
+    padding:0 0 10px;
+  }
+
+  .search-fields-balanced .transaction-divider,
+  .search-fields-balanced .divider{
+    display:none;
+  }
+
+  .search-fields-balanced > input{
+    flex:1 1 100%;
+  }
+
+  .search-fields-balanced > select{
+    flex:1 1 180px;
+  }
+
+  .search-fields-balanced .go{
+    flex:1 1 160px;
+    margin-left:0;
+  }
+
+  .principle-strip.design-balanced-principles{
+    grid-template-columns:1fr;
+  }
+
+  .principle-strip.design-balanced-principles .p h4{
+    min-height:0;
+  }
+}
+
+@media(max-width:560px){
+  .cat-tabs.design-balanced-categories{
+    grid-template-columns:1fr;
+  }
+
+  .search-fields-balanced .transaction-filter-inline{
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+  .search-fields-balanced .transaction-tabs,
+  .search-fields-balanced .rental-period-control,
+  .search-fields-balanced .rental-period-control select{
+    width:100%;
+  }
+
+  .principle-strip.design-balanced-principles{
+    margin-top:42px;
+  }
+
+  #home-status.design-home-status{
+    margin-top:42px !important;
+    margin-bottom:56px !important;
+  }
+}
+
+/* ---------- DESIGN.1D-R1 approved Atlantic hero ---------- */
+header.site .wrap.nav-row{
+  max-width:1440px;
+  padding-left:40px;
+  padding-right:40px;
+  gap:28px;
+}
+
+header.site .nav-links{
+  gap:24px;
+}
+
+.hero > .wrap{
+  position:relative;
+  isolation:isolate;
+}
+
+.hero > .wrap > :not(.hero-atlantic-visual){
+  position:relative;
+  z-index:2;
+}
+
+.hero-atlantic-visual{
+  position:absolute;
+  z-index:0;
+  top:-70px;
+  right:-92px;
+  width:min(64vw,900px);
+  height:690px;
+  overflow:hidden;
+  pointer-events:none;
+  opacity:.88;
+  -webkit-mask-image:linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(0,0,0,.18) 10%,
+    rgba(0,0,0,.72) 24%,
+    #000 38%,
+    #000 100%
+  );
+  mask-image:linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(0,0,0,.18) 10%,
+    rgba(0,0,0,.72) 24%,
+    #000 38%,
+    #000 100%
+  );
+}
+
+.hero-atlantic-visual::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent 76%,
+    var(--gray-50) 100%
+  );
+}
+
+.hero-atlantic-visual img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:50% 48%;
+  filter:saturate(.88) contrast(.98);
+}
+
+.hero h1{
+  max-width:690px;
+}
+
+.hero p.lead{
+  max-width:590px;
+}
+
+@media(max-width:1280px){
+  header.site .wrap.nav-row{
+    padding-left:24px;
+    padding-right:24px;
+    gap:20px;
+  }
+
+  header.site .nav-links{
+    gap:18px;
+  }
+
+  header.site .nav-actions{
+    gap:10px;
+  }
+
+  header.site .nav-actions .btn{
+    padding-left:18px;
+    padding-right:18px;
+  }
+
+  .hero-atlantic-visual{
+    right:-40px;
+    width:min(60vw,760px);
+    opacity:.74;
+  }
+}
+
+@media(max-width:980px){
+  .hero-atlantic-visual{
+    right:-120px;
+    width:70vw;
+    opacity:.34;
+  }
+}
+
+@media(max-width:760px){
+  header.site .wrap.nav-row{
+    padding-left:20px;
+    padding-right:20px;
+  }
+
+  .hero-atlantic-visual{
+    display:none;
+  }
+
+  .hero h1,
+  .hero p.lead{
+    max-width:none;
+  }
+}
+
+
+/* ---------- COUNTRY MARKET A1 organization + SEO foundation ---------- */
+.market-foundation-page{
+  min-height:calc(100vh - 72px);
+  background:#fff;
+}
+.market-foundation-hero{
+  position:relative;
+  overflow:hidden;
+  border-bottom:1px solid var(--gray-100);
+  background:
+    radial-gradient(circle at 82% 28%, rgba(188,151,83,.08), transparent 30%),
+    linear-gradient(180deg, #fff 0%, #fcfaf6 100%);
+}
+.market-foundation-hero-grid{
+  min-height:430px;
+  display:grid;
+  grid-template-columns:minmax(0,1.05fr) minmax(320px,.95fr);
+  align-items:center;
+  gap:56px;
+  padding-top:56px;
+  padding-bottom:56px;
+}
+.market-foundation-copy{
+  position:relative;
+  z-index:2;
+  max-width:760px;
+}
+.market-foundation-copy h1{
+  margin:10px 0 18px;
+  font-family:var(--serif);
+  font-size:clamp(2.4rem,4.2vw,4.4rem);
+  line-height:.98;
+  letter-spacing:-.035em;
+}
+.market-back-home{
+  margin-bottom:28px;
+  padding-left:0;
+}
+.market-foundation-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-top:24px;
+}
+.market-map-slot{
+  min-height:320px;
+  width:100%;
+  border-radius:28px;
+  opacity:.72;
+  background:
+    radial-gradient(circle at 48% 48%, rgba(188,151,83,.11), transparent 34%),
+    linear-gradient(135deg, rgba(246,241,230,.72), rgba(255,255,255,.34));
+}
+.market-foundation-section{
+  padding-top:56px;
+  padding-bottom:56px;
+  border-bottom:1px solid var(--gray-100);
+}
+.market-foundation-section .block-head{
+  margin-bottom:0;
+}
+.market-foundation-section .block-head p{
+  margin-top:8px;
+  max-width:760px;
+  color:var(--gray-500);
+  line-height:1.65;
+}
+#market-featured-root,
+#market-search-root{
+  min-height:1px;
+}
+@media(max-width:900px){
+  .market-foundation-hero-grid{
+    grid-template-columns:1fr;
+    min-height:auto;
+    gap:18px;
+    padding-top:34px;
+    padding-bottom:38px;
+  }
+  .market-map-slot{
+    min-height:180px;
+  }
+}
+@media(max-width:760px){
+  .market-map-slot{
+    display:none;
+  }
+  .market-foundation-section{
+    padding-top:40px;
+    padding-bottom:40px;
+  }
+}
+
+/* ---------- COUNTRY MARKET A2 exact map visual ---------- */
+.market-map-slot{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  isolation:isolate;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(197,166,111,.13), transparent 46%),
+    linear-gradient(135deg, rgba(250,246,237,.64), rgba(255,255,255,.18));
+}
+.market-map-slot::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:linear-gradient(90deg, rgba(255,255,255,.84) 0%, transparent 18%, transparent 82%, rgba(255,255,255,.70) 100%);
+  z-index:2;
+}
+.market-map-visual{
+  position:relative;
+  z-index:1;
+  width:100%;
+  height:100%;
+  max-width:760px;
+  max-height:430px;
+  object-fit:contain;
+  opacity:.90;
+  filter:drop-shadow(0 20px 34px rgba(128,98,47,.13));
+  -webkit-mask-image:linear-gradient(to right, transparent 0%, #000 13%, #000 88%, transparent 100%);
+  mask-image:linear-gradient(to right, transparent 0%, #000 13%, #000 88%, transparent 100%);
+}
+@media(max-width:900px){
+  .market-map-visual{
+    max-height:260px;
+  }
+}
+
+/* ---------- COUNTRY MARKET A3 six weekly featured slots ---------- */
+#market-featured-root{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:18px;
+  margin-top:26px;
+}
+.market-featured-slot{
+  position:relative;
+  min-width:0;
+  min-height:270px;
+  border-radius:18px;
+}
+.market-featured-card{
+  border:1px solid rgba(180,148,91,.34);
+  background:
+    linear-gradient(180deg,rgba(252,248,240,.82),rgba(255,255,255,.98));
+  box-shadow:0 18px 44px rgba(90,68,35,.07);
+}
+.market-featured-card .card{
+  height:100%;
+  margin:0;
+  border:0;
+  border-radius:18px;
+  box-shadow:none;
+  background:transparent;
+}
+.market-featured-card .thumb .badge{
+  display:none;
+}
+.market-featured-label{
+  position:absolute;
+  z-index:4;
+  top:14px;
+  left:14px;
+  display:inline-flex;
+  align-items:center;
+  min-height:26px;
+  padding:5px 10px;
+  border:1px solid rgba(171,136,75,.34);
+  border-radius:999px;
+  background:rgba(255,252,245,.94);
+  color:#8d6a34;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+  box-shadow:0 8px 20px rgba(108,78,30,.08);
+}
+.market-featured-empty{
+  display:flex;
+  align-items:flex-end;
+  gap:16px;
+  padding:22px;
+  border:1px dashed rgba(171,136,75,.34);
+  background:
+    radial-gradient(circle at 82% 18%,rgba(197,166,111,.10),transparent 35%),
+    linear-gradient(145deg,#fffdfa,#faf6ee);
+  color:var(--gray-500);
+}
+.market-featured-empty strong{
+  display:block;
+  margin-bottom:7px;
+  color:var(--gray-700);
+  font-family:'Cormorant Garamond',serif;
+  font-size:20px;
+  font-weight:500;
+}
+.market-featured-empty p{
+  margin:0;
+  line-height:1.55;
+}
+.market-featured-slot-number{
+  flex:0 0 auto;
+  color:rgba(151,113,52,.60);
+  font-family:'Cormorant Garamond',serif;
+  font-size:30px;
+  line-height:1;
+}
+.market-featured-loading{
+  min-height:210px;
+  opacity:.72;
+}
+.market-featured-error{
+  border-style:solid;
+}
+@media(max-width:980px){
+  #market-featured-root{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+@media(max-width:640px){
+  #market-featured-root{
+    grid-template-columns:1fr;
+  }
+  .market-featured-slot{
+    min-height:230px;
+  }
+}
+
+/* ---------- COUNTRY MARKET A4 sovereign scoped search ---------- */
+.market-scoped-search{
+  padding:18px;
+  border:1px solid rgba(180,148,91,.28);
+  border-radius:18px;
+  background:linear-gradient(
+    145deg,
+    rgba(255,253,249,.98),
+    rgba(249,245,236,.90)
+  );
+  box-shadow:0 16px 36px rgba(90,68,35,.05);
+}
+.market-search-fields{
+  display:grid;
+  grid-template-columns:
+    minmax(130px,.7fr)
+    minmax(220px,1.6fr)
+    minmax(190px,1fr)
+    auto;
+  gap:10px;
+  align-items:center;
+}
+.market-search-fields input,
+.market-search-fields select{
+  width:100%;
+  min-height:46px;
+  border:1px solid var(--gray-200);
+  border-radius:10px;
+  background:#fff;
+  padding:0 12px;
+  color:var(--gray-800);
+  font:inherit;
+}
+.market-search-fields .btn{
+  min-height:46px;
+  justify-content:center;
+  white-space:nowrap;
+}
+.market-search-pending{
+  padding:24px;
+  border:1px dashed rgba(171,136,75,.40);
+  border-radius:16px;
+  background:rgba(252,248,240,.72);
+}
+.market-search-pending strong{
+  display:block;
+  margin-bottom:8px;
+  font-family:'Cormorant Garamond',serif;
+  font-size:22px;
+  font-weight:500;
+  color:var(--gray-800);
+}
+.market-search-pending p{
+  margin:0;
+  max-width:760px;
+  color:var(--gray-500);
+  line-height:1.6;
+}
+@media(max-width:900px){
+  .market-search-fields{
+    grid-template-columns:1fr 1fr;
+  }
+}
+@media(max-width:620px){
+  .market-search-fields{
+    grid-template-columns:1fr;
+  }
+}
+
+/* ============================================================
+   PHASE B1 — SEARCH RESULTS LAYOUT FOUNDATION
+   Structural shell only. The right rail is intentionally reserved
+   and carries no paid/commercial content until the dedicated B3/B4
+   commercial-placement phase.
+   ============================================================ */
+#view-search .search-results-layout{
+  display:grid;
+  grid-template-columns:minmax(0,2fr) minmax(280px,1fr);
+  gap:32px;
+  align-items:start;
+}
+
+#view-search .search-results-main{
+  min-width:0;
+}
+
+#view-search #search-grid{
+  grid-template-columns:1fr;
+}
+
+#view-search .search-results-aside{
+  min-width:0;
+  min-height:1px;
+}
+
+@media(max-width:900px){
+  #view-search .search-results-layout{
+    grid-template-columns:1fr;
+    gap:22px;
+  }
+}
+
+/* ============================================================
+   PHASE B2 — HORIZONTAL ORGANIC SEARCH RESULT ROWS
+   ============================================================ */
+#view-search .search-result-row.card{
+  display:grid;
+  grid-template-columns:minmax(190px,32%) minmax(0,1fr);
+  min-height:190px;
+  height:auto;
+  margin:0;
+  overflow:hidden;
+  border:1px solid var(--gray-200);
+  border-radius:var(--radius);
+  background:#fff;
+  box-shadow:none;
+  transform:none;
+}
+
+#view-search .search-result-row.card:hover{
+  transform:none;
+}
+
+#view-search .search-result-thumb{
+  position:relative;
+  min-height:190px;
+  overflow:hidden;
+  background:linear-gradient(
+    135deg,
+    var(--gray-200),
+    var(--gray-100)
+  );
+}
+
+#view-search .search-result-thumb img{
+  display:block;
+  width:100%;
+  height:100%;
+  min-height:190px;
+  object-fit:cover;
+}
+
+#view-search .search-result-thumb .badge{
+  position:absolute;
+  top:14px;
+  left:14px;
+  z-index:1;
+}
+
+#view-search .search-result-body{
+  min-width:0;
+  padding:24px 26px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+
+#view-search .search-result-body .price{
+  font-family:'Cormorant Garamond';
+  font-size:1.55rem;
+}
+
+#view-search .search-result-title{
+  margin-top:8px;
+  font-size:1rem;
+  line-height:1.35;
+  color:var(--gray-900);
+}
+
+#view-search .search-result-body .loc{
+  margin-top:5px;
+  font-size:.82rem;
+  color:var(--gray-500);
+}
+
+#view-search .search-result-body .meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:14px;
+  margin-top:16px;
+  padding-top:13px;
+  border-top:1px solid var(--gray-100);
+  font-size:.78rem;
+  color:var(--gray-500);
+}
+
+#view-search .search-result-body .facts-count{
+  margin-top:11px;
+  font-size:.72rem;
+  color:var(--gold-dark);
+  letter-spacing:.04em;
+}
+
+@media(max-width:700px){
+  #view-search .search-result-row.card{
+    grid-template-columns:1fr;
+    min-height:0;
+  }
+
+  #view-search .search-result-thumb,
+  #view-search .search-result-thumb img{
+    min-height:190px;
+    height:190px;
+  }
+
+  #view-search .search-result-body{
+    padding:20px;
+  }
+}
+
+/* ============================================================
+   PHASE B3/B4 — SEARCH FEATURED RAIL
+   ============================================================ */
+#view-search .search-results-aside[aria-hidden="true"]{
+  display:none;
+}
+
+#view-search .search-results-aside[aria-hidden="false"]{
+  display:block;
+}
+
+#view-search .search-featured-rail{
+  position:sticky;
+  top:24px;
+}
+
+#view-search .search-featured-rail-head{
+  margin-bottom:14px;
+  padding-bottom:10px;
+  border-bottom:1px solid var(--gray-200);
+}
+
+#view-search .search-featured-slots{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:18px;
+}
+
+#view-search .search-featured-slot{
+  min-width:0;
+}
+
+#view-search .search-featured-label{
+  display:block;
+  margin-bottom:8px;
+  font-size:.7rem;
+  font-weight:700;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--gold-dark);
+}
+
+#view-search .search-featured-card .card{
+  width:100%;
+  margin:0;
+}
+
+#view-search .search-featured-card .card .thumb{
+  height:150px;
+}
+
+#view-search .search-featured-empty{
+  min-height:120px;
+  padding:18px;
+  display:flex;
+  gap:14px;
+  align-items:flex-start;
+  border:1px solid var(--gray-200);
+  border-radius:var(--radius);
+  background:var(--gray-50);
+}
+
+#view-search .search-featured-slot-number{
+  flex:0 0 auto;
+  font-family:'Cormorant Garamond';
+  font-size:1.15rem;
+  color:var(--gold-dark);
+}
+
+#view-search .search-featured-empty strong{
+  display:block;
+  font-size:.86rem;
+  color:var(--gray-800);
+}
+
+#view-search .search-featured-empty p{
+  margin-top:6px;
+  font-size:.76rem;
+  line-height:1.5;
+  color:var(--gray-500);
+}
+
+@media(max-width:900px){
+  #view-search .search-featured-rail{
+    position:static;
+  }
+
+  #view-search .search-featured-slots{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+}
+
+@media(max-width:700px){
+  #view-search .search-featured-slots{
+    grid-template-columns:1fr;
+  }
+}
+
+/* PHASE B5 — Search organic pagination */
+#view-search .search-results-pagination{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:14px;
+  margin-top:24px;
+  padding-top:20px;
+  border-top:1px solid var(--gray-200);
+}
+
+#view-search .search-pagination-button{
+  min-height:40px;
+  padding:9px 16px;
+  border:1px solid var(--gray-300);
+  border-radius:999px;
+  background:white;
+  color:var(--gray-800);
+  font:inherit;
+  font-size:0.84rem;
+  cursor:pointer;
+}
+
+#view-search .search-pagination-button:hover:not(:disabled){
+  border-color:var(--gold);
+  color:var(--gold-dark);
+}
+
+#view-search .search-pagination-button:disabled{
+  opacity:.42;
+  cursor:default;
+}
+
+#view-search .search-pagination-label{
+  min-width:110px;
+  text-align:center;
+  color:var(--gray-600);
+  font-size:0.84rem;
+}
+
+@media(max-width:700px){
+  #view-search .search-results-pagination{
+    gap:9px;
+  }
+
+  #view-search .search-pagination-button{
+    padding:8px 11px;
+  }
+
+  #view-search .search-pagination-label{
+    min-width:0;
+  }
+}
+
+/* ---------- MAP.V4 mainland + real relief note ---------- */
+.market-map-slot[data-map-relief-v1="true"]{
+  flex-direction:column;
+}
+.market-map-slot[data-map-note-required="true"] .market-map-visual{
+  height:calc(100% - 42px);
+  min-height:0;
+}
+.market-map-omission-note{
+  position:relative;
+  z-index:3;
+  flex:0 0 auto;
+  max-width:620px;
+  margin:3px 22px 8px;
+  color:var(--gray-500);
+  font-size:11px;
+  font-weight:500;
+  line-height:1.45;
+  letter-spacing:.01em;
+  text-align:center;
+}
+@media(max-width:900px){
+  .market-map-omission-note{
+    max-width:520px;
+    margin-bottom:5px;
+    font-size:10.5px;
+  }
+}

@@ -126,26 +126,64 @@ test('six formatting locales', () => {
   );
 });
 
-test('legacy shell remains FR EN PT only', () => {
+test('six-language menu is visible while only translated locales are selectable', () => {
   assert.deepStrictEqual(
     locales.LEGACY_TRANSLATED_LOCALES,
     ['fr','en','pt']
   );
 
-  assert(
-    !/data-lang="(?:es|de|it)"/.test(
-      body.match(
-        /<div\s+class="lang-switch"[^>]*>([\s\S]*?)<\/div>/
-      )[1]
-    )
+  assert.deepStrictEqual(
+    locales.PUBLIC_LOCALES,
+    ['fr','en','pt','es','de','it']
   );
+
+  const panelMatch = body.match(
+    /<div\s+class="lang-menu-panel"[^>]*>([\s\S]*?)<\/div>/
+  );
+
+  assert(
+    panelMatch,
+    'compact language menu panel must exist'
+  );
+
+  const panel = panelMatch[1];
+
+  for (const lang of locales.PUBLIC_LOCALES) {
+    assert(
+      panel.includes(`data-lang="${lang}"`),
+      `language menu must visibly include ${lang}`
+    );
+  }
+
+  for (const lang of locales.LEGACY_TRANSLATED_LOCALES) {
+    assert(
+      new RegExp(
+        `<button[^>]*data-lang="${lang}"(?![^>]*disabled)[^>]*>`
+      ).test(panel),
+      `${lang} must remain selectable`
+    );
+  }
+
+  for (const lang of ['es','de','it']) {
+    assert(
+      new RegExp(
+        `<button[^>]*data-lang="${lang}"[^>]*disabled[^>]*>`
+      ).test(panel),
+      `${lang} must be visible but disabled until complete translations ship`
+    );
+  }
 });
 
-test('French is statically active', () => {
+test('French remains the static public default in the compact menu', () => {
   assert(
     body.includes(
-      'data-lang="fr" class="active"'
+      'id="current-lang-label">FR</span>'
     )
+  );
+
+  assert.strictEqual(
+    locales.DEFAULT_PUBLIC_LOCALE,
+    'fr'
   );
 });
 

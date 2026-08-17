@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "status": "source_prepared_not_applied",
+  "purpose": "Z Find exact-market Geography convergence contract for the five sub-country marketplace markets.",
+  "apply_mode": "forward_only_infrastructure_migration_after_explicit_db_authority",
+  "auto_zone_binding": false,
+  "external_code_system": "ISO_3166-2",
+  "binding_policy": {
+    "projection": "zones_lite",
+    "canonical_reference_column": "geography_entity_id",
+    "binding_status_column": "geography_binding_status",
+    "required_binding_status": "linked",
+    "binding_is_explicit": true,
+    "parent_country_substitution": false,
+    "city_name_heuristic": false
+  },
+  "desired_nodes": [
+    {
+      "market_key": "GB-ENG",
+      "country_iso": "GB",
+      "location_type": "constituent-country",
+      "canonical_code": "GB-ENG",
+      "parent_country_iso": "GB",
+      "external_code": "GB-ENG"
+    },
+    {
+      "market_key": "GB-SCT",
+      "country_iso": "GB",
+      "location_type": "constituent-country",
+      "canonical_code": "GB-SCT",
+      "parent_country_iso": "GB",
+      "external_code": "GB-SCT"
+    },
+    {
+      "market_key": "GB-WLS",
+      "country_iso": "GB",
+      "location_type": "constituent-country",
+      "canonical_code": "GB-WLS",
+      "parent_country_iso": "GB",
+      "external_code": "GB-WLS"
+    },
+    {
+      "market_key": "GB-NIR",
+      "country_iso": "GB",
+      "location_type": "constituent-country",
+      "canonical_code": "GB-NIR",
+      "parent_country_iso": "GB",
+      "external_code": "GB-NIR"
+    },
+    {
+      "market_key": "AE-DU",
+      "country_iso": "AE",
+      "location_type": "emirate",
+      "canonical_code": "AE-DU",
+      "parent_country_iso": "AE",
+      "external_code": "AE-DU"
+    }
+  ],
+  "live_audit_requirements": [
+    "Re-audit GB and AE canonical Geography immediately before any live bootstrap apply.",
+    "Require zero conflicting active GB/AE country roots and zero conflicting exact-market identities.",
+    "Apply the reviewed canonical bootstrap only through the forward-only infrastructure migration after explicit database authority.",
+    "Verify seven canonical locations and five current ISO_3166-2 exact-market external codes before activating the Z Find read RPC.",
+    "Enumerate zones_lite rows for GB and AE after inventory exists and determine explicit canonical Geography bindings from authoritative source data only.",
+    "Do not infer bindings from city names, parent country, UI language, or map geometry.",
+    "General runtime Geography database writing remains a separate architecture phase; the current import command port is not a live PostgreSQL writer."
+  ],
+  "canonical_bootstrap_delivery": "forward_only_infrastructure_migration",
+  "canonical_bootstrap_migration": "infrastructure/supabase/migrations/20260816220000_zos_geography_exact_market_bootstrap_v1.sql",
+  "runtime_direct_db_writer": false,
+  "bootstrap_migration_live_apply_authorized": false
+}

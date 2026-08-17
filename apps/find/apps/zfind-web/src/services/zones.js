@@ -37,6 +37,63 @@ async function getZoneById(zoneId) {
   return safeQuery(() => client.from('zones_lite').select('id, name, city, country_iso').eq('id', zoneId).single(), 'zones.getZoneById');
 }
 
+async function listByCountryIso(countryIso) {
+  const client = getSupabaseClient();
+
+  if (
+    typeof countryIso !== 'string' ||
+    !/^[A-Z]{2}$/.test(countryIso)
+  ) {
+    return {
+      data: null,
+      error: {
+        type: 'malformed_response',
+        context: 'zones.listByCountryIso',
+        message: 'countryIso must be an ISO 3166-1 alpha-2 code.'
+      }
+    };
+  }
+
+  return safeQuery(
+    () => client
+      .from('zones_lite')
+      .select('id, name, city, country_iso')
+      .eq('country_iso', countryIso),
+    'zones.listByCountryIso'
+  );
+}
+
+const EXACT_MARKET_KEYS = Object.freeze([
+  'GB-ENG',
+  'GB-SCT',
+  'GB-WLS',
+  'GB-NIR',
+  'AE-DU'
+]);
+
+async function resolveExactMarketScope(marketKey) {
+  const client = getSupabaseClient();
+
+  if (!EXACT_MARKET_KEYS.includes(marketKey)) {
+    return {
+      data: null,
+      error: {
+        type: 'malformed_response',
+        context: 'zones.resolveExactMarketScope',
+        message: 'marketKey is not an approved exact-market key.'
+      }
+    };
+  }
+
+  return safeQuery(
+    () => client.rpc(
+      'zfind_public_exact_market_scope',
+      { p_market_key: marketKey }
+    ),
+    'zones.resolveExactMarketScope'
+  );
+}
+
 /** cards is whatever loadSearchResults({ zoneLiteId }) already
     returned — this never re-fetches, only summarises. */
 function computeZoneStats(cards) {
@@ -46,6 +103,6 @@ function computeZoneStats(cards) {
   return { listingCount, avgPrice, hasEnoughForStats: listingCount >= MIN_LISTINGS_FOR_STATS };
 }
 
-return { getZoneById, computeZoneStats, MIN_LISTINGS_FOR_STATS };
+return { getZoneById, listByCountryIso, resolveExactMarketScope, computeZoneStats, MIN_LISTINGS_FOR_STATS };
 
 });

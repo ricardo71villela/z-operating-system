@@ -40,6 +40,8 @@ const fs = require('fs');
 const path = require('path');
 
 const DIST_SEO_DIR = path.join(__dirname, '..', 'dist', 'seo');
+const marketRegistry = require('../src/services/market-registry.js');
+const seoGenerator = require('../src/services/seo-page-generator.js');
 
 function normalizeBaseUrl(baseUrl) {
   if (!baseUrl || typeof baseUrl !== 'string' || !/^https?:\/\//.test(baseUrl)) {
@@ -107,6 +109,69 @@ function writeIndexingArtifacts(baseUrl, urls) {
   );
 }
 
+function buildMarketSeoEntries(baseUrl) {
+  const base = normalizeBaseUrl(baseUrl);
+  const entries = [];
+
+  for (const market of marketRegistry.listMarkets()) {
+    const pathByLocale = Object.fromEntries(
+      marketRegistry.MARKET_LOCALES.map(locale => [
+        locale,
+        marketRegistry.marketPath(market.key, locale)
+      ])
+    );
+
+    for (const locale of marketRegistry.MARKET_LOCALES) {
+      const copy = marketRegistry.marketPresentation(
+        market.key,
+        locale
+      );
+
+      const publicPath = pathByLocale[locale];
+      const canonicalUrl = base + publicPath;
+
+      const html = seoGenerator.buildMarketPage({
+        baseUrl: base,
+        locale,
+        marketKey: market.key,
+        marketLabel: copy.label,
+        publicPath,
+        pathByLocale,
+        heroEyebrow: copy.heroEyebrow,
+        heroTitle: copy.heroTitle,
+        heroLead: copy.heroLead,
+        featuredTitle: copy.featuredTitle,
+        featuredIntro: copy.featuredIntro,
+        searchTitle: copy.searchTitle,
+        searchIntro: copy.searchIntro,
+        guidesTitle: copy.guidesTitle,
+        guidesIntro: copy.guidesIntro,
+        legalLabel: copy.legalLabel,
+        rentalLabel: copy.rentalLabel,
+        openInteractive: copy.openInteractive,
+        seoTitle: copy.seoTitle,
+        seoDescription: copy.seoDescription,
+        interactiveSpaPath: `/#/${locale}/market/${market.key}`,
+        legalSpaPath: `/#/${locale}/${market.legalRoute}`,
+        touristRentalSpaPath:
+          `/#/${locale}/${market.touristRentalRoute}`
+      });
+
+      entries.push({
+        marketKey: market.key,
+        locale,
+        publicPath,
+        canonicalUrl,
+        outRelativePath:
+          publicPath.replace(/^\/+/, '') + '.html',
+        html
+      });
+    }
+  }
+
+  return entries;
+}
+
 async function main() {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
@@ -153,7 +218,7 @@ async function main() {
 
   const searchService = require('../src/services/search.js');
   const developmentsService = require('../src/services/developments.js');
-  const generator = require('../src/services/seo-page-generator.js');
+  const generator = seoGenerator;
   const zoneImages = require('../src/services/zone-images.js');
 
   const [propertiesResult, developmentsResult] = await Promise.all([
@@ -173,6 +238,31 @@ async function main() {
 
   let written = 0;
   const sitemapUrls = new Set();
+
+  // Market pages are deterministic, DB-independent and complete 6/6.
+  // They are generated from the product Market Registry, not inferred
+  // from whichever listings happen to be published today.
+  const marketEntries = buildMarketSeoEntries(baseUrl);
+
+  for (const entry of marketEntries) {
+    const outPath = path.join(
+      DIST_SEO_DIR,
+      entry.outRelativePath
+    );
+
+    fs.mkdirSync(
+      path.dirname(outPath),
+      { recursive:true }
+    );
+
+    fs.writeFileSync(
+      outPath,
+      entry.html
+    );
+
+    sitemapUrls.add(entry.canonicalUrl);
+    written++;
+  }
 
   async function writeListingPages(rows, kind) {
     for (const row of rows) {
@@ -275,4 +365,5 @@ module.exports = {
   normalizeBaseUrl,
   buildRobotsTxt,
   buildSitemapXml,
+  buildMarketSeoEntries,
 };
