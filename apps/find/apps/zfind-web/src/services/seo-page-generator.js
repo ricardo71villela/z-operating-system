@@ -34,6 +34,7 @@
 })(typeof window !== 'undefined' ? window : this, function () {
 
 const LOCALES = ['en', 'pt', 'fr'];
+const MARKET_LOCALES = ['fr', 'en', 'pt', 'es', 'de', 'it'];
 
 /*
  * Legacy renderer keeps the three complete Phase-3 translations.
@@ -68,6 +69,150 @@ function buildMetaDescription(text, maxLen) {
 function hreflangLinks(baseUrl, pathForLocale) {
   return LOCALES.map(l => `<link rel="alternate" hreflang="${l}" href="${baseUrl}${pathForLocale(l)}">`).join('\n  ')
     + `\n  <link rel="alternate" hreflang="x-default" href="${baseUrl}${pathForLocale(DEFAULT_LOCALE)}">`;
+}
+
+function marketHreflangLinks(baseUrl, pathByLocale) {
+  return MARKET_LOCALES
+    .map(locale => {
+      const path = pathByLocale[locale];
+      if (!path) {
+        throw new Error(
+          `Market SEO requires an exact ${locale} alternate path.`
+        );
+      }
+      return `<link rel="alternate" hreflang="${locale}" href="${baseUrl}${path}">`;
+    })
+    .join('\n  ')
+    + `\n  <link rel="alternate" hreflang="x-default" href="${baseUrl}${pathByLocale[DEFAULT_LOCALE]}">`;
+}
+
+function buildMarketPage({
+  baseUrl,
+  locale,
+  marketKey,
+  marketLabel,
+  publicPath,
+  pathByLocale,
+  heroEyebrow,
+  heroTitle,
+  heroLead,
+  featuredTitle,
+  featuredIntro,
+  searchTitle,
+  searchIntro,
+  guidesTitle,
+  guidesIntro,
+  legalLabel,
+  rentalLabel,
+  openInteractive,
+  seoTitle,
+  seoDescription,
+  interactiveSpaPath,
+  legalSpaPath,
+  touristRentalSpaPath
+}) {
+  const base = requireBaseUrl(baseUrl);
+
+  if (!MARKET_LOCALES.includes(locale)) {
+    throw new Error('Unsupported Market SEO locale.');
+  }
+
+  if (!publicPath || pathByLocale[locale] !== publicPath) {
+    throw new Error('Market SEO public path mismatch.');
+  }
+
+  const canonical = base + publicPath;
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: seoTitle,
+    description: seoDescription,
+    url: canonical,
+    about: {
+      '@type': 'Place',
+      name: marketLabel
+    }
+  };
+
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Z Find',
+        item: `${base}/`
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: marketLabel,
+        item: canonical
+      }
+    ]
+  };
+
+  return `<!DOCTYPE html>
+<html lang="${locale}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escapeHtml(seoTitle)}</title>
+<meta name="description" content="${escapeAttr(seoDescription)}">
+<link rel="canonical" href="${canonical}">
+${marketHreflangLinks(base, pathByLocale)}
+<meta property="og:type" content="website">
+<meta property="og:title" content="${escapeAttr(seoTitle)}">
+<meta property="og:description" content="${escapeAttr(seoDescription)}">
+<meta property="og:url" content="${canonical}">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
+<script type="application/ld+json">${JSON.stringify(breadcrumbLd)}</script>
+</head>
+<body>
+<main data-zfind-market-key="${escapeAttr(marketKey)}">
+  <nav aria-label="breadcrumb">
+    <a href="${base}/">Z Find</a> /
+    <span>${escapeHtml(marketLabel)}</span>
+  </nav>
+
+  <header>
+    <p>${escapeHtml(heroEyebrow)}</p>
+    <h1>${escapeHtml(heroTitle)}</h1>
+    <p>${escapeHtml(heroLead)}</p>
+  </header>
+
+  <section>
+    <h2>${escapeHtml(featuredTitle)}</h2>
+    <p>${escapeHtml(featuredIntro)}</p>
+  </section>
+
+  <section>
+    <h2>${escapeHtml(searchTitle)}</h2>
+    <p>${escapeHtml(searchIntro)}</p>
+  </section>
+
+  <section>
+    <h2>${escapeHtml(guidesTitle)}</h2>
+    <p>${escapeHtml(guidesIntro)}</p>
+    <p>
+      <a href="${base}${legalSpaPath}">${escapeHtml(legalLabel)}</a>
+      ·
+      <a href="${base}${touristRentalSpaPath}">${escapeHtml(rentalLabel)}</a>
+    </p>
+  </section>
+
+  <p>
+    <a href="${base}${interactiveSpaPath}">
+      ${escapeHtml(openInteractive)} →
+    </a>
+  </p>
+
+</main>
+</body>
+</html>`;
 }
 
 /** Property/Development share the same JSON-LD shape closely enough
@@ -216,6 +361,15 @@ ${absoluteImageUrl ? `<meta property="og:image" content="${escapeAttr(absoluteIm
 </html>`;
 }
 
-return { buildListingPage, buildZonePage, buildMetaDescription, MIN_LISTINGS_FOR_STATS, LOCALES, DEFAULT_LOCALE };
+return {
+  buildListingPage,
+  buildZonePage,
+  buildMarketPage,
+  buildMetaDescription,
+  MIN_LISTINGS_FOR_STATS,
+  LOCALES,
+  MARKET_LOCALES,
+  DEFAULT_LOCALE
+};
 
 });

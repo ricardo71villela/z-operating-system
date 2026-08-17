@@ -20,6 +20,294 @@ const DEFAULT_LANG =
   PUBLIC_LOCALE_CONFIG.DEFAULT_PUBLIC_LOCALE;
 
 const state = { lang:DEFAULT_LANG, view:'home', id:null, query:{} };
+
+// COUNTRY MARKET A1 — product-market authority is now independent
+// from legal-guide routing. Stable market keys drive one reusable Market
+// renderer; Legal/Tourist Rental remain secondary routes in the registry.
+const MARKET_REGISTRY_SERVICE =
+  window.ZFindServices && window.ZFindServices.marketRegistry;
+
+if (!MARKET_REGISTRY_SERVICE) {
+  throw new Error('Z Find market registry unavailable.');
+}
+
+const FEATURED_MARKET_SERVICE =
+  window.ZFindServices && window.ZFindServices.marketFeatured;
+
+if (!FEATURED_MARKET_SERVICE) {
+  throw new Error('Z Find market Featured service unavailable.');
+}
+
+const MARKET_SEARCH_SCOPE_SERVICE =
+  window.ZFindServices && window.ZFindServices.marketSearchScope;
+
+if (!MARKET_SEARCH_SCOPE_SERVICE) {
+  throw new Error('Z Find Market Search scope service unavailable.');
+}
+
+const SEARCH_PAGINATION_SERVICE =
+  window.ZFindServices &&
+  window.ZFindServices.searchPagination;
+
+if (!SEARCH_PAGINATION_SERVICE) {
+  throw new Error(
+    'Z Find Search pagination service unavailable.'
+  );
+}
+
+const searchResultsCache = {
+  key: null,
+  result: null
+};
+
+function clearSearchResultsCache() {
+  searchResultsCache.key = null;
+  searchResultsCache.result = null;
+}
+
+function searchResultsCacheKey(
+  lang,
+  q,
+  transactionType,
+  rentalPeriod
+) {
+  return JSON.stringify([
+    lang || '',
+    q && q.market || '',
+    q && q.q || '',
+    q && q.subtype || '',
+    transactionType || '',
+    rentalPeriod || '',
+    q && q.budget || ''
+  ]);
+}
+
+function clearSearchPagination() {
+  const root =
+    document.getElementById(
+      'search-results-pagination'
+    );
+
+  if (!root) return;
+
+  root.innerHTML = '';
+  root.style.display = 'none';
+  root.dataset.paginationState = 'hidden';
+  root.removeAttribute('data-pagination-page');
+  root.removeAttribute('data-pagination-page-count');
+  root.removeAttribute('data-pagination-total-count');
+}
+
+function goToSearchPage(targetPage) {
+  const page =
+    SEARCH_PAGINATION_SERVICE.parsePage(
+      targetPage
+    );
+
+  const next =
+    Object.assign(
+      {},
+      state.query || {}
+    );
+
+  if (page <= 1) {
+    delete next.page;
+  } else {
+    next.page = String(page);
+  }
+
+  navigate(
+    'search',
+    null,
+    next
+  );
+}
+
+function normalizeSearchPageQuery(
+  pagination,
+  query
+) {
+  const raw =
+    query && query.page
+      ? String(query.page)
+      : '';
+
+  const canonical =
+    pagination.page > 1
+      ? String(pagination.page)
+      : '';
+
+  if (raw === canonical) {
+    return false;
+  }
+
+  const next =
+    Object.assign(
+      {},
+      query || {}
+    );
+
+  if (canonical) {
+    next.page = canonical;
+  } else {
+    delete next.page;
+  }
+
+  navigate(
+    'search',
+    null,
+    next
+  );
+
+  return true;
+}
+
+function searchPaginationHTML(pagination) {
+  const copy =
+    SEARCH_PAGINATION_SERVICE.presentation(
+      state.lang,
+      {
+        page: pagination.page,
+        pageCount: pagination.pageCount
+      }
+    );
+
+  const previousDisabled =
+    pagination.page <= 1;
+
+  const nextDisabled =
+    pagination.page >= pagination.pageCount;
+
+  return `
+    <button
+      id="search-pagination-previous"
+      class="search-pagination-button"
+      type="button"
+      ${previousDisabled ? 'disabled' : ''}
+      aria-disabled="${previousDisabled ? 'true' : 'false'}"
+      onclick="goToSearchPage(${pagination.page - 1})"
+    >${copy.previous}</button>
+    <span
+      class="search-pagination-label"
+      aria-live="polite"
+    >${copy.page}</span>
+    <button
+      id="search-pagination-next"
+      class="search-pagination-button"
+      type="button"
+      ${nextDisabled ? 'disabled' : ''}
+      aria-disabled="${nextDisabled ? 'true' : 'false'}"
+      onclick="goToSearchPage(${pagination.page + 1})"
+    >${copy.next}</button>
+  `;
+}
+
+function renderSearchPagination(pagination) {
+  clearSearchPagination();
+
+  if (
+    !pagination ||
+    pagination.pageCount <= 1 ||
+    pagination.totalCount <= 0
+  ) {
+    return;
+  }
+
+  const root =
+    document.getElementById(
+      'search-results-pagination'
+    );
+
+  if (!root) return;
+
+  root.dataset.paginationState = 'ready';
+  root.dataset.paginationPage =
+    String(pagination.page);
+  root.dataset.paginationPageCount =
+    String(pagination.pageCount);
+  root.dataset.paginationTotalCount =
+    String(pagination.totalCount);
+
+  root.innerHTML =
+    searchPaginationHTML(pagination);
+
+  root.style.display = '';
+}
+
+function marketSortLocale(lang) {
+  return PUBLIC_LOCALE_CONFIG.formattingLocaleFor(lang);
+}
+
+function syncMarketSelects() {
+  const currentKey =
+    state.view === 'market' && MARKET_REGISTRY_SERVICE.getMarket(state.id)
+      ? state.id
+      : '';
+
+  document
+    .querySelectorAll('[data-market-select]')
+    .forEach(select => {
+      select.replaceChildren();
+
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = t(state.lang, 'market.choose');
+      select.appendChild(placeholder);
+
+      MARKET_REGISTRY_SERVICE
+        .listMarkets()
+        .map(market => ({
+          market,
+          label: MARKET_REGISTRY_SERVICE.marketLabel(
+            market.key,
+            state.lang
+          )
+        }))
+        .sort((a, b) => a.label.localeCompare(
+          b.label,
+          marketSortLocale(state.lang),
+          { sensitivity:'base' }
+        ))
+        .forEach(({ market, label }) => {
+          const option = document.createElement('option');
+          option.value = market.key;
+          option.textContent = label;
+          select.appendChild(option);
+        });
+
+      select.value = currentKey;
+      select.setAttribute(
+        'aria-label',
+        t(state.lang, 'market.aria')
+      );
+    });
+}
+
+function navigateMarket(marketKey) {
+  if (!marketKey) return;
+  if (!MARKET_REGISTRY_SERVICE.getMarket(marketKey)) return;
+
+  // Entering a market intentionally starts a market context from zero;
+  // arbitrary query state from the prior page must not leak across markets.
+  navigate('market', marketKey, {});
+}
+
+function focusMarketExplorer() {
+  const explorer = document.getElementById('market-explorer');
+  const select = document.getElementById('hero-market');
+
+  if (explorer) {
+    explorer.scrollIntoView({
+      behavior:'smooth',
+      block:'center'
+    });
+  }
+
+  if (select) {
+    setTimeout(() => select.focus(), 250);
+  }
+}
+
 let currentListingIdForEnquiry = null;
 let currentUnitContext = null;
 
@@ -52,6 +340,13 @@ function parseHash() {
   const query = {};
   if (queryPart) { new URLSearchParams(queryPart).forEach((v,k) => { query[k] = v; }); }
 
+  if (
+    state.view === 'search' &&
+    view !== 'search'
+  ) {
+    clearSearchResultsCache();
+  }
+
   state.lang = lang; state.view = view; state.id = id; state.query = query;
   localStorage.setItem('zfind_lang', lang);
   render();
@@ -68,6 +363,148 @@ function navigate(view, id, query) {
   const q = query !== undefined ? query : (view === state.view ? state.query : {});
   location.hash = '/' + state.lang + '/' + view + (id ? '/' + id : '') + buildQueryString(q);
 }
+
+/* ---------------- Phase C: Search -> detail return context ---------------- */
+const SEARCH_RETURN_QUERY_KEYS = Object.freeze([
+  'market',
+  'q',
+  'subtype',
+  'transactionType',
+  'rentalPeriod',
+  'budget',
+  'page'
+]);
+
+function canonicalSearchReturnQuery(query) {
+  const source =
+    query && typeof query === 'object'
+      ? query
+      : {};
+
+  const canonical = {};
+
+  SEARCH_RETURN_QUERY_KEYS.forEach(key => {
+    if (
+      !Object.prototype.hasOwnProperty.call(
+        source,
+        key
+      )
+    ) {
+      return;
+    }
+
+    let value =
+      source[key] == null
+        ? ''
+        : String(source[key]).trim();
+
+    if (!value) return;
+
+    if (key === 'page') {
+      if (!/^[1-9]\d*$/.test(value)) return;
+
+      const page = Number(value);
+
+      if (
+        !Number.isSafeInteger(page) ||
+        page < 2
+      ) {
+        return;
+      }
+
+      value = String(page);
+    }
+
+    canonical[key] = value;
+  });
+
+  return canonical;
+}
+
+function searchReturnDetailQuery(query) {
+  const canonical =
+    canonicalSearchReturnQuery(query);
+
+  const nested =
+    new URLSearchParams();
+
+  SEARCH_RETURN_QUERY_KEYS.forEach(key => {
+    if (
+      Object.prototype.hasOwnProperty.call(
+        canonical,
+        key
+      )
+    ) {
+      nested.set(
+        key,
+        canonical[key]
+      );
+    }
+  });
+
+  return {
+    returnTo: 'search',
+    returnQuery: nested.toString()
+  };
+}
+
+function searchReturnQueryFromDetail(query) {
+  const source =
+    query && typeof query === 'object'
+      ? query
+      : {};
+
+  if (
+    source.returnTo !== 'search' ||
+    typeof source.returnQuery !== 'string'
+  ) {
+    return {};
+  }
+
+  const parsed = {};
+
+  try {
+    new URLSearchParams(
+      source.returnQuery
+    ).forEach((value, key) => {
+      if (
+        SEARCH_RETURN_QUERY_KEYS.includes(
+          key
+        )
+      ) {
+        parsed[key] = value;
+      }
+    });
+  } catch (_) {
+    return {};
+  }
+
+  return canonicalSearchReturnQuery(
+    parsed
+  );
+}
+
+function navigateSearchOriginDetail(view, id) {
+  navigate(
+    view,
+    id,
+    searchReturnDetailQuery(
+      state.query || {}
+    )
+  );
+}
+
+function navigateBackToSearchResults() {
+  navigate(
+    'search',
+    null,
+    searchReturnQueryFromDetail(
+      state.query || {}
+    )
+  );
+}
+/* ---------------- End Phase C return context ---------------- */
+
 
 function setLang(lang) {
   if (!SUPPORTED_LANGS.includes(lang)) return;
@@ -89,17 +526,39 @@ function applyI18n() {
   document.querySelectorAll('[data-i18n-ph]').forEach(el => {
     el.setAttribute('placeholder', t(state.lang, el.getAttribute('data-i18n-ph')));
   });
-  document.querySelectorAll('.lang-switch button').forEach(b => {
+  document.querySelectorAll('.lang-menu button[data-lang]').forEach(b => {
     b.classList.toggle('active', b.dataset.lang === state.lang);
   });
+  const currentLangLabel = document.getElementById('current-lang-label');
+  if (currentLangLabel) currentLangLabel.textContent = state.lang.toUpperCase();
   document.querySelectorAll('.nav-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.view === state.view);
   });
+  syncMarketSelects();
+  syncHomeTypeOptions(
+    document.getElementById('home-type')
+      ? document.getElementById('home-type').value
+      : ''
+  );
 }
 
 /* ---------------- Card rendering (shared by Home / Search / Partner) ---------------- */
-function cardHTML(vm) {
-  return `<div class="card" onclick="navigate('${vm.kind==='Development'?'development':(vm.kind==='Land'?'land':'property')}','${vm.assetId}')">
+function cardHTML(vm, searchOrigin = false) {
+  const target =
+    vm.kind === 'Development'
+      ? 'development'
+      : (
+          vm.kind === 'Land'
+            ? 'land'
+            : 'property'
+        );
+
+  const detailNavigation =
+    searchOrigin
+      ? `navigateSearchOriginDetail('${target}','${vm.assetId}')`
+      : `navigate('${target}','${vm.assetId}')`;
+
+  return `<div class="card" onclick="${detailNavigation}">
     <div class="thumb"><span class="badge ${vm.badgeGold?'gold':''}">${vm.badgeLabel}</span></div>
     <div class="body">
       <div class="price">${vm.priceLabel}</div>
@@ -110,6 +569,67 @@ function cardHTML(vm) {
   </div>`;
 }
 
+
+/**
+ * Search-only organic result renderer.
+ *
+ * Shared cardHTML() remains untouched for Home, Partner and
+ * Country Market Featured.
+ */
+function searchResultRowHTML(vm) {
+  const target =
+    vm.kind === 'Development'
+      ? 'development'
+      : (
+          vm.kind === 'Land'
+            ? 'land'
+            : 'property'
+        );
+
+  const hasImage =
+    typeof vm.imageUrl === 'string' &&
+    vm.imageUrl.trim();
+
+  const imageHTML =
+    hasImage
+      ? `<img
+          src="${vm.imageUrl}"
+          alt=""
+          loading="lazy"
+          decoding="async"
+        >`
+      : '';
+
+  return `
+    <article
+      class="card search-result-row"
+      data-search-result-kind="${vm.kind}"
+      data-search-result-asset-id="${vm.assetId}"
+      data-search-image-state="${hasImage ? 'resolved' : 'placeholder'}"
+      onclick="navigateSearchOriginDetail('${target}','${vm.assetId}')"
+    >
+      <div class="search-result-thumb">
+        ${imageHTML}
+        <span class="badge ${vm.badgeGold ? 'gold' : ''}">
+          ${vm.badgeLabel}
+        </span>
+      </div>
+
+      <div class="search-result-body">
+        <div class="price">${vm.priceLabel}</div>
+        <div class="search-result-title">${vm.title}</div>
+        <div class="loc">${vm.locationLabel}</div>
+        <div class="meta">
+          ${vm.meta
+            .map(item => `<span>${item}</span>`)
+            .join('')}
+        </div>
+        <div class="facts-count">${vm.factsLine}</div>
+      </div>
+    </article>
+  `;
+}
+
 /* ---------------- Sprint 1.2: Home status (loading / empty / error) ----------------
    One shared status container reused across all three states, same
    pattern already established by #search-empty (see body.html) — no
@@ -117,15 +637,400 @@ function cardHTML(vm) {
 function setHomeStatus(kind, titleKey, bodyKey) {
   const statusEl = document.getElementById('home-status');
   const gridsWrap = document.getElementById('home-grids-wrap');
+  const marketCta = document.getElementById('home-status-market-cta');
+
   if (kind === 'none') {
     statusEl.style.display = 'none';
     gridsWrap.style.display = '';
+    if (marketCta) marketCta.style.display = 'none';
     return;
   }
+
   gridsWrap.style.display = 'none';
   statusEl.style.display = '';
   document.getElementById('home-status-title').textContent = t(state.lang, titleKey);
   document.getElementById('home-status-body').textContent = t(state.lang, bodyKey);
+
+  if (marketCta) {
+    marketCta.style.display = kind === 'empty' ? 'inline-flex' : 'none';
+  }
+}
+
+function renderMarketSearch(market) {
+  const root = document.getElementById('market-search-root');
+  if (!root) return;
+
+  const scope =
+    MARKET_SEARCH_SCOPE_SERVICE.resolveMarketScope(
+      market
+    );
+
+  const copy =
+    MARKET_SEARCH_SCOPE_SERVICE.presentation(
+      state.lang
+    );
+
+  if (!scope.supported) {
+    root.dataset.marketSearchState =
+      'exact-scope-pending';
+
+    root.innerHTML = `
+      <div class="market-search-pending">
+        <strong>${copy.exactPendingTitle}</strong>
+        <p>${copy.exactPendingBody}</p>
+      </div>
+    `;
+    return;
+  }
+
+  root.dataset.marketSearchState = 'ready';
+
+  const typeOptions =
+    MARKET_SEARCH_SCOPE_SERVICE
+      .typeOptions(state.lang)
+      .map(row =>
+        `<option value="${row.value}">${row.label}</option>`
+      )
+      .join('');
+
+  root.innerHTML = `
+    <div
+      class="market-scoped-search"
+      data-market-key="${market.key}"
+      data-country-iso="${scope.countryIso}"
+    >
+      <div class="market-search-fields">
+        <select
+          id="market-search-transaction"
+          aria-label="${copy.buy} / ${copy.rent}"
+        >
+          <option value="sale">${copy.buy}</option>
+          <option value="rent">${copy.rent}</option>
+        </select>
+
+        <input
+          id="market-search-q"
+          type="text"
+          placeholder="${copy.locationPlaceholder}"
+          aria-label="${copy.locationPlaceholder}"
+        >
+
+        <select
+          id="market-search-type"
+          aria-label="${copy.typeAny}"
+        >
+          ${typeOptions}
+        </select>
+
+        <button
+          class="btn btn-gold"
+          type="button"
+          onclick="submitMarketSearch('${market.key}')"
+        >${copy.search}</button>
+      </div>
+    </div>
+  `;
+}
+
+function submitMarketSearch(marketKey) {
+  const market =
+    MARKET_REGISTRY_SERVICE.getMarket(
+      marketKey
+    );
+
+  const scope =
+    MARKET_SEARCH_SCOPE_SERVICE
+      .resolveMarketScope(market);
+
+  if (!scope.supported) {
+    return;
+  }
+
+  const transaction =
+    document.getElementById(
+      'market-search-transaction'
+    );
+
+  const location =
+    document.getElementById(
+      'market-search-q'
+    );
+
+  const type =
+    document.getElementById(
+      'market-search-type'
+    );
+
+  navigate(
+    'search',
+    null,
+    {
+      market: market.key,
+      transactionType:
+        transaction && transaction.value === 'rent'
+          ? 'rent'
+          : 'sale',
+      q: location ? location.value : '',
+      subtype: type ? type.value : ''
+    }
+  );
+}
+
+function featuredEmptySlotHTML(position, title, body, stateClass) {
+  return `
+    <article
+      class="market-featured-slot market-featured-empty ${stateClass || ''}"
+      data-featured-slot="${position}"
+      aria-label="${title}"
+    >
+      <span class="market-featured-slot-number">
+        ${String(position).padStart(2, '0')}
+      </span>
+      <div>
+        <strong>${title}</strong>
+        <p>${body}</p>
+      </div>
+    </article>
+  `;
+}
+
+function featuredCardSlotHTML(slot, copy) {
+  return `
+    <div
+      class="market-featured-slot market-featured-card"
+      data-featured-slot="${slot.position}"
+      data-featured-asset-id="${slot.card.assetId}"
+      data-featured-kind="${slot.card.kind}"
+    >
+      <span class="market-featured-label">
+        ${copy.featuredBadge}
+      </span>
+      ${cardHTML(slot.card)}
+    </div>
+  `;
+}
+
+async function renderMarketFeatured(market) {
+  const root = document.getElementById('market-featured-root');
+  if (!root) return;
+
+  const copy =
+    MARKET_REGISTRY_SERVICE.marketPresentation(
+      market.key,
+      state.lang
+    );
+
+  root.dataset.featuredState = 'loading';
+  root.dataset.featuredCount = '0';
+
+  root.innerHTML =
+    FEATURED_MARKET_SERVICE
+      .buildSlots([])
+      .map(slot =>
+        featuredEmptySlotHTML(
+          slot.position,
+          copy.featuredLoading,
+          '',
+          'market-featured-loading'
+        )
+      )
+      .join('');
+
+  const result =
+    await loadFeaturedCandidateCards(state.lang);
+
+  // Ignore an obsolete async response if the visitor moved away while
+  // the read was in flight.
+  if (
+    state.view !== 'market' ||
+    state.id !== market.key
+  ) {
+    return;
+  }
+
+  if (result.error) {
+    console.error(
+      'Market Featured data load failed:',
+      result.error
+    );
+
+    root.dataset.featuredState = 'error';
+    root.innerHTML =
+      FEATURED_MARKET_SERVICE
+        .buildSlots([])
+        .map(slot =>
+          featuredEmptySlotHTML(
+            slot.position,
+            copy.featuredErrorTitle,
+            copy.featuredErrorBody,
+            'market-featured-error'
+          )
+        )
+        .join('');
+    return;
+  }
+
+  const selected =
+    FEATURED_MARKET_SERVICE.selectPreviewCards(
+      result.cards,
+      market
+    );
+
+  const slots =
+    FEATURED_MARKET_SERVICE.buildSlots(selected);
+
+  root.dataset.featuredState = 'ready';
+  root.dataset.featuredCount = String(selected.length);
+
+  root.innerHTML = slots
+    .map(slot =>
+      slot.card
+        ? featuredCardSlotHTML(slot, copy)
+        : featuredEmptySlotHTML(
+            slot.position,
+            copy.featuredEmptyTitle,
+            copy.featuredEmptyBody,
+            ''
+          )
+    )
+    .join('');
+}
+
+function renderMarket(marketKey) {
+  const root = document.getElementById('market-root');
+  if (!root) return;
+
+  const market = MARKET_REGISTRY_SERVICE.getMarket(marketKey);
+
+  if (!market) {
+    root.innerHTML = `
+      <div class="wrap market-foundation-page">
+        <button class="btn btn-ghost" type="button"
+          onclick="navigate('home')">
+          ${t(state.lang, 'navigation.home')}
+        </button>
+        <div class="empty" style="margin-top:24px;">
+          <h3>${t(state.lang, 'home.errorTitle')}</h3>
+          <p>${t(state.lang, 'home.errorBody')}</p>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const copy = MARKET_REGISTRY_SERVICE.marketPresentation(
+    market.key,
+    state.lang
+  );
+
+  root.innerHTML = `
+    <div class="market-foundation-page">
+      <section class="market-foundation-hero">
+        <div class="wrap market-foundation-hero-grid">
+          <div class="market-foundation-copy">
+            <button
+              class="btn btn-ghost market-back-home"
+              type="button"
+              onclick="navigate('home')"
+            >← ${copy.backHome}</button>
+
+            <span class="eyebrow">${copy.heroEyebrow}</span>
+            <h1>${copy.heroTitle}</h1>
+            <p class="lead">${copy.heroLead}</p>
+
+            <div class="market-foundation-actions">
+              <button
+                class="btn btn-outline"
+                type="button"
+                onclick="navigate('${market.legalRoute}')"
+              >${copy.legalLabel}</button>
+
+              <button
+                class="btn btn-outline"
+                type="button"
+                onclick="navigate('${market.touristRentalRoute}')"
+              >${copy.rentalLabel}</button>
+            </div>
+          </div>
+
+          <div
+            class="market-map-slot"
+            data-market-map-key="${market.geography.code}"
+            data-market-map-kind="${market.geography.kind}"
+            aria-hidden="true"
+          >
+            <img
+              class="market-map-visual"
+              src="${market.mapAsset}"
+              alt=""
+              width="1000"
+              height="760"
+              loading="eager"
+              decoding="async"
+              fetchpriority="high"
+              aria-hidden="true"
+            >
+          </div>
+        </div>
+      </section>
+
+      <section class="wrap market-foundation-section">
+        <div class="block-head">
+          <div>
+            <span class="eyebrow">${copy.featuredTitle}</span>
+            <p>${copy.featuredIntro}</p>
+          </div>
+        </div>
+        <div
+          id="market-featured-root"
+          data-featured-slot-capacity="6"
+          data-featured-commercial-model="pending-dedicated-phase"
+          data-featured-selection-mode="source-backed-market-preview"
+        ></div>
+      </section>
+
+      <section class="wrap market-foundation-section">
+        <div class="block-head">
+          <div>
+            <span class="eyebrow">${copy.searchTitle}</span>
+            <p>${copy.searchIntro}</p>
+          </div>
+        </div>
+        <div
+          id="market-search-root"
+          data-market-key="${market.key}"
+          data-market-search-scope-kind="${market.searchScope.kind}"
+          data-market-search-scope-value="${market.searchScope.value}"
+        ></div>
+      </section>
+
+      <section class="wrap market-foundation-section market-guide-links">
+        <div class="block-head">
+          <div>
+            <span class="eyebrow">${copy.guidesTitle}</span>
+            <p>${copy.guidesIntro}</p>
+          </div>
+        </div>
+
+        <div class="market-foundation-actions">
+          <button
+            class="btn btn-outline"
+            type="button"
+            onclick="navigate('${market.legalRoute}')"
+          >${copy.legalLabel}</button>
+
+          <button
+            class="btn btn-outline"
+            type="button"
+            onclick="navigate('${market.touristRentalRoute}')"
+          >${copy.rentalLabel}</button>
+        </div>
+      </section>
+    </div>
+  `;
+
+  renderMarketFeatured(market);
+  renderMarketSearch(market);
 }
 
 async function renderHome() {
@@ -184,6 +1089,79 @@ function budgetToRange(code) {
   if (code === 'r-o4000') return { budgetMin:4000, budgetMax:null };
 
   return { budgetMin:null, budgetMax:null };
+}
+
+const HOME_CATEGORY_SUBTYPES = Object.freeze({
+  residential:Object.freeze(['apartment','villa']),
+  commercial:Object.freeze(['office','retail','industrial_logistics','hospitality']),
+  developments:Object.freeze(['development']),
+  land:Object.freeze(['land'])
+});
+
+const HOME_CATEGORY_TYPE_LABEL_KEYS = Object.freeze({
+  residential:Object.freeze([
+    ['apartment','search.typeApartment'],
+    ['villa','search.typeVilla']
+  ]),
+  commercial:Object.freeze([
+    ['office','search.typeOffice'],
+    ['retail','search.typeRetail'],
+    ['industrial_logistics','search.typeIndustrialLogistics'],
+    ['hospitality','search.typeHospitality']
+  ]),
+  developments:Object.freeze([
+    ['development','search.typeDevelopment']
+  ]),
+  land:Object.freeze([
+    ['land','search.typeLand']
+  ])
+});
+
+let homeCategory = 'residential';
+
+function syncHomeTypeOptions(selectedValue = '') {
+  const select = document.getElementById('home-type');
+  if (!select) return;
+
+  const rows =
+    HOME_CATEGORY_TYPE_LABEL_KEYS[homeCategory] || [];
+
+  select.innerHTML = [
+    `<option value="">${t(state.lang, 'search.typeAny')}</option>`,
+    ...rows.map(
+      ([value, labelKey]) =>
+        `<option value="${value}">${t(state.lang, labelKey)}</option>`
+    )
+  ].join('');
+
+  const allowed =
+    new Set(rows.map(([value]) => value));
+
+  select.value =
+    allowed.has(selectedValue) ? selectedValue : '';
+}
+
+function setHomeCategory(category) {
+  homeCategory =
+    Object.prototype.hasOwnProperty.call(
+      HOME_CATEGORY_SUBTYPES,
+      category
+    )
+      ? category
+      : 'residential';
+
+  document
+    .querySelectorAll(
+      '#view-home .cat-tabs button[data-cat]'
+    )
+    .forEach(button => {
+      button.classList.toggle(
+        'active',
+        button.dataset.cat === homeCategory
+      );
+    });
+
+  syncHomeTypeOptions('');
 }
 
 let homeTransactionType = 'sale';
@@ -319,6 +1297,7 @@ function setHomeRentalPeriod(rentalPeriod) {
 
 function setSearchTransaction(transactionType) {
   const next = Object.assign({}, state.query || {});
+  delete next.page;
   next.transactionType = transactionType === 'rent' ? 'rent' : 'sale';
   next.budget = '';
 
@@ -333,6 +1312,7 @@ function setSearchTransaction(transactionType) {
 
 function setSearchRentalPeriod(rentalPeriod) {
   const next = Object.assign({}, state.query || {});
+  delete next.page;
   next.transactionType = 'rent';
   next.rentalPeriod = ['monthly', 'seasonal', 'yearly'].includes(rentalPeriod)
     ? rentalPeriod
@@ -346,12 +1326,27 @@ function setSearchRentalPeriod(rentalPeriod) {
 
 function pillFilterToQuery(filterKey) {
   if (filterKey === 'all') return { subtype:'' };
-  return { subtype:filterKey }; // apartment / villa / development / land
+
+  if (filterKey === 'commercial') {
+    return {
+      subtype:HOME_CATEGORY_SUBTYPES.commercial.join(',')
+    };
+  }
+
+  return { subtype:filterKey };
 }
 
 function currentPillForQuery(q) {
   if (q.subtype === 'apartment') return 'apartment';
   if (q.subtype === 'villa') return 'villa';
+
+  if (
+    q.subtype ===
+    HOME_CATEGORY_SUBTYPES.commercial.join(',')
+  ) {
+    return 'commercial';
+  }
+
   if (q.subtype === 'development') return 'development';
   if (q.subtype === 'land') return 'land';
   return 'all';
@@ -367,21 +1362,274 @@ function setSearchStatus(kind, titleKey, bodyKey) {
   document.getElementById('search-empty-body').textContent = t(state.lang, bodyKey);
 }
 
+
+/* ============================================================
+   PHASE B3/B4 — SEARCH FEATURED RAIL
+   ============================================================ */
+
+/**
+ * Search-only empty/loading/error Featured slot.
+ *
+ * Copy is reused from the six-language Market presentation
+ * authority. No new Search-only public wording is introduced.
+ */
+function searchFeaturedEmptySlotHTML(
+  position,
+  title,
+  body,
+  stateClass
+) {
+  return `
+    <article
+      class="search-featured-slot search-featured-empty ${stateClass || ''}"
+      data-search-featured-slot="${position}"
+      aria-label="${title}"
+    >
+      <span class="search-featured-slot-number">
+        ${String(position).padStart(2, '0')}
+      </span>
+      <div>
+        <strong>${title}</strong>
+        ${body ? `<p>${body}</p>` : ''}
+      </div>
+    </article>
+  `;
+}
+
+/**
+ * Search-only Featured wrapper around the shared vertical card.
+ *
+ * Organic Search remains owned by searchResultRowHTML().
+ */
+function searchFeaturedCardSlotHTML(slot, copy) {
+  return `
+    <div
+      class="search-featured-slot search-featured-card"
+      data-search-featured-slot="${slot.position}"
+      data-search-featured-asset-id="${slot.card.assetId}"
+      data-search-featured-kind="${slot.card.kind}"
+    >
+      <span class="search-featured-label">
+        ${copy.featuredBadge}
+      </span>
+      ${cardHTML(slot.card, true)}
+    </div>
+  `;
+}
+
+function searchFeaturedRailShellHTML(copy, slotsHTML) {
+  return `
+    <div
+      class="search-featured-rail"
+      data-search-featured-rail="market-scoped"
+    >
+      <div class="search-featured-rail-head">
+        <span class="eyebrow">${copy.featuredTitle}</span>
+      </div>
+      <div class="search-featured-slots">
+        ${slotsHTML}
+      </div>
+    </div>
+  `;
+}
+
+function hideSearchFeaturedRail(stateValue) {
+  const aside =
+    document.getElementById('search-results-aside');
+
+  if (!aside) return;
+
+  aside.dataset.searchAsideState =
+    stateValue || 'unscoped';
+
+  delete aside.dataset.searchFeaturedMarket;
+  aside.setAttribute('aria-hidden', 'true');
+  aside.innerHTML = '';
+}
+
+/**
+ * Three-slot Search Featured rail.
+ *
+ * Authority is explicit q.market only. Candidate inventory uses the
+ * existing passive published read and the exact same deterministic
+ * market selection primitive as the Country Market Page. Organic
+ * Search filters never influence this rail.
+ */
+async function renderSearchFeaturedRail(marketKey) {
+  const aside =
+    document.getElementById('search-results-aside');
+
+  if (!aside) return;
+
+  if (!marketKey) {
+    hideSearchFeaturedRail('unscoped');
+    return;
+  }
+
+  const market =
+    MARKET_REGISTRY_SERVICE.getMarket(marketKey);
+
+  if (!market) {
+    hideSearchFeaturedRail('invalid-market');
+    return;
+  }
+
+  const copy =
+    MARKET_REGISTRY_SERVICE.marketPresentation(
+      market.key,
+      state.lang
+    );
+
+  const loadingSlots =
+    FEATURED_MARKET_SERVICE
+      .buildSlots([])
+      .slice(0, 3);
+
+  aside.dataset.searchAsideState = 'loading';
+  aside.dataset.searchFeaturedMarket = market.key;
+  aside.setAttribute('aria-hidden', 'false');
+
+  aside.innerHTML =
+    searchFeaturedRailShellHTML(
+      copy,
+      loadingSlots
+        .map(slot =>
+          searchFeaturedEmptySlotHTML(
+            slot.position,
+            copy.featuredLoading,
+            '',
+            'search-featured-loading'
+          )
+        )
+        .join('')
+    );
+
+  const result =
+    await loadFeaturedCandidateCards(state.lang);
+
+  // Ignore a stale async response after navigation or market change.
+  if (
+    state.view !== 'search' ||
+    !state.query ||
+    state.query.market !== market.key
+  ) {
+    return;
+  }
+
+  if (result.error) {
+    console.error(
+      'Search Featured rail data load failed:',
+      result.error
+    );
+
+    const errorSlots =
+      FEATURED_MARKET_SERVICE
+        .buildSlots([])
+        .slice(0, 3);
+
+    aside.dataset.searchAsideState = 'error';
+
+    aside.innerHTML =
+      searchFeaturedRailShellHTML(
+        copy,
+        errorSlots
+          .map(slot =>
+            searchFeaturedEmptySlotHTML(
+              slot.position,
+              copy.featuredErrorTitle,
+              copy.featuredErrorBody,
+              'search-featured-error'
+            )
+          )
+          .join('')
+      );
+
+    return;
+  }
+
+  const selected =
+    FEATURED_MARKET_SERVICE.selectPreviewCards(
+      result.cards,
+      market
+    );
+
+  const slots =
+    FEATURED_MARKET_SERVICE
+      .buildSlots(selected)
+      .slice(0, 3);
+
+  aside.dataset.searchAsideState =
+    selected.length ? 'ready' : 'empty';
+
+  aside.innerHTML =
+    searchFeaturedRailShellHTML(
+      copy,
+      slots
+        .map(slot =>
+          slot.card
+            ? searchFeaturedCardSlotHTML(slot, copy)
+            : searchFeaturedEmptySlotHTML(
+                slot.position,
+                copy.featuredEmptyTitle,
+                copy.featuredEmptyBody,
+                'search-featured-open'
+              )
+        )
+        .join('')
+    );
+}
+
 async function renderSearch() {
   const q = state.query || {};
-  const transactionType = effectiveTransactionType(q);
-  const rentalPeriod = effectiveRentalPeriod(q, transactionType);
 
-  // Seasonal/yearly amounts are not compared against monthly rental ranges.
+  const transactionType =
+    effectiveTransactionType(q);
+
+  const rentalPeriod =
+    effectiveRentalPeriod(
+      q,
+      transactionType
+    );
+
+  const cacheKey =
+    searchResultsCacheKey(
+      state.lang,
+      q,
+      transactionType,
+      rentalPeriod
+    );
+
+  const cacheHit =
+    searchResultsCache.key === cacheKey &&
+    Boolean(searchResultsCache.result);
+
+  clearSearchPagination();
+
+  // Phase B5 page-only navigation must touch only the organic
+  // presentation contract. The Featured rail depends on market,
+  // never page, so a cache hit must not refetch/re-render it.
+  if (!cacheHit) {
+    renderSearchFeaturedRail(q.market || null)
+      .catch(error => {
+        console.error(
+          'Search Featured rail failed:',
+          error
+        );
+      });
+  }
+
   const range = (
     transactionType === 'rent' && rentalPeriod !== 'monthly'
   )
     ? { budgetMin:null, budgetMax:null }
     : budgetToRange(q.budget);
 
-  // Sync controls immediately (don't wait on the network for this).
-  const qInput = document.getElementById('search-q');
-  if (qInput) qInput.value = q.q || '';
+  const qInput =
+    document.getElementById('search-q');
+
+  if (qInput) {
+    qInput.value = q.q || '';
+  }
 
   syncTransactionTabs(
     'search-transaction-tabs',
@@ -402,64 +1650,276 @@ async function renderSearch() {
     q.budget || ''
   );
 
-  const activePill = currentPillForQuery(q);
-  document.querySelectorAll('#view-search .tabs-row .pill').forEach(b => b.classList.toggle('active', b.dataset.filter === activePill));
+  const activePill =
+    currentPillForQuery(q);
 
-  document.getElementById('search-grid').style.display = 'none';
-  setSearchStatus('loading', 'home.loadingTitle', 'home.loadingBody');
+  document
+    .querySelectorAll(
+      '#view-search .tabs-row .pill'
+    )
+    .forEach(
+      button => button.classList.toggle(
+        'active',
+        button.dataset.filter === activePill
+      )
+    );
 
-  const result = await loadSearchResults(state.lang, {
-    q: q.q || '',
-    subtype: (q.subtype || '').split(',').filter(Boolean),
-    transactionType,
-    rentalPeriod,
-    budgetMin: range.budgetMin,
-    budgetMax: range.budgetMax,
-  });
+  let result;
+
+  if (cacheHit) {
+    result =
+      searchResultsCache.result;
+  } else {
+    clearSearchResultsCache();
+
+    document
+      .getElementById('search-grid')
+      .style.display = 'none';
+
+    setSearchStatus(
+      'loading',
+      'home.loadingTitle',
+      'home.loadingBody'
+    );
+
+    result =
+      await loadSearchResults(
+        state.lang,
+        {
+          q: q.q || '',
+          subtype:
+            (q.subtype || '')
+              .split(',')
+              .filter(Boolean),
+          transactionType,
+          rentalPeriod,
+          budgetMin: range.budgetMin,
+          budgetMax: range.budgetMax,
+          marketKey: q.market || undefined
+        }
+      );
+
+    // Async Search results may complete after the user has changed
+    // Search intent or left Search. Never cache/render a stale result.
+    const currentQ =
+      state.query || {};
+
+    const currentTransactionType =
+      effectiveTransactionType(
+        currentQ
+      );
+
+    const currentRentalPeriod =
+      effectiveRentalPeriod(
+        currentQ,
+        currentTransactionType
+      );
+
+    const currentCacheKey =
+      searchResultsCacheKey(
+        state.lang,
+        currentQ,
+        currentTransactionType,
+        currentRentalPeriod
+      );
+
+    if (
+      state.view !== 'search' ||
+      currentCacheKey !== cacheKey
+    ) {
+      return;
+    }
+
+    if (!result.error) {
+      searchResultsCache.key = cacheKey;
+      searchResultsCache.result = result;
+    }
+  }
 
   if (result.error) {
-    console.error('Search failed:', result.error);
-    setSearchStatus('error', 'home.errorTitle', 'home.errorBody');
+    console.error(
+      'Search failed:',
+      result.error
+    );
+
+    setSearchStatus(
+      'error',
+      'home.errorTitle',
+      'home.errorBody'
+    );
+
     return;
   }
 
-  const filtered = result.cards;
-  document.getElementById('search-results-title').textContent = t(state.lang, 'search.resultsTitle', { count: filtered.length, market: computeMarketLabel(filtered) });
+  const presentationQuery =
+    state.query || q;
 
-  if (!filtered.length) {
-    setSearchStatus('empty', 'search.noResultsTitle', 'search.noResultsBody');
+  if (result.scopeUnavailable) {
+    // Scope-unavailable has no organic pages. Canonicalize any
+    // stale/forged page query to page 1 without re-fetching.
+    if (presentationQuery.page) {
+      goToSearchPage(1);
+      return;
+    }
+
+    const copy =
+      MARKET_SEARCH_SCOPE_SERVICE.presentation(
+        state.lang
+      );
+
+    const emptyEl =
+      document.getElementById(
+        'search-empty'
+      );
+
+    const gridEl =
+      document.getElementById(
+        'search-grid'
+      );
+
+    gridEl.innerHTML = '';
+    gridEl.style.display = 'none';
+    emptyEl.style.display = '';
+
+    document.getElementById(
+      'search-empty-title'
+    ).textContent =
+      copy.exactPendingTitle;
+
+    document.getElementById(
+      'search-empty-body'
+    ).textContent =
+      copy.exactPendingBody;
+
+    return;
+  }
+
+  const fullCards =
+    Array.isArray(result.cards)
+      ? result.cards
+      : [];
+
+  const selectedMarket =
+    presentationQuery.market
+      ? MARKET_REGISTRY_SERVICE
+          .getMarket(
+            presentationQuery.market
+          )
+      : null;
+
+  const selectedMarketLabel =
+    selectedMarket
+      ? MARKET_REGISTRY_SERVICE
+          .marketLabel(
+            selectedMarket.key,
+            state.lang
+          )
+      : computeMarketLabel(fullCards);
+
+  document.getElementById(
+    'search-results-title'
+  ).textContent =
+    t(
+      state.lang,
+      'search.resultsTitle',
+      {
+        count: fullCards.length,
+        market: selectedMarketLabel
+      }
+    );
+
+  const pagination =
+    SEARCH_PAGINATION_SERVICE.paginate(
+      fullCards,
+      presentationQuery.page
+    );
+
+  // Canonical URL authority:
+  // - page 1 => no page parameter
+  // - invalid input => page 1
+  // - overflow => exact last page
+  // The cache is already populated, so normalization cannot re-run
+  // the underlying Search or its analytics write.
+  if (
+    normalizeSearchPageQuery(
+      pagination,
+      presentationQuery
+    )
+  ) {
+    return;
+  }
+
+  if (!fullCards.length) {
+    const emptyGridEl =
+      document.getElementById(
+        'search-grid'
+      );
+
+    emptyGridEl.innerHTML = '';
+    emptyGridEl.style.display = 'none';
+
+    setSearchStatus(
+      'empty',
+      'search.noResultsTitle',
+      'search.noResultsBody'
+    );
+
     return;
   }
 
   setSearchStatus('none');
-  document.getElementById('search-grid').style.display = '';
-  document.getElementById('search-grid').innerHTML = filtered.map(cardHTML).join('');
+
+  const gridEl =
+    document.getElementById(
+      'search-grid'
+    );
+
+  gridEl.style.display = '';
+  gridEl.innerHTML =
+    pagination.cards
+      .map(searchResultRowHTML)
+      .join('');
+
+  renderSearchPagination(
+    pagination
+  );
 }
 
 function applySearchBar() {
   const qVal = document.getElementById('search-q').value;
   const budgetVal = document.getElementById('search-budget').value;
-  navigate('search', null, Object.assign({}, state.query, { q: qVal, budget: budgetVal }));
+  const next = Object.assign({}, state.query, { q: qVal, budget: budgetVal });
+  delete next.page;
+  navigate('search', null, next);
 }
 
 function clearSearchFilters() {
-  navigate('search', null, { transactionType:'sale' });
+  const next = {
+    transactionType:'sale'
+  };
+
+  if (state.query && state.query.market) {
+    next.market = state.query.market;
+  }
+
+  navigate('search', null, next);
 }
 
 function submitHomeSearch() {
-  const activeTab = document.querySelector('#view-home .cat-tabs button.active');
-  const tabCat = activeTab ? activeTab.dataset.cat : 'residential';
   const transactionType = homeTransactionType;
-  const typeVal = document.getElementById('home-type').value; // may override tab with a more specific choice
+  const typeVal = document.getElementById('home-type').value;
   const qVal = document.getElementById('home-q').value;
   const budgetVal = document.getElementById('home-budget').value;
 
   let query;
   if (typeVal) {
-    query = pillFilterToQuery(typeVal);
+    query = { subtype:typeVal };
   } else {
-    const catMap = { residential:'apartment,villa', developments:'development', land:'land' };
-    query = { subtype: catMap[tabCat] || '' };
+    query = {
+      subtype:
+        (HOME_CATEGORY_SUBTYPES[homeCategory] || [])
+          .join(',')
+    };
   }
   query.transactionType = transactionType;
 
@@ -483,7 +1943,7 @@ function statusTag(status) {
 /* ---------------- Property detail ---------------- */
 function detailStatusHTML(titleKey, bodyKey) {
   return `<div class="wrap" style="padding-top:20px;">
-    <a href="#" onclick="navigate('search');return false;" class="btn-ghost" style="font-size:0.82rem;">${t(state.lang,'common.backToResults')}</a>
+    <a href="#" onclick="navigateBackToSearchResults();return false;" class="btn-ghost" style="font-size:0.82rem;">${t(state.lang,'common.backToResults')}</a>
   </div>
   <div style="text-align:center; padding:60px 20px; border:1px solid var(--gray-200); border-radius:var(--radius); background:var(--gray-50); max-width:1200px; margin:20px auto;">
     <h3 style="font-size:1.4rem;">${t(state.lang, titleKey)}</h3>
@@ -519,7 +1979,7 @@ async function renderProperty(assetId) {
 
   document.getElementById('property-root').innerHTML = `
   <div class="wrap" style="padding-top:20px;">
-    <a href="#" onclick="navigate('search');return false;" class="btn-ghost" style="font-size:0.82rem;">${t(L,'common.backToResults')}</a>
+    <a href="#" onclick="navigateBackToSearchResults();return false;" class="btn-ghost" style="font-size:0.82rem;">${t(L,'common.backToResults')}</a>
   </div>
   <div class="detail-hero">
     <div class="wrap">
@@ -620,7 +2080,7 @@ async function renderDevelopment(assetId) {
 
   document.getElementById('development-root').innerHTML = `
   <div class="wrap" style="padding-top:20px;">
-    <a href="#" onclick="navigate('search');return false;" class="btn-ghost" style="font-size:0.82rem;">${t(L,'common.backToResults')}</a>
+    <a href="#" onclick="navigateBackToSearchResults();return false;" class="btn-ghost" style="font-size:0.82rem;">${t(L,'common.backToResults')}</a>
   </div>
   <div class="detail-hero">
     <div class="wrap">
@@ -757,7 +2217,7 @@ async function renderLand(assetId) {
 
   root.innerHTML = `
   <div class="wrap" style="padding-top:20px;">
-    <a href="#" onclick="navigate('search');return false;" class="btn-ghost" style="font-size:0.82rem;">${t(L,'common.backToResults')}</a>
+    <a href="#" onclick="navigateBackToSearchResults();return false;" class="btn-ghost" style="font-size:0.82rem;">${t(L,'common.backToResults')}</a>
   </div>
 
   <div class="detail-hero">
@@ -1464,6 +2924,7 @@ function render() {
 
   switch (state.view) {
     case 'home': renderHome(); break;
+    case 'market': renderMarket(state.id); break;
     case 'search': renderSearch(); break;
     case 'property': renderProperty(state.id); break;
     case 'development': renderDevelopment(state.id); break;
@@ -1527,14 +2988,21 @@ function render() {
 document.addEventListener('DOMContentLoaded', () => {
   initMobilePrimaryNavigation();
   document.querySelectorAll('.nav-btn').forEach(b => b.addEventListener('click', () => navigate(b.dataset.view)));
-  document.querySelectorAll('.lang-switch button').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang)));
+  document.querySelectorAll('.lang-menu button[data-lang]').forEach(b => b.addEventListener('click', () => {
+    if (b.disabled) return;
+    setLang(b.dataset.lang);
+    const menu = document.getElementById('language-menu');
+    if (menu) menu.removeAttribute('open');
+  }));
   document.querySelectorAll('#view-home .cat-tabs button').forEach(b => {
     b.addEventListener('click', () => { document.querySelectorAll('#view-home .cat-tabs button').forEach(x=>x.classList.remove('active')); b.classList.add('active'); });
   });
   document.querySelectorAll('#view-search .tabs-row .pill').forEach(b => {
     b.addEventListener('click', () => {
       const filterQuery = pillFilterToQuery(b.dataset.filter);
-      navigate('search', null, Object.assign({}, state.query, filterQuery));
+      const next = Object.assign({}, state.query, filterQuery);
+      delete next.page;
+      navigate('search', null, next);
     });
   });
   document.getElementById('search-q').addEventListener('keydown', e => { if (e.key === 'Enter') applySearchBar(); });

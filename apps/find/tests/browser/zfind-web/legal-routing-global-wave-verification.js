@@ -426,16 +426,36 @@ async function check(name, fn) {
   );
 
   await check(
-    'legacy translated UI exposure remains FR/EN/PT until complete translations ship',
+    'compact language menu exposes six Phase-4 languages while only translated UI locales are selectable',
     async () => {
       await open('fr', 'legal-chile');
       const actual = await page.evaluate(() => ({
         translated: Array.from(window.ZFindServices.publicLocales.LEGACY_TRANSLATED_LOCALES),
-        visible: Array.from(document.querySelectorAll('.lang-switch button[data-lang]')).map(button => button.dataset.lang),
+        menu: Array.from(document.querySelectorAll('.lang-menu button[data-lang]')).map(button => ({
+          lang: button.dataset.lang,
+          disabled: button.disabled,
+        })),
+        current: document.getElementById('current-lang-label')?.textContent || '',
       }));
-      const expected = ['fr', 'en', 'pt'];
-      if (JSON.stringify(actual.translated) !== JSON.stringify(expected)) throw new Error('legacy translated authority drift');
-      if (JSON.stringify(actual.visible) !== JSON.stringify(expected)) throw new Error('visible language-switch drift');
+
+      const expectedTranslated = ['fr', 'en', 'pt'];
+      const expectedMenu = [
+        { lang:'fr', disabled:false },
+        { lang:'en', disabled:false },
+        { lang:'pt', disabled:false },
+        { lang:'es', disabled:true },
+        { lang:'de', disabled:true },
+        { lang:'it', disabled:true },
+      ];
+
+      if (JSON.stringify(actual.translated) !== JSON.stringify(expectedTranslated))
+        throw new Error('translated locale authority drift');
+
+      if (JSON.stringify(actual.menu) !== JSON.stringify(expectedMenu))
+        throw new Error('compact six-language menu contract drift');
+
+      if (actual.current !== 'FR')
+        throw new Error('French default compact-menu label drift');
     }
   );
   await browser.close();

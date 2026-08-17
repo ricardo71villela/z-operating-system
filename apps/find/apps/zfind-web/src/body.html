@@ -21,11 +21,32 @@
       <button class="nav-btn" data-view="simulator" data-i18n="navigation.simulator">Simulateurs</button>
     </nav>
     <div class="nav-actions">
-      <div class="lang-switch" role="group" aria-label="Language">
-        <button data-lang="fr" class="active">FR</button>
-        <button data-lang="en">EN</button>
-        <button data-lang="pt">PT</button>
+      <div class="market-switch">
+        <label for="header-market" data-i18n="market.headerLabel">Marchés</label>
+        <select
+          id="header-market"
+          data-market-select
+          aria-label="Explorer les marketplaces Z Find par pays et marché"
+          onchange="navigateMarket(this.value)"
+        >
+          <option value="">Explorer pays et marchés</option>
+        </select>
       </div>
+      <details class="lang-menu" id="language-menu">
+        <summary class="lang-menu-summary" aria-label="Language">
+          <span aria-hidden="true">◎</span>
+          <span id="current-lang-label">FR</span>
+          <span aria-hidden="true">⌄</span>
+        </summary>
+        <div class="lang-menu-panel" role="group" aria-label="Language">
+          <button type="button" data-lang="fr"><span>Français</span><small>FR</small></button>
+          <button type="button" data-lang="en"><span>English</span><small>EN</small></button>
+          <button type="button" data-lang="pt"><span>Português</span><small>PT</small></button>
+          <button type="button" data-lang="es" disabled><span>Español</span><small data-i18n="language.planned">Bientôt</small></button>
+          <button type="button" data-lang="de" disabled><span>Deutsch</span><small data-i18n="language.planned">Bientôt</small></button>
+          <button type="button" data-lang="it" disabled><span>Italiano</span><small data-i18n="language.planned">Bientôt</small></button>
+        </div>
+      </details>
       <button class="btn btn-ghost" data-i18n="common.publish">Publier votre portefeuille</button>
       <button class="btn btn-outline" data-i18n="common.signIn">Se connecter</button>
     </div>
@@ -38,29 +59,56 @@
 <section class="view active" id="view-home">
   <div class="hero">
     <div class="wrap">
-      <span class="eyebrow" data-i18n="hero.eyebrow">Un portail immobilier différent</span>
-      <h1><span data-i18n="hero.titleLine1">Pas un portail opportuniste.</span><br><i data-i18n="hero.titleLineEm">Un portail d'opportunités réelles.</i></h1>
-      <p class="lead" data-i18n="hero.lead">Recherchez des biens, des programmes neufs et des terrains — organisés selon ce qui existe réellement, pas selon le nombre de fois où ils ont été publiés.</p>
+      <div class="hero-atlantic-visual" aria-hidden="true">
+        <img
+          src="brand/zfind-atlantic-hero.webp"
+          alt=""
+          width="1448"
+          height="1086"
+          decoding="async"
+          fetchpriority="high"
+        >
+      </div>
+      <span class="eyebrow" data-i18n="hero.eyebrow">Portail immobilier international</span>
+      <h1><span data-i18n="hero.titleLine1">Explorez des opportunités immobilières sur</span><br><i data-i18n="hero.titleLineEm">des marchés internationaux sélectionnés.</i></h1>
+      <p class="lead" data-i18n="hero.lead">Recherchez des biens, programmes et terrains avec moins de doublons, plus de contexte de marché et un accès direct aux partenaires qui les représentent.</p>
+
+      <div class="market-explorer" id="market-explorer">
+        <div class="market-explorer-copy">
+          <span class="eyebrow" data-i18n="market.eyebrow">Marchés internationaux</span>
+          <p data-i18n="market.helper">Choisissez un pays ou marché pour accéder à son marketplace Z Find.</p>
+        </div>
+        <select
+          id="hero-market"
+          data-market-select
+          aria-label="Explorer les marketplaces Z Find par pays et marché"
+          onchange="navigateMarket(this.value)"
+        >
+          <option value="">Explorer pays et marchés</option>
+        </select>
+      </div>
 
       <div class="searchbar">
         <div class="searchbar-inner">
-          <div class="cat-tabs">
-            <button class="active" data-cat="residential" data-i18n="search.tabResidential">Résidentiel</button>
-            <button data-cat="developments" data-i18n="search.tabDevelopments">Programmes neufs</button>
-            <button data-cat="land" data-i18n="search.tabLand">Terrains et Développement</button>
+          <div class="cat-tabs design-balanced-categories">
+            <button class="cat-tab active" data-cat="residential" onclick="setHomeCategory('residential')" data-i18n="search.tabResidential">Résidentiel</button>
+            <button class="cat-tab" data-cat="commercial" onclick="setHomeCategory('commercial')" data-i18n="search.tabCommercial">Commercial</button>
+            <button class="cat-tab" data-cat="developments" onclick="setHomeCategory('developments')" data-i18n="search.tabDevelopments">Programmes neufs</button>
+            <button class="cat-tab" data-cat="land" onclick="setHomeCategory('land')" data-i18n="search.tabLand">Terrains et Développement</button>
           </div>
 
-          <div class="transaction-filter-block">
-            <div class="transaction-tabs" id="home-transaction-tabs" role="group" aria-label="Transaction type">
-              <button type="button" class="transaction-tab active" data-transaction="sale" onclick="setHomeTransaction('sale')" data-i18n="search.buy">Acheter</button>
-              <button type="button" class="transaction-tab" data-transaction="rent" onclick="setHomeTransaction('rent')" data-i18n="search.rent">Louer</button>
+          <div class="search-fields search-fields-balanced">
+            <div class="transaction-filter-block transaction-filter-inline">
+              <div class="transaction-tabs" id="home-transaction-tabs" role="group" aria-label="Transaction type">
+                <button type="button" class="transaction-tab active" data-transaction="sale" onclick="setHomeTransaction('sale')" data-i18n="search.buy">Acheter</button>
+                <button type="button" class="transaction-tab" data-transaction="rent" onclick="setHomeTransaction('rent')" data-i18n="search.rent">Louer</button>
+              </div>
+              <div class="rental-period-control" id="home-rental-period-wrap" style="display:none;">
+                <label for="home-rental-period" class="sr-only" data-i18n="search.rentalPeriod">Période de location</label>
+                <select id="home-rental-period" onchange="setHomeRentalPeriod(this.value)"></select>
+              </div>
             </div>
-            <div class="rental-period-control" id="home-rental-period-wrap" style="display:none;">
-              <label for="home-rental-period" data-i18n="search.rentalPeriod">Période de location</label>
-              <select id="home-rental-period" onchange="setHomeRentalPeriod(this.value)"></select>
-            </div>
-          </div>
-          <div class="search-fields">
+            <div class="divider transaction-divider"></div>
             <input type="text" id="home-q" data-i18n-ph="search.locationPh" placeholder="Localisation — ville, quartier ou adresse">
             <div class="divider"></div>
             <select id="home-type">
@@ -82,7 +130,7 @@
         </div>
       </div>
 
-      <div class="principle-strip">
+      <div class="principle-strip design-balanced-principles">
         <div class="p"><span class="num">I.</span><h4 data-i18n-html="hero.p1title">Plus d'opportunités.<br>Moins de duplication.</h4><p data-i18n="hero.p1body">Un actif réel, une fiche canonique unique — quel que soit le nombre de partenaires qui le représentent.</p></div>
         <div class="p"><span class="num">II.</span><h4 data-i18n-html="hero.p2title">Plus d'information.<br>Moins de bruit.</h4><p data-i18n="hero.p2body">Contexte de marché, faits d'urbanisme et estimations, clairement identifiés — pas cinq copies incohérentes de la même annonce.</p></div>
         <div class="p"><span class="num">III.</span><h4 data-i18n-html="hero.p3title">Plus de connexion.<br>Moins de friction.</h4><p data-i18n="hero.p3body">Contact direct quand vous voulez la rapidité. Introduction qualifiée quand vous voulez la pertinence.</p></div>
@@ -90,9 +138,16 @@
     </div>
   </div>
 
-  <div id="home-status" style="display:none; text-align:center; padding:60px 20px; border:1px solid var(--gray-200); border-radius:var(--radius); background:var(--gray-50); max-width:1200px; margin:0 auto;">
+  <div id="home-status" class="design-home-status" style="display:none; text-align:center; padding:60px 20px; border:1px solid var(--gray-200); border-radius:var(--radius); background:var(--gray-50); max-width:1200px; margin:0 auto;">
     <h3 id="home-status-title" style="font-size:1.4rem;"></h3>
     <p id="home-status-body" style="color:var(--gray-500); margin-top:10px; font-size:0.9rem;"></p>
+    <button
+      id="home-status-market-cta"
+      class="btn btn-outline"
+      style="display:none; margin-top:18px;"
+      data-i18n="market.browseMarkets"
+      onclick="focusMarketExplorer()"
+    >Explorer pays et marchés</button>
   </div>
 
   <div id="home-grids-wrap">
@@ -112,6 +167,11 @@
     <div class="grid" id="home-land-grid"></div>
   </section>
   </div>
+</section>
+
+<!-- ============ COUNTRY / MARKET PAGE (rendered) ============ -->
+<section class="view" id="view-market">
+  <div id="market-root"></div>
 </section>
 
 <!-- ============ SEARCH ============ -->
@@ -151,14 +211,34 @@
       <button class="pill active" data-filter="all" data-i18n="search.filterAll"></button>
       <button class="pill" data-filter="apartment" data-i18n="search.filterApartments"></button>
       <button class="pill" data-filter="villa" data-i18n="search.filterVillas"></button>
+      <button class="pill" data-filter="commercial" data-i18n="search.filterCommercial"></button>
       <button class="pill" data-filter="development" data-i18n="search.filterDevelopments"></button>
       <button class="pill" data-filter="land" data-i18n="search.filterLand"></button>
     </div>
-    <div class="grid" id="search-grid"></div>
-    <div id="search-empty" style="display:none; text-align:center; padding:60px 20px; border:1px solid var(--gray-200); border-radius:var(--radius); background:var(--gray-50);">
-      <h3 id="search-empty-title" style="font-size:1.4rem;"></h3>
-      <p id="search-empty-body" style="color:var(--gray-500); margin-top:10px; font-size:0.9rem;"></p>
-      <button class="btn btn-outline" style="margin-top:20px;" data-i18n="search.clearFilters" onclick="clearSearchFilters()"></button>
+    <div class="search-results-layout">
+      <div class="search-results-main">
+        <div class="grid" id="search-grid"></div>
+        <div id="search-empty" style="display:none; text-align:center; padding:60px 20px; border:1px solid var(--gray-200); border-radius:var(--radius); background:var(--gray-50);">
+          <h3 id="search-empty-title" style="font-size:1.4rem;"></h3>
+          <p id="search-empty-body" style="color:var(--gray-500); margin-top:10px; font-size:0.9rem;"></p>
+          <button class="btn btn-outline" style="margin-top:20px;" data-i18n="search.clearFilters" onclick="clearSearchFilters()"></button>
+        </div>
+        <nav
+          id="search-results-pagination"
+          class="search-results-pagination"
+          data-pagination-state="hidden"
+          aria-labelledby="search-results-title"
+          style="display:none;"
+        ></nav>
+      </div>
+      <aside
+        class="search-results-aside"
+        id="search-results-aside"
+        data-search-aside-state="reserved"
+        data-search-featured-capacity="3"
+        data-search-featured-selection-mode="source-backed-market-preview"
+        aria-hidden="true"
+      ></aside>
     </div>
   </div>
 </section>

@@ -113,27 +113,81 @@ async function listUnitsForDevelopment(developmentId) {
     development highlights. Deliberately minimal select (no media
     embed): the card component doesn't render an image at all, so
     fetching media here would be waste, not correctness. */
-async function listPublished(zoneLiteId, transactionType, rentalPeriod) {
+async function listPublishedInternal(
+  zoneLiteId,
+  transactionType,
+  rentalPeriod,
+  zoneLiteIds
+) {
   const client = getSupabaseClient();
   let query = client
     .from('developments')
     .select(`
       id, name, zone_lite_id,
       zones_lite ( name, city, country_iso ),
+      development_media (
+        position, is_cover, ${MEDIA_EMBED}
+      ),
       representations!inner ( target_type, status, listings!inner (
         id, transaction_type, rental_period, price_current, currency_iso, price_is_from, status,
-        listing_content ( locale, title )
+        listing_content ( locale, title ),
+        listing_media (
+          position, is_cover, ${MEDIA_EMBED}
+        )
       ) )
     `)
     .eq('representations.target_type', 'development')
     .eq('representations.listings.status', 'published');
   if (zoneLiteId) query = query.eq('zone_lite_id', zoneLiteId);
+  if (Array.isArray(zoneLiteIds) && zoneLiteIds.length) {
+    query = query.in('zone_lite_id', zoneLiteIds);
+  }
   if (transactionType) query = query.eq('representations.listings.transaction_type', transactionType);
   if (rentalPeriod) query = query.eq('representations.listings.rental_period', rentalPeriod);
   return safeQuery(() => query, 'developments.listPublished');
 }
 
+/**
+ * Stable public Development search contract.
+ *
+ * Do not widen this signature: Rental and other callers depend on the
+ * canonical (zoneLiteId, transactionType, rentalPeriod) API.
+ */
+async function listPublished(zoneLiteId, transactionType, rentalPeriod) {
+  return listPublishedInternal(
+    zoneLiteId,
+    transactionType,
+    rentalPeriod,
+    undefined
+  );
+}
 
-return { getDevelopmentById, listUnitsForDevelopment, listPublished };
+/**
+ * Market-scoped Development read.
+ *
+ * Adds an internal set of authoritative zone ids without changing the
+ * existing Rental/public listPublished contract.
+ */
+async function listPublishedScoped(
+  zoneLiteId,
+  transactionType,
+  rentalPeriod,
+  zoneLiteIds
+) {
+  return listPublishedInternal(
+    zoneLiteId,
+    transactionType,
+    rentalPeriod,
+    zoneLiteIds
+  );
+}
+
+
+return {
+  getDevelopmentById,
+  listUnitsForDevelopment,
+  listPublished,
+  listPublishedScoped
+};
 
 });

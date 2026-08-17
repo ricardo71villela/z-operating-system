@@ -22,6 +22,7 @@
 
   const ROUTES = Object.freeze({
     fr: Object.freeze({
+      market: 'marches',
       entity: Object.freeze({
         property: 'bien',
         development: 'programme',
@@ -36,6 +37,7 @@
     }),
 
     en: Object.freeze({
+      market: 'markets',
       entity: Object.freeze({
         property: 'property',
         development: 'development',
@@ -50,6 +52,7 @@
     }),
 
     pt: Object.freeze({
+      market: 'mercados',
       entity: Object.freeze({
         property: 'imovel',
         development: 'empreendimento',
@@ -64,6 +67,7 @@
     }),
 
     es: Object.freeze({
+      market: 'mercados',
       entity: Object.freeze({
         property: 'inmueble',
         development: 'promocion',
@@ -78,6 +82,7 @@
     }),
 
     de: Object.freeze({
+      market: 'maerkte',
       entity: Object.freeze({
         property: 'immobilie',
         development: 'neubauprojekt',
@@ -92,6 +97,7 @@
     }),
 
     it: Object.freeze({
+      market: 'mercati',
       entity: Object.freeze({
         property: 'immobile',
         development: 'nuova-costruzione',
@@ -154,6 +160,19 @@
     return slug;
   }
 
+  function buildMarketPath({ locale, slug }) {
+    const L = requireLocale(locale);
+
+    return (
+      '/' +
+      L +
+      '/' +
+      ROUTES[L].market +
+      '/' +
+      requireSlug(slug)
+    );
+  }
+
   function buildEntityPath({ locale, kind, slug }) {
     const L = requireLocale(locale);
 
@@ -209,6 +228,19 @@
 
     const segment = parts[1];
 
+    if (ROUTES[locale].market === segment) {
+      if (parts.length !== 3) return null;
+
+      const slug = normalizeSlug(parts[2]);
+      if (!slug) return null;
+
+      return {
+        type: 'market',
+        locale,
+        slug
+      };
+    }
+
     for (const kind of ENTITY_KINDS) {
       if (ROUTES[locale].entity[kind] === segment) {
         if (parts.length !== 3) return null;
@@ -246,6 +278,7 @@
     ENTITY_KINDS,
     INTENTS,
     normalizeSlug,
+    buildMarketPath,
     buildEntityPath,
     buildIntentPath,
     parsePublicPath

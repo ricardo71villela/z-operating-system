@@ -32,6 +32,7 @@ const fs = require('fs');
 const path = require('path');
 
 const SRC = path.join(__dirname, '..', 'src');
+const PUBLIC = path.join(__dirname, '..', 'public');
 const DIST = path.join(__dirname, '..', 'dist');
 const APPROVED_REFERENCE = process.env.ZFIND_APPROVED_REFERENCE || null; // optional path to compare against
 
@@ -41,6 +42,19 @@ function read(file) {
     throw new Error(`BUILD FAILED: required source artifact missing: ${file} (expected at ${fullPath})`);
   }
   return fs.readFileSync(fullPath, 'utf8');
+}
+
+function copyDirectoryRecursive(src, dest) {
+  if (!fs.existsSync(src)) {
+    throw new Error(`BUILD FAILED: required asset directory missing: ${src}`);
+  }
+  fs.mkdirSync(dest, { recursive: true });
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const source = path.join(src, entry.name);
+    const target = path.join(dest, entry.name);
+    if (entry.isDirectory()) copyDirectoryRecursive(source, target);
+    else fs.copyFileSync(source, target);
+  }
 }
 
 function resolvePlaceholders(text, replacements, sourceLabel) {
@@ -70,6 +84,10 @@ function build() {
   const configTemplate = read('config.template.js'); // 10th source artifact — build-time Supabase config injection (Sprint 1.1)
   const publicLocalesService = read('services/public-locales.js');
   const publicRoutesService = read('services/public-routes.js');
+  const marketRegistryService = read('services/market-registry.js');
+  const marketFeaturedService = read('services/market-featured.js');
+  const searchPaginationService = read('services/search-pagination.js');
+  const marketSearchScopeService = read('services/market-search-scope.js');
   const supabaseClient = read('services/supabaseClient.js');
   const propertiesService = read('services/properties.js');
   const publicVerificationService = read('services/public-verification.js');
@@ -114,6 +132,10 @@ function build() {
     + resolvedConfig + '\n'
     + publicLocalesService + '\n'
     + publicRoutesService + '\n'
+    + marketRegistryService + '\n'
+    + marketFeaturedService + '\n'
+    + searchPaginationService + '\n'
+    + marketSearchScopeService + '\n'
     + supabaseClient + '\n'
     + propertiesService + '\n'
     + publicVerificationService + '\n'
@@ -131,6 +153,44 @@ function build() {
     + '\n</script>\n</body>\n</html>\n';
 
   fs.mkdirSync(DIST, { recursive: true });
+
+  // DESIGN.1D — keep the approved hero visual as a separately cached
+  // public WebP in production, while copying it beside the local
+  // single-file prototype so file:// visual review resolves the same
+  // relative URL without inventing a second source of truth.
+  const heroAsset = path.join(
+    PUBLIC,
+    'brand',
+    'zfind-atlantic-hero.webp'
+  );
+
+  if (!fs.existsSync(heroAsset)) {
+    throw new Error(
+      'BUILD FAILED: approved hero asset missing: public/brand/zfind-atlantic-hero.webp'
+    );
+  }
+
+  const distBrand = path.join(DIST, 'brand');
+  fs.mkdirSync(distBrand, { recursive: true });
+  fs.copyFileSync(
+    heroAsset,
+    path.join(distBrand, 'zfind-atlantic-hero.webp')
+  );
+
+  const marketMapSource = path.join(
+    PUBLIC,
+    'brand',
+    'markets'
+  );
+  const marketMapDest = path.join(
+    distBrand,
+    'markets'
+  );
+  copyDirectoryRecursive(
+    marketMapSource,
+    marketMapDest
+  );
+
   const outPath = path.join(DIST, 'z-find-prototype.html');
   fs.writeFileSync(outPath, html);
 
@@ -143,6 +203,8 @@ function build() {
   console.log('Size:', report.sizeBytes, 'bytes');
   console.log('Logo path placeholder: resolved, 0 remaining');
   console.log('Supabase config placeholders: resolved, 0 remaining');
+  console.log('Hero visual asset: copied to dist/brand/zfind-atlantic-hero.webp');
+  console.log('Market map assets: copied to dist/brand/markets');
 
   if (APPROVED_REFERENCE) {
     if (!fs.existsSync(APPROVED_REFERENCE)) {

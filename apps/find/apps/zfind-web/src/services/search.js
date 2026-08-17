@@ -37,25 +37,41 @@
 const { getSupabaseClient, safeQuery } = supabaseClientModule;
 
 
-async function search(filters) {
-  const client = getSupabaseClient();
-  const f = filters || {};
-
-  let query = client
+function publishedPropertyQuery(client) {
+  return client
     .from('properties')
     .select(`
       id, subtype, typology, area_sqm, zone_lite_id,
       zones_lite ( name, city, country_iso ),
       representations!inner ( target_type, status, listings!inner (
         id, transaction_type, rental_period, price_current, currency_iso, price_is_from, status,
-        listing_content ( locale, title )
+        listing_content ( locale, title ),
+        listing_media (
+          position, is_cover,
+          media_assets (
+            id, original_storage_path,
+            media_variants (
+              variant_type, storage_path
+            )
+          )
+        )
       ) )
     `)
     .eq('representations.target_type', 'property')
     .eq('representations.listings.status', 'published');
+}
+
+async function search(filters) {
+  const client = getSupabaseClient();
+  const f = filters || {};
+
+  let query = publishedPropertyQuery(client);
 
   if (f.subtype) query = query.eq('subtype', f.subtype);
   if (f.zoneLiteId) query = query.eq('zone_lite_id', f.zoneLiteId);
+  if (Array.isArray(f.zoneLiteIds) && f.zoneLiteIds.length) {
+    query = query.in('zone_lite_id', f.zoneLiteIds);
+  }
   if (f.transactionType) query = query.eq('representations.listings.transaction_type', f.transactionType);
   if (f.rentalPeriod) query = query.eq('representations.listings.rental_period', f.rentalPeriod);
   if (f.budgetMin != null) query = query.gte('representations.listings.price_current', f.budgetMin);
@@ -63,13 +79,38 @@ async function search(filters) {
 
   const result = await safeQuery(() => query, 'search.search');
 
-  // Fire-and-forget logging — never awaited by the caller's critical
-  // path, and a logging failure never becomes a search failure.
+  // Search analytics belong only to an explicit Search action.
+  // Passive Market Featured rendering must never manufacture searches.
   const resultCount = Array.isArray(result.data) ? result.data.length : 0;
-  logSearch(f, resultCount).catch(() => { /* intentionally swallowed — see module doc */ });
+
+  // Internal zone ids implement server-side market scoping but are
+  // not user-facing Search intent. Keep analytics semantic and compact.
+  const analyticsFilters = Object.assign({}, f);
+  delete analyticsFilters.zoneLiteIds;
+
+  logSearch(analyticsFilters, resultCount).catch(() => {
+    /* intentionally swallowed — product Search remains non-blocking */
+  });
 
   return result;
 }
+
+/**
+ * Read-only published Property inventory for non-Search discovery
+ * surfaces such as Country Market Featured previews.
+ *
+ * Deliberately does NOT call logSearch(): opening a market page is not
+ * a user-submitted Search and must not contaminate Search analytics.
+ */
+async function listPublished() {
+  const client = getSupabaseClient();
+
+  return safeQuery(
+    () => publishedPropertyQuery(client),
+    'search.listPublished'
+  );
+}
+
 
 async function logSearch(filters, resultCount) {
   const client = getSupabaseClient();
@@ -80,6 +121,6 @@ async function logSearch(filters, resultCount) {
 }
 
 
-return { search, logSearch };
+return { search, listPublished, logSearch };
 
 });
