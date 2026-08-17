@@ -1,0 +1,132 @@
+name: Z Studio Monorepo Import TEMP
+
+on:
+  push:
+    branches:
+      - feature/zos-zstudio-monorepo-migration-v1
+    paths:
+      - '.github/workflows/zstudio-monorepo-import-temp.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout ZOS target branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/zos-zstudio-monorepo-migration-v1
+          path: target
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Checkout exact Z Studio authority
+        uses: actions/checkout@v4
+        with:
+          repository: ricardo71villela/z-studio-platform
+          ref: eb8cfbafed17e1656462ae24afe1070ab43f7774
+          path: source
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify immutable authorities
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          SOURCE_SHA="$(git -C source rev-parse HEAD)"
+          TARGET_PARENT="$(git -C target rev-parse HEAD^)"
+
+          test "$SOURCE_SHA" = "eb8cfbafed17e1656462ae24afe1070ab43f7774"
+          test "$TARGET_PARENT" = "2e5c44a97675dc6065c7f9d4289a7f9187320312"
+
+          if [ -e target/apps/studio ]; then
+            echo "STOP: target/apps/studio already exists"
+            exit 1
+          fi
+
+          echo "SOURCE_SHA=$SOURCE_SHA"
+          echo "TARGET_BASE=$TARGET_PARENT"
+
+      - name: Import exact Studio snapshot into apps/studio
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p target/apps/studio
+          rsync -a --exclude='.git' source/ target/apps/studio/
+
+      - name: Verify byte-for-byte tracked-file parity
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          source_count="$(git -C source ls-files | wc -l | tr -d ' ')"
+          target_file_count="$(find target/apps/studio -type f | wc -l | tr -d ' ')"
+
+          if [ "$source_count" != "$target_file_count" ]; then
+            echo "STOP: tracked file count differs: source=$source_count target=$target_file_count"
+            exit 1
+          fi
+
+          while IFS= read -r -d '' file; do
+            if ! cmp -s -- "source/$file" "target/apps/studio/$file"; then
+              echo "STOP: content mismatch: $file"
+              exit 1
+            fi
+          done < <(git -C source ls-files -z)
+
+          source_exec="$(git -C source ls-files --stage | awk '$1 == "100755" {print $4}' | sort)"
+          target_exec="$(find target/apps/studio -type f -perm -u=x -printf '%P\n' | sort)"
+
+          if [ "$source_exec" != "$target_exec" ]; then
+            echo "STOP: executable mode set differs"
+            diff -u <(printf '%s\n' "$source_exec") <(printf '%s\n' "$target_exec") || true
+            exit 1
+          fi
+
+          echo "STUDIO_TRACKED_FILES=$source_count"
+          echo "STUDIO_BYTE_PARITY=PASS"
+          echo "STUDIO_EXECUTABLE_MODE_PARITY=PASS"
+
+      - name: Remove temporary importer from final diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm target/.github/workflows/zstudio-monorepo-import-temp.yml
+
+      - name: Commit imported snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd target
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add apps/studio .github/workflows/zstudio-monorepo-import-temp.yml
+
+          if git diff --cached --quiet; then
+            echo "STOP: no migration changes staged"
+            exit 1
+          fi
+
+          git commit -m "A1.4E-M1 — Import Z Studio source snapshot"
+          git push origin HEAD:feature/zos-zstudio-monorepo-migration-v1
+
+      - name: Print import authority summary
+        shell: bash
+        run: |
+          echo "Z_STUDIO_MONOREPO_IMPORT=PASS"
+          echo "SOURCE_REPO=ricardo71villela/z-studio-platform"
+          echo "SOURCE_SHA=eb8cfbafed17e1656462ae24afe1070ab43f7774"
+          echo "TARGET_PATH=apps/studio"
+          echo "SOURCE_MUTATION=false"
+          echo "MAIN_MUTATION=false"
+          echo "VERCEL_MUTATION=false"
+          echo "SUPABASE_MUTATION=false"
