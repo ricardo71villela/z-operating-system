@@ -88,6 +88,26 @@ jobs:
 
           grant execute on function auth.uid()
             to anon, authenticated, service_role;
+
+          -- CI-only minimal Supabase Storage fixture.
+          -- Real Supabase remains production authority.
+          -- This fixture exists only in disposable plain-PostgreSQL CI.
+
+          create schema if not exists storage;
+
+          create table storage.buckets (
+            id text primary key,
+            name text not null unique,
+            public boolean not null default false
+          );
+
+          create table storage.objects (
+            id uuid primary key default gen_random_uuid(),
+            bucket_id text not null,
+            name text not null,
+            owner_id uuid
+          );
+
           SQL
 
       - name: Apply shared ZOS migrations in order
