@@ -248,8 +248,8 @@ jobs:
             --disable-gpu \
             --ozone-platform=headless \
             tests/visual/generate-goldens.js
-          test "$(find goldens-candidate -maxdepth 1 -name '*.png' | wc -l | tr -d ' ')" = "18"
-          echo "CURRENT_VISUAL_CANDIDATES=18_OF_18_PASS"
+          test "$(find goldens-candidate -maxdepth 1 -name '*.png' | wc -l | tr -d ' ')" = "24"
+          echo "CURRENT_VISUAL_CANDIDATES=24_OF_24_PASS"
       - name: Publish current visual candidates for approval
         uses: actions/upload-artifact@v4
         with:

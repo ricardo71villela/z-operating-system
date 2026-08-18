@@ -541,6 +541,478 @@ const CONTRACT = String.raw`
       originalFillText;
   }
 
+
+  // ───────────────────────────────────────────────────────────
+  // P1.2 — Wide portrait Cinematic Right V2
+  // ───────────────────────────────────────────────────────────
+
+  check(
+    'P1.2 Cinematic Right V2 marker carregado',
+    document.documentElement
+      .innerHTML
+      .includes(
+        'ZSTUDIO_WIDE_PORTRAIT_CINEMATIC_RIGHT_V2'
+      )
+  );
+
+  check(
+    'P1.2 background visível não desenha cópia reconhecível da foto',
+    !drawWidePortraitCinematicRight
+      .toString()
+      .includes('ctx.drawImage(')
+  );
+
+  check(
+    'P1.2 foreground preserva smartCover/filter/manual-adjust',
+    drawWidePortraitCinematicRight
+      .toString()
+      .includes('smartCoverDraw(')
+  );
+
+  function makeP12Photo(
+    width,
+    height,
+    top,
+    bottom
+  ) {
+    const canvas =
+      document.createElement('canvas');
+
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx =
+      canvas.getContext('2d');
+
+    const gradient =
+      ctx.createLinearGradient(
+        0,
+        0,
+        width,
+        height
+      );
+
+    gradient.addColorStop(
+      0,
+      top
+    );
+
+    gradient.addColorStop(
+      1,
+      bottom
+    );
+
+    ctx.fillStyle =
+      gradient;
+
+    ctx.fillRect(
+      0,
+      0,
+      width,
+      height
+    );
+
+    const points = [
+      0.12,
+      0.50,
+      0.88
+    ];
+
+    for (
+      const py
+      of points
+    ) {
+      ctx.fillStyle =
+        '#ffffff';
+
+      ctx.beginPath();
+
+      ctx.arc(
+        width * 0.50,
+        height * py,
+        Math.min(
+          width,
+          height
+        ) * 0.06,
+        0,
+        Math.PI * 2
+      );
+
+      ctx.fill();
+    }
+
+    return canvas.toDataURL(
+      'image/png'
+    );
+  }
+
+  const p12Sources = {
+    portrait916:
+      makeP12Photo(
+        900,
+        1600,
+        '#24396d',
+        '#98587c'
+      ),
+
+    portrait45:
+      makeP12Photo(
+        1000,
+        1250,
+        '#40552e',
+        '#a88131'
+      ),
+
+    landscape:
+      makeP12Photo(
+        1600,
+        1000,
+        '#383963',
+        '#37869a'
+      )
+  };
+
+  const p12Images = {
+    portrait916:
+      await loadImg(
+        p12Sources.portrait916
+      ),
+
+    portrait45:
+      await loadImg(
+        p12Sources.portrait45
+      ),
+
+    landscape:
+      await loadImg(
+        p12Sources.landscape
+      )
+  };
+
+  const p12Templates = [
+    'classico',
+    'editorial',
+    'minimalista'
+  ];
+
+  const p12Portraits = [
+    'portrait916',
+    'portrait45'
+  ];
+
+  const [p12W, p12H] =
+    FORMATS.wide;
+
+  const p12FS =
+    Math.sqrt(
+      (p12W * p12H) /
+      (1080 * 1350)
+    );
+
+  function p12TargetHeight(
+    template
+  ) {
+    if (
+      template ===
+      'classico'
+    ) {
+      return p12H;
+    }
+
+    if (
+      template ===
+      'minimalista'
+    ) {
+      return (
+        p12H -
+        220 * p12FS
+      );
+    }
+
+    return p12H * 0.62;
+  }
+
+  let p12RuntimeCases = 0;
+
+  for (
+    const template
+    of p12Templates
+  ) {
+    for (
+      const photoKey
+      of p12Portraits
+    ) {
+      p12RuntimeCases++;
+
+      const img =
+        p12Images[photoKey];
+
+      state.format = 'wide';
+      state.template = template;
+      state.photo =
+        p12Sources[photoKey];
+      state.img = img;
+      state.photos = [
+        p12Sources[photoKey]
+      ];
+      state.carPhotos = [
+        p12Sources[photoKey]
+      ];
+      state.cropAdjust = {};
+      state.filter = 'auto';
+      state.smartCrop = true;
+      state.loc = 'Porto';
+
+      const targetH =
+        p12TargetHeight(
+          template
+        );
+
+      check(
+        'P1.2 ' +
+          template +
+          '/' +
+          photoKey +
+          ' é elegível',
+        isWidePortraitCinematicEligible(
+          img
+        )
+      );
+
+      const geometry =
+        getWidePortraitCinematicGeometry(
+          img,
+          0,
+          0,
+          p12W,
+          targetH
+        );
+
+      check(
+        'P1.2 ' +
+          template +
+          '/' +
+          photoKey +
+          ' preserva 100% da fonte',
+        geometry.sourceVisiblePct ===
+          100,
+        geometry
+      );
+
+      check(
+        'P1.2 ' +
+          template +
+          '/' +
+          photoKey +
+          ' usa pelo menos 90% da altura',
+        geometry.heightOccupancyPct >=
+          90,
+        geometry
+      );
+
+      check(
+        'P1.2 ' +
+          template +
+          '/' +
+          photoKey +
+          ' foreground fica dentro da área',
+        (
+          geometry.x >= 0 &&
+          geometry.y >= 0 &&
+          geometry.x +
+            geometry.w <=
+            p12W + 0.01 &&
+          geometry.y +
+            geometry.h <=
+            targetH + 0.01
+        ),
+        geometry
+      );
+
+      check(
+        'P1.2 ' +
+          template +
+          '/' +
+          photoKey +
+          ' foreground está alinhado à metade direita',
+        (
+          geometry.x +
+          geometry.w / 2
+        ) >
+          p12W / 2,
+        geometry
+      );
+
+      const canvas =
+        document.createElement(
+          'canvas'
+        );
+
+      canvas.width = p12W;
+      canvas.height = p12H;
+
+      let p12Error = null;
+
+      try {
+        await drawListing(
+          canvas.getContext('2d'),
+          p12W,
+          p12H
+        );
+
+      } catch (error) {
+        p12Error =
+          String(
+            error &&
+            error.stack
+              ? error.stack
+              : error
+          );
+      }
+
+      check(
+        'P1.2 ' +
+          template +
+          '/' +
+          photoKey +
+          ' renderer real completa sem exceção',
+        p12Error === null,
+        p12Error
+      );
+    }
+  }
+
+  check(
+    'P1.2 executa 6 casos portrait reais',
+    p12RuntimeCases === 6,
+    p12RuntimeCases
+  );
+
+  // Landscape must use the legacy path byte-for-byte.
+  for (
+    const template
+    of p12Templates
+  ) {
+    state.format = 'wide';
+    state.template = template;
+    state.photo =
+      p12Sources.landscape;
+    state.img =
+      p12Images.landscape;
+    state.cropAdjust = {};
+    state.filter = 'auto';
+    state.smartCrop = true;
+
+    const targetH =
+      p12TargetHeight(
+        template
+      );
+
+    const legacy =
+      document.createElement(
+        'canvas'
+      );
+
+    legacy.width = p12W;
+    legacy.height = p12H;
+
+    const routed =
+      document.createElement(
+        'canvas'
+      );
+
+    routed.width = p12W;
+    routed.height = p12H;
+
+    const legacyCtx =
+      legacy.getContext('2d');
+
+    const routedCtx =
+      routed.getContext('2d');
+
+    smartCoverDraw(
+      legacyCtx,
+      p12Images.landscape,
+      0,
+      0,
+      p12W,
+      targetH,
+      true
+    );
+
+    drawPrimaryTemplatePhoto(
+      routedCtx,
+      p12Images.landscape,
+      0,
+      0,
+      p12W,
+      targetH,
+      true,
+      template
+    );
+
+    const legacyPixels =
+      legacyCtx
+        .getImageData(
+          0,
+          0,
+          p12W,
+          p12H
+        )
+        .data;
+
+    const routedPixels =
+      routedCtx
+        .getImageData(
+          0,
+          0,
+          p12W,
+          p12H
+        )
+        .data;
+
+    let identical = true;
+
+    for (
+      let i = 0;
+      i < legacyPixels.length;
+      i++
+    ) {
+      if (
+        legacyPixels[i] !==
+        routedPixels[i]
+      ) {
+        identical = false;
+        break;
+      }
+    }
+
+    check(
+      'P1.2 ' +
+        template +
+        ' landscape mantém legacy byte-identical',
+      identical
+    );
+  }
+
+  // Portrait outside Wide must also delegate to legacy rendering.
+  state.format = 'feed45';
+  state.template = 'classico';
+  state.photo =
+    p12Sources.portrait916;
+  state.img =
+    p12Images.portrait916;
+  state.cropAdjust = {};
+  state.filter = 'auto';
+  state.smartCrop = true;
+
+  check(
+    'P1.2 portrait fora de Wide não é elegível',
+    !isWidePortraitCinematicEligible(
+      p12Images.portrait916
+    )
+  );
+
   return results;
 })()
 `;
