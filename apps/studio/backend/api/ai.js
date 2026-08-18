@@ -373,14 +373,12 @@ async function handler(req, res) {
 
     if (!upstream.ok) {
       await releaseAiReservation(supabase, token, requestId, 'upstream_error');
-      const errText = await upstream.text().catch(() => '');
       const mapped = safeUpstreamStatus(upstream.status);
       logEvent('error', 'upstream_error', {
         requestId,
         model,
         status: upstream.status,
         durationMs: Date.now() - startedAt,
-        detail: errText.slice(0, 500),
       });
       const retryAfter = upstream.headers?.get?.('retry-after');
       const extraHeaders = retryAfter ? { 'Retry-After': retryAfter } : {};
