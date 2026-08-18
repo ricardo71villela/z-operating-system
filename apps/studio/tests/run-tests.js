@@ -75,6 +75,32 @@ try {
 
   try {
     assert('app arrancou sem exceções (state existe)', typeof state === 'object' && state !== null);
+
+    const firstRunLangSwitch = document.getElementById('langSwitch');
+    assert('idioma first-run é inglês', state.lang === 'en', state.lang);
+    assert(
+      'seletor de idioma é SELECT nativo',
+      !!firstRunLangSwitch && firstRunLangSwitch.tagName === 'SELECT',
+      firstRunLangSwitch && firstRunLangSwitch.tagName
+    );
+    assert(
+      'seletor de idioma apresenta EN por defeito',
+      !!firstRunLangSwitch && firstRunLangSwitch.value === 'en',
+      firstRunLangSwitch && firstRunLangSwitch.value
+    );
+    assert(
+      'seletor oferece EN, PT, FR, ES, DE e IT',
+      !!firstRunLangSwitch &&
+      [...firstRunLangSwitch.options].map(o => o.value).join(',') ===
+        'en,pt,fr,es,de,it',
+      firstRunLangSwitch &&
+      [...firstRunLangSwitch.options].map(o => o.value).join(',')
+    );
+
+    // Os testes funcionais históricos abaixo usam fixtures PT.
+    // Isto não altera a prova de first-run acima.
+    setLang('pt');
+    await sleep(80);
     assert('marca por defeito é My Studio', state.brand.name === 'My Studio', state.brand.name);
     assert('sem "Z Studio" residual (nome antigo do produto)', !document.body.innerHTML.includes('Z Studio'));
     assert('rodapé mostra "Powered by ZOS" (marca da empresa, intencional)', document.getElementById('footerPoweredBy').textContent.includes('ZOS'));

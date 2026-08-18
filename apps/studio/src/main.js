@@ -84,7 +84,9 @@ async function loadDraftIfAny() {
       document.querySelectorAll('#langsSeg button').forEach(b => b.classList.toggle('active', state.brand.langs.has(b.dataset.l)));
     }
     state.lang = meta.lang || state.lang;
-    document.querySelectorAll('#langSwitch button').forEach(b => b.classList.toggle('active', b.dataset.lang === state.lang));
+    const restoredLangSwitch = document.getElementById('langSwitch');
+    if (restoredLangSwitch) restoredLangSwitch.value = state.lang;
+    document.documentElement.lang = state.lang;
     applyUIStrings(); // se o rascunho trouxer outro idioma, a interface já arranca traduzida
     state.smartCrop = meta.smartCrop !== false;
     state.filter = meta.filter || 'auto';
@@ -250,8 +252,8 @@ async function deleteBrandKit() {
 // ═══════════════════════════════════════════════════════════════
 // [UI_STRINGS extraído para src/data/i18n.js — ver ficheiro]
 function uiT(key) {
-  const dict = UI_STRINGS[state.lang] || UI_STRINGS.pt;
-  return (key in dict) ? dict[key] : (UI_STRINGS.pt[key] || '');
+  const dict = UI_STRINGS[state.lang] || UI_STRINGS.en;
+  return (key in dict) ? dict[key] : (UI_STRINGS.en[key] || '');
 }
 function applyUIStrings() {
   document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -770,8 +772,13 @@ function fillBg(ctx, W, H, P, y0, y1) {
   ctx.fillRect(0, y0 ?? 0, W, (y1 ?? H) - (y0 ?? 0));
 }
 function setLang(l) {
+  l = SUPPORTED_UI_LANGS.includes(l) ? l : 'en';
   state.lang = l;
-  document.querySelectorAll('#langSwitch button').forEach(b => b.classList.toggle('active', b.dataset.lang === l));
+
+  const languageSelector = document.getElementById('langSwitch');
+  if (languageSelector) languageSelector.value = l;
+
+  document.documentElement.lang = l;
   applyUIStrings(); // a interface muda de idioma junto com o conteúdo — não só o post gerado
   renderBadgeChips();
   renderCategoryExtras();
@@ -2100,13 +2107,30 @@ function toggleLangActive(l) {
   renderLangSwitch();
   scheduleSaveDraft();
 }
-const LANG_LABELS = { pt:'PT', en:'EN', fr:'FR', es:'ES', de:'DE', it:'IT' };
+const LANG_LABELS = { en:'EN', pt:'PT', fr:'FR', es:'ES', de:'DE', it:'IT' };
+const SUPPORTED_UI_LANGS = ['en', 'pt', 'fr', 'es', 'de', 'it'];
+
 function renderLangSwitch() {
   const el = document.getElementById('langSwitch');
-  const active = ['pt', ...[...state.brand.langs].filter(l => l !== 'pt')];
-  el.innerHTML = active.map(l =>
-    `<button data-lang="${l}" class="${l === state.lang ? 'active' : ''}" onclick="setLang('${l}')">${LANG_LABELS[l]}</button>`).join('');
-  if (!active.includes(state.lang)) setLang('pt');
+  if (!el) return;
+
+  const activeLang = SUPPORTED_UI_LANGS.includes(state.lang)
+    ? state.lang
+    : 'en';
+
+  state.lang = activeLang;
+
+  el.replaceChildren(
+    ...SUPPORTED_UI_LANGS.map(lang => {
+      const option = document.createElement('option');
+      option.value = lang;
+      option.textContent = LANG_LABELS[lang];
+      return option;
+    })
+  );
+
+  el.value = activeLang;
+  document.documentElement.lang = activeLang;
 }
 renderLangSwitch();
 // Sem logótipo por defeito — drawLogo() usa a inicial do nome da marca até

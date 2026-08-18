@@ -25,6 +25,9 @@ async function main() {
 
   // conteúdo sintético determinístico — mesma "foto" (gradiente fixo) sempre
   await win.webContents.executeJavaScript(`(async () => {
+    // Golden content language is explicitly PT.
+    // App first-run language must not silently redefine golden authority.
+    setLang('pt');
     function mkPhoto(seed) {
       const c = document.createElement('canvas'); c.width = 1000; c.height = 1000;
       const ctx = c.getContext('2d');
