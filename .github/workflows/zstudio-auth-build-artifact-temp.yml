@@ -6,15 +6,10 @@ on:
       - feature/zstudio-passwordless-auth-v1
     paths:
       - '.github/workflows/zstudio-auth-build-artifact-temp.yml'
-  pull_request:
-    branches:
-      - feature/zstudio-paid-ai-runtime-v1
-    paths:
-      - '.github/workflows/zstudio-auth-build-artifact-temp.yml'
-      - 'apps/studio/**'
 
 permissions:
   contents: read
+  statuses: write
 
 jobs:
   build:
@@ -22,12 +17,28 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout Auth PR merge candidate
+      - name: Checkout exact Auth branch
         uses: actions/checkout@v4
+        with:
+          ref: feature/zstudio-passwordless-auth-v1
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Publish temporary run pointer
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TARGET_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          jq -n --arg target "$TARGET_URL" '{state:"pending",context:"Z Studio Auth Artifact TEMP",description:"read-only auth build running",target_url:$target}' >/tmp/status.json
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            --data-binary @/tmp/status.json >/dev/null
       - name: Patch Release Authority in workspace only
         shell: bash
         run: |
@@ -64,6 +75,7 @@ jobs:
           ! grep -Fq 'service_role' app/index.html
           echo 'AUTH_GENERATED_PARITY=PASS'
       - name: Publish generated boundary
+        id: upload
         uses: actions/upload-artifact@v4
         with:
           name: zstudio-auth-build-output
@@ -74,3 +86,36 @@ jobs:
             apps/studio/native/www/index.html
           if-no-files-found: error
           retention-days: 1
+      - name: Publish artifact pointer status
+        if: success()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+        run: |
+          set -euo pipefail
+          test -n "$ARTIFACT_ID"
+          TARGET_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          DESCRIPTION="artifact:${ARTIFACT_ID}"
+          jq -n --arg target "$TARGET_URL" --arg description "$DESCRIPTION" '{state:"success",context:"Z Studio Auth Artifact TEMP",description:$description,target_url:$target}' >/tmp/status.json
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            --data-binary @/tmp/status.json >/dev/null
+      - name: Publish failure pointer status
+        if: failure()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TARGET_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          jq -n --arg target "$TARGET_URL" '{state:"failure",context:"Z Studio Auth Artifact TEMP",description:"read-only auth build failed",target_url:$target}' >/tmp/status.json
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            --data-binary @/tmp/status.json >/dev/null
