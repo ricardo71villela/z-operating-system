@@ -296,3 +296,6 @@ jobs:
 
       - name: Compare against approved Z Studio baseline
         run: python3 tests/visual/compare-goldens.py
+
+      - name: Compare against approved P2 visual baseline
+        run: python3 tests/visual/compare-p2-goldens.py
