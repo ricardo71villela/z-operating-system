@@ -257,5 +257,42 @@ jobs:
           path: apps/studio/goldens-candidate/*.png
           if-no-files-found: error
           retention-days: 14
+      - name: Generate P2 dedicated visual candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf goldens-p2-candidate
+          python3 -m http.server 8794 --bind 127.0.0.1 --directory app >/tmp/zstudio-p2-visual-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent --output /dev/null http://127.0.0.1:8794/my-studio.html; then
+              break
+            fi
+            sleep 0.2
+          done
+
+          curl --fail --silent --output /dev/null http://127.0.0.1:8794/my-studio.html
+
+          ZSTUDIO_P2_GOLDENS_OUT="$GITHUB_WORKSPACE/apps/studio/goldens-p2-candidate" \
+          ZSTUDIO_P2_URL="http://127.0.0.1:8794/my-studio.html" \
+          tests/node_modules/.bin/electron \
+            --no-sandbox \
+            --disable-gpu \
+            --ozone-platform=headless \
+            tests/visual/generate-p2-goldens.js
+
+          test "$(find goldens-p2-candidate -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" = "6"
+          echo "P2_VISUAL_CANDIDATES=6_OF_6_PASS"
+
+      - name: Publish P2 dedicated visual candidates for approval
+        uses: actions/upload-artifact@v4
+        with:
+          name: zstudio-p2-visual-candidates
+          path: apps/studio/goldens-p2-candidate/*.png
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Compare against approved Z Studio baseline
         run: python3 tests/visual/compare-goldens.py
