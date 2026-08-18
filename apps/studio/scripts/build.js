@@ -10,6 +10,7 @@
 //   src/data/categories.js         — categorias, paletas, selos, campos extra
 //   src/main.js                    — estado, rendering, UI, exportações
 //   src/render/layout-guards.js    — guards de layout carregados após o renderer legado
+//   src/platform/auth.js           — sessão passwordless e Bearer bridge para IA
 //
 // Durante a convergência comercial A1.2A, os módulos históricos ainda podem
 // conter o nome legado "My Studio". A identidade emitida pelo build é sempre
@@ -27,6 +28,8 @@ const LEGACY_BRAND = 'My Studio';
 const LEGACY_BRAND_UPPER = 'MY STUDIO';
 const COMMERCIAL_BRAND = 'Z Studio';
 const COMMERCIAL_BRAND_UPPER = 'Z STUDIO';
+const SUPABASE_ORIGIN = 'https://dcdggqyazdddrfuzwavw.supabase.co';
+const SUPABASE_CDN_ORIGIN = 'https://cdn.jsdelivr.net';
 
 function applyCommercialIdentity(text) {
   return String(text)
@@ -40,6 +43,31 @@ function assertCommercialIdentity(text, label) {
   }
 }
 
+function applyAuthRuntimeCsp(template) {
+  const withScriptOrigin = String(template)
+    .replaceAll(
+      "script-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline';",
+      "script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'unsafe-inline';",
+    )
+    .replaceAll(
+      "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com;",
+      "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net;",
+    );
+  const output = withScriptOrigin.replaceAll(
+    "connect-src 'self' https://z-studio-platform-seven.vercel.app;",
+    "connect-src 'self' https://z-studio-platform-seven.vercel.app https://dcdggqyazdddrfuzwavw.supabase.co;",
+  );
+  const scriptPolicies = output.match(/script-src[^;]*https:\/\/cdn\.jsdelivr\.net/g) || [];
+  const connectPolicies = output.match(/connect-src[^;]*https:\/\/dcdggqyazdddrfuzwavw\.supabase\.co/g) || [];
+  if (scriptPolicies.length !== 2 || connectPolicies.length !== 2) {
+    throw new Error('CSP do Z Studio não recebeu exatamente duas autoridades Auth (script/connect).');
+  }
+  if (!output.includes(SUPABASE_ORIGIN) || !output.includes(SUPABASE_CDN_ORIGIN)) {
+    throw new Error('CSP Auth incompleta.');
+  }
+  return output;
+}
+
 function assemble() {
   const template = fs.readFileSync(path.join(SRC, 'template.html'), 'utf-8');
   const i18n = fs.readFileSync(path.join(SRC, 'data', 'i18n.js'), 'utf-8');
@@ -49,16 +77,18 @@ function assemble() {
   const platformStorage = fs.readFileSync(path.join(SRC, 'platform', 'storage.js'), 'utf-8');
   const main = fs.readFileSync(path.join(SRC, 'main.js'), 'utf-8');
   const layoutGuards = fs.readFileSync(path.join(SRC, 'render', 'layout-guards.js'), 'utf-8');
+  const auth = fs.readFileSync(path.join(SRC, 'platform', 'auth.js'), 'utf-8');
 
   if (!template.includes(PLACEHOLDER)) {
     throw new Error('src/template.html não tem o placeholder ' + PLACEHOLDER + ' — a montagem não sabe onde inserir o script.');
   }
 
   // ordem importa: dados primeiro (main.js lê I18N/CATEGORY_* como já definidos),
-  // depois state, storage, platform/storage e renderer legado. Os guards vêm no
-  // fim para substituir apenas as primitivas de layout estabilizadas.
-  const script = [i18n, categories, stateModule, storage, platformStorage, main, layoutGuards].join('\n\n');
-  const html = applyCommercialIdentity(template.replace(PLACEHOLDER, script));
+  // depois state, storage e renderer legado. Os guards estabilizam o layout e
+  // Auth vem por último para substituir a bridge askAI já definida por main.js.
+  const script = [i18n, categories, stateModule, storage, platformStorage, main, layoutGuards, auth].join('\n\n');
+  const templateWithAuthCsp = applyAuthRuntimeCsp(template);
+  const html = applyCommercialIdentity(templateWithAuthCsp.replace(PLACEHOLDER, script));
   assertCommercialIdentity(html, 'artefacto web Z Studio');
 
   fs.mkdirSync(path.dirname(WEB_INDEX_OUTPUT), { recursive: true });
