@@ -1034,6 +1034,168 @@ function wrapN(ctx, txt, maxW, maxLines) {
   if (cur && lines.length < maxLines) lines.push(cur);
   return lines;
 }
+
+// ZSTUDIO_P2_VISUAL_HIERARCHY_V1
+// Approved P2 authority:
+// - empty-state contrast only;
+// - template differentiation unchanged;
+// - Minimalist collision-safe hierarchy;
+// - readable 1–2 line metadata;
+// - locally scaled category extras;
+// - Finance V4 adaptive compact multilingual geometry.
+function wrapAllTextLines(
+  ctx,
+  txt,
+  maxW
+) {
+  const words =
+    String(txt || '')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+
+  const lines = [];
+  let current = '';
+
+  for (const word of words) {
+    const test =
+      current
+        ? current + ' ' + word
+        : word;
+
+    if (
+      current &&
+      ctx.measureText(test).width >
+        maxW
+    ) {
+      lines.push(current);
+      current = word;
+
+    } else {
+      current = test;
+    }
+  }
+
+  if (current) {
+    lines.push(current);
+  }
+
+  return lines;
+}
+
+function fitWrappedText(
+  ctx,
+  txt,
+  maxW,
+  font,
+  minSize,
+  maxSize,
+  maxLines
+) {
+  for (
+    let size = maxSize;
+    size >= minSize;
+    size -= 1
+  ) {
+    ctx.font =
+      font.replace(
+        'SIZE',
+        String(size)
+      );
+
+    const lines =
+      wrapAllTextLines(
+        ctx,
+        txt,
+        maxW
+      );
+
+    if (
+      lines.length <=
+      maxLines
+    ) {
+      return {
+        size,
+        lines,
+        truncated: false
+      };
+    }
+  }
+
+  ctx.font =
+    font.replace(
+      'SIZE',
+      String(minSize)
+    );
+
+  const raw =
+    wrapAllTextLines(
+      ctx,
+      txt,
+      maxW
+    );
+
+  const lines =
+    raw.slice(
+      0,
+      maxLines
+    );
+
+  const truncated =
+    raw.length >
+    maxLines;
+
+  if (
+    truncated &&
+    lines.length
+  ) {
+    let last =
+      lines[
+        lines.length - 1
+      ];
+
+    while (
+      last.length > 1 &&
+      ctx.measureText(
+        last + '…'
+      ).width >
+        maxW
+    ) {
+      const parts =
+        last.split(/\s+/);
+
+      if (
+        parts.length > 1
+      ) {
+        parts.pop();
+        last =
+          parts.join(' ');
+
+      } else {
+        last =
+          last.slice(
+            0,
+            -1
+          );
+      }
+    }
+
+    lines[
+      lines.length - 1
+    ] =
+      last.replace(
+        /[\s.,;:]+$/,
+        ''
+      ) + '…';
+  }
+
+  return {
+    size: minSize,
+    lines,
+    truncated
+  };
+}
+
 // Ficha de produto — universal: até 4 pares rótulo/valor, com presets por categoria
 // (imóveis, carros, viagens, moda, cosmética) ou totalmente livre. O resto fica na legenda.
 // ── Dados extra por categoria (certificado energético, estrelas, alergénios,
@@ -1086,24 +1248,149 @@ function renderCategoryExtras() {
       <div style="display:flex;flex-wrap:wrap;gap:5px;">${SIZE_LIST.map(s =>
         `<button type="button" class="chip${state.sizes.includes(s) ? ' active' : ''}" onclick="toggleSize('${s}')">${s}</button>`).join('')}</div>`;
   } else if (state.category === 'carros') {
-    html += `<label class="f" style="margin-top:14px;">${uiT('financeCalcLabel')}</label>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
-        <div><label class="f" style="margin-top:0;font-size:0.6rem;">${uiT('financeMonths')}</label><input type="number" min="1" value="${state.financeMonths}" oninput="state.financeMonths=+this.value||1; renderCategoryExtras(); scheduleSaveDraft();"></div>
-        <div><label class="f" style="margin-top:0;font-size:0.6rem;">${uiT('financeDown')}</label><input type="number" min="0" max="100" value="${state.financeDownPct}" oninput="state.financeDownPct=+this.value||0; renderCategoryExtras(); scheduleSaveDraft();"></div>
-        <div><label class="f" style="margin-top:0;font-size:0.6rem;">${uiT('financeAPR')}</label><input type="number" min="0" step="0.1" value="${state.financeAPR}" oninput="state.financeAPR=+this.value||0; renderCategoryExtras(); scheduleSaveDraft();"></div>
+    html += `<label class="f finance-extra-title">${uiT('financeCalcLabel')}</label>
+      <div class="finance-grid">
+        <div class="finance-field"><label class="f finance-label">${uiT('financeMonths')}</label><input class="finance-input" type="number" min="1" value="${state.financeMonths}" oninput="state.financeMonths=+this.value||1; renderCategoryExtras(); scheduleSaveDraft();"></div>
+        <div class="finance-field"><label class="f finance-label">${uiT('financeDown')}</label><input class="finance-input" type="number" min="0" max="100" value="${state.financeDownPct}" oninput="state.financeDownPct=+this.value||0; renderCategoryExtras(); scheduleSaveDraft();"></div>
+        <div class="finance-field"><label class="f finance-label">${uiT('financeAPR')}</label><input class="finance-input" type="number" min="0" step="0.1" value="${state.financeAPR}" oninput="state.financeAPR=+this.value||0; renderCategoryExtras(); scheduleSaveDraft();"></div>
       </div>`;
-    const priceNum = parseEuroNumber(state.price);
-    if (priceNum > 0 && state.financeMonths > 0) {
-      const principal = priceNum * (1 - state.financeDownPct / 100);
-      const r = (state.financeAPR / 100) / 12;
-      const n = state.financeMonths;
-      const monthly = Math.round(r > 0 ? (principal * r) / (1 - Math.pow(1 + r, -n)) : principal / n);
-      html += `<div class="hint" style="margin-top:9px;">${uiT('financeEstimate')}: <strong style="color:var(--gold);">≈ ${monthly.toLocaleString(state.lang)}€/${uiT('financeMonthAbbrev')}</strong>
-        <button type="button" class="btn btn-line" style="padding:4px 10px;font-size:0.6rem;margin-left:8px;vertical-align:middle;" onclick="pickBadgeChip('${uiT('financeFromBadgePrefix')} ${monthly}€/${uiT('financeMonthAbbrev')}')">${uiT('financeUseInBadge')}</button></div>`;
+
+    const priceNum =
+      parseEuroNumber(
+        state.price
+      );
+
+    if (
+      priceNum > 0 &&
+      state.financeMonths > 0
+    ) {
+      const principal =
+        priceNum *
+        (
+          1 -
+          state.financeDownPct /
+          100
+        );
+
+      const r =
+        (
+          state.financeAPR /
+          100
+        ) /
+        12;
+
+      const n =
+        state.financeMonths;
+
+      const monthly =
+        Math.round(
+          r > 0
+            ? (
+                principal * r
+              ) /
+              (
+                1 -
+                Math.pow(
+                  1 + r,
+                  -n
+                )
+              )
+            : principal / n
+        );
+
+      html += `<div class="hint finance-summary">${uiT('financeEstimate')}: <strong style="color:var(--gold);">≈ ${monthly.toLocaleString(state.lang)}€/${uiT('financeMonthAbbrev')}</strong>
+        <button type="button" class="btn btn-line finance-button" onclick="pickBadgeChip('${uiT('financeFromBadgePrefix')} ${monthly}€/${uiT('financeMonthAbbrev')}')">${uiT('financeUseInBadge')}</button></div>`;
     }
   }
+
   wrap.innerHTML = html;
+
+  if (
+    state.category === 'carros'
+  ) {
+    applyFinanceAdaptiveLabelRail(
+      wrap
+    );
+  }
 }
+
+function financeRenderedLineCount(
+  label
+) {
+  if (!label) {
+    return 0;
+  }
+
+  const range =
+    document.createRange();
+
+  range.selectNodeContents(
+    label
+  );
+
+  const tops =
+    new Set(
+      [...range.getClientRects()]
+        .filter(
+          rect =>
+            rect.width > 0 &&
+            rect.height > 0
+        )
+        .map(
+          rect =>
+            Math.round(
+              rect.top * 2
+            ) / 2
+        )
+    );
+
+  return Math.max(
+    1,
+    tops.size
+  );
+}
+
+function applyFinanceAdaptiveLabelRail(
+  wrap
+) {
+  const grid =
+    wrap &&
+    wrap.querySelector(
+      '.finance-grid'
+    );
+
+  if (!grid) {
+    return false;
+  }
+
+  grid.classList.remove(
+    'finance-two-line'
+  );
+
+  const labels =
+    [
+      ...grid.querySelectorAll(
+        '.finance-label'
+      )
+    ];
+
+  const requiresTwo =
+    labels.some(
+      label =>
+        financeRenderedLineCount(
+          label
+        ) > 1
+    );
+
+  if (requiresTwo) {
+    grid.classList.add(
+      'finance-two-line'
+    );
+  }
+
+  return requiresTwo;
+}
+
 function pickEnergyRating(l) { state.energyRating = (state.energyRating === l ? '' : l); renderCategoryExtras(); draw(); scheduleSaveDraft(); }
 function pickStarRating(n) { state.starRating = (state.starRating === n ? 0 : n); renderCategoryExtras(); draw(); scheduleSaveDraft(); }
 function toggleAllergen(k) { const i = state.allergens.indexOf(k); if (i >= 0) state.allergens.splice(i, 1); else state.allergens.push(k); renderCategoryExtras(); draw(); scheduleSaveDraft(); }
@@ -1203,10 +1490,10 @@ function drawPlaceholderArt(ctx, W, H, P) {
 
   ctx.save();
   ctx.textAlign = 'center';
-  ctx.fillStyle = P.gold; ctx.globalAlpha = 0.6;
+  ctx.fillStyle = P.gold; ctx.globalAlpha = 0.82;
   ctx.font = `400 ${Math.round(W * 0.026)}px "DM Sans", sans-serif`;
   ctx.fillText(t.emptyHint1, cx, cy + s * 1.9);
-  ctx.globalAlpha = 0.36;
+  ctx.globalAlpha = 0.60;
   ctx.font = `300 ${Math.round(W * 0.0175)}px "DM Sans", sans-serif`;
   ctx.fillText(t.emptyHint2, cx, cy + s * 1.9 + Math.round(W * 0.034));
   ctx.restore();
@@ -1931,13 +2218,62 @@ async function drawListing(ctx, W, H) {
     if (locLine) ctx.fillText('📍 ' + locLine, W / 2, locY);
 
     if (specs) {
-      ctx.strokeStyle = P.rule; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(W/2 - 200*FS, specsY - 42*FS); ctx.lineTo(W/2 + 200*FS, specsY - 42*FS); ctx.stroke();
+      const specFit =
+        fitWrappedText(
+          ctx,
+          specs,
+          W - 140*FS,
+          '300 SIZEpx "DM Sans", sans-serif',
+          20*FS,
+          28*FS,
+          2
+        );
+
+      const specStep =
+        specFit.size +
+        6*FS;
+
+      const specFirstY =
+        specsY -
+        (
+          specFit.lines.length -
+          1
+        ) *
+        specStep;
+
+      ctx.strokeStyle = P.rule;
+      ctx.lineWidth = 1;
+
+      ctx.beginPath();
+
+      ctx.moveTo(
+        W/2 - 200*FS,
+        specFirstY - 30*FS
+      );
+
+      ctx.lineTo(
+        W/2 + 200*FS,
+        specFirstY - 30*FS
+      );
+
+      ctx.stroke();
+
       ctx.fillStyle = P.gold;
-      // a ficha universal pode ter texto bem mais comprido do que "3 quartos" — encolhe até caber
-      const ss = fitText(ctx, specs, W - 140*FS, '300 SIZEpx "DM Sans", sans-serif', 15*FS, 28*FS);
-      ctx.font = `300 ${ss}px "DM Sans", sans-serif`;
-      ctx.fillText(specs, W / 2, specsY);
+
+      ctx.font =
+        `300 ${specFit.size}px "DM Sans", sans-serif`;
+
+      specFit.lines.forEach(
+        (line, index) => {
+          ctx.fillText(
+            line,
+            W / 2,
+            specFirstY +
+              index *
+              specStep
+          );
+        }
+      );
     }
     watermark(() => {
       ctx.fillStyle = P.faint; ctx.font = `300 ${22*FS}px "DM Sans", sans-serif`;
@@ -1945,32 +2281,513 @@ async function drawListing(ctx, W, H) {
     });
 
   } else if (state.template === 'minimalista') {
-    const barH = (story ? 300 : 220) * FS;
-    if (state.img) drawPrimaryTemplatePhoto(ctx, state.img, 0, 0, W, H - barH, true, 'minimalista');
-    fillBg(ctx, W, H, P, H - barH, H);
-    ctx.strokeStyle = P.rule; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(0, H - barH); ctx.lineTo(W, H - barH); ctx.stroke();
+    const p2MinimalHierarchy =
+      state.format === 'feed45' ||
+      state.format === 'story' ||
+      state.format === 'wide';
 
-    if (state.badge) {
-      ctx.textAlign = 'left'; ctx.fillStyle = P.gold; ctx.font = `400 ${22*FS}px "DM Sans", sans-serif`;
-      spacedLeft(ctx, state.badge.toUpperCase(), 64*FS, H - barH + 46*FS, 6*FS);
+    if (!p2MinimalHierarchy) {
+      // Square + Pin retain the pre-P2 renderer path.
+      const barH =
+        (
+          story
+            ? 300
+            : 220
+        ) * FS;
+
+      if (state.img) {
+        drawPrimaryTemplatePhoto(
+          ctx,
+          state.img,
+          0,
+          0,
+          W,
+          H - barH,
+          true,
+          'minimalista'
+        );
+      }
+
+      fillBg(
+        ctx,
+        W,
+        H,
+        P,
+        H - barH,
+        H
+      );
+
+      ctx.strokeStyle = P.rule;
+      ctx.lineWidth = 1;
+
+      ctx.beginPath();
+      ctx.moveTo(0, H - barH);
+      ctx.lineTo(W, H - barH);
+      ctx.stroke();
+
+      if (state.badge) {
+        ctx.textAlign = 'left';
+        ctx.fillStyle = P.gold;
+        ctx.font =
+          `400 ${22*FS}px "DM Sans", sans-serif`;
+
+        spacedLeft(
+          ctx,
+          state.badge.toUpperCase(),
+          64*FS,
+          H - barH + 46*FS,
+          6*FS
+        );
+      }
+
+      ctx.textAlign = 'left';
+      ctx.fillStyle = P.ink;
+
+      const ts =
+        fitText(
+          ctx,
+          state.title,
+          W - 128*FS,
+          '500 SIZEpx "DM Sans", sans-serif',
+          30*FS,
+          44*FS
+        );
+
+      let y =
+        H - barH +
+        100*FS;
+
+      ctx.font =
+        `500 ${ts}px "DM Sans", sans-serif`;
+
+      wrapN(
+        ctx,
+        state.title,
+        W - 128*FS,
+        2
+      ).forEach(
+        line => {
+          ctx.fillText(
+            line,
+            64*FS,
+            y
+          );
+
+          y +=
+            ts +
+            8*FS;
+        }
+      );
+
+      ctx.fillStyle = P.muted;
+      ctx.font =
+        `300 ${24*FS}px "DM Sans", sans-serif`;
+
+      if (locLine) {
+        ctx.fillText(
+          '📍 ' + locLine,
+          64*FS,
+          y + 8*FS
+        );
+      }
+
+      ctx.textAlign = 'right';
+      ctx.fillStyle = P.goldBig;
+      ctx.font =
+        `500 ${40*FS}px "Cormorant Garamond", serif`;
+
+      ctx.fillText(
+        state.price,
+        W - 64*FS,
+        H - barH +
+          100*FS
+      );
+
+      ctx.textAlign = 'left';
+
+      watermark(
+        () => {
+          ctx.fillStyle = P.faint;
+
+          ctx.font =
+            `300 ${19*FS}px "DM Sans", sans-serif`;
+
+          ctx.fillText(
+            footerLine(),
+            64*FS,
+            H - 28*FS
+          );
+        }
+      );
+
+    } else {
+      const barH =
+        (
+          story
+            ? 300
+            : 220
+        ) * FS;
+
+      const barTop =
+        H - barH;
+
+      if (state.img) {
+        drawPrimaryTemplatePhoto(
+          ctx,
+          state.img,
+          0,
+          0,
+          W,
+          barTop,
+          true,
+          'minimalista'
+        );
+      }
+
+      fillBg(
+        ctx,
+        W,
+        H,
+        P,
+        barTop,
+        H
+      );
+
+      ctx.strokeStyle = P.rule;
+      ctx.lineWidth = 1;
+
+      ctx.beginPath();
+      ctx.moveTo(
+        0,
+        barTop
+      );
+      ctx.lineTo(
+        W,
+        barTop
+      );
+      ctx.stroke();
+
+      const left =
+        64 * FS;
+
+      const right =
+        W -
+        64 * FS;
+
+      if (
+        state.format ===
+        'wide'
+      ) {
+        // Wide approved candidate:
+        // measured price reservation, no collision.
+        if (state.badge) {
+          ctx.textAlign = 'left';
+          ctx.fillStyle = P.gold;
+
+          ctx.font =
+            `400 ${22*FS}px "DM Sans", sans-serif`;
+
+          spacedLeft(
+            ctx,
+            state.badge.toUpperCase(),
+            left,
+            barTop +
+              46*FS,
+            6*FS
+          );
+        }
+
+        const priceFont =
+          40 * FS;
+
+        ctx.font =
+          `500 ${priceFont}px "Cormorant Garamond", serif`;
+
+        const priceWidth =
+          ctx.measureText(
+            state.price
+          ).width;
+
+        const safetyGap =
+          42 * FS;
+
+        const titleMaxW =
+          Math.max(
+            220 * FS,
+            right -
+            priceWidth -
+            safetyGap -
+            left
+          );
+
+        const titleFit =
+          fitWrappedText(
+            ctx,
+            state.title,
+            titleMaxW,
+            '500 SIZEpx "DM Sans", sans-serif',
+            30*FS,
+            44*FS,
+            2
+          );
+
+        const footerY =
+          H -
+          28*FS;
+
+        const lineStep =
+          titleFit.size +
+          7*FS;
+
+        let titleStart =
+          barTop +
+          (
+            titleFit.lines.length > 1
+              ? 80
+              : 100
+          ) * FS;
+
+        let locationY =
+          titleStart +
+          (
+            titleFit.lines.length -
+            1
+          ) *
+          lineStep +
+          titleFit.size +
+          15*FS;
+
+        const maxLocationY =
+          footerY -
+          31*FS;
+
+        if (
+          locationY >
+          maxLocationY
+        ) {
+          const shift =
+            locationY -
+            maxLocationY;
+
+          titleStart -= shift;
+          locationY -= shift;
+        }
+
+        ctx.textAlign = 'left';
+        ctx.fillStyle = P.ink;
+
+        ctx.font =
+          `500 ${titleFit.size}px "DM Sans", sans-serif`;
+
+        titleFit.lines.forEach(
+          (line, index) => {
+            ctx.fillText(
+              line,
+              left,
+              titleStart +
+                index *
+                lineStep
+            );
+          }
+        );
+
+        ctx.fillStyle = P.muted;
+
+        ctx.font =
+          `300 ${24*FS}px "DM Sans", sans-serif`;
+
+        if (locLine) {
+          ctx.fillText(
+            '📍 ' + locLine,
+            left,
+            locationY
+          );
+        }
+
+        ctx.textAlign = 'right';
+        ctx.fillStyle = P.goldBig;
+
+        ctx.font =
+          `500 ${priceFont}px "Cormorant Garamond", serif`;
+
+        ctx.fillText(
+          state.price,
+          right,
+          barTop +
+            100*FS
+        );
+
+        ctx.textAlign = 'left';
+
+        watermark(
+          () => {
+            ctx.fillStyle = P.faint;
+
+            ctx.font =
+              `300 ${20*FS}px "DM Sans", sans-serif`;
+
+            ctx.fillText(
+              footerLine(),
+              left,
+              footerY
+            );
+          }
+        );
+
+      } else {
+        // Feed V2.1 + Story V2:
+        // badge/price header row,
+        // title owns width underneath.
+        const headerY =
+          barTop +
+          (
+            story
+              ? 42
+              : 30
+          ) * FS;
+
+        if (state.badge) {
+          ctx.textAlign = 'left';
+          ctx.fillStyle = P.gold;
+
+          ctx.font =
+            `400 ${20*FS}px "DM Sans", sans-serif`;
+
+          spacedLeft(
+            ctx,
+            state.badge.toUpperCase(),
+            left,
+            headerY,
+            5*FS
+          );
+        }
+
+        const priceSize =
+          (
+            story
+              ? 40
+              : 34
+          ) * FS;
+
+        ctx.textAlign = 'right';
+        ctx.fillStyle = P.goldBig;
+
+        ctx.font =
+          `500 ${priceSize}px "Cormorant Garamond", serif`;
+
+        ctx.fillText(
+          state.price,
+          right,
+          headerY +
+            3*FS
+        );
+
+        const titleFit =
+          fitWrappedText(
+            ctx,
+            state.title,
+            W - 128*FS,
+            '500 SIZEpx "DM Sans", sans-serif',
+            31*FS,
+            (
+              story
+                ? 40
+                : 36
+            ) * FS,
+            2
+          );
+
+        const titleY =
+          barTop +
+          (
+            story
+              ? 91
+              : 72
+          ) * FS;
+
+        const lineStep =
+          titleFit.size +
+          (
+            story
+              ? 6
+              : 4
+          ) * FS;
+
+        ctx.textAlign = 'left';
+        ctx.fillStyle = P.ink;
+
+        ctx.font =
+          `500 ${titleFit.size}px "DM Sans", sans-serif`;
+
+        titleFit.lines.forEach(
+          (line, index) => {
+            ctx.fillText(
+              line,
+              left,
+              titleY +
+                index *
+                lineStep
+            );
+          }
+        );
+
+        const locationY =
+          titleY +
+          (
+            titleFit.lines.length -
+            1
+          ) *
+          lineStep +
+          titleFit.size +
+          (
+            story
+              ? 17
+              : 10
+          ) * FS;
+
+        ctx.fillStyle = P.muted;
+
+        ctx.font =
+          `300 ${
+            (
+              story
+                ? 22
+                : 20
+            ) * FS
+          }px "DM Sans", sans-serif`;
+
+        if (locLine) {
+          ctx.fillText(
+            '📍 ' + locLine,
+            left,
+            locationY
+          );
+        }
+
+        const footerY =
+          H -
+          (
+            story
+              ? 24
+              : 20
+          ) * FS;
+
+        watermark(
+          () => {
+            ctx.fillStyle = P.faint;
+
+            ctx.font =
+              `300 ${20*FS}px "DM Sans", sans-serif`;
+
+            ctx.fillText(
+              footerLine(),
+              left,
+              footerY
+            );
+          }
+        );
+      }
     }
-    ctx.textAlign = 'left'; ctx.fillStyle = P.ink;
-    const ts = fitText(ctx, state.title, W - 128*FS, '500 SIZEpx "DM Sans", sans-serif', 30*FS, 44*FS);
-    let y = H - barH + 100*FS;
-    ctx.font = `500 ${ts}px "DM Sans", sans-serif`;
-    wrapN(ctx, state.title, W - 128*FS, 2).forEach(l => { ctx.fillText(l, 64*FS, y); y += ts + 8*FS; });
-    ctx.fillStyle = P.muted; ctx.font = `300 ${24*FS}px "DM Sans", sans-serif`;
-    if (locLine) ctx.fillText('📍 ' + locLine, 64*FS, y + 8*FS);
-
-    ctx.textAlign = 'right'; ctx.fillStyle = P.goldBig; ctx.font = `500 ${40*FS}px "Cormorant Garamond", serif`;
-    ctx.fillText(state.price, W - 64*FS, H - barH + 100*FS);
-    ctx.textAlign = 'left';
-    watermark(() => {
-      ctx.fillStyle = P.faint; ctx.font = `300 ${19*FS}px "DM Sans", sans-serif`;
-      ctx.fillText(footerLine(), 64*FS, H - 28*FS);
-    });
-
   } else if (state.template === 'colagem') {
     // Colagem — 2 a 8 fotos numa grelha, com uma faixa de texto sólida em
     // baixo. Usa as fotos marcadas com ✓ (já é o mecanismo de seleção que
@@ -2134,10 +2951,37 @@ async function drawListing(ctx, W, H) {
     ctx.font = '500 58px "Cormorant Garamond", serif';
     ctx.fillText(state.price, 64, y); y += 58;
     if (state.showSpecs && specsLine()) {
+      const specFit =
+        fitWrappedText(
+          ctx,
+          specsLine(),
+          W - 128,
+          '300 SIZEpx "DM Sans", sans-serif',
+          20,
+          27,
+          2
+        );
+
       ctx.fillStyle = P.muted;
-      const ss2 = fitText(ctx, specsLine(), W - 128, '300 SIZEpx "DM Sans", sans-serif', 16, 27);
-      ctx.font = `300 ${ss2}px "DM Sans", sans-serif`;
-      ctx.fillText(specsLine(), 64, y);
+
+      ctx.font =
+        `300 ${specFit.size}px "DM Sans", sans-serif`;
+
+      const specStep =
+        specFit.size +
+        7;
+
+      specFit.lines.forEach(
+        (line, index) => {
+          ctx.fillText(
+            line,
+            64,
+            y +
+              index *
+              specStep
+          );
+        }
+      );
     }
     drawLogo(ctx, W - 130, H - 96, 0.66, P.gold);
     ctx.textAlign = 'left';

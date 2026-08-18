@@ -8,7 +8,7 @@
     "test": "electron --no-sandbox --disable-gpu --ozone-platform=headless run-tests.js",
     "test:mobile": "electron --no-sandbox --disable-gpu --ozone-platform=headless run-mobile-check.js",
     "test:layout": "electron --no-sandbox --disable-gpu --ozone-platform=headless run-layout-regression.js",
-    "test:renderer-layer2": "electron --no-sandbox --disable-gpu --ozone-platform=headless run-editorial-mosaic-regression.js"
+    "test:renderer-layer2": "electron --no-sandbox --disable-gpu --ozone-platform=headless run-editorial-mosaic-regression.js && electron --no-sandbox --disable-gpu --ozone-platform=headless run-p2-hierarchy-regression.js"
   },
   "devDependencies": {
     "electron": "^43.0.0"
