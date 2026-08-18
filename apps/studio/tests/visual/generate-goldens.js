@@ -153,7 +153,15 @@ async function main() {
   })()`, true);
   await shot(win, 'categoria-moda-tamanhos');
 
-  // 6) P1.2 — Wide portrait Cinematic Right V2.
+  // 6) estado vazio (placeholder)
+  await win.webContents.executeJavaScript(`(async () => {
+    const originalConfirm = window.confirm; window.confirm = () => true;
+    clearDraft(); await new Promise(r=>setTimeout(r,200));
+    window.confirm = originalConfirm;
+  })()`, true);
+  await shot(win, 'estado-vazio');
+
+  // 7) P1.2 — Wide portrait Cinematic Right V2.
   // Two portrait source ratios × three single-photo templates.
   // These six goldens are the persistent visual authority for P1.2.
   for (const source of [
@@ -224,13 +232,6 @@ async function main() {
     }
   }
 
-  // 7) estado vazio (placeholder)
-  await win.webContents.executeJavaScript(`(async () => {
-    const originalConfirm = window.confirm; window.confirm = () => true;
-    clearDraft(); await new Promise(r=>setTimeout(r,200));
-    window.confirm = originalConfirm;
-  })()`, true);
-  await shot(win, 'estado-vazio');
 
   app.exit(0);
 }
