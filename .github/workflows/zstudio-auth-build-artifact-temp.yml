@@ -6,6 +6,12 @@ on:
       - feature/zstudio-passwordless-auth-v1
     paths:
       - '.github/workflows/zstudio-auth-build-artifact-temp.yml'
+  pull_request:
+    branches:
+      - feature/zstudio-paid-ai-runtime-v1
+    paths:
+      - '.github/workflows/zstudio-auth-build-artifact-temp.yml'
+      - 'apps/studio/**'
 
 permissions:
   contents: read
@@ -16,10 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout exact Auth branch
+      - name: Checkout Auth PR merge candidate
         uses: actions/checkout@v4
-        with:
-          ref: feature/zstudio-passwordless-auth-v1
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
