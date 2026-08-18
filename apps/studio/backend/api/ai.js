@@ -1,6 +1,6 @@
 // Z Studio — production AI gateway boundary (Vercel Function, Node.js runtime)
-// Secrets stay server-side. This endpoint deliberately exposes only a narrow,
-// text-only contract used by the Z Studio caption/translation features.
+// Secrets stay server-side. AI inference is available only to authenticated,
+// entitled Studio users with an atomically reserved metered usage unit.
 
 const { randomUUID } = require('node:crypto');
 
@@ -9,17 +9,15 @@ const ANTHROPIC_VERSION = '2023-06-01';
 const DEFAULT_MODEL = 'anthropic/claude-3-haiku';
 const MAX_ALLOWED_TOKENS = 1200;
 const REQUEST_TIMEOUT_MS = 20000;
+const AUTH_TIMEOUT_MS = 8000;
+const SUPABASE_TIMEOUT_MS = 8000;
 
-// Known production/native origins. ALLOWED_ORIGINS may add future custom domains,
-// but an absent environment variable must never turn CORS into allow-all.
 const DEFAULT_ALLOWED_ORIGINS = Object.freeze([
   'https://z-studio-web.vercel.app',
   'capacitor://localhost',
   'https://localhost',
 ]);
 
-// Secondary per-instance guard. The authoritative distributed limit belongs in
-// Vercel WAF (A1.4C); this map remains useful as a cheap local backstop.
 const rateLimitMap = new Map();
 const RATE_LIMIT_WINDOW_MS = 60000;
 const RATE_LIMIT_MAX_REQUESTS = 12;
@@ -34,14 +32,14 @@ function getAllowedOrigins() {
 }
 
 function isOriginAllowed(origin) {
-  if (!origin) return true; // non-browser/server-to-server request; CORS is not applicable
+  if (!origin) return true;
   return getAllowedOrigins().has(origin);
 }
 
 function corsHeaders(origin) {
   const headers = {
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Authorization, Content-Type',
     'Cache-Control': 'no-store',
     Vary: 'Origin',
   };
@@ -82,6 +80,19 @@ function getGatewayApiKey() {
     return process.env.ANTHROPIC_API_KEY;
   }
   return '';
+}
+
+function getSupabaseConfig() {
+  const url = String(process.env.SUPABASE_URL || '').trim().replace(/\/+$/, '');
+  const apiKey = String(process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || '').trim();
+  if (!url || !apiKey || !/^https:\/\//i.test(url)) return null;
+  return { url, apiKey };
+}
+
+function getBearerToken(req) {
+  const raw = String(req.headers.authorization || req.headers.Authorization || '').trim();
+  const match = raw.match(/^Bearer\s+(.+)$/i);
+  return match && match[1].trim() ? match[1].trim() : '';
 }
 
 function getModel() {
@@ -131,6 +142,104 @@ function logEvent(level, event, fields = {}) {
   fn(JSON.stringify(payload));
 }
 
+async function fetchWithTimeout(url, options, timeoutMs) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+async function readJsonSafe(response) {
+  try {
+    return await response.json();
+  } catch (_error) {
+    return null;
+  }
+}
+
+function supabaseHeaders(config, token, includeJson = false) {
+  const headers = {
+    apikey: config.apiKey,
+    Authorization: `Bearer ${token}`,
+  };
+  if (includeJson) headers['Content-Type'] = 'application/json';
+  return headers;
+}
+
+async function validateSupabaseUser(config, token) {
+  try {
+    const response = await fetchWithTimeout(
+      `${config.url}/auth/v1/user`,
+      { method: 'GET', headers: supabaseHeaders(config, token) },
+      AUTH_TIMEOUT_MS,
+    );
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) return { ok: false, kind: 'invalid_token' };
+      return { ok: false, kind: 'unavailable', status: response.status };
+    }
+    const data = await readJsonSafe(response);
+    if (!data || typeof data.id !== 'string' || !data.id) return { ok: false, kind: 'invalid_token' };
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, kind: 'unavailable', timeout: error?.name === 'AbortError' };
+  }
+}
+
+async function callSupabaseRpc(config, token, rpcName, body) {
+  try {
+    const response = await fetchWithTimeout(
+      `${config.url}/rest/v1/rpc/${rpcName}`,
+      {
+        method: 'POST',
+        headers: supabaseHeaders(config, token, true),
+        body: JSON.stringify(body || {}),
+      },
+      SUPABASE_TIMEOUT_MS,
+    );
+    const data = await readJsonSafe(response);
+    return { ok: response.ok, status: response.status, data };
+  } catch (error) {
+    return { ok: false, status: 0, data: null, timeout: error?.name === 'AbortError' };
+  }
+}
+
+function rpcErrorTag(result) {
+  const message = String(result?.data?.message || '');
+  if (message.includes('AI_ENTITLEMENT_REQUIRED')) return 'AI_ENTITLEMENT_REQUIRED';
+  if (message.includes('AI_QUOTA_NOT_CONFIGURED')) return 'AI_QUOTA_NOT_CONFIGURED';
+  if (message.includes('AI_QUOTA_EXCEEDED')) return 'AI_QUOTA_EXCEEDED';
+  if (message.includes('AI_RESERVATION_EXPIRED')) return 'AI_RESERVATION_EXPIRED';
+  return '';
+}
+
+async function ensureStudioAccount(config, token) {
+  return callSupabaseRpc(config, token, 'zstudio_ensure_account', {});
+}
+
+async function reserveAiUsage(config, token, requestId) {
+  return callSupabaseRpc(config, token, 'zstudio_reserve_ai_usage', { p_request_id: requestId });
+}
+
+async function finalizeAiUsage(config, token, requestId, model, usage) {
+  return callSupabaseRpc(config, token, 'zstudio_finalize_ai_usage', {
+    p_request_id: requestId,
+    p_model: model,
+    p_input_tokens: Number.isInteger(usage?.input_tokens) ? usage.input_tokens : null,
+    p_output_tokens: Number.isInteger(usage?.output_tokens) ? usage.output_tokens : null,
+  });
+}
+
+async function releaseAiReservation(config, token, requestId, reason) {
+  const result = await callSupabaseRpc(config, token, 'zstudio_release_ai_reservation', { p_request_id: requestId });
+  if (!result.ok) {
+    logEvent('error', 'reservation_release_failed', { requestId, reason, status: result.status || null });
+  }
+  return result;
+}
+
 async function handler(req, res) {
   const requestId = randomUUID();
   const startedAt = Date.now();
@@ -150,6 +259,37 @@ async function handler(req, res) {
 
   if (req.method !== 'POST') {
     writeJson(res, 405, { error: 'Método não permitido. Usa POST.', code: 'METHOD_NOT_ALLOWED', request_id: requestId }, origin, { Allow: 'POST, OPTIONS' });
+    return;
+  }
+
+  const supabase = getSupabaseConfig();
+  if (!supabase) {
+    logEvent('error', 'supabase_config_missing', { requestId });
+    writeJson(res, 500, { error: 'Autenticação temporariamente indisponível.', code: 'AUTH_CONFIG_UNAVAILABLE', request_id: requestId }, origin);
+    return;
+  }
+
+  const token = getBearerToken(req);
+  if (!token) {
+    writeJson(res, 401, { error: 'Autenticação necessária.', code: 'AUTH_REQUIRED', request_id: requestId }, origin, { 'WWW-Authenticate': 'Bearer' });
+    return;
+  }
+
+  const authResult = await validateSupabaseUser(supabase, token);
+  if (!authResult.ok) {
+    if (authResult.kind === 'invalid_token') {
+      writeJson(res, 401, { error: 'Sessão inválida ou expirada.', code: 'AUTH_INVALID', request_id: requestId }, origin, { 'WWW-Authenticate': 'Bearer' });
+      return;
+    }
+    logEvent('error', 'supabase_auth_unavailable', { requestId, status: authResult.status || null, timeout: Boolean(authResult.timeout) });
+    writeJson(res, 503, { error: 'Autenticação temporariamente indisponível.', code: 'AUTH_UNAVAILABLE', request_id: requestId }, origin);
+    return;
+  }
+
+  const accountResult = await ensureStudioAccount(supabase, token);
+  if (!accountResult.ok) {
+    logEvent('error', 'studio_account_unavailable', { requestId, status: accountResult.status || null });
+    writeJson(res, 503, { error: 'Não foi possível validar o acesso ao Z Studio.', code: 'STUDIO_ACCOUNT_UNAVAILABLE', request_id: requestId }, origin);
     return;
   }
 
@@ -176,7 +316,7 @@ async function handler(req, res) {
   let body;
   try {
     body = parseBody(req);
-  } catch (error) {
+  } catch (_error) {
     writeJson(res, 400, { error: 'JSON inválido no corpo do pedido.', code: 'INVALID_JSON', request_id: requestId }, origin);
     return;
   }
@@ -187,30 +327,52 @@ async function handler(req, res) {
     return;
   }
 
+  const reservation = await reserveAiUsage(supabase, token, requestId);
+  if (!reservation.ok) {
+    const tag = rpcErrorTag(reservation);
+    if (tag === 'AI_ENTITLEMENT_REQUIRED') {
+      writeJson(res, 403, { error: 'O plano atual não inclui acesso ativo à IA.', code: 'AI_ENTITLEMENT_REQUIRED', request_id: requestId }, origin);
+      return;
+    }
+    if (tag === 'AI_QUOTA_NOT_CONFIGURED') {
+      logEvent('error', 'quota_not_configured', { requestId });
+      writeJson(res, 503, { error: 'A quota de IA está temporariamente indisponível.', code: 'AI_QUOTA_UNAVAILABLE', request_id: requestId }, origin);
+      return;
+    }
+    if (tag === 'AI_QUOTA_EXCEEDED') {
+      writeJson(res, 429, { error: 'A quota de IA do período foi atingida.', code: 'AI_QUOTA_EXCEEDED', request_id: requestId }, origin);
+      return;
+    }
+    logEvent('error', 'reservation_failed', { requestId, status: reservation.status || null });
+    writeJson(res, 503, { error: 'Não foi possível validar a quota de IA.', code: 'AI_METERING_UNAVAILABLE', request_id: requestId }, origin);
+    return;
+  }
+
   const maxTokens = Math.min(body.max_tokens || 900, MAX_ALLOWED_TOKENS);
   const model = getModel();
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    const upstream = await fetch(AI_GATEWAY_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': gatewayApiKey,
-        'anthropic-version': ANTHROPIC_VERSION,
+    const upstream = await fetchWithTimeout(
+      AI_GATEWAY_API_URL,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': gatewayApiKey,
+          'anthropic-version': ANTHROPIC_VERSION,
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: maxTokens,
+          system: body.system,
+          messages: [{ role: 'user', content: body.user }],
+        }),
       },
-      body: JSON.stringify({
-        model,
-        max_tokens: maxTokens,
-        system: body.system,
-        messages: [{ role: 'user', content: body.user }],
-      }),
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
+      REQUEST_TIMEOUT_MS,
+    );
 
     if (!upstream.ok) {
+      await releaseAiReservation(supabase, token, requestId, 'upstream_error');
       const errText = await upstream.text().catch(() => '');
       const mapped = safeUpstreamStatus(upstream.status);
       logEvent('error', 'upstream_error', {
@@ -226,10 +388,18 @@ async function handler(req, res) {
       return;
     }
 
-    const data = await upstream.json();
+    const data = await readJsonSafe(upstream);
     if (!data || !Array.isArray(data.content)) {
+      await releaseAiReservation(supabase, token, requestId, 'invalid_upstream_payload');
       logEvent('error', 'invalid_upstream_payload', { requestId, model, durationMs: Date.now() - startedAt });
       writeJson(res, 502, { error: 'O serviço de IA devolveu uma resposta inválida.', code: 'AI_INVALID_RESPONSE', request_id: requestId }, origin);
+      return;
+    }
+
+    const finalized = await finalizeAiUsage(supabase, token, requestId, model, data.usage || {});
+    if (!finalized.ok || finalized.data !== true) {
+      logEvent('error', 'meter_finalize_failed', { requestId, model, status: finalized.status || null });
+      writeJson(res, 503, { error: 'Não foi possível concluir a contabilização da utilização.', code: 'AI_METERING_UNAVAILABLE', request_id: requestId }, origin);
       return;
     }
 
@@ -242,11 +412,13 @@ async function handler(req, res) {
       maxTokens,
       inputTokens: data.usage?.input_tokens ?? null,
       outputTokens: data.usage?.output_tokens ?? null,
+      planCode: typeof reservation.data?.plan_code === 'string' ? reservation.data.plan_code : null,
+      remainingUnits: Number.isInteger(reservation.data?.remaining_units) ? reservation.data.remaining_units : null,
     });
 
     writeJson(res, 200, { content: data.content, request_id: requestId }, origin);
   } catch (error) {
-    clearTimeout(timeoutId);
+    await releaseAiReservation(supabase, token, requestId, error?.name === 'AbortError' ? 'upstream_timeout' : 'unexpected_error');
     if (error?.name === 'AbortError') {
       logEvent('error', 'upstream_timeout', { requestId, model, durationMs: Date.now() - startedAt });
       writeJson(res, 504, { error: 'O serviço de IA demorou demasiado tempo a responder.', code: 'AI_TIMEOUT', request_id: requestId }, origin);
@@ -259,15 +431,19 @@ async function handler(req, res) {
 
 module.exports = handler;
 module.exports._test = {
+  AI_GATEWAY_API_URL,
   DEFAULT_ALLOWED_ORIGINS,
   DEFAULT_MODEL,
   MAX_ALLOWED_TOKENS,
   checkRateLimit,
   corsHeaders,
   getAllowedOrigins,
+  getBearerToken,
   getGatewayApiKey,
   getModel,
+  getSupabaseConfig,
   isOriginAllowed,
+  rpcErrorTag,
   safeUpstreamStatus,
   validateBody,
   resetRateLimit() { rateLimitMap.clear(); },
