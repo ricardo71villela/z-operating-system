@@ -36,6 +36,16 @@ jobs:
           node-version: 22
       - name: Build generated app
         run: npm run build
+      - name: Publish generated Auth build boundary TEMP
+        uses: actions/upload-artifact@v4
+        with:
+          name: zstudio-auth-build-output
+          path: |
+            apps/studio/app/index.html
+            apps/studio/app/my-studio.html
+            apps/studio/native/www/index.html
+          if-no-files-found: error
+          retention-days: 1
       - name: Verify deterministic build, committed web authority and web/native parity
         shell: bash
         run: |
@@ -150,6 +160,8 @@ jobs:
         run: |
           grep -Fq "const AI_ENDPOINT = 'https://z-studio-platform-seven.vercel.app/api/ai';" src/main.js
           echo "AI_SPLIT_BACKEND_CONTRACT=PASS"
+      - name: Verify passwordless Auth session contract
+        run: npm run test:auth
       - name: Run functional tests with exact transitional assertions allowance
         shell: bash
         run: |
