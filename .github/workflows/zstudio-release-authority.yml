@@ -36,16 +36,6 @@ jobs:
           node-version: 22
       - name: Build generated app
         run: npm run build
-      - name: Publish generated Auth build boundary TEMP
-        uses: actions/upload-artifact@v4
-        with:
-          name: zstudio-auth-build-output
-          path: |
-            apps/studio/app/index.html
-            apps/studio/app/my-studio.html
-            apps/studio/native/www/index.html
-          if-no-files-found: error
-          retention-days: 1
       - name: Verify deterministic build, committed web authority and web/native parity
         shell: bash
         run: |
