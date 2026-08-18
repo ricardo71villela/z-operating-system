@@ -13,6 +13,7 @@
     "test:auth": "npm run build && node tests/auth-session.test.js",
     "test:mobile": "npm run test:mobile --prefix tests -- ../app/my-studio.html",
     "test:layout": "npm run test:layout --prefix tests -- ../app/my-studio.html",
+    "test:renderer-layer2": "npm run test:renderer-layer2 --prefix tests -- ../app/my-studio.html",
     "test:ux": "node tests/ux-information-architecture.test.js",
     "test:visual": "node scripts/test-visual.js",
     "test:language-ui": "node tests/language-selector-contract.test.js"

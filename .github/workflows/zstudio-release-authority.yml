@@ -165,7 +165,7 @@ jobs:
           fi
           FAIL_COUNT="$(grep -c '^❌ ' functional-test.log || true)"
           if [ "$FAIL_COUNT" = "3" ] \
-            && grep -Fq 'RESULTADO: 207 passaram, 3 falharam, 0 ignorados (de 210)' functional-test.log \
+            && grep -Fq 'RESULTADO: 211 passaram, 3 falharam, 0 ignorados (de 214)' functional-test.log \
             && grep -Fq '❌ marca por defeito é My Studio' functional-test.log \
             && grep -Fq '❌ sem "Z Studio" residual (nome antigo do produto)' functional-test.log \
             && grep -Fq '❌ sem Capacitor, o endpoint usa o caminho relativo normal' functional-test.log \
@@ -181,6 +181,8 @@ jobs:
           exit "$TEST_RC"
       - name: Run renderer layout regression contract
         run: npm run test:layout
+      - name: Run Renderer Layer 2 regression contract
+        run: npm run test:renderer-layer2
 
   mobile:
     name: Mobile Contract
