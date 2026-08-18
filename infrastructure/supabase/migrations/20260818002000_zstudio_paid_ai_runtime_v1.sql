@@ -5,8 +5,13 @@
 -- reservations. Successful provider calls are finalized into append-only
 -- studio.ai_usage; failed calls release their reservation.
 --
--- No quota numbers are seeded here. Until an explicit commercial authority
--- configures limits, AI reservation fails closed with AI_QUOTA_NOT_CONFIGURED.
+-- Approved launch quota authority is seeded server-side:
+--   trial:   10 AI units total during the introductory trial
+--   weekly:  50 AI units per weekly billing period
+--   monthly: 250 AI units per monthly billing period
+--   annual:  250 AI units per monthly AI quota window while billing remains annual
+-- Missing/removed plan configuration still fails closed with
+-- AI_QUOTA_NOT_CONFIGURED. There is no free or unlimited fallback.
 -- ============================================================
 
 
@@ -22,7 +27,7 @@ create table studio.ai_plan_limits (
 );
 
 comment on table studio.ai_plan_limits is
-'Z Studio AI quota authority by paid plan. No permanent free plan exists. Trial and paid-period limits are configured explicitly and are never inferred by the runtime.';
+'Server-controlled Z Studio AI quota authority. Approved launch limits: trial 10 total units; weekly 50 per week; monthly 250 per month; annual 250 per monthly AI quota window. No permanent free or unlimited plan exists.';
 
 alter table studio.ai_plan_limits enable row level security;
 
@@ -32,6 +37,18 @@ from public, anon, authenticated;
 grant select, insert, update, delete
 on studio.ai_plan_limits
 to service_role;
+
+-- Approved Z Studio launch quota authority.
+-- Trial duration itself remains subscription authority
+-- (trial_started_at -> trial_ends_at); this table governs AI units.
+insert into studio.ai_plan_limits (
+  plan_code,
+  trial_usage_limit,
+  period_usage_limit
+) values
+  ('weekly',  10,  50),
+  ('monthly', 10, 250),
+  ('annual',  10, 250);
 
 
 -- ------------------------------------------------------------

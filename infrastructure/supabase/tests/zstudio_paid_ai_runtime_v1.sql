@@ -1,10 +1,31 @@
 -- Z Studio paid AI runtime v1 — disposable PostgreSQL verification only.
 
--- No commercial quota numbers may be silently seeded by the schema migration.
+-- Approved launch quota authority must be seeded exactly by the migration.
 do $$
 begin
-  if exists (select 1 from studio.ai_plan_limits) then
-    raise exception 'AI plan limits were unexpectedly seeded by migration';
+  if (select count(*) from studio.ai_plan_limits) <> 3 then
+    raise exception 'Expected exactly three approved AI plan-limit rows';
+  end if;
+
+  if not exists (
+       select 1 from studio.ai_plan_limits
+       where plan_code = 'weekly'
+         and trial_usage_limit = 10
+         and period_usage_limit = 50
+     )
+     or not exists (
+       select 1 from studio.ai_plan_limits
+       where plan_code = 'monthly'
+         and trial_usage_limit = 10
+         and period_usage_limit = 250
+     )
+     or not exists (
+       select 1 from studio.ai_plan_limits
+       where plan_code = 'annual'
+         and trial_usage_limit = 10
+         and period_usage_limit = 250
+     ) then
+    raise exception 'AI launch quota seed does not match approved commercial authority';
   end if;
 
   if to_regclass('studio.ai_reservations') is null
@@ -116,14 +137,13 @@ select
 from zos.persons p
 where p.auth_user_id = '44444444-4444-4444-8444-444444444444';
 
--- Explicit test-only quota authority. Production values are deliberately not encoded here.
-insert into studio.ai_plan_limits (
-  plan_code,
-  trial_usage_limit,
-  period_usage_limit
-) values (
-  'monthly', 1, 2
-);
+-- Narrow only this disposable monthly scenario after the approved
+-- production seed has already been verified above.
+update studio.ai_plan_limits
+set trial_usage_limit = 1,
+    period_usage_limit = 2,
+    updated_at = now()
+where plan_code = 'monthly';
 
 set role authenticated;
 select set_config('request.jwt.claim.sub', '44444444-4444-4444-8444-444444444444', false);
@@ -269,13 +289,13 @@ select
 from zos.persons p
 where p.auth_user_id = '66666666-6666-4666-8666-666666666666';
 
-insert into studio.ai_plan_limits (
-  plan_code,
-  trial_usage_limit,
-  period_usage_limit
-) values (
-  'annual', 1, 2
-);
+-- Narrow only this disposable annual scenario after the approved
+-- 250-per-month production authority has already been verified.
+update studio.ai_plan_limits
+set trial_usage_limit = 1,
+    period_usage_limit = 2,
+    updated_at = now()
+where plan_code = 'annual';
 
 -- Simulate one finalized usage unit in the PREVIOUS annual-billing month.
 -- It is intentionally inside the annual billing period but outside the
@@ -452,6 +472,11 @@ begin
   end if;
 end;
 $$;
+
+-- Fail-closed must remain true if server-side quota configuration is
+-- ever missing or deliberately withdrawn for a plan.
+delete from studio.ai_plan_limits
+where plan_code = 'weekly';
 
 -- A paid entitlement without an explicit quota configuration must fail closed.
 insert into auth.users (id, email)
