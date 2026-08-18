@@ -89,8 +89,11 @@ declare
   v_entitlement_id uuid;
   v_plan_code text;
   v_subscription_status text;
+  v_billing_period_start timestamptz;
+  v_billing_period_end timestamptz;
   v_period_start timestamptz;
   v_period_end timestamptz;
+  v_annual_month_offset integer;
   v_limit integer;
   v_used integer := 0;
   v_reserved integer := 0;
@@ -120,8 +123,8 @@ begin
     v_entitlement_id,
     v_plan_code,
     v_subscription_status,
-    v_period_start,
-    v_period_end
+    v_billing_period_start,
+    v_billing_period_end
   from zos.persons p
   join studio.entitlements e
     on e.person_id = p.id
@@ -162,6 +165,75 @@ begin
       using errcode = 'P0001';
   end if;
 
+  -- Billing cadence and AI quota cadence are separate authorities.
+  --
+  -- trialing:
+  --   one quota window for the complete trial
+  --
+  -- weekly/monthly:
+  --   the Store billing period is also the AI quota window
+  --
+  -- annual:
+  --   billing remains annual, but AI quota resets monthly on the
+  --   subscription anniversary anchored to current_period_start.
+  if v_subscription_status = 'trialing' then
+    v_period_start := v_billing_period_start;
+    v_period_end := v_billing_period_end;
+
+  elsif v_plan_code = 'annual' then
+    -- Calculate the current anniversary month in UTC so database/session
+    -- timezone changes cannot move an AI quota boundary.
+    v_annual_month_offset := greatest(
+      0,
+      (
+        (
+          extract(year from (now() at time zone 'UTC'))::integer
+          - extract(
+              year from (v_billing_period_start at time zone 'UTC')
+            )::integer
+        ) * 12
+        +
+        (
+          extract(month from (now() at time zone 'UTC'))::integer
+          - extract(
+              month from (v_billing_period_start at time zone 'UTC')
+            )::integer
+        )
+      )
+    );
+
+    v_period_start := (
+      (
+        v_billing_period_start at time zone 'UTC'
+      ) + make_interval(months => v_annual_month_offset)
+    ) at time zone 'UTC';
+
+    -- Before the anniversary clock time on a candidate boundary day,
+    -- the caller still belongs to the previous quota month.
+    if v_period_start > now() then
+      v_annual_month_offset := greatest(v_annual_month_offset - 1, 0);
+
+      v_period_start := (
+        (
+          v_billing_period_start at time zone 'UTC'
+        ) + make_interval(months => v_annual_month_offset)
+      ) at time zone 'UTC';
+    end if;
+
+    v_period_end := least(
+      v_billing_period_end,
+      (
+        (
+          v_billing_period_start at time zone 'UTC'
+        ) + make_interval(months => v_annual_month_offset + 1)
+      ) at time zone 'UTC'
+    );
+
+  else
+    v_period_start := v_billing_period_start;
+    v_period_end := v_billing_period_end;
+  end if;
+
   select
     case
       when v_subscription_status = 'trialing' then l.trial_usage_limit
@@ -176,7 +248,7 @@ begin
       using errcode = 'P0001';
   end if;
 
-  -- Serialize quota accounting for this person + exact billing/trial window.
+  -- Serialize quota accounting for this person + exact AI quota/trial window.
   perform pg_advisory_xact_lock(
     hashtextextended(
       v_person_id::text || ':' || v_period_start::text || ':' || v_period_end::text,

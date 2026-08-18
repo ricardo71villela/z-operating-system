@@ -203,6 +203,256 @@ begin
 end;
 $$;
 
+-- Annual billing must still use a monthly AI quota window.
+--
+-- The annual subscription began 40 days ago, so the current AI window must be
+-- exactly the second anniversary month:
+--   current_period_start + 1 month
+--   current_period_start + 2 months
+--
+-- Usage recorded in the first annual-billing month must NOT consume the
+-- current month's AI capacity.
+insert into auth.users (id, email)
+values (
+  '66666666-6666-4666-8666-666666666666',
+  'annual-monthly-quota@example.test'
+);
+
+set role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  '66666666-6666-4666-8666-666666666666',
+  false
+);
+select public.zstudio_ensure_account();
+reset role;
+
+insert into studio.subscriptions (
+  id,
+  person_id,
+  plan_code,
+  status,
+  billing_source,
+  current_period_start,
+  current_period_end
+)
+select
+  '66666666-aaaa-4aaa-8aaa-666666666666',
+  p.id,
+  'annual',
+  'active',
+  'manual',
+  date_trunc('second', now() - interval '40 days'),
+  date_trunc('second', now() + interval '325 days')
+from zos.persons p
+where p.auth_user_id = '66666666-6666-4666-8666-666666666666';
+
+insert into studio.entitlements (
+  id,
+  person_id,
+  subscription_id,
+  entitlement_code,
+  status,
+  source,
+  starts_at,
+  expires_at
+)
+select
+  '66666666-bbbb-4bbb-8bbb-666666666666',
+  p.id,
+  '66666666-aaaa-4aaa-8aaa-666666666666',
+  'ai_access',
+  'active',
+  'subscription',
+  now() - interval '40 days',
+  now() + interval '325 days'
+from zos.persons p
+where p.auth_user_id = '66666666-6666-4666-8666-666666666666';
+
+insert into studio.ai_plan_limits (
+  plan_code,
+  trial_usage_limit,
+  period_usage_limit
+) values (
+  'annual', 1, 2
+);
+
+-- Simulate one finalized usage unit in the PREVIOUS annual-billing month.
+-- It is intentionally inside the annual billing period but outside the
+-- current monthly AI quota period.
+insert into studio.ai_usage (
+  person_id,
+  subscription_id,
+  entitlement_id,
+  request_id,
+  usage_units,
+  model,
+  input_tokens,
+  output_tokens,
+  created_at
+)
+select
+  p.id,
+  s.id,
+  e.id,
+  '66666666-0000-4000-8000-000000000001',
+  1,
+  'test/previous-month',
+  1,
+  1,
+  s.current_period_start + interval '5 days'
+from zos.persons p
+join studio.subscriptions s
+  on s.person_id = p.id
+join studio.entitlements e
+  on e.subscription_id = s.id
+ and e.person_id = p.id
+where p.auth_user_id = '66666666-6666-4666-8666-666666666666'
+  and s.id = '66666666-aaaa-4aaa-8aaa-666666666666';
+
+set role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  '66666666-6666-4666-8666-666666666666',
+  false
+);
+
+-- Previous-month usage must not consume the current monthly allowance.
+do $$
+declare
+  v_result jsonb;
+begin
+  select public.zstudio_reserve_ai_usage(
+    '66666666-0000-4000-8000-000000000011'
+  )
+  into v_result;
+
+  if (v_result ->> 'plan_code') <> 'annual' then
+    raise exception 'Annual quota reservation returned wrong plan';
+  end if;
+
+  if (v_result ->> 'used_units')::integer <> 0 then
+    raise exception
+      'Previous annual-billing-month usage leaked into current AI quota month';
+  end if;
+
+  if (v_result ->> 'remaining_units')::integer <> 1 then
+    raise exception
+      'Annual monthly AI quota did not reserve against the expected limit';
+  end if;
+end;
+$$;
+
+reset role;
+
+-- The persisted reservation itself is the quota-window authority.
+do $$
+begin
+  if not exists (
+    select 1
+    from studio.ai_reservations r
+    join studio.subscriptions s
+      on s.id = r.subscription_id
+    where r.request_id = '66666666-0000-4000-8000-000000000011'
+      and r.period_start = (
+        (
+          s.current_period_start at time zone 'UTC'
+        ) + interval '1 month'
+      ) at time zone 'UTC'
+      and r.period_end = (
+        (
+          s.current_period_start at time zone 'UTC'
+        ) + interval '2 months'
+      ) at time zone 'UTC'
+  ) then
+    raise exception
+      'Annual AI quota window is not monthly and anniversary-anchored';
+  end if;
+end;
+$$;
+
+set role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  '66666666-6666-4666-8666-666666666666',
+  false
+);
+
+-- First current-month unit.
+select public.zstudio_finalize_ai_usage(
+  '66666666-0000-4000-8000-000000000011',
+  'test/current-month',
+  1,
+  1
+);
+
+-- Second current-month unit consumes the remainder of this monthly window.
+select public.zstudio_reserve_ai_usage(
+  '66666666-0000-4000-8000-000000000012'
+);
+select public.zstudio_finalize_ai_usage(
+  '66666666-0000-4000-8000-000000000012',
+  'test/current-month',
+  1,
+  1
+);
+
+-- Third unit in the SAME anniversary month must be rejected.
+do $$
+begin
+  begin
+    perform public.zstudio_reserve_ai_usage(
+      '66666666-0000-4000-8000-000000000013'
+    );
+    raise exception
+      'Annual monthly AI quota overflow was unexpectedly accepted';
+  exception
+    when others then
+      if sqlerrm <> 'AI_QUOTA_EXCEEDED' then
+        raise;
+      end if;
+  end;
+end;
+$$;
+
+reset role;
+
+-- Prove that annual billing persisted while quota accounting was monthly.
+do $$
+begin
+  if (
+    select count(*)
+    from studio.ai_usage u
+    where u.subscription_id =
+      '66666666-aaaa-4aaa-8aaa-666666666666'
+  ) <> 3 then
+    raise exception
+      'Expected one previous-month plus two current-month annual usage events';
+  end if;
+
+  if (
+    select count(*)
+    from studio.ai_usage u
+    join studio.subscriptions s
+      on s.id = u.subscription_id
+    where s.id = '66666666-aaaa-4aaa-8aaa-666666666666'
+      and u.created_at >= (
+        (
+          s.current_period_start at time zone 'UTC'
+        ) + interval '1 month'
+      ) at time zone 'UTC'
+      and u.created_at < (
+        (
+          s.current_period_start at time zone 'UTC'
+        ) + interval '2 months'
+      ) at time zone 'UTC'
+  ) <> 2 then
+    raise exception
+      'Annual current AI quota month did not contain exactly two finalized units';
+  end if;
+end;
+$$;
+
 -- A paid entitlement without an explicit quota configuration must fail closed.
 insert into auth.users (id, email)
 values (
