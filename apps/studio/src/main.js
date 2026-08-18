@@ -689,12 +689,14 @@ function hexToRgb(hex) {
 function rgbToHex(r, g, b) {
   return '#' + [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
 }
-// Define a cor de destaque E a sua versão RGB (para o CSS controlar opacidade —
-// usado pelo brilho ambiente atrás da pré-visualização, que reage à categoria ativa)
+// ZSTUDIO_CONTENT_ACCENT_DECOUPLING_V1
+// A cor escolhida pelo cliente pertence ao CONTEÚDO produzido.
+// A interface Z Studio mantém uma autoridade visual neutra independente.
+// O nome da função é preservado para compatibilidade com os call-sites existentes.
 function setGoldVar(hex) {
-  document.documentElement.style.setProperty('--gold', hex);
   const [r, g, b] = hexToRgb(hex);
-  document.documentElement.style.setProperty('--gold-rgb', `${r},${g},${b}`);
+  document.documentElement.style.setProperty('--content-accent', hex);
+  document.documentElement.style.setProperty('--content-accent-rgb', `${r},${g},${b}`);
 }
 // desloca uma cor em direção ao branco (amt>0) ou ao preto (amt<0), amt entre -1 e 1
 function shade(hex, amt) {
