@@ -1020,12 +1020,49 @@ async function main() {
     () => {}
   );
 
+  // Normalize the Chromium content viewport explicitly.
+  // BrowserWindow outer bounds are platform-dependent;
+  // the P2 mobile contract authority is exactly 390 CSS px.
+  win.setContentSize(
+    390,
+    1800
+  );
+
+  await new Promise(
+    resolve =>
+      setTimeout(
+        resolve,
+        100
+      )
+  );
+
   try {
     await win.loadURL(
       'http://127.0.0.1:' +
       port +
       '/' +
       htmlName
+    );
+
+    const innerWidth =
+      await win.webContents
+        .executeJavaScript(
+          'window.innerWidth',
+          true
+        );
+
+    if (
+      innerWidth !== 390
+    ) {
+      throw new Error(
+        'P2 viewport mismatch: expected 390 CSS px, got ' +
+        innerWidth
+      );
+    }
+
+    console.log(
+      'P2_VIEWPORT_INNER_WIDTH=' +
+      innerWidth
     );
 
     const results =
