@@ -1,7 +1,7 @@
 {
   "authority": "ZSTUDIO_APPLE_NOTIFICATIONS_V2_VERIFICATION_CORE_V1",
   "result": "PASS",
-  "testedCommit": "5a2e17d4463b9cdd5dd277ec11c9aeca7f74d4d5",
+  "testedCommit": "9c0d86adb902540b0ffe1e897421298da2b5187f",
   "signedPayloadVerification": true,
   "notificationUuidIdempotency": true,
   "subscriptionInnerJwsVerification": true,
