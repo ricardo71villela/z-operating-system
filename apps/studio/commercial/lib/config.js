@@ -14,6 +14,14 @@ function requiredOneOf(env, key, allowed) {
   return value;
 }
 
+function requiredSupabaseSecretKey(env) {
+  const value = required(env, 'SUPABASE_SECRET_KEY');
+  if (!/^sb_secret_[A-Za-z0-9_-]+$/.test(value)) {
+    throw new Error('ZSTUDIO_COMMERCIAL_CONFIG_INVALID:SUPABASE_SECRET_KEY');
+  }
+  return value;
+}
+
 export function loadAppleCommercialConfig(env = process.env) {
   const environment = requiredOneOf(env, 'APPLE_ENVIRONMENT', ['sandbox', 'production']);
   const bundleId = required(env, 'APPLE_BUNDLE_ID');
@@ -46,7 +54,7 @@ export function loadAppleCommercialConfig(env = process.env) {
     throw new Error('ZSTUDIO_COMMERCIAL_CONFIG_INVALID:SUPABASE_URL');
   }
 
-  const supabaseServiceRole = required(env, 'SUPABASE_SERVICE_ROLE');
+  const supabaseSecretKey = requiredSupabaseSecretKey(env);
 
   return Object.freeze({
     environment,
@@ -56,6 +64,6 @@ export function loadAppleCommercialConfig(env = process.env) {
     keyId,
     privateKey,
     supabaseUrl: supabaseUrl.replace(/\/+$/, ''),
-    supabaseServiceRole,
+    supabaseSecretKey,
   });
 }
