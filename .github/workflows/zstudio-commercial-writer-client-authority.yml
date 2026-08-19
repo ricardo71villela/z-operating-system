@@ -59,19 +59,19 @@ jobs:
             apps/studio/commercial/lib/apple-server-api.js \
             apps/studio/commercial/lib/commercial-event-adapter.js
 
-      - name: Verify no live Supabase target or secret is embedded
+      - name: Verify no live Supabase target or credential is embedded
         shell: bash
         run: |
           set -euo pipefail
           if grep -R -n -E \
-            'dcdggqyazdddrfuzwavw|sb_secret_[A-Za-z0-9_-]+|eyJ[A-Za-z0-9_-]{20,}' \
+            'dcdggqyazdddrfuzwavw|sb_secret_[A-Za-z0-9_-]{24,}|eyJ[A-Za-z0-9_-]{20,}' \
             apps/studio/commercial/lib/commercial-writer-client.js \
             apps/studio/commercial/tests/commercial-writer-client.test.js; then
             echo 'Unexpected live Supabase authority or credential material.'
             exit 1
           fi
 
-      - name: Verify RPC and no automatic retry contract
+      - name: Verify modern secret-key RPC contract and no automatic retry
         shell: bash
         run: |
           set -euo pipefail
@@ -79,6 +79,20 @@ jobs:
             apps/studio/commercial/lib/commercial-writer-client.js
           grep -q "rest/v1/rpc" \
             apps/studio/commercial/lib/commercial-writer-client.js
+          grep -q "supabaseSecretKey" \
+            apps/studio/commercial/lib/commercial-writer-client.js
+          grep -q "apikey: secretKey" \
+            apps/studio/commercial/lib/commercial-writer-client.js
+          if grep -E -i 'authorization[^\n]*secretKey|Bearer[^\n]*secretKey' \
+            apps/studio/commercial/lib/commercial-writer-client.js; then
+            echo 'Supabase secret key must never be sent as Authorization Bearer.'
+            exit 1
+          fi
+          if grep -q "supabaseServiceRole" \
+            apps/studio/commercial/lib/commercial-writer-client.js; then
+            echo 'Legacy service-role config remains in writer client.'
+            exit 1
+          fi
           if grep -E 'for \(.*attempt|while \(|setInterval\(' \
             apps/studio/commercial/lib/commercial-writer-client.js; then
             echo 'Unexpected automatic retry loop in writer client.'
@@ -109,7 +123,9 @@ jobs:
             "rpc": "public.zstudio_apply_verified_commercial_event",
             "writerArgumentCount": 15,
             "transport": "supabase_rest_rpc",
-            "serverCredential": "SUPABASE_SERVICE_ROLE",
+            "serverCredential": "SUPABASE_SECRET_KEY",
+            "secretKeyHeader": "apikey",
+            "secretKeyAuthorizationBearer": false,
             "automaticRetry": false,
             "databaseWriteExecuted": false,
             "liveDatabaseMutation": false
