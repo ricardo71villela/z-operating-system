@@ -66,11 +66,20 @@ jobs:
         run: |
           set -euo pipefail
 
+          echo "===== XCODE PROJECT SCHEME DISCOVERY ====="
+
           xcodebuild \
             -project apps/studio/native/ios/App/App.xcodeproj \
-            -target App \
+            -list
+
+          echo "===== SCHEME-DRIVEN SPM BUILD ====="
+
+          xcodebuild \
+            -project apps/studio/native/ios/App/App.xcodeproj \
+            -scheme App \
             -configuration Debug \
-            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/zstudio-storekit-derived-data" \
             CODE_SIGNING_ALLOWED=NO \
             build
 

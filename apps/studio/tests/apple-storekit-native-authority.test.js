@@ -473,12 +473,18 @@ check(
     '-project apps/studio/native/ios/App/App.xcodeproj',
   )
     && workflow.includes(
-      '-target App',
+      '-scheme App',
     )
     && workflow.includes(
-      '-sdk iphonesimulator',
+      "-destination 'generic/platform=iOS Simulator'",
+    )
+    && workflow.includes(
+      '-derivedDataPath "$RUNNER_TEMP/zstudio-storekit-derived-data"',
+    )
+    && !workflow.includes(
+      '-target App',
     ),
-  'CI performs native iOS simulator compile',
+  'CI performs scheme-driven native iOS simulator compile',
 );
 
 check(
