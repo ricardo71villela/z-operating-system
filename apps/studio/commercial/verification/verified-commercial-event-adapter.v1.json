@@ -1,7 +1,7 @@
 {
   "authority": "ZSTUDIO_VERIFIED_COMMERCIAL_EVENT_ADAPTER_V1",
   "result": "PASS",
-  "testedCommit": "7a7144a61b02068433a3862685ca471595ad011e",
+  "testedCommit": "c93e116deae9d3492f6ae56199b81a6f4ea01488",
   "writer": "public.zstudio_apply_verified_commercial_event",
   "writerArgumentCount": 15,
   "providerNeutralBuilder": true,
