@@ -1,0 +1,15 @@
+{
+  "authority": "ZSTUDIO_APPLE_NOTIFICATION_RECONCILIATION_SERVICE_V1",
+  "result": "PASS",
+  "testedCommit": "9c0d86adb902540b0ffe1e897421298da2b5187f",
+  "notificationSourceEventRef": true,
+  "notificationSignedDateEffectiveAt": true,
+  "freshCurrentStateRequired": true,
+  "billingRecoveryMapsTo": "recovered",
+  "refundReversedMapsTo": "restored",
+  "writerContractExercised": true,
+  "automaticRetry": false,
+  "endpointCreated": false,
+  "liveWriterExecuted": false,
+  "liveDatabaseMutation": false
+}
