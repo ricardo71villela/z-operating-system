@@ -470,6 +470,29 @@ check(
 
 check(
   workflow.includes(
+    '- name: Prepare native iOS web assets',
+  )
+    && workflow.includes(
+      'working-directory: apps/studio/native',
+    )
+    && workflow.includes(
+      'run: npx cap copy ios',
+    )
+    && workflow.indexOf(
+      'npm ci --prefix apps/studio/native',
+    ) < workflow.indexOf(
+      'npx cap copy ios',
+    )
+    && workflow.indexOf(
+      'npx cap copy ios',
+    ) < workflow.indexOf(
+      '- name: Verify Xcode authority',
+    ),
+  'CI prepares generated iOS web assets before Xcode compile',
+);
+
+check(
+  workflow.includes(
     '-project apps/studio/native/ios/App/App.xcodeproj',
   )
     && workflow.includes(

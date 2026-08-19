@@ -42,6 +42,10 @@ jobs:
       - name: Install native Capacitor dependencies
         run: npm ci --prefix apps/studio/native
 
+      - name: Prepare native iOS web assets
+        working-directory: apps/studio/native
+        run: npx cap copy ios
+
       - name: Verify Xcode authority
         shell: bash
         run: |
