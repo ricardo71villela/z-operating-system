@@ -20,10 +20,9 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - name: Checkout exact branch authority
+      - name: Checkout exact triggering authority
         uses: actions/checkout@v4
         with:
-          ref: feature/zstudio-apple-server-verification-v1
           fetch-depth: 0
 
       - name: Use Node 22
@@ -48,7 +47,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git diff --exit-code HEAD^ HEAD -- \
+          git diff --exit-code "${GITHUB_SHA}^" "${GITHUB_SHA}" -- \
             infrastructure/supabase/migrations/20260819130000_zstudio_commercial_activation_authority_v1.sql \
             apps/studio/commercial/package-lock.json \
             apps/studio/commercial/store-products.v1.json \
@@ -74,8 +73,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          tested_sha="$(git rev-parse HEAD)"
+          tested_sha="${GITHUB_SHA}"
+          branch='feature/zstudio-apple-server-verification-v1'
           marker='apps/studio/commercial/verification/verified-commercial-event-adapter.v1.json'
+
+          rm -rf apps/studio/commercial/node_modules
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          git fetch origin "$branch"
+          git checkout -B "$branch" "origin/$branch"
           mkdir -p "$(dirname "$marker")"
 
           cat > "$marker" <<EOF
@@ -92,8 +99,6 @@ jobs:
           }
           EOF
 
-          rm -rf apps/studio/commercial/node_modules
-
           unexpected="$({ git status --porcelain --untracked-files=all; } \
             | awk '$2 != "apps/studio/commercial/verification/verified-commercial-event-adapter.v1.json" { print }')"
           if [ -n "$unexpected" ]; then
@@ -102,8 +107,17 @@ jobs:
             exit 1
           fi
 
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add "$marker"
           git commit -m 'test(studio): record verified commercial adapter pass'
-          git push origin HEAD:feature/zstudio-apple-server-verification-v1
+
+          for attempt in 1 2 3; do
+            if git pull --rebase origin "$branch" \
+              && git push origin "HEAD:$branch"; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo 'Unable to serialize verified commercial adapter marker.'
+              exit 1
+            fi
+            sleep 2
+          done
