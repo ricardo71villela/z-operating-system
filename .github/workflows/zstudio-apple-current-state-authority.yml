@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   current-state-authority:
@@ -22,6 +22,9 @@ jobs:
     steps:
       - name: Checkout exact branch authority
         uses: actions/checkout@v4
+        with:
+          ref: feature/zstudio-apple-server-verification-v1
+          fetch-depth: 0
 
       - name: Use Node 22
         uses: actions/setup-node@v4
@@ -65,3 +68,44 @@ jobs:
             echo 'Unexpected database-write authority in current-state gate.'
             exit 1
           fi
+
+      - name: Record tested current-state authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          tested_sha="$(git rev-parse HEAD)"
+          marker='apps/studio/commercial/verification/apple-current-state-reconciliation.v1.json'
+          mkdir -p "$(dirname "$marker")"
+
+          cat > "$marker" <<EOF
+          {
+            "authority": "ZSTUDIO_APPLE_CURRENT_STATE_RECONCILIATION_V1",
+            "result": "PASS",
+            "testedCommit": "$tested_sha",
+            "appleServerLibrary": "@apple/app-store-server-library@3.1.0",
+            "transactionInfoRequired": true,
+            "subscriptionStatusRequired": true,
+            "readOnly": true,
+            "appleRevokedMapsTo": "expired"
+          }
+          EOF
+
+          rm -rf apps/studio/commercial/node_modules
+
+          unexpected="$({ git status --porcelain --untracked-files=all; } \
+            | awk '$2 != "apps/studio/commercial/verification/apple-current-state-reconciliation.v1.json" { print }')"
+          if [ -n "$unexpected" ]; then
+            echo 'Unexpected mutation(s):'
+            printf '%s\n' "$unexpected"
+            exit 1
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$marker"
+          if git diff --cached --quiet; then
+            echo 'Current-state PASS marker already authoritative.'
+            exit 0
+          fi
+          git commit -m 'test(studio): record Apple current-state authority pass'
+          git push origin HEAD:feature/zstudio-apple-server-verification-v1
