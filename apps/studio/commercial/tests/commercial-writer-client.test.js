@@ -9,7 +9,7 @@ import {
 } from '../lib/commercial-writer-client.js';
 import { buildVerifiedCommercialWriterArgs } from '../lib/commercial-event-adapter.js';
 
-const serviceRole = 'test-only-service-role-not-a-real-secret';
+const secretKey = 'sb_secret_test';
 const personId = 'a1111111-b222-c333-d444-e55555555555';
 const subscriptionId = 'b1111111-b222-c333-d444-e55555555555';
 const originalTransactionId = '2000000000000000';
@@ -19,7 +19,7 @@ const productId =
 
 const config = Object.freeze({
   supabaseUrl: 'https://example.supabase.co',
-  supabaseServiceRole: serviceRole,
+  supabaseSecretKey: secretKey,
 });
 
 function activeWriterArgs(overrides = {}) {
@@ -89,7 +89,7 @@ function response({
   };
 }
 
-test('posts exactly the 15 verified writer arguments to the public Supabase RPC using server credentials', async () => {
+test('posts exactly the 15 verified writer arguments with modern Supabase secret-key auth', async () => {
   const calls = [];
   const fetchImpl = async (...args) => {
     calls.push(args);
@@ -120,8 +120,9 @@ test('posts exactly the 15 verified writer arguments to the public Supabase RPC 
   const [url, request] = calls[0];
   assert.equal(url, client.endpoint);
   assert.equal(request.method, 'POST');
-  assert.equal(request.headers.apikey, serviceRole);
-  assert.equal(request.headers.authorization, `Bearer ${serviceRole}`);
+  assert.equal(request.headers.apikey, secretKey);
+  assert.equal('authorization' in request.headers, false);
+  assert.equal('Authorization' in request.headers, false);
   assert.equal(request.headers.accept, 'application/json');
   assert.equal(request.headers['content-type'], 'application/json');
   assert.deepEqual(JSON.parse(request.body), writerArgs);
@@ -136,6 +137,33 @@ test('posts exactly the 15 verified writer arguments to the public Supabase RPC 
     aiAccessStatus: 'active',
     processingStatus: null,
   });
+});
+
+test('legacy service-role config is rejected before transport', async () => {
+  let fetchCalled = false;
+  assert.throws(
+    () => createCommercialWriterClient({
+      supabaseUrl: config.supabaseUrl,
+      supabaseServiceRole: 'legacy-test-value',
+    }, {
+      fetchImpl: async () => {
+        fetchCalled = true;
+        return response({ body: {} });
+      },
+    }),
+    /COMMERCIAL_WRITER_SUPABASE_SECRET_KEY_REQUIRED/,
+  );
+  assert.equal(fetchCalled, false);
+});
+
+test('malformed secret key is rejected before transport', () => {
+  assert.throws(
+    () => createCommercialWriterClient({
+      supabaseUrl: config.supabaseUrl,
+      supabaseSecretKey: 'not-a-secret-key',
+    }),
+    /COMMERCIAL_WRITER_SUPABASE_SECRET_KEY_INVALID/,
+  );
 });
 
 test('accepts all four writer result families and normalizes only non-sensitive response state', async () => {
@@ -176,7 +204,7 @@ test('accepts all four writer result families and normalizes only non-sensitive 
     );
     assert.equal(result.result, payload.result);
     assert.equal(result.subscriptionId, subscriptionId);
-    assert.equal(JSON.stringify(result).includes(serviceRole), false);
+    assert.equal(JSON.stringify(result).includes(secretKey), false);
   }
 });
 
@@ -215,7 +243,7 @@ test('database conflicts are non-retryable and expose only normalized Postgres a
       body: {
         code: '23505',
         message: 'COMMERCIAL_EVENT_CONFLICT',
-        details: `must never leak ${serviceRole}`,
+        details: `must never leak ${secretKey}`,
         hint: 'sensitive detail',
       },
     }),
@@ -230,8 +258,8 @@ test('database conflicts are non-retryable and expose only normalized Postgres a
       assert.equal(error.retryable, false);
       assert.equal(error.postgresCode, '23505');
       assert.equal(error.databaseCode, 'COMMERCIAL_EVENT_CONFLICT');
-      assert.equal(JSON.stringify(error).includes(serviceRole), false);
-      assert.equal(String(error).includes(serviceRole), false);
+      assert.equal(JSON.stringify(error).includes(secretKey), false);
+      assert.equal(String(error).includes(secretKey), false);
       assert.equal('details' in error, false);
       assert.equal('hint' in error, false);
       return true;
