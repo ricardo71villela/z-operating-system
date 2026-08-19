@@ -58,6 +58,17 @@ function requiredString(value, code) {
   return normalized;
 }
 
+function requiredSupabaseSecretKey(value) {
+  const normalized = requiredString(
+    value,
+    'COMMERCIAL_WRITER_SUPABASE_SECRET_KEY_REQUIRED',
+  );
+  if (!/^sb_secret_[A-Za-z0-9_-]+$/.test(normalized)) {
+    throw new Error('COMMERCIAL_WRITER_SUPABASE_SECRET_KEY_INVALID');
+  }
+  return normalized;
+}
+
 function requiredHttpsUrl(value) {
   const normalized = requiredString(
     value,
@@ -181,10 +192,7 @@ export function createCommercialWriterClient(
   }
 
   const supabaseUrl = requiredHttpsUrl(config.supabaseUrl);
-  const serviceRole = requiredString(
-    config.supabaseServiceRole,
-    'COMMERCIAL_WRITER_SERVICE_ROLE_REQUIRED',
-  );
+  const secretKey = requiredSupabaseSecretKey(config.supabaseSecretKey);
   const endpoint =
     `${supabaseUrl}/rest/v1/rpc/${COMMERCIAL_WRITER_RPC}`;
 
@@ -198,8 +206,7 @@ export function createCommercialWriterClient(
       response = await fetchImpl(endpoint, {
         method: 'POST',
         headers: {
-          apikey: serviceRole,
-          authorization: `Bearer ${serviceRole}`,
+          apikey: secretKey,
           accept: 'application/json',
           'content-type': 'application/json',
         },
