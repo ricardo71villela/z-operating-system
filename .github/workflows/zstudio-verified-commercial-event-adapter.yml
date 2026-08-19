@@ -1,0 +1,109 @@
+name: Z Studio Verified Commercial Event Adapter
+
+on:
+  push:
+    branches:
+      - feature/zstudio-apple-server-verification-v1
+    paths:
+      - 'apps/studio/commercial/lib/commercial-event-adapter.js'
+      - 'apps/studio/commercial/tests/commercial-event-adapter.test.js'
+      - 'apps/studio/commercial/package.json'
+      - '.github/workflows/zstudio-verified-commercial-event-adapter.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verified-commercial-event-adapter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout exact branch authority
+        uses: actions/checkout@v4
+        with:
+          ref: feature/zstudio-apple-server-verification-v1
+          fetch-depth: 0
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install exact commercial dependencies
+        working-directory: apps/studio/commercial
+        run: npm ci --ignore-scripts
+
+      - name: Check commercial adapter source
+        working-directory: apps/studio/commercial
+        run: npm run check
+
+      - name: Test verified commercial event adapter
+        working-directory: apps/studio/commercial
+        run: npm test
+
+      - name: Verify frozen authorities remain untouched
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD^ HEAD -- \
+            infrastructure/supabase/migrations/20260819130000_zstudio_commercial_activation_authority_v1.sql \
+            apps/studio/commercial/package-lock.json \
+            apps/studio/commercial/store-products.v1.json \
+            apps/studio/commercial/certs/AppleIncRootCertificate.cer \
+            apps/studio/commercial/certs/AppleRootCA-G2.cer \
+            apps/studio/commercial/certs/AppleRootCA-G3.cer \
+            apps/studio/commercial/certs/root-authority.v1.json \
+            apps/studio/commercial/lib/apple-signed-data.js \
+            apps/studio/commercial/lib/apple-server-api.js
+
+      - name: Verify no database execution entered adapter gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -E \
+            'zstudio_apply_verified_commercial_event\s*\(|\.rpc\s*\(|/rest/v1/|SUPABASE_SERVICE_ROLE' \
+            apps/studio/commercial/lib/commercial-event-adapter.js; then
+            echo 'Unexpected database execution authority in pure adapter gate.'
+            exit 1
+          fi
+
+      - name: Record verified commercial adapter authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          tested_sha="$(git rev-parse HEAD)"
+          marker='apps/studio/commercial/verification/verified-commercial-event-adapter.v1.json'
+          mkdir -p "$(dirname "$marker")"
+
+          cat > "$marker" <<EOF
+          {
+            "authority": "ZSTUDIO_VERIFIED_COMMERCIAL_EVENT_ADAPTER_V1",
+            "result": "PASS",
+            "testedCommit": "$tested_sha",
+            "writer": "public.zstudio_apply_verified_commercial_event",
+            "writerArgumentCount": 15,
+            "providerNeutralBuilder": true,
+            "appleCurrentStateAdapter": true,
+            "databaseWrite": false,
+            "appleRevokedMapsTo": "expired"
+          }
+          EOF
+
+          rm -rf apps/studio/commercial/node_modules
+
+          unexpected="$({ git status --porcelain --untracked-files=all; } \
+            | awk '$2 != "apps/studio/commercial/verification/verified-commercial-event-adapter.v1.json" { print }')"
+          if [ -n "$unexpected" ]; then
+            echo 'Unexpected mutation(s):'
+            printf '%s\n' "$unexpected"
+            exit 1
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$marker"
+          git commit -m 'test(studio): record verified commercial adapter pass'
+          git push origin HEAD:feature/zstudio-apple-server-verification-v1

@@ -5,7 +5,7 @@
   "description": "Z Studio — privileged commercial verification runtime",
   "type": "module",
   "scripts": {
-    "check": "node --check lib/config.js && node --check lib/store-products.js && node --check lib/apple-signed-data.js && node --check lib/apple-server-api.js",
+    "check": "node --check lib/config.js && node --check lib/store-products.js && node --check lib/apple-signed-data.js && node --check lib/apple-server-api.js && node --check lib/commercial-event-adapter.js",
     "test": "node --test tests/*.test.js"
   },
   "dependencies": {
