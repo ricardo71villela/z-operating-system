@@ -1,7 +1,7 @@
 {
   "authority": "ZSTUDIO_SERVER_ONLY_COMMERCIAL_WRITER_CLIENT_V1",
   "result": "PASS",
-  "testedCommit": "503f8b656fe471152a47f2aefce44558090f2aca",
+  "testedCommit": "7a7144a61b02068433a3862685ca471595ad011e",
   "rpc": "public.zstudio_apply_verified_commercial_event",
   "writerArgumentCount": 15,
   "transport": "supabase_rest_rpc",
