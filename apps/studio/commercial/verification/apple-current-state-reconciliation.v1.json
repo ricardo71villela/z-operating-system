@@ -1,0 +1,10 @@
+{
+  "authority": "ZSTUDIO_APPLE_CURRENT_STATE_RECONCILIATION_V1",
+  "result": "PASS",
+  "testedCommit": "d042611c5b6840c45b79b035ee787023171f4ee2",
+  "appleServerLibrary": "@apple/app-store-server-library@3.1.0",
+  "transactionInfoRequired": true,
+  "subscriptionStatusRequired": true,
+  "readOnly": true,
+  "appleRevokedMapsTo": "expired"
+}
