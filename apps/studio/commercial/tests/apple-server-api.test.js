@@ -21,7 +21,7 @@ const sandboxConfig = loadAppleCommercialConfig({
   APPLE_PRIVATE_KEY:
     '-----BEGIN PRIVATE KEY-----\nTEST\n-----END PRIVATE KEY-----',
   SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_SERVICE_ROLE: 'test-only-not-a-real-secret',
+  SUPABASE_SECRET_KEY: 'sb_secret_test',
 });
 
 const token = 'a1111111-b222-c333-d444-e55555555555';
