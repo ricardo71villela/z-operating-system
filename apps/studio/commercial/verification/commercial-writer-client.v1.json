@@ -1,0 +1,12 @@
+{
+  "authority": "ZSTUDIO_SERVER_ONLY_COMMERCIAL_WRITER_CLIENT_V1",
+  "result": "PASS",
+  "testedCommit": "6dc85d8e1871bc5780916a9e96072666f01d7b10",
+  "rpc": "public.zstudio_apply_verified_commercial_event",
+  "writerArgumentCount": 15,
+  "transport": "supabase_rest_rpc",
+  "serverCredential": "SUPABASE_SERVICE_ROLE",
+  "automaticRetry": false,
+  "databaseWriteExecuted": false,
+  "liveDatabaseMutation": false
+}
