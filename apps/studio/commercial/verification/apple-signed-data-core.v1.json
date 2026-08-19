@@ -1,7 +1,7 @@
 {
   "authority": "ZSTUDIO_APPLE_SIGNED_DATA_CORE_V1",
   "result": "PASS",
-  "testedCommit": "333cf0e7fda30121c53bc3568084b9ccac2015ff",
+  "testedCommit": "5a2c9ddc8dada4c2145ac225a85981545e2d494d",
   "appleServerLibrary": "@apple/app-store-server-library@3.1.0",
   "onlineCertificateChecks": true,
   "rootCertificateCount": 3
