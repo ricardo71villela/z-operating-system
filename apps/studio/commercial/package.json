@@ -1,0 +1,17 @@
+{
+  "name": "z-studio-commercial-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Z Studio — privileged commercial verification runtime",
+  "type": "module",
+  "scripts": {
+    "check": "node --check lib/config.js && node --check lib/store-products.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "@apple/app-store-server-library": "3.1.0"
+  },
+  "engines": {
+    "node": ">=22 <25"
+  }
+}
