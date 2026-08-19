@@ -18,7 +18,7 @@ const sandboxConfig = loadAppleCommercialConfig({
   APPLE_PRIVATE_KEY:
     '-----BEGIN PRIVATE KEY-----\nTEST\n-----END PRIVATE KEY-----',
   SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_SERVICE_ROLE: 'test-only-not-a-real-secret',
+  SUPABASE_SECRET_KEY: 'sb_secret_test',
 });
 
 const canonicalDecodedTransaction = Object.freeze({
@@ -84,7 +84,7 @@ test('production verifier requires a positive safe numeric Apple app id', () => 
     APPLE_PRIVATE_KEY:
       '-----BEGIN PRIVATE KEY-----\nTEST\n-----END PRIVATE KEY-----',
     SUPABASE_URL: 'https://example.supabase.co',
-    SUPABASE_SERVICE_ROLE: 'test-only-not-a-real-secret',
+    SUPABASE_SECRET_KEY: 'sb_secret_test',
   });
 
   const verifier = createAppleSignedDataVerifier(config, {
