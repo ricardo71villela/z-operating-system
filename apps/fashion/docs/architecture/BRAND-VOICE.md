@@ -87,3 +87,13 @@ provided image file for the icon; per the illustration-sourcing decision
 above, no attempt is made to reproduce its metallic gradient in hand-coded
 SVG — flat-design mockup tools stand in with a plain icon placeholder only,
 never a redrawn approximation of the real mark.
+
+## Logo asset note
+The provided logo file has a solid black background baked in, not
+transparency — placed on any panel colour other than pure black (e.g. the
+sign-in left panel's `#1c1a16`), this creates a visible seam between two
+different blacks. Fixed by extracting a transparency mask from the source
+file (luminance-based: dark background → transparent, gold linework →
+opaque) rather than redrawing the mark. The corrected transparent PNG is
+the one to use in any future placement — never the original solid-black
+file — regardless of what background colour it sits on.
