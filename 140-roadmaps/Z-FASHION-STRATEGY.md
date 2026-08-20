@@ -113,72 +113,30 @@ investment; everything else waits for a second market to justify it.
 | Partner | Own stock/pricing/brand, visibility, data, no platform competing with them | Shared reach vs. loss of control |
 | Platform | Consistent trust/quality across Partners, unified data, sane monetization | Enough standardization to scale vs. not homogenizing Partners into commodities |
 
-## Stakeholder-pragmatic design (the architect's test)
+## Competitive analysis (France-specific players)
 
-Every structural decision below is checked from three seats before it is
-accepted. If it fails any one of the three, it is not "done," regardless of
-how elegant it is for the other two.
-
-- **Client seat.** Does this make the basket, the return, or the discovery
-  simpler — or does it just make our data model cleaner at the client's
-  expense? A checkout that asks the client to think about which Partner they
-  are buying from has failed this seat.
-- **Partner seat.** Does this keep the Partner in control of stock, price and
-  brand — or does it quietly turn them into an anonymous SKU feed? A Corner
-  that looks identical to every other Corner has failed this seat.
-- **Platform seat.** Does this scale without a linear increase in ops
-  headcount per Partner or per market — or does every new country/Partner
-  require bespoke engineering? A campaign engine that needs a developer to
-  configure each Saldos event has failed this seat.
-
-Pragmatic corollary: when two seats pull in opposite directions (e.g. Partner
-wants a fully custom Corner layout, Platform needs consistent components to
-scale), the resolution is *configuration within a shared component system*,
-not *custom code per Partner* and not *forcing one visual template on
-everyone*. This is the same trade-off Galeries Lafayette's own marketplace
-already made (see below) — it is a proven pattern, not a hypothesis.
-
-## Competitive analysis
+Full model-level analysis (owned-inventory vs. P2P resale vs. Partner
+marketplace, and why Miinto is the direct precedent) lives in
+[`Z-FASHION-COMPETITIVE-LANDSCAPE.md`](./Z-FASHION-COMPETITIVE-LANDSCAPE.md).
+This table is the France-specific, player-by-player read:
 
 | Player | Model | What it validates or warns |
 |---|---|---|
-| **Galeries Lafayette (marketplace)** | Department-store corners + a shared marketplace layer; >18% of GL.com revenue now comes from third-party sellers, ~330K active buyers, avg. basket ~€105 | Directly validates the Corner + All Sale hybrid — this is not a novel bet, it is a proven French model. Their seller requirement (match-or-beat GL's own shipping terms) is the kind of platform-level consistency rule Z Fashion should adopt for trust, without owning fulfillment itself. |
-| **Printemps.com** | Curated marketplace, 500+ vetted brands, strict brand-selection policy, luxury-leaning | Confirms that *curation quality* (not catalog size) is what premium positioning is built on — relevant if Z Fashion wants to avoid competing purely on price against Shein/Amazon. |
-| **Veepee (vente-privee)** | Time-limited flash-sale "events" pitched by sellers, not a permanent catalog; 30–70% off, tight per-unit margin, huge per-event volume | This *is* effectively our "Vendas Privadas" feature already proven at scale — worth studying their seller-pitch → approval → time-boxed-event workflow directly as a template for the Campaign engine (Phase 3). |
-| **Zalando** | Pan-European aggregator with heavy owned logistics and warehousing | Warning, not a template: Zalando's moat is capital-intensive owned fulfillment. Z Fashion should stay asset-light (Partner-fulfilled) at least through the France launch — replicating Zalando's logistics stack is not a Phase 0–2 fight worth picking. |
-| **Vinted** | P2P resale marketplace, currently the #1-trafficked fashion site in France | Different category (peer resale vs. professional Partner stock) — not a direct competitor for Z Fashion's launch scope, but its scale is a reminder that French shoppers already default to marketplace-style browsing over single-brand sites; that behavior works in Z Fashion's favor. |
-| **Shein / fast fashion aggregators** | Price-first, high SKU churn | Explicitly not the fight to pick. Competing on price against Shein erodes exactly the Partner margin and brand identity that Z Fashion's Corner model exists to protect. |
-| **La Redoute (Galeries Lafayette Group)** | Multi-brand, mobile-optimized, ~9M customers | Reinforces that mobile-first checkout is table stakes in this market, not a differentiator — budget for it accordingly, don't treat it as a Phase 3 nice-to-have. |
+| **Galeries Lafayette Marketplace** | Department-store Corners + shared marketplace layer; ~20% of galerieslafayette.com revenue comes from the marketplace, ~80 active professional sellers, 1,300+ brands, sellers required to match-or-beat GL's own shipping terms | Directly validates the Corner + All Sale hybrid as a proven French model, not a novel bet. Their seller shipping-parity rule is exactly the kind of platform-level trust rule Z Fashion should adopt without owning fulfillment itself. |
+| **Printemps.com** | Curated marketplace, vetted-brand selection, luxury-leaning | Confirms *curation quality* (not catalog size) is what premium positioning is built on — relevant if Z Fashion wants to avoid competing purely on price against Shein/Amazon. |
+| **Veepee (vente-privée)** | Time-limited flash-sale "events" pitched by sellers rather than a permanent catalog | Functionally close to the "Vendas Privadas" feature already proven at French scale — worth studying their seller-pitch → approval → time-boxed-event workflow as a template for the Campaign engine (Phase 3). |
+| **Zalando** | Pan-European aggregator with heavy owned logistics and warehousing | Warning, not a template: Zalando's moat is capital-intensive owned fulfillment. Z Fashion should stay asset-light (Partner-fulfilled) at least through the France launch. |
+| **Vinted** | P2P resale, one of the most-visited fashion sites in France (72M+ members Europe-wide) | Different category (peer resale vs. professional Partner stock) — not a direct competitor for launch scope, but confirms French shoppers already default to marketplace-style browsing over single-brand sites. |
+| **Shein / fast-fashion aggregators** | Price-first, high SKU churn | Explicitly not the fight to pick — competing on price erodes the Partner margin and brand identity the Corner model exists to protect. |
+| **La Redoute** | Multi-brand, mobile-optimized | Reinforces mobile-first checkout as table stakes in this market, not a differentiator — budget for it accordingly rather than treating it as a Phase 3 nice-to-have. |
 
-Net read: Z Fashion's Corner + All Sale + Vendas Privadas model is not
-speculative — every piece already has a working proof point in the French
-market (Galeries Lafayette, Printemps, Veepee respectively). The
-differentiation is in doing all three *coherently in one platform*, and in
-reusing ZOS's Registry/Trust/Quality-Score machinery so Partner onboarding is
-cheaper than it is for any single-vertical competitor above.
-
-## Launch market and international shape
-
-France is the launch market, but — exactly as Z Find was designed in 6
-languages while targeting 20 markets from day one rather than retrofitting
-i18n later — Z Fashion's data model must treat locale, currency, tax regime
-and size-grid conventions (EU/UK/US/kids' age-based sizing) as first-class
-from Phase 0, not as a France-only assumption that gets generalized later.
-
-Concretely, this means:
-
-- **Reuse, don't rebuild**: geography/locale/currency primitives come from
-  the shared ZOS layer (the same ones Z Jobs and Z Find already consume) —
-  Z Fashion adds only what is genuinely fashion-specific (size grids per
-  category/age-segment, care-label/composition data).
-- **France-specific ≠ Fashion-specific**: French VAT rules, French consumer
-  return-law minimums (`160-legal-and-compliance`) and French payment
-  preferences are launch-market configuration, not hardcoded assumptions in
-  the domain model — the same separation Z Find already applies per country
-  in `apps/find/content/legal/<COUNTRY>/`.
-- **Corner localization is a Partner concern, not a platform rebuild**: a
-  Partner selling in France and later in Italy configures locale-specific
-  copy/pricing on their existing Corner — it is not a new integration.
+Net read: Z Fashion's Corner + All Sale + Vendas Privadas combination is not
+speculative — every piece already has a working French proof point
+(Galeries Lafayette, Printemps, Veepee respectively). The differentiation is
+doing all three *coherently in one platform*, segmented by Children/Youth/
+Adults from the start (the gap identified in the competitive-landscape
+review), and reusing ZOS's Registry/Trust/Quality-Score machinery so Partner
+onboarding is cheaper than any single-vertical competitor above.
 
 ## Status
 Draft
