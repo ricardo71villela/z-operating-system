@@ -1,0 +1,10 @@
+{
+  "name": "@zos/fashion-domain",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Pure TypeScript/JS domain rules for Z Fashion — Partner, Product, Corner, Campaign. No framework, no I/O, no dependency on other ZOS bounded contexts.",
+  "main": "src/partner.js",
+  "scripts": {
+    "test": "node tests/partner.test.js"
+  }
+}
