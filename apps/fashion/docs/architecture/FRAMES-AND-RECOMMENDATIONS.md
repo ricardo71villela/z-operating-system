@@ -67,7 +67,10 @@ made elsewhere in this document set rather than assumed:
    mirrors the structural navigation.
 3. **Category strip** — Clothing, Footwear, Sportswear, Accessories &
    Leather Goods, Cosmetics (incl. Perfumes).
-4. **Destaques** — editorial, cross-Partner curation carousel.
+4. **Destaques** — editorial, cross-Partner curation carousel. Unpaid,
+   never influenced by sponsorship — see "Sponsored Destaques" below for
+   the paid counterpart, which lives in its own labeled slot, never mixed
+   into this carousel.
 5. **"Descubra as nossas lojas" (Corners directory)** — deliberately
    spotlights independent-boutique/artisan Partners, not a random or
    popularity-sorted list. This is not decoration: it is the same ethical
@@ -89,6 +92,36 @@ price differentiation rather than competing on a recommendation-engine
 arms race, and no personalization/browsing-history system is scoped
 anywhere in the current roadmap; adding one here would be undocumented
 scope creep into Phase 0.
+
+## Sponsored Destaques (paid, day/week slots)
+Resolved by explicit agreement, after flagging a real tension: paid
+visibility is a legitimate monetization lever, but it directly conflicts
+with the deliberate decision to give small/independent-boutique Partners
+structural visibility (the Corners directory, the recommendation fallback)
+precisely because they cannot outspend chains like JD Sports or Galeries
+Lafayette on paid placement. The resolution keeps both intact rather than
+picking one:
+
+- **Physically separate slot.** Sponsored Destaques live in their own
+  labeled section — never inserted into the unpaid editorial Destaques
+  carousel unlabeled. The EU Omnibus Directive requires paid placement
+  that affects ranking/prominence to be clearly disclosed to the consumer
+  as such — this is a legal requirement, not just good practice, the same
+  class of obligation already applied to the professional-seller
+  disclosure duty.
+- **Label:** "Patrocinado" / "Em Destaque" — distinct from the "Mais desta
+  loja" / "Também pode gostar" labels used in Product Page recommendations,
+  so a Client never confuses paid placement with either editorial curation
+  or algorithmic cross-sell.
+- **The Corners directory is never for sale.** No sponsorship product can
+  buy placement there — it is the one Homepage section that exists
+  specifically to counteract what paid visibility would otherwise erase.
+- **Quality gate before the auction, not instead of it.** A Partner must
+  clear a minimum Partner Quality Score (per DOMAIN-SKETCH.md's PQS-per-
+  Category model) before being eligible to purchase a Sponsored Destaque
+  slot at all — curation-over-price stays true even in the paid slot,
+  rather than degrading into "whoever pays most wins" regardless of catalog
+  quality.
 
 ## Implementation note
 Recommendations are **computed, not stored** — the same discipline already

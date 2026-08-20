@@ -30,4 +30,41 @@ function selectHero(campaigns, destaques, today) {
   return null;
 }
 
-module.exports = { selectHero };
+const DEFAULT_MINIMUM_PQS_FOR_SPONSORSHIP = 60;
+
+/**
+ * A Sponsored Destaque slot is only purchasable by a Partner clearing a
+ * minimum Partner Quality Score — curation-over-price stays true even in
+ * the paid slot (see FRAMES-AND-RECOMMENDATIONS.md "Sponsored Destaques").
+ */
+function isEligibleForSponsorship(
+  partnerQualityScore,
+  { minimumScore = DEFAULT_MINIMUM_PQS_FOR_SPONSORSHIP } = {}
+) {
+  return typeof partnerQualityScore === 'number' && partnerQualityScore >= minimumScore;
+}
+
+/**
+ * @param {object[]} sponsoredSlots - { id, partnerId, startDate, endDate,
+ *   partnerQualityScore } — day/week windows a Partner has purchased.
+ * @param {string} today - ISO date (YYYY-MM-DD)
+ * @returns {object|null} the active, quality-gated Sponsored Destaque, or
+ *   null — never fabricated, and never the Corners directory, which is
+ *   not a sellable slot at all (see FRAMES-AND-RECOMMENDATIONS.md).
+ */
+function selectSponsoredDestaque(sponsoredSlots, today, options = {}) {
+  const active = (sponsoredSlots || []).filter(
+    (s) => s.startDate <= today && today <= s.endDate
+  );
+  const eligible = active.filter((s) =>
+    isEligibleForSponsorship(s.partnerQualityScore, options)
+  );
+  return eligible[0] || null;
+}
+
+module.exports = {
+  selectHero,
+  DEFAULT_MINIMUM_PQS_FOR_SPONSORSHIP,
+  isEligibleForSponsorship,
+  selectSponsoredDestaque,
+};
