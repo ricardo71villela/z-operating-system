@@ -76,3 +76,14 @@ asset, not vector paths coded by hand. Decision: commission or license a
 real fashion-illustration asset for production; the sign-in layout, palette,
 typography and copy validated in this session stand as-is and are not
 blocked by the illustration gap.
+
+## Logo mark
+The shared ZOS Group logo — a gold map-pin silhouette with a "Z" inside,
+metallic gold on black — is the literal brand mark, provided as a real
+asset, not something to redraw. Z Fashion reuses it exactly as Z Find does:
+the icon paired with the vertical's own wordmark ("Z Fashion" beside the
+pin), not a Fashion-specific icon variant. Production embeds the actual
+provided image file for the icon; per the illustration-sourcing decision
+above, no attempt is made to reproduce its metallic gradient in hand-coded
+SVG — flat-design mockup tools stand in with a plain icon placeholder only,
+never a redrawn approximation of the real mark.
