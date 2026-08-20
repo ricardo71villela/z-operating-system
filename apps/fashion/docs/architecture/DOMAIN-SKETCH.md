@@ -41,11 +41,21 @@ schema — a checkpoint to catch the next inconsistency before it becomes code.
 - **All Sale** — not a separate copy of the catalog. A cross-Partner *view*
   over every published Product, filterable by Segment × Category × Brand ×
   Partner. A Product published by a Partner is visible in its own Corner
-  *and* in All Sale by default — Corner and All Sale are two lenses on the
-  same underlying Product set, not two places a Partner uploads to
-  separately (open question to confirm in Phase 1: whether a Partner can
-  opt a specific Product out of All Sale while keeping it Corner-only, e.g.
-  for an exclusive drop).
+  *and* in All Sale by default (see "Resolved" below) — Corner and All Sale
+  are two lenses on the same underlying Product set, not two places a
+  Partner uploads to separately.
+- **Age Segment** — Children, Youth, Adults. Lives on the **Product**, same
+  discipline as Category: **never inferred from size or appearance alone**.
+  A children's-sized version of an adult product is not automatically
+  eligible for the Children segment — genuine Children/Youth eligibility
+  depends on the applicable safety certification and material compliance
+  for that Category (EU toy-safety-adjacent standards for younger children's
+  clothing hardware — drawstrings, small parts; EU Cosmetic Regulation
+  Annex III age-based restrictions for Cosmetics aimed at under-3s in
+  particular) — not on "it comes in a small size" or "it looks childlike."
+  This is the same resemblance-vs-genuine-purpose principle just corrected
+  for Sportswear, applied to the segment with real regulatory stakes
+  (`160-legal-and-compliance`), not just a curation-quality stake.
 - **Campaign** — Destaques, Saldos, Vendas Privadas, Novas Coleções, Soldes,
   Black Friday. A Product can be attached to zero or more active Campaigns
   independently of its Category/Brand/Partner. Soldes and Black Friday are
@@ -62,25 +72,22 @@ Partner 1───* Product *───1 Brand
    │
 Corner (1:1 with Partner)
 
-Product *───* Category   (multi-valued tag, not a single field)
-Product *───* Campaign   (zero or more active at once)
+Product *───* Category    (multi-valued tag, genuine purpose not resemblance)
+Product *───* Age Segment (same discipline, real safety/cert stakes)
+Product *───* Campaign    (zero or more active at once)
 
 All Sale = view(Product) filtered by Segment × Category × Brand × Partner
 Corner   = view(Product) filtered by Partner = this Partner
 ```
 
-## Open questions this sketch surfaces
-- Sportswear eligibility rule (genuine athletic/technical purpose vs.
-  aesthetic resemblance) needs to become an explicit, checkable rule in the
-  Partner Quality Score or catalog-submission validation — not left as
-  editorial judgment per listing, or it will drift the moment catalog volume
-  grows past what curators can review by eye.
-- Can a Product be Corner-only (opted out of All Sale) for exclusive drops,
-  or is publication always both? Needs a Phase 1 decision before the
-  catalog schema is final.
-- Does multi-valued Category affect Partner Quality Score weighting (e.g. a
-  Partner strong in Footwear but weak in the Sportswear side of the same
-  product)? Deferred — flagged, not blocking Phase 0.
+## Resolved: Corner-only vs. All Sale publication
+Default is **both** — a published Product appears in its Partner's Corner
+and in All Sale simultaneously; that is the baseline, not a Partner choice.
+A Partner *may* mark a specific Product `cornerExclusive: true` to withhold
+it from All Sale (e.g. a genuine timed exclusive drop) — opt-out, not
+opt-in, so All Sale stays comprehensive by default and exclusivity is a
+deliberate, visible exception rather than the norm.
+
 
 ## Status
 Draft — supersedes scattered Category/Brand notes in README.md and
