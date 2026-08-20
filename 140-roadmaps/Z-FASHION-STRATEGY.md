@@ -20,36 +20,87 @@ Z Fashion succeeds only if three interventants get a coherent deal at once:
 the **Client** gets one cart across many stores; the **Partner** keeps control
 of stock, pricing and brand identity; the **Platform** gets the trust and data
 layer that makes the first two possible without becoming a competitor to its
-own Partners.
+own Partners. See
+[`Z-FASHION-COMPETITIVE-LANDSCAPE.md`](./Z-FASHION-COMPETITIVE-LANDSCAPE.md)
+for why this is a proven shape (Miinto) rather than a novel bet, and
+[`apps/fashion/docs/architecture/MARKETS-AND-I18N.md`](../apps/fashion/docs/architecture/MARKETS-AND-I18N.md)
+for why "France-first" and "20-market platform" are the same architecture,
+not two different roadmaps.
+
+## Pragmatic view, one interventant at a time
+
+**As the Client's advocate**, the architect asks: would I trust one cart
+across three unknown boutiques I've never heard of? Miinto and Galeries
+Lafayette both answer yes, empirically — but only because returns, sizing
+and delivery promises are *platform-guaranteed*, not Partner-by-Partner. The
+pragmatic conclusion: the Client-facing return policy is a Platform contract
+Partners opt into, not a Partner-configurable field, even though pricing and
+stock stay Partner-owned. Uniformity where it removes purchase anxiety
+(returns, delivery SLA, size guidance); richness where it adds discovery
+value (Corner identity, curation).
+
+**As the Partner's advocate**, the architect asks: what is the one thing
+that, if broken, makes a boutique quit day one? Not the storefront design —
+the stock/price feed. Miinto's own onboarding friction confirms it: boutiques
+don't churn because a Corner looks wrong, they churn because inventory goes
+out of sync and they oversell. Pragmatic conclusion: the Partner stock feed
+contract (Phase 1, item 5 below) is not just sequenced early, it needs a
+tighter reliability bar than anything client-facing shipped before it —
+better to launch with fewer Partners on a rock-solid feed than many Partners
+on a shaky one.
+
+**As the Platform's advocate**, the architect asks: where do we resist the
+temptation to over-engineer for 20 markets before proving 1? Geography,
+`names{lang}`, and Campaign-type modeling (Soldes vs. Black Friday as
+distinct types) are cheap to get right now and expensive to retrofit — those
+get built for scale immediately. Fulfillment logistics, multi-currency
+settlement to Partners, and market-specific consumer-protection variants are
+expensive to get right now and cheap to add market-by-market later — those
+get deliberately deferred past France. This is the pragmatism test applied
+to every item below: "is this cheap now, expensive later" earns early
+investment; everything else waits for a second market to justify it.
 
 ## Priority order
 
 ### Phase 0 — Foundation (before any UI)
 1. **Partner & Registry model** — extend `20-registry` with the Partner
-   entity shape Fashion needs (categories sold, age segments served) without
-   forking the Registry.
-2. **Partner Quality Score gate** — decide whether Corner/All Sale eligibility
+   entity shape Fashion needs (categories sold, age segments served,
+   `countryId` + operating `locales[]` from day one), without forking the
+   Registry.
+2. **Geography reuse decision** — promote `apps/find/packages/geography`
+   to a shared `20-registry` capability, or fork it for Fashion. Given a
+   second vertical needing the identical Country/Region/City/Zone/Currency
+   shape on day one, reuse is the pragmatic default; forking needs an
+   explicit reason on the table before Phase 1 starts.
+3. **Partner Quality Score gate** — decide whether Corner/All Sale eligibility
    reuses `40-partner-quality-score` unmodified or needs fashion-specific
    signals (open question in ZOS-ALIGNMENT.md) — resolve before onboarding
    the first real Partner.
-3. **Minor-safe data policy** (`160-legal-and-compliance`) — non-negotiable
+4. **Minor-safe data policy** (`160-legal-and-compliance`) — non-negotiable
    before any Children/Youth catalog goes live.
+5. **Soldes vs. Black Friday as distinct Campaign types** — France's Soldes
+   are legally fixed dates; Black Friday is not. Model them as separate
+   types now (see MARKETS-AND-I18N.md) — cheap now, expensive to retrofit.
 
 ### Phase 1 — Partner-facing (make supply possible)
-4. Partner onboarding + catalog management (`fashion-partner` app).
-5. Stock/price feed contract (`fashion-domain` package) — this is the
-   contract every downstream feature depends on.
-6. Corner configuration (branding, layout within platform constraints).
+6. Partner onboarding + catalog management (`fashion-partner` app).
+7. Stock/price feed contract (`fashion-domain` package) — this is the
+   contract every downstream feature depends on, and per the competitive
+   review the single highest-churn-risk item for Partners if it is unreliable.
+8. Corner configuration (branding, layout within platform constraints).
 
 ### Phase 2 — Client-facing (make demand possible)
-7. Unified cart/checkout across Partners — the single highest-risk technical
-   decision; see open question on a shared-platform Order primitive.
-8. All Sale aggregation and filtering (segment × category × Partner).
-9. Corner storefront rendering.
+9. Unified cart/checkout across Partners — the single highest-risk technical
+   decision; see open question on a shared-platform Order primitive. Return
+   policy is Platform-guaranteed here, not Partner-configurable.
+10. All Sale aggregation and filtering (segment × category × Partner).
+11. Corner storefront rendering.
 
 ### Phase 3 — Growth mechanics
-10. Campaign engine: Destaques, Saldos, Vendas Privadas, Novas Coleções.
-11. Black Friday as the first full cross-partner seasonal event — deliberately
+12. Campaign engine: Destaques, Saldos, Vendas Privadas, Novas Coleções —
+    Soldes and Black Friday implemented as distinct Campaign types per
+    MARKETS-AND-I18N.md, not a single generic "sale event."
+13. Black Friday as the first full cross-partner seasonal event — deliberately
     sequenced last because it stresses every system above at once (catalog,
     cart, Partner payouts) and should not be the first time those systems meet
     real load.
