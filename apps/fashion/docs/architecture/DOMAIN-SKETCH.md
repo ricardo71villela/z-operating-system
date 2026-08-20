@@ -112,6 +112,33 @@ model from day one: the platform-guaranteed return policy applies uniformly
 *except* where a Category itself carries a legal exemption, and Cosmetics is
 the one Category in the initial catalog where that applies.
 
+## Corrected: "Platform-guaranteed" return policy is not "free, unconditional, no-questions"
+Consistency across Partners was the point of making returns a Platform
+contract — that does not mean the contract is "wear it, then return it for
+a full refund." EU distance-selling rules already draw this line: a
+consumer may handle a product to the extent needed to establish its nature
+and characteristics (the way one would in a physical store), but use beyond
+that entitles the seller to deduct the resulting diminished value — the
+Platform-guaranteed policy must encode that condition explicitly, not imply
+unconditional acceptance. Concretely:
+
+- Returned Products go through a **condition check** (tags/seal intact,
+  unworn, original packaging where applicable) before a refund is issued —
+  this is the Partner's protection, symmetric to the Client's protection of
+  a uniform, predictable process.
+- A Product returned in used/worn condition is not an automatic full refund;
+  it triggers a **value-diminishment assessment** (partial refund or
+  rejection), platform-adjudicated so Partners aren't individually forced
+  into disputes with Clients over it.
+- Return abuse (repeat "wardrobing" — buying, wearing once, returning) is a
+  **Client-side trust signal**, tracked the same way Partner Quality Score
+  tracks Partner trust — not modeled yet in this sketch, but flagged here so
+  it isn't discovered as a gap after Phase 2 checkout ships.
+- "Free return shipping" (who pays the shipping label) is a separate,
+  independent decision from "is the return accepted" — the two get
+  conflated easily and must not be, since a Partner or Platform could
+  reasonably subsidize shipping while still enforcing condition checks.
+
 ## Status
 Draft — supersedes scattered Category/Brand notes in README.md and
 ZOS-ALIGNMENT.md; those stay as the narrative explanation, this is the

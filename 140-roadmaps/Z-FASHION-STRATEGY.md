@@ -35,7 +35,10 @@ Lafayette both answer yes, empirically — but only because returns, sizing
 and delivery promises are *platform-guaranteed*, not Partner-by-Partner. The
 pragmatic conclusion: the Client-facing return policy is a Platform contract
 Partners opt into, not a Partner-configurable field, even though pricing and
-stock stay Partner-owned. Uniformity where it removes purchase anxiety
+stock stay Partner-owned. That contract is a consistent *process* (timeframe,
+condition check, adjudication), not a "free, no-questions" guarantee — see
+DOMAIN-SKETCH.md's correction on condition checks and value-diminishment.
+Uniformity where it removes purchase anxiety
 (returns, delivery SLA, size guidance); richness where it adds discovery
 value (Corner identity, curation).
 
@@ -99,7 +102,8 @@ investment; everything else waits for a second market to justify it.
 ### Phase 2 — Client-facing (make demand possible)
 9. Unified cart/checkout across Partners — the single highest-risk technical
    decision; see open question on a shared-platform Order primitive. Return
-   policy is Platform-guaranteed here, not Partner-configurable.
+   policy is Platform-guaranteed here (consistent process, not free/
+   unconditional — see DOMAIN-SKETCH.md), not Partner-configurable.
 10. All Sale aggregation and filtering (segment × category × Partner).
 11. Corner storefront rendering.
 
