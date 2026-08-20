@@ -1,0 +1,75 @@
+# Z Fashion — Frames & Recommendations
+
+## Purpose
+Defines the primary customer-facing frames (Homepage, Product Page, Corner,
+All Sale) and the recommendation logic that connects them — specifically the
+deliberate asymmetry between Product Page (same-Corner only, cross-sell for
+the Partner) and All Sale (cross-Partner, complementary/similar, editorial).
+
+## Frames
+
+### Product Page
+Shows the Product itself plus a recommendations panel (left rail or below,
+platform-decided by viewport). **Recommendations are scoped to the same
+Corner as the Product being viewed** — this is a deliberate Partner-seat
+decision (Central Thesis: keep the Client engaged with this Partner's
+assortment, the same way a physical boutique keeps you browsing its own
+racks rather than sending you next door). This is the opposite of an
+Amazon-style cross-catalog "customers also bought," and correctly so: Amazon
+optimizes one global catalog; Z Fashion deliberately chose the Corner model
+to preserve Partner identity, and the recommendation logic must be
+consistent with that choice, not undermine it.
+
+**Fallback rule (resolved, ethics-driven — see conversation record):** if
+the Corner has fewer than a defined threshold of genuinely related products
+(same Category intersecting the viewed Product's Categories), the panel
+falls back to All Sale-style complementary/similar recommendations —
+**but is relabeled**, never disguised as same-store. This exists for two
+reasons, not one: it protects the Client from being misled about a
+recommendation's origin, and it protects small/independent boutique
+Partners (the priority acquisition tier for Sportswear and Accessories,
+per Z-FASHION-COMPETITIVE-LANDSCAPE.md) from a structurally weak panel
+purely because they have a thin catalog — the tier the whole Corner model
+exists to serve should not be the tier most disadvantaged by it.
+
+- Label when same-Corner: **"Mais desta loja"**
+- Label when falling back: **"Também pode gostar"** (never reuses the
+  same-Corner label — the label itself is the honesty mechanism, not a
+  disclaimer buried elsewhere)
+- Threshold is a tunable platform parameter, not hardcoded per Partner —
+  starting default: 4 related products.
+
+### Corner (per Partner)
+The Partner's full storefront view (`corner()` in corner.js). Not itself a
+recommendation surface — it *is* the destination the Product Page's
+same-Corner recommendations point back into.
+
+### All Sale
+Cross-Partner discovery view (`allSale()` in corner.js), filterable by
+Segment × Category × Brand × Partner. Recommendations here work in the
+opposite direction from the Product Page by design: **complementary and
+similar products across Partners**, functioning as a Destaques-adjacent
+discovery opportunity rather than a single-Partner retention tool. "Similar"
+uses the same genuine-Category-match discipline already established
+(DOMAIN-SKETCH.md) — a product tagged Sportswear only surfaces alongside
+genuine Sportswear, never resemblance-based matches.
+
+### Homepage
+Not detailed by the person yet — proposed composition, to confirm before
+building: Destaques (editorial, cross-Partner), active Campaigns (Soldes/
+Black Friday/Vendas Privadas banners), Segment entry points (Children/
+Youth/Adults), and a Corners directory. Flagged here as an open item, not
+assumed.
+
+## Implementation note
+Recommendations are **computed, not stored** — the same discipline already
+applied to Corner and All Sale (query functions over the existing Product
+list, never a separate Recommendation entity or table). This keeps the
+asymmetry a pure function of Category/Partner data already on Product,
+with zero new storage surface.
+
+## Status
+Draft
+
+## Last Updated
+2026-08-20
