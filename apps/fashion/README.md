@@ -25,7 +25,14 @@ See `docs/architecture/ZOS-ALIGNMENT.md` and
 
 - **Client segments** — Children, Youth, Adults.
 - **Categories** — Clothing, Footwear, Sportswear, Accessories & Leather
-  Goods (Maroquinaria), Cosmetics. Accessories & Leather Goods is its own
+  Goods (Maroquinaria), Cosmetics (explicitly includes Perfumes/Fragrances —
+  not a separate category, since a perfume boutique's Partner profile and
+  Corner needs are the same as skincare/makeup, and both fall under the same
+  EU Cosmetic Regulation (EC) No 1223/2009 framework, including the
+  fragrance-allergen declaration duty for the 26 allergens on Annex III —
+  relevant to product-data requirements the same way the hygiene-seal
+  return exemption already is, see DOMAIN-SKETCH.md). Accessories & Leather
+  Goods is its own
   category rather than a Clothing sub-filter for the same reason department
   stores give it a dedicated floor space (Galeries Lafayette, Le Bon Marché
   both run a distinct "Espace Maroquinerie") — bags, wallets, belts have

@@ -38,7 +38,9 @@ schema — a checkpoint to catch the next inconsistency before it becomes code.
   is not a universal Product field** — the same single-field mistake already
   caught for Category and Brand, just one layer deeper: Clothing/Footwear/
   Sportswear carry a genuine size (resolved via a canonical size-grid, per
-  MARKETS-AND-I18N.md); Cosmetics carries a *format/volume* (ml, shade) that
+  MARKETS-AND-I18N.md); Cosmetics (which explicitly includes Perfumes/
+  Fragrances — same Partner profile, same regulatory framework, not a
+  separate category) carries a *format/volume* (ml, shade) that
   is a different concept entirely, not a point on the same size scale; most
   Accessories & Leather Goods (bags, wallets) carry no size dimension at
   all, while a subset (belts, gloves) does. The Product schema must make
@@ -108,7 +110,7 @@ genuine-purpose eligibility rule (above) a natural enforcement point: a
 Partner's Sportswear-category score can weight in mis-tagged-as-Sportswear
 disputes without touching their Footwear standing at all.
 
-## Client-seat return policy: the Cosmetics exception
+## Client-seat return policy: the Cosmetics (including Perfumes) exception
 The Client-seat principle already established ("return policy is a Platform
 contract Partners opt into, not Partner-configurable") has exactly one
 category-driven carve-out that must be modeled explicitly, not treated as a
