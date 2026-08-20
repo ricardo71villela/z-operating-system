@@ -2,7 +2,8 @@
 
 Z Fashion is the Fashion & Lifestyle Retail vertical of the Z Operating System
 (ZOS) ecosystem. It is a multi-partner marketplace for clothing, footwear,
-sportswear and cosmetics across children, youth and adult segments, converging with shared
+sportswear, accessories/leather goods and cosmetics across children, youth
+and adult segments, converging with shared
 ZOS capabilities according to the **ZOS Architectural Constitution v1.1**.
 
 Inventory belongs to each adherent store (**Partner**). Every Partner can run
@@ -23,8 +24,14 @@ See `docs/architecture/ZOS-ALIGNMENT.md` and
 ## Product surface
 
 - **Client segments** — Children, Youth, Adults.
-- **Categories** — Clothing, Footwear, Sportswear, Cosmetics. Sportswear is
-  its own category (not a filter within Clothing/Footwear) because it has
+- **Categories** — Clothing, Footwear, Sportswear, Accessories & Leather
+  Goods (Maroquinaria), Cosmetics. Accessories & Leather Goods is its own
+  category rather than a Clothing sub-filter for the same reason department
+  stores give it a dedicated floor space (Galeries Lafayette, Le Bon Marché
+  both run a distinct "Espace Maroquinerie") — bags, wallets, belts have
+  their own material/craftsmanship attributes and their own Partner profile
+  (small artisan ateliers), separate from apparel sizing logic entirely.
+  Sportswear is its own category (not a filter within Clothing/Footwear) because it has
   distinct attributes (sport/activity, technical fabric specs) and because
   Partners in this space — Decathlon-style specialists, sneaker/sportswear
   boutiques — expect their own Corner identity the same way a fashion

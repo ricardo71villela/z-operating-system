@@ -82,6 +82,24 @@ price dominance (curation over price, same logic already applied to general
 fashion above) and the tier where Z Fashion's Corner model creates the most
 value the Partner couldn't get alone.
 
+## Accessories & Leather Goods: partner landscape
+
+Same tiering logic as Sportswear, applied to bags, wallets, belts and small
+leather goods:
+
+| Tier | Examples | Role for Z Fashion |
+|---|---|---|
+| Department-store corners | Galeries Lafayette, Le Bon Marché ("Espace Maroquinerie") | **Direct Corner precedent, not a Partner target itself.** These are department stores, not onboardable Partners — but they prove the category deserves its own dedicated space, exactly the argument for giving it its own Category rather than burying it inside Clothing. |
+| Mid-market multi-brand e-tailers | Gandy, Stalric, Beausoleil Maroquinerie | **Plausible Corner tenants.** Already multi-brand online specialists (Lancel, Lancaster, Mac Douglas, Longchamp), proven e-commerce operators — bring immediate catalog depth but, as with the Sportswear chains, negotiate from an established online position of their own. |
+| Independent artisan ateliers | Small Made-in-France leather workshops, several holding the EPV ("Entreprise du Patrimoine Vivant") craftsmanship label | **The Miinto-shaped opportunity here too.** Small production runs, strong craft story, little to no e-commerce reach of their own — the exact profile a Corner + shared checkout benefits most, and a strong editorial-Destaques fit given the craftsmanship narrative. |
+| Luxury/designer brand-direct | Longchamp, Lancel and similar house brands | **Corner candidates once volume is proven**, same logic as Sportswear's brand-direct tier — approach after the artisan/mid-market cohort is live. |
+
+Practical read: prioritize independent artisan ateliers for the first
+Accessories & Leather Goods cohort, the same sequencing decision already
+made for Sportswear above — it is the tier structurally most dependent on
+what a Corner uniquely offers, and the craftsmanship story is strong
+editorial material for Destaques from day one.
+
 ## Status
 Draft
 

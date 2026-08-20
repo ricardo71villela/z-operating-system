@@ -2,7 +2,7 @@
 
 ## Purpose
 Defines the product strategy and build sequence for Z Fashion, the fashion,
-footwear, sportswear and cosmetics vertical of ZOS. This is a strategic document, not a
+footwear, sportswear, accessories/leather goods and cosmetics vertical of ZOS. This is a strategic document, not a
 domain model — it reuses existing canonical ZOS concepts (Registry, Trust
 Engine, Partner Quality Score, Marketplace) and introduces no new
 architectural authority beyond what is flagged in
