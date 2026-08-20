@@ -41,10 +41,12 @@ Concretely, for the Phase 0/1 work already sequenced in
 - **Product catalog** (Phase 1, item 5) stores `names{lang}` and
   `descriptions{lang}` per the Geography convention, sized fields, not
   free-text blobs that only work in one language.
-  This includes clothing/footwear sizing, which is not just translation —
-  size charts differ by country (FR 38 ≠ IT 44 ≠ US 8 for the same garment)
-  and must resolve through a canonical size-grid concept, not a lookup table
-  per Partner.
+  This includes clothing/footwear/sportswear sizing, which is not just
+  translation — size charts differ by country (FR 38 ≠ IT 44 ≠ US 8 for the
+  same garment) and must resolve through a canonical size-grid concept, not
+  a lookup table per Partner. Sizing is itself Category-conditional (see
+  DOMAIN-SKETCH.md): Cosmetics uses format/volume, not a size grid; most
+  Accessories & Leather Goods carry no size dimension at all.
 - **Campaign calendar** (Phase 3): Black Friday and Soldes are not the same
   event. France's `Soldes` are legally fixed government-set dates twice a
   year; Black Friday is a retailer-driven US import now observed

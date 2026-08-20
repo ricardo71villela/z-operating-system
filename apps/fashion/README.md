@@ -70,7 +70,8 @@ than rebuilt per vertical.
 
 ### Z Fashion-owned domain
 Product catalog (apparel/footwear/sportswear/leather-goods/cosmetics
-attributes: size, age segment, material, shade/variant — Category and Brand
+attributes — size grid (Category-conditional, not universal), age segment,
+material, shade/variant — Category and Brand
 both live on the Product, not the Partner, since one Partner can be
 mono-brand or multi-brand), Corner configuration, All Sale aggregation
 rules,

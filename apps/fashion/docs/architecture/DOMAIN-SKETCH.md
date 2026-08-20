@@ -33,8 +33,17 @@ schema — a checkpoint to catch the next inconsistency before it becomes code.
   on products that genuinely span two — the same class of mistake already
   caught twice this conversation (Category-on-Partner, then Brand-on-Partner).
 - **Product** — the unit that actually carries Category (multi-valued),
-  Brand (single reference), size/segment attributes, and belongs to exactly
-  one Partner (the stock owner).
+  Brand (single reference), Age Segment (multi-valued, genuine-eligibility
+  discipline), and belongs to exactly one Partner (the stock owner). **"Size"
+  is not a universal Product field** — the same single-field mistake already
+  caught for Category and Brand, just one layer deeper: Clothing/Footwear/
+  Sportswear carry a genuine size (resolved via a canonical size-grid, per
+  MARKETS-AND-I18N.md); Cosmetics carries a *format/volume* (ml, shade) that
+  is a different concept entirely, not a point on the same size scale; most
+  Accessories & Leather Goods (bags, wallets) carry no size dimension at
+  all, while a subset (belts, gloves) does. The Product schema must make
+  this attribute **Category-conditional**, not a shared field every Product
+  fills in or leaves blank.
 - **Corner** — a Partner-scoped storefront view. Aggregates whatever
   Categories and Brands that Partner's catalog contains. One Partner, one
   Corner.
