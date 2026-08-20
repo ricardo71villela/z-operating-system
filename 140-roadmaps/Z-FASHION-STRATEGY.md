@@ -34,11 +34,21 @@ across three unknown boutiques I've never heard of? Miinto and Galeries
 Lafayette both answer yes, empirically — but only because returns, sizing
 and delivery promises are *platform-guaranteed*, not Partner-by-Partner. The
 pragmatic conclusion: the Client-facing return policy is a Platform contract
-Partners opt into, not a Partner-configurable field, even though pricing and
-stock stay Partner-owned. That contract is a consistent *process* (timeframe,
-condition check, adjudication), not a "free, no-questions" guarantee — see
-DOMAIN-SKETCH.md's correction on condition checks and value-diminishment.
-Uniformity where it removes purchase anxiety
+Partners comply with, not a Partner-configurable field — and not
+optional in the first place: under EU Consumer Rights Directive 2011/83/EU
+(as amended by the Omnibus Directive 2019/2161), the 14-day right of
+withdrawal on B2C distance sales is mandatory for the Partner as the
+selling trader, with no discretion to opt out, except the closed Article 16
+exception list (custom/personalized goods, perishables, hygiene-sealed
+goods once unsealed, inseparably-mixed goods, etc.) — Clothing, Footwear,
+Sportswear and Accessories/Leather Goods carry no such exception; Cosmetics'
+hygiene-seal exemption (already modeled) is the one category-level
+carve-out that actually exists in law. The Platform isn't asking Partners
+to accept a policy; it is standardizing enforcement of an obligation each
+Partner already carries individually. From 19 June 2026, EU law additionally
+requires a visible digital "withdrawal button" (CRD Article 11a) in the
+checkout/order-management flow — a concrete Phase 2 compliance item, not
+just a UX nicety. Uniformity where it removes purchase anxiety
 (returns, delivery SLA, size guidance); richness where it adds discovery
 value (Corner identity, curation).
 

@@ -120,7 +120,29 @@ consumer may handle a product to the extent needed to establish its nature
 and characteristics (the way one would in a physical store), but use beyond
 that entitles the seller to deduct the resulting diminished value — the
 Platform-guaranteed policy must encode that condition explicitly, not imply
-unconditional acceptance. Concretely:
+unconditional acceptance.
+
+**Legal grounding (EU Consumer Rights Directive 2011/83/EU, as amended by
+the Omnibus Directive 2019/2161):** the 14-day right of withdrawal on B2C
+distance sales is mandatory for the selling trader — a Partner has no
+discretion to refuse it. The only exemptions are the closed Article 16 list
+(custom/personalized goods, perishables, goods that deteriorate rapidly,
+hygiene-sealed goods once unsealed, goods inseparably mixed with others,
+etc.). None of Clothing, Footwear, Sportswear or Accessories/Leather Goods
+qualify for any exemption; Cosmetics' hygiene-seal exemption (Article 16(e))
+is the one genuine category-level carve-out in the initial catalog. "Return
+policy is a Platform contract Partners opt into" is therefore not quite
+right — Partners are not opting into anything, they are already bound to
+this individually as traders; the Platform is standardizing *enforcement*
+of an obligation, not granting Partners a choice they're waiving.
+
+From **19 June 2026**, EU law additionally requires a visible digital
+"withdrawal button" (new CRD Article 11a) in the online checkout / order-
+management flow for any trader selling to EU consumers through a website or
+app — a concrete Phase 2 compliance requirement for `fashion-web`, not
+optional UX polish.
+
+Concretely, beyond the legal minimum:
 
 - Returned Products go through a **condition check** (tags/seal intact,
   unworn, original packaging where applicable) before a refund is issued —
