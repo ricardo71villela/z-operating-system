@@ -55,11 +55,40 @@ uses the same genuine-Category-match discipline already established
 genuine Sportswear, never resemblance-based matches.
 
 ### Homepage
-Not detailed by the person yet — proposed composition, to confirm before
-building: Destaques (editorial, cross-Partner), active Campaigns (Soldes/
-Black Friday/Vendas Privadas banners), Segment entry points (Children/
-Youth/Adults), and a Corners directory. Flagged here as an open item, not
-assumed.
+Composition (top to bottom), each section justified by a decision already
+made elsewhere in this document set rather than assumed:
+
+1. **Hero** — an active Campaign takes priority over editorial content when
+   one exists (`isActiveOn`, campaign.js); falls back to the lead Destaque
+   otherwise. Time-boxed legal events (Soldes) and high-urgency retail
+   events (Black Friday) are more relevant to a visiting Client than
+   evergreen editorial, so they win the hero slot whenever active.
+2. **Segment entry** — Children / Youth / Adults, three primary tiles,
+   mirrors the structural navigation.
+3. **Category strip** — Clothing, Footwear, Sportswear, Accessories &
+   Leather Goods, Cosmetics (incl. Perfumes).
+4. **Destaques** — editorial, cross-Partner curation carousel.
+5. **"Descubra as nossas lojas" (Corners directory)** — deliberately
+   spotlights independent-boutique/artisan Partners, not a random or
+   popularity-sorted list. This is not decoration: it is the same ethical
+   principle already applied to the Product Page recommendation fallback
+   (DOMAIN-SKETCH.md / this document's recommendations section) — if
+   curation-over-price is the platform's actual differentiation against
+   Decathlon-scale players (Z-FASHION-COMPETITIVE-LANDSCAPE.md), and small
+   Partners are the priority acquisition tier for Sportswear and
+   Accessories, the Homepage must give them structural visibility rather
+   than leaving their exposure to chance inside All Sale.
+6. **All Sale CTA** — "Ver tudo" entry point into the full cross-Partner
+   catalog.
+7. **Footer trust signals** — return-policy summary, professional-seller
+   disclosure (already a Phase 2 legal requirement per DOMAIN-SKETCH.md).
+
+**Deliberately excluded at launch: personalized/algorithmic recommendations
+on the Homepage.** Two reasons, not one — it reinforces the curation-over-
+price differentiation rather than competing on a recommendation-engine
+arms race, and no personalization/browsing-history system is scoped
+anywhere in the current roadmap; adding one here would be undocumented
+scope creep into Phase 0.
 
 ## Implementation note
 Recommendations are **computed, not stored** — the same discipline already
