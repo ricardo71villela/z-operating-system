@@ -103,9 +103,11 @@ investment; everything else waits for a second market to justify it.
 
 ### Phase 1 — Partner-facing (make supply possible)
 6. Partner onboarding + catalog management (`fashion-partner` app).
-7. Stock/price feed contract (`fashion-domain` package) — this is the
-   contract every downstream feature depends on, and per the competitive
-   review the single highest-churn-risk item for Partners if it is unreliable.
+7. **Stock/price feed contract — done.** See `STOCK-FEED-CONTRACT.md` and
+   `fashion-domain/src/stock.js`: stale-update rejection (protects a fresher
+   in-store sale from being undone by out-of-order delivery) and
+   checkout-time reservations with expiry (the actual oversell-prevention
+   mechanism between Partner feed pushes) — both implemented and tested.
 8. Corner configuration (branding, layout within platform constraints).
 
 ### Phase 2 — Client-facing (make demand possible)
