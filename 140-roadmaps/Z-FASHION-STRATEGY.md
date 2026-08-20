@@ -2,7 +2,7 @@
 
 ## Purpose
 Defines the product strategy and build sequence for Z Fashion, the fashion,
-footwear and cosmetics vertical of ZOS. This is a strategic document, not a
+footwear, sportswear and cosmetics vertical of ZOS. This is a strategic document, not a
 domain model — it reuses existing canonical ZOS concepts (Registry, Trust
 Engine, Partner Quality Score, Marketplace) and introduces no new
 architectural authority beyond what is flagged in
@@ -128,6 +128,7 @@ This table is the France-specific, player-by-player read:
 | **Zalando** | Pan-European aggregator with heavy owned logistics and warehousing | Warning, not a template: Zalando's moat is capital-intensive owned fulfillment. Z Fashion should stay asset-light (Partner-fulfilled) at least through the France launch. |
 | **Vinted** | P2P resale, one of the most-visited fashion sites in France (72M+ members Europe-wide) | Different category (peer resale vs. professional Partner stock) — not a direct competitor for launch scope, but confirms French shoppers already default to marketplace-style browsing over single-brand sites. |
 | **Shein / fast-fashion aggregators** | Price-first, high SKU churn | Explicitly not the fight to pick — competing on price erodes the Partner margin and brand identity the Corner model exists to protect. |
+| **Decathlon** | Vertically-integrated sportswear retailer, own-brand heavy, huge French footprint | Warning + opportunity: Decathlon dominates on price/own-brand for mass sportswear, so Z Fashion's Sportswear category should lean into multi-brand + specialist-boutique curation (running/climbing/cycling specialists) rather than competing on Decathlon's basics. |
 | **La Redoute** | Multi-brand, mobile-optimized | Reinforces mobile-first checkout as table stakes in this market, not a differentiator — budget for it accordingly rather than treating it as a Phase 3 nice-to-have. |
 
 Net read: Z Fashion's Corner + All Sale + Vendas Privadas combination is not

@@ -1,8 +1,8 @@
 # Z Fashion
 
 Z Fashion is the Fashion & Lifestyle Retail vertical of the Z Operating System
-(ZOS) ecosystem. It is a multi-partner marketplace for clothing, footwear and
-cosmetics across children, youth and adult segments, converging with shared
+(ZOS) ecosystem. It is a multi-partner marketplace for clothing, footwear,
+sportswear and cosmetics across children, youth and adult segments, converging with shared
 ZOS capabilities according to the **ZOS Architectural Constitution v1.1**.
 
 Inventory belongs to each adherent store (**Partner**). Every Partner can run
@@ -23,7 +23,12 @@ See `docs/architecture/ZOS-ALIGNMENT.md` and
 ## Product surface
 
 - **Client segments** — Children, Youth, Adults.
-- **Categories** — Clothing, Footwear, Cosmetics.
+- **Categories** — Clothing, Footwear, Sportswear, Cosmetics. Sportswear is
+  its own category (not a filter within Clothing/Footwear) because it has
+  distinct attributes (sport/activity, technical fabric specs) and because
+  Partners in this space — Decathlon-style specialists, sneaker/sportswear
+  boutiques — expect their own Corner identity the same way a fashion
+  boutique does.
 - **Corners** — Partner-branded storefronts within Z Fashion (own visual
   identity, storytelling, curation); commerce plumbing (cart, checkout,
   fulfillment, payments) stays platform-owned.
