@@ -170,10 +170,60 @@ Concretely, beyond the legal minimum:
   conflated easily and must not be, since a Partner or Platform could
   reasonably subsidize shipping while still enforcing condition checks.
 
+## Final pass: remaining gaps before Phase 0 is considered closed
+
+- **Stock sync / oversell risk for omnichannel Partners.** Independent
+  boutiques (the priority Partner tier for both Sportswear and Accessories,
+  per the competitive review) typically also sell in a physical store —
+  the same unit can be sold in-store while it's showing as available on
+  Z Fashion. Miinto's own onboarding friction (flagged early in the
+  competitive review) is exactly this failure mode. The stock feed contract
+  (Phase 1, item 7) needs either near-real-time push updates or a checkout-
+  time reservation/hold step, not a periodic batch sync — this is a
+  reliability requirement, not just an integration nicety.
+- **Pricing currency and FX risk allocation.** A Product's price is stored
+  once, in the Partner's own operating currency (via the reused Geography
+  `Country → Currency` chain — never duplicated per locale). When browsed
+  from a different market, price is *displayed* converted at a periodic FX
+  rate; the actual **settlement to the Partner happens in the Partner's own
+  currency** — Z Fashion, not the Partner, absorbs FX timing risk between
+  order and settlement. Getting this backwards (settling in the buyer's
+  currency) would push currency risk onto small boutiques least able to
+  hedge it, undermining the "Partner keeps control" principle established
+  in the Central Thesis.
+- **VAT: deemed-supplier exposure.** Under the EU VAT e-commerce package,
+  a marketplace can become the deemed supplier — liable to charge and remit
+  VAT itself rather than the underlying seller — under specific conditions
+  (notably for non-EU sellers, or above certain facilitation thresholds).
+  All Partners in the France launch are expected to be EU-established, which
+  keeps Z Fashion outside deemed-supplier territory initially, but this
+  must be re-checked the moment a non-EU Partner or a market outside the EU
+  VAT area is onboarded — flagged for `160-legal-and-compliance`, not
+  resolved here.
+- **Marketplace trader-disclosure duty.** Since the Omnibus Directive
+  amendments to the CRD, a marketplace must inform consumers, for each
+  offer, whether the seller is a professional trader and whether EU
+  consumer rights (including the withdrawal right already established)
+  apply to that specific purchase. Every onboarded Partner is expected to
+  be a professional trader, so this is a straightforward disclosure to
+  surface in the Corner/product page, not a hard design problem — but it is
+  a Phase 2 UI requirement, not optional copy.
+- **Open by design, not a gap: duplicate listings across Partners.** If two
+  Partners sell the identical product (same Brand, same model), All Sale
+  shows two separate listings, one per Partner-Corner — it does **not**
+  merge them into a single product page with multiple offers (no "Buy Box"
+  concept). This preserves each Partner's own pricing, stock and Corner
+  identity per the Central Thesis, at the cost of some catalog duplication
+  in All Sale. Explicitly not revisited unless catalog volume later proves
+  this creates real discovery friction — deliberate, not deferred out of
+  oversight.
+
 ## Status
 Draft — supersedes scattered Category/Brand notes in README.md and
 ZOS-ALIGNMENT.md; those stay as the narrative explanation, this is the
-checkpoint.
+checkpoint. This document is considered feature-complete for the
+pre-implementation stage: further corrections belong in Phase 0/1 design
+docs once real schema work starts, not as further edits here.
 
 ## Last Updated
 2026-08-20
