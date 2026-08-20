@@ -65,3 +65,14 @@ Three value props (mirrors Z Find Partner's Listings/Leads/Standing row):
   callback to the Partner Quality Score gate on Sponsored Destaques
   (FRAMES-AND-RECOMMENDATIONS.md), so the sign-in page's promise and the
   platform's actual paid-placement policy say the same thing.
+
+## Decoration illustration: sourcing decision
+The gold-line croquis/illustration motif for the Partner sign-in (and any
+other frame using this decorative language) is **not buildable to the
+required quality as hand-authored SVG** — attempted repeatedly in-session
+and rejected each time; the reference quality (tonal pencil rendering,
+dynamic couture pose) requires an actual illustrator's or licensed line-art
+asset, not vector paths coded by hand. Decision: commission or license a
+real fashion-illustration asset for production; the sign-in layout, palette,
+typography and copy validated in this session stand as-is and are not
+blocked by the illustration gap.
