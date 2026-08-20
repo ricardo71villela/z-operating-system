@@ -39,20 +39,46 @@ applied by Z Jobs and Z Mobility.
   had one from day one). Built in `fashion-domain/src/cart.js`. If a future
   vertical needs the same multi-seller-split-settlement shape, promote then,
   following the exact precedent Geography already set — not before.
-- **Geography reuse** — resolved as reuse, and executed, not just decided:
-  `apps/find/packages/geography` was promoted to `packages/geography`
-  (`@zos/geography`) once Z Fashion needed the identical shape on day one.
-  `apps/fashion/packages/fashion-domain/src/partner.js` requires it directly
-  and rejects any `countryId` that doesn't resolve through the shared
-  module — enforced in code and covered by a test, not left as a documented
-  intention. Z Find and Z Fashion both consume it now; neither owns it.
+- **Geography reuse** — resolved as reuse, but with a correction found
+  while validating the database migration: `@zos/geography`
+  (`packages/geography/geography.js`) is a **local JS fixture** used for
+  domain-layer unit tests — it is not the real Geography. The actual
+  canonical Geography lives in `zos.geography_locations` /
+  `zos.geography_names` in the shared Supabase database
+  (`infrastructure/supabase/migrations`), keyed by `country_iso`
+  (ISO-3166-1 alpha-2), richer than the JS fixture's hardcoded Country/
+  Region/City/Zone objects. `fashion.partners` (the real SQL table,
+  `20260821090000_z_fashion_database_foundation_v1.sql`) correctly uses
+  `country_iso text` to match that convention. `partner.js`'s
+  `countryId` (a synthetic id like `country_fr`) does **not** yet match
+  this — flagged as a follow-up: the JS domain layer should validate
+  against `country_iso` codes, the same space the real database and
+  Z Find both already use, not its own fixture ids. Z Find and Z Fashion
+  both ultimately read from the same `zos.geography_*` tables; the JS
+  fixture is a offline mirror for fast unit tests, never the source of
+  truth.
 - **Partner-Brand-Category-AgeSegment shape** — fully resolved in
   DOMAIN-SKETCH.md and implemented across `partner.js`, `brand.js` and
   `product.js`, with the mono/multi-brand distinction computed from the
   catalog (`partnerBrandProfile` in `brand.js`), never stored on Partner.
+  The equivalent SQL shape (`fashion.partners`, `fashion.category` /
+  `fashion.age_segment` enums) is implemented and was verified against a
+  real local Postgres instance — including the exact minor-safe-data gate
+  as a database CHECK constraint, not only application-level validation.
 
 ## Status
 Draft
 
 ## Last Updated
 2026-08-20
+
+## Database validation note
+`20260821090000_z_fashion_database_foundation_v1.sql` was applied end-to-end
+against a real local Postgres instance (stubbing only Supabase's `auth`/
+`storage` schemas and roles, which aren't present outside a real Supabase
+project) — every existing ZOS/Z Find/Z Jobs/Studio migration ran cleanly in
+sequence, followed by this one, with no conflicts. Functional checks
+confirmed the `fashion_partners_minor_safe_gate` CHECK constraint rejects
+and accepts rows exactly like `onboarding.js`'s application-level gate does.
+Not yet applied to the actual live/shared Supabase project — that requires
+credentials this environment doesn't have.
