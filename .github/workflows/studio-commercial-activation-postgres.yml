@@ -9,6 +9,7 @@ on:
       - "infrastructure/supabase/tests/zstudio_commercial_activation_v1.sql"
       - "infrastructure/supabase/tests/zstudio_web_terminal_trial_claim_v1.sql"
       - "infrastructure/supabase/tests/zstudio_google_play_pause_authority_v1.sql"
+      - "infrastructure/supabase/tests/zstudio_google_play_purchase_preflight_v1.sql"
       - ".github/workflows/studio-commercial-activation-postgres.yml"
 
   pull_request:
@@ -17,6 +18,7 @@ on:
       - "infrastructure/supabase/tests/zstudio_commercial_activation_v1.sql"
       - "infrastructure/supabase/tests/zstudio_web_terminal_trial_claim_v1.sql"
       - "infrastructure/supabase/tests/zstudio_google_play_pause_authority_v1.sql"
+      - "infrastructure/supabase/tests/zstudio_google_play_purchase_preflight_v1.sql"
       - ".github/workflows/studio-commercial-activation-postgres.yml"
 
 permissions:
@@ -243,6 +245,17 @@ jobs:
             -d zstudio_commercial_test \
             -v ON_ERROR_STOP=1 \
             -f infrastructure/supabase/tests/zstudio_google_play_pause_authority_v1.sql
+
+      - name: Verify Google Play purchase preflight authority
+        env:
+          PGPASSWORD: zstudio_test_pw
+        run: |
+          psql \
+            -h localhost \
+            -U postgres \
+            -d zstudio_commercial_test \
+            -v ON_ERROR_STOP=1 \
+            -f infrastructure/supabase/tests/zstudio_google_play_purchase_preflight_v1.sql
 
       - name: Final authority marker
         env:
