@@ -1,8 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { loadAppleCommercialConfig } from '../lib/config.js';
-import { APPLE_APP_ID, APPLE_PRODUCT_IDS, resolveAppleProduct } from '../lib/store-products.js';
+import { loadAppleCommercialConfig, loadWebCommercialConfig } from '../lib/config.js';
+import {
+  APPLE_APP_ID,
+  APPLE_PRODUCT_IDS,
+  STORE_COMMERCIAL_TARGET_CURRENCY,
+  STORE_TRIAL_DAYS,
+  WEB_PLAN_CODES,
+  resolveAppleProduct,
+  resolveWebPlan,
+} from '../lib/store-products.js';
 
 const good = {
   APPLE_ENVIRONMENT: 'sandbox',
@@ -14,9 +22,23 @@ const good = {
   SUPABASE_SECRET_KEY: 'sb_secret_test',
 };
 
-test('pins the official Apple server library exactly', () => {
+const goodWeb = {
+  STRIPE_ENVIRONMENT: 'sandbox',
+  STRIPE_SECRET_KEY: 'sk_test_example',
+  STRIPE_PRICE_WEEKLY: 'price_weekly123',
+  STRIPE_PRICE_MONTHLY: 'price_monthly123',
+  STRIPE_PRICE_ANNUAL: 'price_annual123',
+  STRIPE_SUCCESS_URL: 'https://zstudio.space/billing/success',
+  STRIPE_CANCEL_URL: 'https://zstudio.space/billing/cancel',
+  SUPABASE_URL: 'https://example.supabase.co',
+  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test',
+  SUPABASE_SECRET_KEY: 'sb_secret_test',
+};
+
+test('pins the official Apple server library exactly and adds no Stripe SDK dependency', () => {
   const pkg = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   assert.equal(pkg.dependencies['@apple/app-store-server-library'], '3.1.0');
+  assert.equal('stripe' in pkg.dependencies, false);
 });
 
 test('accepts sandbox without appAppleId but requires all privileged server credentials', () => {
@@ -79,4 +101,43 @@ test('catalog exposes exactly the three frozen Apple product ids', () => {
   ]);
   assert.equal(resolveAppleProduct('com.zoperatingsystem.zstudio.subscription.weekly').planCode, 'weekly');
   assert.throws(() => resolveAppleProduct('com.example.unauthorized'), /APPLE_PRODUCT_NOT_AUTHORIZED/);
+});
+
+test('web catalog reuses the frozen EUR prices and 3-day trial without provider ids', () => {
+  assert.equal(STORE_COMMERCIAL_TARGET_CURRENCY, 'EUR');
+  assert.equal(STORE_TRIAL_DAYS, 3);
+  assert.deepEqual(WEB_PLAN_CODES, ['annual', 'monthly', 'weekly']);
+  assert.deepEqual(resolveWebPlan('weekly'), {
+    planCode: 'weekly',
+    billingCadence: 'weekly',
+    commercialTargetPriceMinor: 599,
+    currency: 'EUR',
+    trialDays: 3,
+  });
+  assert.equal(resolveWebPlan('monthly').commercialTargetPriceMinor, 1499);
+  assert.equal(resolveWebPlan('annual').commercialTargetPriceMinor, 11999);
+  assert.throws(() => resolveWebPlan('lifetime'), /WEB_PLAN_NOT_AUTHORIZED/);
+});
+
+test('web config keeps Stripe secrets and Price ids server-side and environment-specific', () => {
+  const config = loadWebCommercialConfig(goodWeb);
+  assert.equal(config.environment, 'sandbox');
+  assert.equal(config.stripeSecretKey, 'sk_test_example');
+  assert.deepEqual(config.priceByPlan, {
+    weekly: 'price_weekly123',
+    monthly: 'price_monthly123',
+    annual: 'price_annual123',
+  });
+  assert.equal(config.supabasePublishableKey, 'sb_publishable_test');
+  assert.equal(config.supabaseSecretKey, 'sb_secret_test');
+  assert.equal('supabaseServiceRole' in config, false);
+
+  assert.throws(
+    () => loadWebCommercialConfig({ ...goodWeb, STRIPE_SECRET_KEY: 'sk_live_wrongmode' }),
+    /STRIPE_SECRET_KEY/,
+  );
+  assert.throws(
+    () => loadWebCommercialConfig({ ...goodWeb, STRIPE_PRICE_ANNUAL: 'price_monthly123' }),
+    /STRIPE_PRICE_IDS/,
+  );
 });

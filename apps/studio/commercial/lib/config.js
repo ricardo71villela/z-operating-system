@@ -22,6 +22,42 @@ function requiredSupabaseSecretKey(env) {
   return value;
 }
 
+function requiredHttpsUrl(env, key) {
+  const value = required(env, key);
+  let parsed;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new Error(`ZSTUDIO_COMMERCIAL_CONFIG_INVALID:${key}`);
+  }
+  if (
+    parsed.protocol !== 'https:'
+    || parsed.username
+    || parsed.password
+    || parsed.hash
+  ) {
+    throw new Error(`ZSTUDIO_COMMERCIAL_CONFIG_INVALID:${key}`);
+  }
+  return value.replace(/\/+$/, '');
+}
+
+function requiredStripePrice(env, key) {
+  const value = required(env, key);
+  if (!/^price_[A-Za-z0-9]+$/.test(value)) {
+    throw new Error(`ZSTUDIO_COMMERCIAL_CONFIG_INVALID:${key}`);
+  }
+  return value;
+}
+
+function requiredStripeSecretKey(env, environment) {
+  const value = required(env, 'STRIPE_SECRET_KEY');
+  const prefix = environment === 'production' ? 'sk_live_' : 'sk_test_';
+  if (!value.startsWith(prefix) || value.length <= prefix.length) {
+    throw new Error('ZSTUDIO_COMMERCIAL_CONFIG_INVALID:STRIPE_SECRET_KEY');
+  }
+  return value;
+}
+
 export function loadAppleCommercialConfig(env = process.env) {
   const environment = requiredOneOf(env, 'APPLE_ENVIRONMENT', ['sandbox', 'production']);
   const bundleId = required(env, 'APPLE_BUNDLE_ID');
@@ -43,17 +79,7 @@ export function loadAppleCommercialConfig(env = process.env) {
     throw new Error('ZSTUDIO_COMMERCIAL_CONFIG_INVALID:APPLE_PRIVATE_KEY');
   }
 
-  const supabaseUrl = required(env, 'SUPABASE_URL');
-  let parsedUrl;
-  try {
-    parsedUrl = new URL(supabaseUrl);
-  } catch {
-    throw new Error('ZSTUDIO_COMMERCIAL_CONFIG_INVALID:SUPABASE_URL');
-  }
-  if (parsedUrl.protocol !== 'https:') {
-    throw new Error('ZSTUDIO_COMMERCIAL_CONFIG_INVALID:SUPABASE_URL');
-  }
-
+  const supabaseUrl = requiredHttpsUrl(env, 'SUPABASE_URL');
   const supabaseSecretKey = requiredSupabaseSecretKey(env);
 
   return Object.freeze({
@@ -63,7 +89,43 @@ export function loadAppleCommercialConfig(env = process.env) {
     issuerId,
     keyId,
     privateKey,
-    supabaseUrl: supabaseUrl.replace(/\/+$/, ''),
+    supabaseUrl,
+    supabaseSecretKey,
+  });
+}
+
+export function loadWebCommercialConfig(env = process.env) {
+  const environment = requiredOneOf(
+    env,
+    'STRIPE_ENVIRONMENT',
+    ['sandbox', 'production'],
+  );
+  const stripeSecretKey = requiredStripeSecretKey(env, environment);
+
+  const supabaseUrl = requiredHttpsUrl(env, 'SUPABASE_URL');
+  const supabasePublishableKey = required(env, 'SUPABASE_PUBLISHABLE_KEY');
+  const supabaseSecretKey = requiredSupabaseSecretKey(env);
+
+  const priceByPlan = Object.freeze({
+    weekly: requiredStripePrice(env, 'STRIPE_PRICE_WEEKLY'),
+    monthly: requiredStripePrice(env, 'STRIPE_PRICE_MONTHLY'),
+    annual: requiredStripePrice(env, 'STRIPE_PRICE_ANNUAL'),
+  });
+  if (new Set(Object.values(priceByPlan)).size !== 3) {
+    throw new Error('ZSTUDIO_COMMERCIAL_CONFIG_INVALID:STRIPE_PRICE_IDS');
+  }
+
+  const successUrl = requiredHttpsUrl(env, 'STRIPE_SUCCESS_URL');
+  const cancelUrl = requiredHttpsUrl(env, 'STRIPE_CANCEL_URL');
+
+  return Object.freeze({
+    environment,
+    stripeSecretKey,
+    priceByPlan,
+    successUrl,
+    cancelUrl,
+    supabaseUrl,
+    supabasePublishableKey,
     supabaseSecretKey,
   });
 }
