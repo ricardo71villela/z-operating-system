@@ -133,7 +133,13 @@ investment; everything else waits for a second market to justify it.
    unconditional — see DOMAIN-SKETCH.md), not Partner-configurable.
 10. All Sale aggregation and filtering (segment × category × Partner) —
     done in Phase 0 (`corner.js`'s `allSale()`).
-11. Corner storefront rendering.
+11. **Corner storefront rendering — done.** `corner-page.js` assembles the
+    view model a Corner page needs (header from CornerConfig, categories
+    present, mono/multi brand profile, product cards with resolved Brand
+    names) from existing domain records — same bridging-function pattern
+    Z Find's `viewmodels.js` already established, not a new concept.
+    `cornerExclusive` products still render here; only All Sale excludes
+    them.
 
 ### Phase 3 — Growth mechanics
 12. Campaign engine: Destaques, Saldos, Vendas Privadas, Novas Coleções —
