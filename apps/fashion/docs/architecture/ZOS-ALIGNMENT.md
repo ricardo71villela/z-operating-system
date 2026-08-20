@@ -95,3 +95,15 @@ accepted; a sized Category without size rejected; Accessories & Leather
 Goods without size accepted (confirming it correctly falls outside the
 sized-category constraint). All four CHECK constraints fired exactly once,
 on exactly the case they were meant to catch.
+
+## Campaign SQL validation note
+`20260821120000_z_fashion_campaign_v1.sql` mirrors campaign.js's Soldes
+legal-window rule using a `BEFORE INSERT/UPDATE` trigger against a new
+`fashion.official_soldes_windows` reference table (CHECK constraints can't
+query other tables). Validated with real inserts: the real 2026 winter
+window (7 Jan – 3 Feb) is accepted, an invented date range is rejected, a
+Soldes campaign missing country_iso is rejected, and Black Friday accepts
+any date range since it carries no legal constraint. corner_configs was
+also exercised for the first time with real inserts (byline over 140 chars
+rejected, invalid hex color rejected, a valid config accepted) — closing a
+gap where that table existed but had never been tested against real data.
