@@ -122,11 +122,17 @@ investment; everything else waits for a second market to justify it.
    the schema simply doesn't expose.
 
 ### Phase 2 — Client-facing (make demand possible)
-9. Unified cart/checkout across Partners — the single highest-risk technical
-   decision; see open question on a shared-platform Order primitive. Return
+9. **Unified cart/checkout across Partners — done.** `cart.js`:
+   `attemptCheckoutReservation` reserves stock across every Partner a Cart
+   touches, all-or-nothing — if any item fails, every reservation already
+   made in that attempt is released, and no partial state is ever returned
+   to the caller. This was the single highest-risk decision in the project;
+   see ZOS-ALIGNMENT.md "Resolved" for why it stays Fashion-owned rather
+   than promoted to a ZOS-level primitive. Return
    policy is Platform-guaranteed here (consistent process, not free/
    unconditional — see DOMAIN-SKETCH.md), not Partner-configurable.
-10. All Sale aggregation and filtering (segment × category × Partner).
+10. All Sale aggregation and filtering (segment × category × Partner) —
+    done in Phase 0 (`corner.js`'s `allSale()`).
 11. Corner storefront rendering.
 
 ### Phase 3 — Growth mechanics

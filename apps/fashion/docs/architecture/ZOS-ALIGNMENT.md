@@ -27,13 +27,18 @@ applied by Z Jobs and Z Mobility.
   content, guardian consent where applicable) — see `160-legal-and-compliance`.
 
 ## Open questions
-- Does "unified checkout across Partners" require a new shared-platform
-  capability (a ZOS-level Order/Cart primitive), or does it stay Fashion-owned
-  until a second vertical needs the same pattern?
 - Should Partner Quality Score gain fashion-specific signals (return rate by
   size, image quality) as vertical-specific extensions, or stay generic?
 
 ## Resolved
+- **Order/Cart primitive** — resolved as Fashion-owned for now, not
+  promoted to a ZOS-level shared capability. No other current vertical
+  (Z Find, Z Jobs, Z Mobility) needs a multi-seller cart — Z Find sells
+  single properties, not multi-partner baskets — so there is no second
+  consumer yet to justify shared-platform status, unlike Geography (which
+  had one from day one). Built in `fashion-domain/src/cart.js`. If a future
+  vertical needs the same multi-seller-split-settlement shape, promote then,
+  following the exact precedent Geography already set — not before.
 - **Geography reuse** — resolved as reuse, and executed, not just decided:
   `apps/find/packages/geography` was promoted to `packages/geography`
   (`@zos/geography`) once Z Fashion needed the identical shape on day one.
