@@ -66,11 +66,14 @@ investment; everything else waits for a second market to justify it.
 1. **Partner & Registry model** — extend `20-registry` with the Partner
    entity shape Fashion needs (categories sold, age segments served,
    `countryId` + operating `locales[]` from day one), without forking the
-   Registry. Category lives on the **Product**, not the Partner — a Partner
-   declares the set of Categories it operates in (many Partners span several:
-   a brand selling clothing, footwear and bags together is the common case),
-   and its Corner aggregates across whatever Categories its catalog actually
-   contains.
+   Registry. Category and Brand both live on the **Product**, not the
+   Partner — a Partner declares the set of Categories it operates in (many
+   span several: a brand selling clothing, footwear and bags together is
+   the common case), and a Partner can be mono-brand (a brand selling
+   direct) or multi-brand (a boutique selling several brands, e.g. the
+   JD Sports/Miinto shape already validated in the competitive review) —
+   its Corner aggregates whatever Categories and Brands its catalog
+   actually contains.
 2. **Geography reuse decision** — promote `apps/find/packages/geography`
    to a shared `20-registry` capability, or fork it for Fashion. Given a
    second vertical needing the identical Country/Region/City/Zone/Currency

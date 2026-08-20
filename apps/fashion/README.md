@@ -38,14 +38,20 @@ See `docs/architecture/ZOS-ALIGNMENT.md` and
   boutique does.
 - **Corners** — Partner-branded storefronts within Z Fashion (own visual
   identity, storytelling, curation); commerce plumbing (cart, checkout,
-  fulfillment, payments) stays platform-owned. Category is a **Product**-level
-  attribute, never a Partner-level one: a single Partner/Corner routinely
-  spans several Categories at once (a fashion house selling clothing,
-  footwear and leather goods together is the common case, not an edge case),
-  so a Partner declares which Categories it operates in (for eligibility and
-  taxonomy purposes) but each product carries its own Category independently
-  — the Corner simply aggregates whatever Categories that Partner's catalog
-  actually contains.
+  fulfillment, payments) stays platform-owned. A Corner belongs to a
+  **Partner** (the store/legal entity), which is a separate concept from
+  **Brand**: a Corner can be mono-brand (a brand selling direct, e.g. a
+  Nike-run Corner) or multi-brand (a boutique or chain selling several
+  brands under one roof, e.g. a JD Sports- or Miinto-style Corner selling
+  Nike, adidas and New Balance together) — both are first-class, neither is
+  a special case of the other. Category is a **Product**-level attribute,
+  never a Partner-level one: a single Partner/Corner routinely spans several
+  Categories at once (a fashion house selling clothing, footwear and leather
+  goods together is the common case, not an edge case), so a Partner
+  declares which Categories it operates in (for eligibility and taxonomy
+  purposes) but each product carries its own Category *and* its own Brand
+  independently — the Corner simply aggregates whatever Categories and
+  Brands that Partner's catalog actually contains.
 - **All Sale** — cross-partner discovery surface, filterable across every
   Corner's catalog.
 - **Campaigns** — Destaques (editorial highlights), Saldos (partner-driven
@@ -62,8 +68,9 @@ than rebuilt per vertical.
 
 ### Z Fashion-owned domain
 Product catalog (apparel/footwear/sportswear/leather-goods/cosmetics
-attributes: size, age segment, material, shade/variant — Category lives on
-the Product, not the Partner), Corner configuration, All Sale aggregation
+attributes: size, age segment, material, shade/variant — Category and Brand
+both live on the Product, not the Partner, since one Partner can be
+mono-brand or multi-brand), Corner configuration, All Sale aggregation
 rules,
 Campaign types and scheduling (Saldos, Vendas Privadas, Novas Coleções, Black
 Friday), unified cart/checkout across Partners, returns/exchange policy
