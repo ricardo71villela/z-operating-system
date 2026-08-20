@@ -107,3 +107,20 @@ any date range since it carries no legal constraint. corner_configs was
 also exercised for the first time with real inserts (byline over 140 chars
 rejected, invalid hex color rejected, a valid config accepted) — closing a
 gap where that table existed but had never been tested against real data.
+
+## Stock SQL validation note (bug caught and fixed)
+`20260821130000_z_fashion_stock_v1.sql` adds real row-level locking
+(`SELECT ... FOR UPDATE`) inside `fashion.reserve_stock()` — the actual
+mechanism, not available in the pure-JS stock.js, that protects against two
+concurrent checkouts reserving the same last unit. Validation caught a real
+bug: the stale-update trigger originally fired whenever quantity_available
+changed for any reason, including `confirm_reservation()`'s legitimate
+deduction on a completed sale — which doesn't touch last_updated_at at all
+and was being wrongly rejected as "stale." Fixed by scoping the trigger to
+only fire when last_updated_at itself is being asserted to a new value
+(a genuine Partner feed push), never on reservation-driven changes. Full
+8-step scenario validated after the fix: stale update rejected, fresh
+update accepted, reservation reduces sellable without touching total stock,
+over-reservation rejected, release frees units, confirm commits the
+deduction without false-triggering staleness, and a subsequent real feed
+update still works correctly afterward.
