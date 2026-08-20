@@ -118,10 +118,34 @@ function normalizeSubscription(payload, config, purchaseToken) {
   const externalAccountId = optionalUuid(
     payload.externalAccountIdentifiers?.obfuscatedExternalAccountId,
   );
-  const linkedToken = payload.linkedPurchaseToken == null
+  const linkedTokenFingerprint = payload.linkedPurchaseToken == null
     ? null
-    : opaqueToken(payload.linkedPurchaseToken);
+    : createHash('sha256').update(opaqueToken(payload.linkedPurchaseToken)).digest('hex');
   const tokenHash = createHash('sha256').update(purchaseToken).digest('hex');
+
+  let cancellationReason = null;
+  let cancelAtMs = null;
+  const canceled = payload.canceledStateContext;
+  if (canceled != null) {
+    if (!canceled || typeof canceled !== 'object' || Array.isArray(canceled)) {
+      fail('GOOGLE_PLAY_CANCELED_STATE_CONTEXT_INVALID');
+    }
+    if (canceled.userInitiatedCancellation != null) {
+      cancellationReason = 'user';
+      cancelAtMs = parseTime(
+        canceled.userInitiatedCancellation?.cancelTime,
+        'GOOGLE_PLAY_CANCEL_TIME_INVALID',
+      );
+    } else if (canceled.systemInitiatedCancellation != null) {
+      cancellationReason = 'system';
+    } else if (canceled.developerInitiatedCancellation != null) {
+      cancellationReason = 'developer';
+    } else if (canceled.replacementCancellation != null) {
+      cancellationReason = 'replacement';
+    } else {
+      fail('GOOGLE_PLAY_CANCELLATION_REASON_INVALID');
+    }
+  }
 
   let autoResumeAtMs = null;
   if (payload.subscriptionState === 'SUBSCRIPTION_STATE_PAUSED') {
@@ -150,7 +174,9 @@ function normalizeSubscription(payload, config, purchaseToken) {
     expiryAtMs,
     latestSuccessfulOrderId,
     externalAccountId,
-    linkedPurchaseToken: linkedToken,
+    linkedPurchaseTokenFingerprint: linkedTokenFingerprint,
+    cancellationReason,
+    cancelAtMs,
     autoResumeAtMs,
     rawProviderPayloadIncluded: false,
   });
@@ -162,6 +188,10 @@ function normalizeOrder(payload, expectedOrderId) {
   }
   const orderId = requiredString(payload.orderId, 'GOOGLE_PLAY_ORDER_ID_INVALID', 256);
   if (orderId !== expectedOrderId) fail('GOOGLE_PLAY_ORDER_ID_MISMATCH');
+  const createAtMs = parseTime(payload.createTime, 'GOOGLE_PLAY_ORDER_CREATE_TIME_INVALID');
+  const lastEventAtMs = parseTime(payload.lastEventTime, 'GOOGLE_PLAY_ORDER_LAST_EVENT_TIME_INVALID');
+  if (lastEventAtMs < createAtMs) fail('GOOGLE_PLAY_ORDER_EVENT_TIME_INVALID');
+
   const subscription = payload.subscriptionDetails;
   if (!subscription || typeof subscription !== 'object') {
     fail('GOOGLE_PLAY_ORDER_SUBSCRIPTION_DETAILS_REQUIRED');
@@ -175,9 +205,31 @@ function normalizeOrder(payload, expectedOrderId) {
     'GOOGLE_PLAY_ORDER_PERIOD_END_INVALID',
   );
   if (servicePeriodEndMs <= servicePeriodStartMs) fail('GOOGLE_PLAY_ORDER_PERIOD_INVALID');
+
+  const processedAtMs = parseTime(
+    payload.orderHistory?.processedEvent?.eventTime,
+    'GOOGLE_PLAY_ORDER_PROCESSED_TIME_INVALID',
+    { required: false },
+  );
+  const cancellationAtMs = parseTime(
+    payload.orderHistory?.cancellationEvent?.eventTime,
+    'GOOGLE_PLAY_ORDER_CANCELLATION_TIME_INVALID',
+    { required: false },
+  );
+  const refundAtMs = parseTime(
+    payload.orderHistory?.refundEvent?.eventTime,
+    'GOOGLE_PLAY_ORDER_REFUND_TIME_INVALID',
+    { required: false },
+  );
+
   return Object.freeze({
     verification: 'verified_google_play_order_current_state',
     orderId,
+    createAtMs,
+    lastEventAtMs,
+    processedAtMs,
+    cancellationAtMs,
+    refundAtMs,
     servicePeriodStartMs,
     servicePeriodEndMs,
     rawProviderPayloadIncluded: false,
