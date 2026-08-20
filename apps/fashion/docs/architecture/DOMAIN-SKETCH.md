@@ -88,6 +88,29 @@ it from All Sale (e.g. a genuine timed exclusive drop) — opt-out, not
 opt-in, so All Sale stays comprehensive by default and exclusivity is a
 deliberate, visible exception rather than the norm.
 
+## Resolved: Partner Quality Score per Category, not per Partner
+A Partner selling across several Categories does not get one blended trust
+score. Partner Quality Score is tracked **per (Partner × Category) pair** —
+a Partner can be excellent in Footwear and unproven in Sportswear
+simultaneously, and Corner/All Sale surfaces that distinction (e.g. a
+category-specific rating badge) rather than one aggregate number hiding a
+weak category behind a strong one. This also gives the Sportswear
+genuine-purpose eligibility rule (above) a natural enforcement point: a
+Partner's Sportswear-category score can weight in mis-tagged-as-Sportswear
+disputes without touching their Footwear standing at all.
+
+## Client-seat return policy: the Cosmetics exception
+The Client-seat principle already established ("return policy is a Platform
+contract Partners opt into, not Partner-configurable") has exactly one
+category-driven carve-out that must be modeled explicitly, not treated as a
+platform bug later: **opened/hygiene-sealed Cosmetics are legally exempt
+from standard withdrawal-return rights** once the seal is broken (the
+health/hygiene exemption under EU consumer-rights rules on distance
+selling). This is not a Partner preference to configure — it is a
+Category-level legal constraint that must ship in the Phase 0/2 returns
+model from day one: the platform-guaranteed return policy applies uniformly
+*except* where a Category itself carries a legal exemption, and Cosmetics is
+the one Category in the initial catalog where that applies.
 
 ## Status
 Draft — supersedes scattered Category/Brand notes in README.md and
