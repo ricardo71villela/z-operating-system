@@ -87,17 +87,16 @@ investment; everything else waits for a second market to justify it.
    JD Sports/Miinto shape already validated in the competitive review) —
    its Corner aggregates whatever Categories and Brands its catalog
    actually contains.
-2. **Geography reuse decision** — promote `apps/find/packages/geography`
-   to a shared `20-registry` capability, or fork it for Fashion. Given a
-   second vertical needing the identical Country/Region/City/Zone/Currency
-   shape on day one, reuse is the pragmatic default; forking needs an
-   explicit reason on the table before Phase 1 starts.
+2. **Geography reuse — done.** `apps/find/packages/geography` promoted to
+   `packages/geography` (`@zos/geography`); `partner.js` requires it
+   directly and validates `countryId` against it. No longer open.
 3. **Partner Quality Score gate** — decide whether Corner/All Sale eligibility
    reuses `40-partner-quality-score` unmodified or needs fashion-specific
    signals (open question in ZOS-ALIGNMENT.md) — resolve before onboarding
    the first real Partner.
-4. **Minor-safe data policy** (`160-legal-and-compliance`) — non-negotiable
-   before any Children/Youth catalog goes live.
+4. **Minor-safe data policy — done.** See
+   `160-legal-and-compliance/Z-FASHION-MINOR-SAFE-DATA.md` and the
+   `minorSafeDataAcknowledged` gate enforced in `partner.js`.
 5. **Soldes vs. Black Friday as distinct Campaign types** — France's Soldes
    are legally fixed dates; Black Friday is not. Model them as separate
    types now (see MARKETS-AND-I18N.md) — cheap now, expensive to retrofit.

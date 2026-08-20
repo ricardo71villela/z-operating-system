@@ -71,4 +71,15 @@ assert.throws(
   /countryId is required/
 );
 
+// countryId must resolve through the shared @zos/geography module — an
+// invented country id is rejected, proving the Geography reuse decision
+// (MARKETS-AND-I18N.md) is actually enforced, not just documented.
+assert.throws(
+  () => createPartner({
+    id: 'p7', legalName: 'X', countryId: 'country_narnia', locales: ['fr'],
+    categories: ['clothing'],
+  }),
+  /is not a recognized Country in @zos\/geography/
+);
+
 console.log('partner.js: all invariant checks passed.');

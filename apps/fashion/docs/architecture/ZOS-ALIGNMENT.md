@@ -33,6 +33,19 @@ applied by Z Jobs and Z Mobility.
 - Should Partner Quality Score gain fashion-specific signals (return rate by
   size, image quality) as vertical-specific extensions, or stay generic?
 
+## Resolved
+- **Geography reuse** — resolved as reuse, and executed, not just decided:
+  `apps/find/packages/geography` was promoted to `packages/geography`
+  (`@zos/geography`) once Z Fashion needed the identical shape on day one.
+  `apps/fashion/packages/fashion-domain/src/partner.js` requires it directly
+  and rejects any `countryId` that doesn't resolve through the shared
+  module — enforced in code and covered by a test, not left as a documented
+  intention. Z Find and Z Fashion both consume it now; neither owns it.
+- **Partner-Brand-Category-AgeSegment shape** — fully resolved in
+  DOMAIN-SKETCH.md and implemented across `partner.js`, `brand.js` and
+  `product.js`, with the mono/multi-brand distinction computed from the
+  catalog (`partnerBrandProfile` in `brand.js`), never stored on Partner.
+
 ## Status
 Draft
 

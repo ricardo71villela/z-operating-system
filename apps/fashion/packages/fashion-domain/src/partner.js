@@ -21,6 +21,8 @@
    validates that one is present, never invents geography logic.
    ============================================================ */
 
+const { getCountry } = require('../../../../../packages/geography/geography');
+
 const CATEGORIES = Object.freeze([
   'clothing',
   'footwear',
@@ -71,6 +73,12 @@ function createPartner(input) {
   if (!input.legalName) errors.push('legalName is required');
   if (!input.countryId) {
     errors.push('countryId is required (resolved via shared Geography)');
+  } else if (!getCountry(input.countryId)) {
+    errors.push(
+      `countryId "${input.countryId}" is not a recognized Country in ` +
+      '@zos/geography — Partners never reference a country ad hoc, only ' +
+      'one already registered in the shared Geography module.'
+    );
   }
   if (!Array.isArray(input.locales) || input.locales.length === 0) {
     errors.push('locales must be a non-empty array (e.g. ["fr"])');
