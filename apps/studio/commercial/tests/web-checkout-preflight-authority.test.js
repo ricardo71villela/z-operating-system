@@ -65,7 +65,7 @@ test('production trial authority is lifetime-per-person while sandbox stays isol
     "v_trial.state = 'claimed'",
     'v_trial_eligible := false;',
     "reserved_billing_source = 'web'",
-    "reservation_ref = v_intent_id::text",
+    "reservation_ref,\n      reservation_expires_at\n    )\n    values (\n      p_person_id,\n      'reserved',\n      'web',\n      v_intent_id::text,\n      v_intent_expires_at\n    );",
   );
 
   assert.equal(
