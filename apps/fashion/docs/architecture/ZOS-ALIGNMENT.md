@@ -83,3 +83,15 @@ confirmed the `fashion_partners_minor_safe_gate` CHECK constraint rejects
 and accepts rows exactly like `onboarding.js`'s application-level gate does.
 Not yet applied to the actual live/shared Supabase project — that requires
 credentials this environment doesn't have.
+
+## Product/Brand SQL validation note
+`20260821110000_z_fashion_brand_product_v1.sql` was validated the same way
+as the Partner foundation migration — applied end-to-end against local
+Postgres, then exercised with 8 real INSERTs mirroring product.js's own
+test cases: Sportswear without technical_purpose rejected, with it
+accepted; Children-segment Clothing without safety_certifications
+rejected, with it accepted; Cosmetics with size rejected, with format
+accepted; a sized Category without size rejected; Accessories & Leather
+Goods without size accepted (confirming it correctly falls outside the
+sized-category constraint). All four CHECK constraints fired exactly once,
+on exactly the case they were meant to catch.
