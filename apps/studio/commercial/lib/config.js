@@ -58,6 +58,42 @@ function requiredStripeSecretKey(env, environment) {
   return value;
 }
 
+function requiredStripeWebhookSecret(env) {
+  const value = required(env, 'STRIPE_WEBHOOK_SECRET');
+  if (!/^whsec_[A-Za-z0-9]+$/.test(value)) {
+    throw new Error('ZSTUDIO_COMMERCIAL_CONFIG_INVALID:STRIPE_WEBHOOK_SECRET');
+  }
+  return value;
+}
+
+function loadWebServerAuthorityConfig(env) {
+  const environment = requiredOneOf(
+    env,
+    'STRIPE_ENVIRONMENT',
+    ['sandbox', 'production'],
+  );
+  const stripeSecretKey = requiredStripeSecretKey(env, environment);
+  const supabaseUrl = requiredHttpsUrl(env, 'SUPABASE_URL');
+  const supabaseSecretKey = requiredSupabaseSecretKey(env);
+
+  const priceByPlan = Object.freeze({
+    weekly: requiredStripePrice(env, 'STRIPE_PRICE_WEEKLY'),
+    monthly: requiredStripePrice(env, 'STRIPE_PRICE_MONTHLY'),
+    annual: requiredStripePrice(env, 'STRIPE_PRICE_ANNUAL'),
+  });
+  if (new Set(Object.values(priceByPlan)).size !== 3) {
+    throw new Error('ZSTUDIO_COMMERCIAL_CONFIG_INVALID:STRIPE_PRICE_IDS');
+  }
+
+  return {
+    environment,
+    stripeSecretKey,
+    priceByPlan,
+    supabaseUrl,
+    supabaseSecretKey,
+  };
+}
+
 export function loadAppleCommercialConfig(env = process.env) {
   const environment = requiredOneOf(env, 'APPLE_ENVIRONMENT', ['sandbox', 'production']);
   const bundleId = required(env, 'APPLE_BUNDLE_ID');
@@ -95,37 +131,22 @@ export function loadAppleCommercialConfig(env = process.env) {
 }
 
 export function loadWebCommercialConfig(env = process.env) {
-  const environment = requiredOneOf(
-    env,
-    'STRIPE_ENVIRONMENT',
-    ['sandbox', 'production'],
-  );
-  const stripeSecretKey = requiredStripeSecretKey(env, environment);
-
-  const supabaseUrl = requiredHttpsUrl(env, 'SUPABASE_URL');
+  const authority = loadWebServerAuthorityConfig(env);
   const supabasePublishableKey = required(env, 'SUPABASE_PUBLISHABLE_KEY');
-  const supabaseSecretKey = requiredSupabaseSecretKey(env);
-
-  const priceByPlan = Object.freeze({
-    weekly: requiredStripePrice(env, 'STRIPE_PRICE_WEEKLY'),
-    monthly: requiredStripePrice(env, 'STRIPE_PRICE_MONTHLY'),
-    annual: requiredStripePrice(env, 'STRIPE_PRICE_ANNUAL'),
-  });
-  if (new Set(Object.values(priceByPlan)).size !== 3) {
-    throw new Error('ZSTUDIO_COMMERCIAL_CONFIG_INVALID:STRIPE_PRICE_IDS');
-  }
-
   const successUrl = requiredHttpsUrl(env, 'STRIPE_SUCCESS_URL');
   const cancelUrl = requiredHttpsUrl(env, 'STRIPE_CANCEL_URL');
 
   return Object.freeze({
-    environment,
-    stripeSecretKey,
-    priceByPlan,
+    ...authority,
     successUrl,
     cancelUrl,
-    supabaseUrl,
     supabasePublishableKey,
-    supabaseSecretKey,
+  });
+}
+
+export function loadWebStripeWebhookConfig(env = process.env) {
+  return Object.freeze({
+    ...loadWebServerAuthorityConfig(env),
+    stripeWebhookSecret: requiredStripeWebhookSecret(env),
   });
 }
