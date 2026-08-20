@@ -142,9 +142,18 @@ investment; everything else waits for a second market to justify it.
     them.
 
 ### Phase 3 — Growth mechanics
-12. Campaign engine: Destaques, Saldos, Vendas Privadas, Novas Coleções —
-    Soldes and Black Friday implemented as distinct Campaign types per
-    MARKETS-AND-I18N.md, not a single generic "sale event."
+12. **Campaign engine — pricing legality done.** `price-history.js` and
+    `campaign-pricing.js`: every advertised Campaign discount is validated
+    against a genuine 30-day reference price (EU Omnibus Directive,
+    transposed in France since 28 May 2022) — a Partner cannot inflate the
+    "before" price to fake a bigger discount, because the reference is
+    computed from actual price history, never taken from Partner input.
+    This applies to every Campaign type with a reduction (Saldos, Black
+    Friday, Vendas Privadas alike), not just Soldes. Campaign types
+    themselves (Destaques, Saldos, Vendas Privadas, Novas Coleções) were
+    already done in Phase 0 (`campaign.js`) — Soldes and Black Friday as
+    distinct types per MARKETS-AND-I18N.md, not a single generic "sale
+    event."
 13. Black Friday as the first full cross-partner seasonal event — deliberately
     sequenced last because it stresses every system above at once (catalog,
     cart, Partner payouts) and should not be the first time those systems meet
