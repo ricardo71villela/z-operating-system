@@ -83,6 +83,15 @@ function geoName(namesMap, lang) {
 
 function getCurrency(currencyId) { return GEOGRAPHY.currencies[currencyId] || null; }
 function getCountry(countryId) { return GEOGRAPHY.countries[countryId] || null; }
+
+/** Looks up a Country by its ISO-3166-1 alpha-2 code — the real Geography
+ *  database convention (zos.geography_locations.country_iso), distinct
+ *  from this fixture's internal synthetic ids (country_fr). Callers
+ *  outside this fixture (fashion-domain, and any future vertical) should
+ *  key on ISO codes, never on the fixture's internal id shape. */
+function getCountryByIsoCode(isoCode) {
+  return Object.values(GEOGRAPHY.countries).find((c) => c.isoCode === isoCode) || null;
+}
 function getRegion(regionId) { return regionId ? (GEOGRAPHY.regions[regionId] || null) : null; }
 function getCity(cityId) { return GEOGRAPHY.cities[cityId] || null; }
 function getZone(zoneId) { return GEOGRAPHY.zones[zoneId] || null; }
@@ -114,6 +123,7 @@ module.exports = {
   geoName,
   getCurrency,
   getCountry,
+  getCountryByIsoCode,
   getRegion,
   getCity,
   getZone,

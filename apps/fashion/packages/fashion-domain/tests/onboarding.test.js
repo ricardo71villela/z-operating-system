@@ -5,7 +5,7 @@ const { createApplication, transition } = require('../src/onboarding');
 const { createPartner } = require('../src/partner');
 
 const partner = createPartner({
-  id: 'partner_atelier', legalName: 'Atelier du Marais', countryId: 'country_fr',
+  id: 'partner_atelier', legalName: 'Atelier du Marais', countryIso: 'FR',
   locales: ['fr'], categories: ['accessories_leather_goods'],
 });
 
@@ -44,7 +44,7 @@ assert.throws(
 // A Partner declaring children eligibility cannot activate without the
 // minor-safe acknowledgment — re-checked at activation, not just creation.
 const kidsPartner = createPartner({
-  id: 'partner_kids', legalName: 'Petits Pas', countryId: 'country_fr',
+  id: 'partner_kids', legalName: 'Petits Pas', countryIso: 'FR',
   locales: ['fr'], categories: ['clothing'], ageSegments: ['children'],
   minorSafeDataAcknowledged: true,
 });

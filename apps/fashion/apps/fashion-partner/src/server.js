@@ -43,7 +43,7 @@ async function handleApplyPartner(req, res) {
       // id is DB-generated in Postgres mode — createPartner() still runs
       // for its real validation (categories, locales, minor-safe gate),
       // just with a throwaway id since the DB assigns the real one.
-      const partner = createPartner({ ...body, id: 'pending', countryId: body.countryIso ? `country_${body.countryIso.toLowerCase()}` : undefined });
+      const partner = createPartner({ ...body, id: 'pending' });
       const row = await db.insertPartner(pool, {
         legalName: partner.legalName,
         countryIso: body.countryIso,

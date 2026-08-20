@@ -33,7 +33,8 @@ const CAMPAIGN_TYPES = Object.freeze([
    Extend per-country, per-year as real launch markets require it —
    never invent a window that hasn't actually been decreed. */
 const OFFICIAL_SOLDES_WINDOWS = Object.freeze({
-  country_fr: Object.freeze([
+  // Keyed by ISO-3166-1 alpha-2 code, matching the Geography/database convention.
+  FR: Object.freeze([
     { year: 2026, season: 'winter', startDate: '2026-01-07', endDate: '2026-02-03' },
     // Summer 2026 was extended from 2026-07-21 to 2026-07-28 by
     // government decision (heatwave-driven footfall relief).
@@ -51,7 +52,7 @@ const OFFICIAL_SOLDES_WINDOWS = Object.freeze({
  * @param {string} input.type       - one of CAMPAIGN_TYPES
  * @param {string} input.startDate  - ISO date (YYYY-MM-DD)
  * @param {string} input.endDate    - ISO date (YYYY-MM-DD)
- * @param {string} [input.countryId] - required iff type === 'soldes'
+ * @param {string} [input.countryIso] - ISO-3166-1 alpha-2, required iff type === 'soldes'
  */
 function createCampaign(input) {
   const errors = [];
@@ -68,17 +69,17 @@ function createCampaign(input) {
   }
 
   if (input.type === 'soldes') {
-    if (!input.countryId) {
-      errors.push('type "soldes" requires countryId — the legal window is per-country');
+    if (!input.countryIso) {
+      errors.push('type "soldes" requires countryIso — the legal window is per-country');
     } else {
-      const windows = OFFICIAL_SOLDES_WINDOWS[input.countryId] || [];
+      const windows = OFFICIAL_SOLDES_WINDOWS[input.countryIso] || [];
       const matches = windows.some(
         (w) => w.startDate === input.startDate && w.endDate === input.endDate
       );
       if (!matches) {
         errors.push(
           `type "soldes" dates ${input.startDate}..${input.endDate} do not match ` +
-          `any registered official window for ${input.countryId}. Soldes dates are ` +
+          `any registered official window for ${input.countryIso}. Soldes dates are ` +
           'fixed by law, not chosen — register the real decreed window in ' +
           'OFFICIAL_SOLDES_WINDOWS before creating this campaign; never invent one.'
         );
@@ -95,7 +96,7 @@ function createCampaign(input) {
     type: input.type,
     startDate: input.startDate,
     endDate: input.endDate,
-    countryId: input.countryId || null,
+    countryIso: input.countryIso || null,
   });
 }
 

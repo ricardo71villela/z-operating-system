@@ -39,23 +39,24 @@ applied by Z Jobs and Z Mobility.
   had one from day one). Built in `fashion-domain/src/cart.js`. If a future
   vertical needs the same multi-seller-split-settlement shape, promote then,
   following the exact precedent Geography already set — not before.
-- **Geography reuse** — resolved as reuse, but with a correction found
-  while validating the database migration: `@zos/geography`
-  (`packages/geography/geography.js`) is a **local JS fixture** used for
-  domain-layer unit tests — it is not the real Geography. The actual
-  canonical Geography lives in `zos.geography_locations` /
-  `zos.geography_names` in the shared Supabase database
-  (`infrastructure/supabase/migrations`), keyed by `country_iso`
-  (ISO-3166-1 alpha-2), richer than the JS fixture's hardcoded Country/
-  Region/City/Zone objects. `fashion.partners` (the real SQL table,
-  `20260821090000_z_fashion_database_foundation_v1.sql`) correctly uses
-  `country_iso text` to match that convention. `partner.js`'s
-  `countryId` (a synthetic id like `country_fr`) does **not** yet match
-  this — flagged as a follow-up: the JS domain layer should validate
-  against `country_iso` codes, the same space the real database and
-  Z Find both already use, not its own fixture ids. Z Find and Z Fashion
-  both ultimately read from the same `zos.geography_*` tables; the JS
-  fixture is a offline mirror for fast unit tests, never the source of
+- **Geography reuse** — resolved as reuse, with one correction made along
+  the way: `@zos/geography` (`packages/geography/geography.js`) is a
+  **local JS fixture** used for domain-layer unit tests — it is not the
+  real Geography. The actual canonical Geography lives in
+  `zos.geography_locations` / `zos.geography_names` in the shared
+  Supabase database (`infrastructure/supabase/migrations`), keyed by
+  `country_iso` (ISO-3166-1 alpha-2), richer than the JS fixture's
+  hardcoded Country/Region/City/Zone objects. `fashion.partners` (the
+  real SQL table) uses `country_iso text`. **`partner.js` and
+  `campaign.js` were updated to match this exactly** — both now take a
+  `countryIso` (ISO-3166-1 alpha-2, e.g. `'FR'`) instead of the fixture's
+  internal `countryId`, validated via a new `getCountryByIsoCode()`
+  helper in `geography.js`, and `fashion-partner/src/server.js` no longer
+  needs the string-hack bridge (`` `country_${iso.toLowerCase()}` ``) that
+  existed only to paper over the mismatch. All tests updated and passing.
+  Z Find and Z Fashion both ultimately read from the same
+  `zos.geography_*` tables; the JS fixture is an offline mirror for fast
+  unit tests, never the source of
   truth.
 - **Partner-Brand-Category-AgeSegment shape** — fully resolved in
   DOMAIN-SKETCH.md and implemented across `partner.js`, `brand.js` and

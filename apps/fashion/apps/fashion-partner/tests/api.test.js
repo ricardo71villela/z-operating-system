@@ -31,16 +31,16 @@ async function run() {
 
   // Apply a Partner over HTTP — real createPartner() validation runs behind this.
   let res = await request('POST', '/partners', {
-    id: 'partner_atelier', legalName: 'Atelier du Marais', countryId: 'country_fr',
+    id: 'partner_atelier', legalName: 'Atelier du Marais', countryIso: 'FR',
     locales: ['fr'], categories: ['accessories_leather_goods'],
   });
   assert.strictEqual(res.status, 201);
   assert.strictEqual(res.body.application.status, 'applied');
 
-  // Invalid application (bad countryId) is rejected over HTTP with 422,
+  // Invalid application (bad countryIso) is rejected over HTTP with 422,
   // proving the @zos/geography validation reaches all the way to the wire.
   res = await request('POST', '/partners', {
-    id: 'partner_bad', legalName: 'X', countryId: 'country_narnia',
+    id: 'partner_bad', legalName: 'X', countryIso: 'ZZ',
     locales: ['fr'], categories: ['clothing'],
   });
   assert.strictEqual(res.status, 422);

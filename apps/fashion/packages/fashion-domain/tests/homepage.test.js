@@ -5,7 +5,7 @@ const { createCampaign } = require('../src/campaign');
 const { selectHero } = require('../src/homepage');
 
 const soldesHiver2026 = createCampaign({
-  id: 'campaign_soldes_hiver_2026', type: 'soldes', countryId: 'country_fr',
+  id: 'campaign_soldes_hiver_2026', type: 'soldes', countryIso: 'FR',
   startDate: '2026-01-07', endDate: '2026-02-03',
 });
 const destaques = [{ id: 'destaque_1', title: 'Nova Coleção Outono' }];

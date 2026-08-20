@@ -11,7 +11,7 @@ const { createPartner, isCategoryEligible, isAgeSegmentEligible } =
 const boutique = createPartner({
   id: 'partner_atelier_du_cuir',
   legalName: 'Atelier du Cuir SARL',
-  countryId: 'country_fr',
+  countryIso: 'FR',
   locales: ['fr'],
   categories: ['accessories_leather_goods', 'clothing'],
 });
@@ -28,7 +28,7 @@ assert.deepStrictEqual(boutique.ageSegments, ['adults']); // default, not forced
 // exempt from having *some* categories."
 assert.throws(
   () => createPartner({
-    id: 'p2', legalName: 'X', countryId: 'country_fr', locales: ['fr'],
+    id: 'p2', legalName: 'X', countryIso: 'FR', locales: ['fr'],
     categories: [],
   }),
   /categories must be a non-empty array/
@@ -37,7 +37,7 @@ assert.throws(
 // Unknown category is rejected, not silently accepted.
 assert.throws(
   () => createPartner({
-    id: 'p3', legalName: 'X', countryId: 'country_fr', locales: ['fr'],
+    id: 'p3', legalName: 'X', countryIso: 'FR', locales: ['fr'],
     categories: ['furniture'],
   }),
   /unknown categories: furniture/
@@ -48,7 +48,7 @@ assert.throws(
 // Z-FASHION-MINOR-SAFE-DATA.md made structurally impossible to skip.
 assert.throws(
   () => createPartner({
-    id: 'p4', legalName: 'Kids Corner', countryId: 'country_fr',
+    id: 'p4', legalName: 'Kids Corner', countryIso: 'FR',
     locales: ['fr'], categories: ['clothing'], ageSegments: ['children'],
   }),
   /has not acknowledged the minor-safe data policy/
@@ -56,27 +56,27 @@ assert.throws(
 
 // With the acknowledgment, it succeeds.
 const kidsPartner = createPartner({
-  id: 'p5', legalName: 'Kids Corner', countryId: 'country_fr',
+  id: 'p5', legalName: 'Kids Corner', countryIso: 'FR',
   locales: ['fr'], categories: ['clothing'], ageSegments: ['children'],
   minorSafeDataAcknowledged: true,
 });
 assert.strictEqual(isAgeSegmentEligible(kidsPartner, 'children'), true);
 
-// countryId is required — no silent default, since a Partner is never
+// countryIso is required — no silent default, since a Partner is never
 // "geography-less" (mirrors Geography's own zero-null-default discipline).
 assert.throws(
   () => createPartner({
     id: 'p6', legalName: 'X', locales: ['fr'], categories: ['clothing'],
   }),
-  /countryId is required/
+  /countryIso is required/
 );
 
-// countryId must resolve through the shared @zos/geography module — an
+// countryIso must resolve through the shared @zos/geography module — an
 // invented country id is rejected, proving the Geography reuse decision
 // (MARKETS-AND-I18N.md) is actually enforced, not just documented.
 assert.throws(
   () => createPartner({
-    id: 'p7', legalName: 'X', countryId: 'country_narnia', locales: ['fr'],
+    id: 'p7', legalName: 'X', countryIso: 'ZZ', locales: ['fr'],
     categories: ['clothing'],
   }),
   /is not a recognized Country in @zos\/geography/

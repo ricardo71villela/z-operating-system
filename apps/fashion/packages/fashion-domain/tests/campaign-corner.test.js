@@ -9,7 +9,7 @@ const { corner, allSale } = require('../src/corner');
 const soldesHiver2026 = createCampaign({
   id: 'campaign_soldes_hiver_2026',
   type: 'soldes',
-  countryId: 'country_fr',
+  countryIso: 'FR',
   startDate: '2026-01-07',
   endDate: '2026-02-03',
 });
@@ -20,7 +20,7 @@ assert.strictEqual(isActiveOn(soldesHiver2026, '2026-03-01'), false);
 // Soldes dates are fixed by law, never chosen by the platform.
 assert.throws(
   () => createCampaign({
-    id: 'campaign_fake_soldes', type: 'soldes', countryId: 'country_fr',
+    id: 'campaign_fake_soldes', type: 'soldes', countryIso: 'FR',
     startDate: '2026-05-01', endDate: '2026-05-15',
   }),
   /do not match any registered official window/
@@ -31,7 +31,7 @@ const blackFriday2026 = createCampaign({
   id: 'campaign_black_friday_2026', type: 'black_friday',
   startDate: '2026-11-27', endDate: '2026-11-30',
 });
-assert.strictEqual(blackFriday2026.countryId, null);
+assert.strictEqual(blackFriday2026.countryIso, null);
 
 // Corner and All Sale over a small fixture catalog.
 const shoe = createProduct({

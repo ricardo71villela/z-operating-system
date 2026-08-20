@@ -14,14 +14,14 @@
    established for this codebase.
 
    Country/locale resolution is NOT reimplemented here. This module
-   expects a countryId that resolves through the shared Geography
-   package (apps/find/packages/geography) once promoted per the
-   open question in ZOS-ALIGNMENT.md — until that promotion happens,
-   callers must resolve countryId externally; this module only
-   validates that one is present, never invents geography logic.
+   validates countryIso against the shared @zos/geography package
+   (packages/geography/geography.js) — an offline fixture mirroring the
+   real Geography database's country_iso convention (see
+   ZOS-ALIGNMENT.md's Database validation note). Callers never invent
+   geography logic here.
    ============================================================ */
 
-const { getCountry } = require('../../../../../packages/geography/geography');
+const { getCountryByIsoCode } = require('../../../../../packages/geography/geography');
 
 const CATEGORIES = Object.freeze([
   'clothing',
@@ -45,7 +45,11 @@ const AGE_SEGMENTS = Object.freeze(['children', 'youth', 'adults']);
  * @param {object} input
  * @param {string} input.id
  * @param {string} input.legalName
- * @param {string} input.countryId       - resolved via shared Geography
+ * @param {string} input.countryIso      - ISO-3166-1 alpha-2 code (e.g. 'FR'),
+ *                                          the same convention the real
+ *                                          Geography database
+ *                                          (zos.geography_locations.country_iso)
+ *                                          and fashion.partners.country_iso use
  * @param {string[]} input.locales       - e.g. ['fr'], extensible per market
  * @param {string[]} input.categories    - subset of CATEGORIES this Partner
  *                                          operates in (taxonomy/eligibility
@@ -71,11 +75,13 @@ function createPartner(input) {
   }
   if (!input.id) errors.push('id is required');
   if (!input.legalName) errors.push('legalName is required');
-  if (!input.countryId) {
-    errors.push('countryId is required (resolved via shared Geography)');
-  } else if (!getCountry(input.countryId)) {
+  if (!input.countryIso) {
+    errors.push('countryIso is required (ISO-3166-1 alpha-2, e.g. "FR")');
+  } else if (!/^[A-Z]{2}$/.test(input.countryIso)) {
+    errors.push(`countryIso "${input.countryIso}" is not a valid ISO-3166-1 alpha-2 code`);
+  } else if (!getCountryByIsoCode(input.countryIso)) {
     errors.push(
-      `countryId "${input.countryId}" is not a recognized Country in ` +
+      `countryIso "${input.countryIso}" is not a recognized Country in ` +
       '@zos/geography — Partners never reference a country ad hoc, only ' +
       'one already registered in the shared Geography module.'
     );
@@ -118,7 +124,7 @@ function createPartner(input) {
   return Object.freeze({
     id: input.id,
     legalName: input.legalName,
-    countryId: input.countryId,
+    countryIso: input.countryIso,
     locales: [...input.locales],
     categories: [...input.categories],
     ageSegments: [...ageSegments],
