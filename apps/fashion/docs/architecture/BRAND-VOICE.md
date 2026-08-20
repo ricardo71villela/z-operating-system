@@ -48,3 +48,20 @@ Draft
 
 ## Last Updated
 2026-08-20
+
+## Partner sign-in layout (mirrors Z Find Partner)
+Same structure as the existing Z Find Partner sign-in: dark editorial left
+panel (headline + three-value-prop row) / light sign-in form right panel.
+Z Fashion swaps Z Find's gold-line globe illustration for gold-line fashion
+croquis (garment sketches) — same brand treatment (thin gold line art,
+low-opacity, background texture never protagonist), different motif,
+consistent with the cross-vertical ZOS visual language rather than
+reinventing it per app.
+
+Three value props (mirrors Z Find Partner's Listings/Leads/Standing row):
+- **Stock** — Uniquement le vôtre / Yours alone
+- **Prix** — Jamais partagés / Never shared
+- **Réputation** — Gagnée, pas achetée / Earned, not bought — direct
+  callback to the Partner Quality Score gate on Sponsored Destaques
+  (FRAMES-AND-RECOMMENDATIONS.md), so the sign-in page's promise and the
+  platform's actual paid-placement policy say the same thing.
