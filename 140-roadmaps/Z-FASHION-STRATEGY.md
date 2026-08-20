@@ -101,14 +101,25 @@ investment; everything else waits for a second market to justify it.
    are legally fixed dates; Black Friday is not. Model them as separate
    types now (see MARKETS-AND-I18N.md) — cheap now, expensive to retrofit.
 
-### Phase 1 — Partner-facing (make supply possible)
-6. Partner onboarding + catalog management (`fashion-partner` app).
+### Phase 1 — Partner-facing (make supply possible) — done
+6. **Partner onboarding — done.** State machine in `onboarding.js`:
+   `applied → under_review → approved/rejected → active ⇄ suspended`.
+   Activation is gated, not a checklist someone could skip: requires a
+   declared feed reliability tier (`live`/`degraded`, never defaulted) and
+   re-checks the minor-safe acknowledgment for Children/Youth Partners at
+   the moment of activation, not just at Partner creation.
 7. **Stock/price feed contract — done.** See `STOCK-FEED-CONTRACT.md` and
    `fashion-domain/src/stock.js`: stale-update rejection (protects a fresher
    in-store sale from being undone by out-of-order delivery) and
    checkout-time reservations with expiry (the actual oversell-prevention
    mechanism between Partner feed pushes) — both implemented and tested.
-8. Corner configuration (branding, layout within platform constraints).
+8. **Corner configuration — done.** `corner-config.js` encodes the
+   "configuration within a shared component system" corollary by
+   construction: the schema (displayName, byline capped at 140 chars,
+   one accent hex color, logoUrl) is the entire customizable surface —
+   there is no field for custom layout or markup, so Partner brand
+   identity and Platform component consistency are both protected by what
+   the schema simply doesn't expose.
 
 ### Phase 2 — Client-facing (make demand possible)
 9. Unified cart/checkout across Partners — the single highest-risk technical
