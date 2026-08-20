@@ -97,3 +97,9 @@ file (luminance-based: dark background → transparent, gold linework →
 opaque) rather than redrawing the mark. The corrected transparent PNG is
 the one to use in any future placement — never the original solid-black
 file — regardless of what background colour it sits on.
+
+## Standalone mockup files
+Any standalone HTML mockup shared outside the repository (not rendered
+inline) must embed images as base64 data URIs, never relative file paths —
+a relative `src="logo.png"` breaks the moment the HTML is downloaded alone,
+since the referenced file isn't necessarily saved alongside it.
