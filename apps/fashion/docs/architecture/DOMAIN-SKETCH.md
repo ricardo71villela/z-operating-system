@@ -17,8 +17,18 @@ schema — a checkpoint to catch the next inconsistency before it becomes code.
   discipline Geography already applies to Currency).
 - **Category** — Clothing, Footwear, Sportswear, Accessories & Leather
   Goods, Cosmetics. Lives on the **Product**, not the Partner. **Multi-valued,
-  not a single enum**: a running shoe is legitimately both Footwear and
-  Sportswear at once; a technical jacket can be both Clothing and Sportswear.
+  not a single enum**: a genuine performance running shoe (designed and
+  marketed for the activity, technical sole/upper) is legitimately both
+  Footwear and Sportswear at once — but a casual/lifestyle sneaker that
+  merely *looks* athletic is Footwear only, never Sportswear. Same for
+  apparel: a technical running/ski jacket is Clothing and Sportswear; a
+  casual jacket styled to look sporty is Clothing only. **Sportswear is
+  defined by genuine athletic/technical purpose, never by aesthetic
+  resemblance** — conflating "looks sporty" with "is Sportswear" is
+  precisely the curation failure that would make Z Fashion's Sportswear
+  category indistinguishable from a general streetwear rack, undermining
+  the curation-over-price differentiation already identified against
+  Decathlon in the competitive review.
   Modeling Category as a single field would force an arbitrary primary choice
   on products that genuinely span two — the same class of mistake already
   caught twice this conversation (Category-on-Partner, then Brand-on-Partner).
@@ -60,6 +70,11 @@ Corner   = view(Product) filtered by Partner = this Partner
 ```
 
 ## Open questions this sketch surfaces
+- Sportswear eligibility rule (genuine athletic/technical purpose vs.
+  aesthetic resemblance) needs to become an explicit, checkable rule in the
+  Partner Quality Score or catalog-submission validation — not left as
+  editorial judgment per listing, or it will drift the moment catalog volume
+  grows past what curators can review by eye.
 - Can a Product be Corner-only (opted out of All Sale) for exclusive drops,
   or is publication always both? Needs a Phase 1 decision before the
   catalog schema is final.

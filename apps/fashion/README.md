@@ -49,9 +49,10 @@ See `docs/architecture/ZOS-ALIGNMENT.md` and
   Categories at once (a fashion house selling clothing, footwear and leather
   goods together is the common case, not an edge case), so a Partner
   declares which Categories it operates in (for eligibility and taxonomy
-  purposes) but each product carries its own Category (**multi-valued** — a
-  running shoe is legitimately both Footwear and Sportswear at once) *and*
-  its own Brand independently — the Corner simply aggregates whatever Categories and
+  purposes) but each product carries its own Category (**multi-valued, but
+  never by resemblance alone** — a performance running shoe is Footwear +
+  Sportswear, a casual sneaker that merely looks athletic is Footwear only;
+  see DOMAIN-SKETCH.md) *and* its own Brand independently — the Corner simply aggregates whatever Categories and
   Brands that Partner's catalog actually contains.
 - **All Sale** — cross-partner discovery surface, filterable across every
   Corner's catalog.
