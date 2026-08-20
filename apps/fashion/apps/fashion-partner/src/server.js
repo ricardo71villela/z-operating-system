@@ -1,22 +1,23 @@
 /* ============================================================
    Z FASHION PARTNER — API server
    ============================================================
-   Minimal Node HTTP server (no framework) wiring real endpoints
-   to fashion-domain. Deliberately plain: this proves the domain
-   layer built across Phases 0-3 is actually reachable over HTTP,
-   not a promise that this stays framework-free forever. In-memory
-   store only — no database yet, this is a skeleton to prove wiring,
-   not a production persistence layer.
+   Single repository-choice point, mirroring apps/jobs/apps/api/
+   src/db.ts exactly: without DATABASE_URL, behavior stays in-memory
+   (nothing changes for local dev or tests run without a database);
+   with DATABASE_URL set, the API talks to real Postgres via db.js.
    ============================================================ */
 
 const http = require('http');
 const { createPartner } = require('../../../packages/fashion-domain/src/partner');
 const { createApplication, transition } = require('../../../packages/fashion-domain/src/onboarding');
 const { initStock, applyStockUpdate, sellableQuantity } = require('../../../packages/fashion-domain/src/stock');
+const db = require('./db');
 
-const partners = new Map();
-const applications = new Map();
-const stockByProductId = new Map();
+const usingPostgres = !!process.env.DATABASE_URL;
+const pool = usingPostgres ? db.createPool() : null;
+
+// In-memory fallback store — only reachable when usingPostgres is false.
+const memory = { partners: new Map(), applications: new Map(), stockByProductId: new Map() };
 
 function readBody(req) {
   return new Promise((resolve, reject) => {
@@ -38,10 +39,26 @@ function sendJson(res, status, body) {
 async function handleApplyPartner(req, res) {
   const body = await readBody(req);
   try {
+    if (usingPostgres) {
+      // id is DB-generated in Postgres mode — createPartner() still runs
+      // for its real validation (categories, locales, minor-safe gate),
+      // just with a throwaway id since the DB assigns the real one.
+      const partner = createPartner({ ...body, id: 'pending', countryId: body.countryIso ? `country_${body.countryIso.toLowerCase()}` : undefined });
+      const row = await db.insertPartner(pool, {
+        legalName: partner.legalName,
+        countryIso: body.countryIso,
+        locales: partner.locales,
+        categories: partner.categories,
+        ageSegments: partner.ageSegments,
+        minorSafeDataAcknowledged: partner.minorSafeDataAcknowledged,
+      });
+      return sendJson(res, 201, { partner: row });
+    }
+
     const partner = createPartner(body);
-    partners.set(partner.id, partner);
+    memory.partners.set(partner.id, partner);
     const application = createApplication(partner.id);
-    applications.set(partner.id, application);
+    memory.applications.set(partner.id, application);
     sendJson(res, 201, { partner, application });
   } catch (err) {
     sendJson(res, 422, { error: err.message });
@@ -50,16 +67,20 @@ async function handleApplyPartner(req, res) {
 
 async function handleTransition(req, res, partnerId) {
   const body = await readBody(req);
-  const application = applications.get(partnerId);
-  const partner = partners.get(partnerId);
-  if (!application) return sendJson(res, 404, { error: `no application for partner ${partnerId}` });
-
   try {
-    const updated = transition(application, body.toStatus, {
-      partner,
-      feedReliabilityTier: body.feedReliabilityTier,
-    });
-    applications.set(partnerId, updated);
+    if (usingPostgres) {
+      const row = await db.updatePartnerStatus(pool, partnerId, {
+        onboardingStatus: body.toStatus,
+        feedReliabilityTier: body.feedReliabilityTier,
+      });
+      return sendJson(res, 200, { partner: row });
+    }
+
+    const application = memory.applications.get(partnerId);
+    const partner = memory.partners.get(partnerId);
+    if (!application) return sendJson(res, 404, { error: `no application for partner ${partnerId}` });
+    const updated = transition(application, body.toStatus, { partner, feedReliabilityTier: body.feedReliabilityTier });
+    memory.applications.set(partnerId, updated);
     sendJson(res, 200, { application: updated });
   } catch (err) {
     sendJson(res, 422, { error: err.message });
@@ -68,10 +89,13 @@ async function handleTransition(req, res, partnerId) {
 
 async function handleStockUpdate(req, res, productId) {
   const body = await readBody(req);
-  const current = stockByProductId.get(productId) || initStock(productId);
+  // Stock does not yet have a Postgres-backed path (Phase 1's stock.js
+  // reservation model isn't migrated to SQL yet) — stays in-memory in both
+  // modes for now, tracked as a follow-up rather than silently pretended.
+  const current = memory.stockByProductId.get(productId) || initStock(productId);
   try {
     const updated = applyStockUpdate(current, body);
-    stockByProductId.set(productId, updated);
+    memory.stockByProductId.set(productId, updated);
     sendJson(res, 200, { stock: updated, sellable: sellableQuantity(updated) });
   } catch (err) {
     sendJson(res, 422, { error: err.message });
@@ -79,7 +103,7 @@ async function handleStockUpdate(req, res, productId) {
 }
 
 function handleGetStock(req, res, productId) {
-  const stock = stockByProductId.get(productId) || initStock(productId);
+  const stock = memory.stockByProductId.get(productId) || initStock(productId);
   sendJson(res, 200, { stock, sellable: sellableQuantity(stock) });
 }
 
@@ -88,6 +112,9 @@ const server = http.createServer(async (req, res) => {
   const parts = url.pathname.split('/').filter(Boolean);
 
   try {
+    if (req.method === 'GET' && parts[0] === 'health') {
+      return sendJson(res, 200, { ok: true, usingPostgres });
+    }
     if (req.method === 'POST' && parts[0] === 'partners' && parts.length === 1) {
       return await handleApplyPartner(req, res);
     }
@@ -110,7 +137,7 @@ const PORT = process.env.PORT || 4001;
 
 if (require.main === module) {
   server.listen(PORT, () => {
-    console.log(`fashion-partner API listening on :${PORT}`);
+    console.log(`fashion-partner API listening on :${PORT} (usingPostgres=${usingPostgres})`);
   });
 }
 

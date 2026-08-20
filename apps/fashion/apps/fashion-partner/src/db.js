@@ -15,12 +15,48 @@
    ============================================================ */
 
 const { Pool } = require('pg');
+const fs = require('fs');
+const path = require('path');
+
+/**
+ * Production TLS, mirroring apps/jobs/apps/api/src/pgStore.ts exactly:
+ * - local/CI Postgres is unaffected when FASHION_DB_SSL_MODE is unset
+ * - hosted Supabase uses its published root CA with full certificate
+ *   verification when FASHION_DB_SSL_MODE=verify-full
+ * - DATABASE_URL must not itself contain sslmode when this is enabled,
+ *   since node-postgres's connection-string SSL parsing can override `ssl`
+ */
+function resolveSsl() {
+  const mode = (process.env.FASHION_DB_SSL_MODE || '').trim();
+  if (!mode) return undefined;
+  if (mode !== 'verify-full') {
+    throw new Error(`invalid FASHION_DB_SSL_MODE: ${mode}`);
+  }
+  return {
+    ca: fs.readFileSync(path.join(__dirname, '..', 'certs', 'supabase-root-2021-ca.crt'), 'utf8'),
+    rejectUnauthorized: true,
+  };
+}
+
+function resolveSchemaOptions() {
+  const schema = (process.env.FASHION_DB_SCHEMA || '').trim();
+  if (!schema) return {};
+  if (!/^[a-z_][a-z0-9_]*$/.test(schema)) {
+    throw new Error(`invalid FASHION_DB_SCHEMA: ${schema}`);
+  }
+  return { options: `-c search_path=${schema}` };
+}
 
 function createPool(connectionString = process.env.DATABASE_URL) {
   if (!connectionString) {
     throw new Error('createPool: DATABASE_URL is required — no silent local fallback');
   }
-  return new Pool({ connectionString });
+  const ssl = resolveSsl();
+  return new Pool({
+    connectionString,
+    ...resolveSchemaOptions(),
+    ...(ssl ? { ssl } : {}),
+  });
 }
 
 /** Inserts a Partner row. Assumes the caller already ran createPartner()
