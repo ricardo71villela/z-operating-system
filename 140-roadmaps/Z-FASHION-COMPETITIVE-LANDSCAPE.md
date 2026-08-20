@@ -60,6 +60,28 @@ or resale-only) or bolt "kids" on as a filter, not a segment. This is the
 one place Z Fashion can differentiate on structure, not just on the
 Partner-marketplace mechanic it borrows from Miinto.
 
+## Sportswear: partners, not just competitors
+
+Sportswear needs its own partner-sourcing read, separate from the general
+fashion competitive analysis above, because the sportswear retail landscape
+in France splits into three tiers that map to very different roles for
+Z Fashion — competitor, big Corner tenant, or the boutiques the model is
+actually built for.
+
+| Tier | Examples | Role for Z Fashion |
+|---|---|---|
+| Mass multi-sport retailers | Decathlon, Intersport, Go Sport | **Competitors, not target Partners.** Own-brand heavy, price-led, already have their own massive direct e-commerce reach — a Corner offers them little Z Fashion doesn't already give them, and their scale would drown smaller Partners in All Sale if onboarded. |
+| Multi-brand sneaker/streetwear chains | JD Sports, Foot Locker, Courir, Chausport | **Plausible large Corner tenants.** Multi-brand (Nike/adidas/New Balance/Jordan), strong footfall, French presence (JD Sports alone runs 130+ stores in France) — a Corner here brings volume and legitimizes the Sportswear category quickly, but negotiating power skews toward them, not Z Fashion, given their size. |
+| Independent single-sport specialist boutiques | Running (i-Run-style), cycling, climbing, triathlon specialists | **This is the real Miinto-shaped opportunity.** Small, expert-curated, no meaningful e-commerce reach of their own, exactly the profile that benefits most from a Corner + shared checkout — same thesis as the fashion boutiques the whole Z Fashion model is built for. Prioritize this tier for the first Sportswear Partner cohort. |
+| Brand-direct (DTC) | Nike, adidas, Patagonia, New Balance | **Long-term Corner candidates, not launch-priority.** Brands increasingly value marketplaces as a genuine channel (confirmed in the Miinto luxury-brand pattern above), but they typically want proven traffic before committing — approach after the specialist-boutique cohort has demonstrated volume. |
+
+Practical read for Phase 1 Partner onboarding (item 6 in the priority order):
+sequence Sportswear Partner acquisition **specialist boutiques first**, not
+the big chains — it is both the more defensible position against Decathlon's
+price dominance (curation over price, same logic already applied to general
+fashion above) and the tier where Z Fashion's Corner model creates the most
+value the Partner couldn't get alone.
+
 ## Status
 Draft
 
