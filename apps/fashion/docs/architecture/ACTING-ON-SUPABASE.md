@@ -1,56 +1,62 @@
-# Z Fashion — Acting on the Real Supabase Project
+# Z Fashion — Supabase Deployment Authority
 
 ## Purpose
-Defines how Z Fashion's database changes actually reach the live shared
-Supabase project (https://supabase.com/dashboard/project/dcdggqyazdddrfuzwavw),
-given a hard constraint: Claude's execution sandbox has an outbound network
-allowlist that does not include Supabase's domains, so migrations and
-queries can never be run against the live project from within a Claude
-session — regardless of credentials provided. This is not a policy choice
-to be persuaded around; it is a network boundary of the sandbox itself.
+Defines how Z Fashion database changes relate to the shared ZOS Supabase environment without coupling repository architecture to any one development assistant, local machine or execution sandbox.
 
-## What was checked before writing this
-Every existing GitHub Actions workflow in this repository
-(`.github/workflows/*.yml`) was inspected for how other verticals (Z Jobs,
-Z Find, Z Studio) handle this. None of them reference any `secrets.*` value
-at all — every CI job validates against an ephemeral Postgres container
-spun up inside the workflow run, or against fixture values
-(`SUPABASE_URL: https://example.supabase.co`). No vertical currently
-deploys to the live Supabase project via a GitHub Actions pipeline with
-stored credentials. `fashion-postgres.yml` follows that exact convention —
-it validates the Z Fashion migration and `fashion-partner`'s real Postgres
-integration test against a fresh, disposable database on every push/PR,
-and holds no secrets.
+## Integrated source authority
 
-## How a real deploy to the live project actually happens
-Two options, neither of which involves Claude at any point:
+All Z Fashion database changes that are intended to participate in the shared ZOS database live under:
 
-1. **Supabase's native GitHub integration** (recommended, matches how
-   Supabase itself expects this to work): link this repository to the
-   `dcdggqyazdddrfuzwavw` project once, in the Supabase dashboard
-   (Project Settings → Integrations → GitHub), pointing it at
-   `infrastructure/supabase/migrations`. Once linked, Supabase applies new
-   migration files automatically on merge to `main` — no GitHub Secrets, no
-   custom pipeline, Supabase's own infrastructure pulls from GitHub.
-2. **Manual `supabase db push`**, run locally by whoever has the Supabase
-   CLI authenticated against the project — a one-time `supabase link
-   --project-ref dcdggqyazdddrfuzwavw` followed by `supabase db push`
-   whenever a new migration file needs to go live.
+```text
+infrastructure/supabase/migrations/
+```
 
-## What Claude can and cannot do here
-- **Can**: write migration files, validate them end-to-end against a local
-  or CI-ephemeral Postgres instance (as done for
-  `20260821090000_z_fashion_database_foundation_v1.sql`), write and
-  validate application code (`db.js`) that will run correctly the moment
-  it's pointed at a real `DATABASE_URL`, and write/validate CI workflows
-  that check migrations on every push.
-- **Cannot**: query, migrate, or otherwise reach the live Supabase project
-  from a Claude session, under any credential — no API key or connection
-  string changes this, because the constraint is the sandbox's network
-  allowlist, not authorization.
+That directory is the integrated ZOS Supabase migration authority. Z Fashion does not maintain a second production migration authority inside `apps/fashion/`.
+
+## CI authority
+
+Repository CI is **validation-only** unless a workflow explicitly states otherwise.
+
+The current ZOS/Fashion PostgreSQL workflows:
+
+- create a disposable PostgreSQL database;
+- stub only the Supabase-specific roles/schemas/functions required for local CI;
+- apply the complete integrated migration chain in timestamp order;
+- run Fashion and cross-product assertions;
+- use no live Supabase service credentials;
+- perform no production database mutation.
+
+A green ephemeral PostgreSQL run proves migration compatibility with the tested chain. It does not prove that the migration has been applied to production.
+
+## Live deployment gate
+
+A live/shared Supabase mutation is a separate operational action and must never be inferred from source merge or CI success alone.
+
+Before any live migration:
+
+1. the exact commit/migration authority must be identified;
+2. the complete integrated migration chain must be green on the converged source tree;
+3. the schema/RLS impact must be reviewed;
+4. the operator must use an authorized Supabase deployment mechanism;
+5. production credentials must remain outside source control;
+6. the resulting live migration state must be observed and recorded explicitly.
+
+Supported operational mechanisms may include an authenticated Supabase CLI workflow or an approved provider-native integration, but no mechanism becomes authoritative merely by being convenient. Governance must know which mechanism is actually being used.
+
+## Tool independence
+
+Development tools and AI assistants may differ in network access, credentials and runtime capabilities. Those limitations are execution-context details, not product architecture.
+
+The repository therefore records **what must be true** (source authority, CI validation, explicit live gate) rather than hard-coding whether one named tool can or cannot reach a provider.
+
+## Current Z Fashion state
+
+Z Fashion source includes integrated migrations and PostgreSQL validation contracts. That source state is not itself evidence of a live Z Fashion production migration.
 
 ## Status
-Draft — operational, not a design document.
+
+Operational authority document.
 
 ## Last Updated
-2026-08-20
+
+2026-08-21
