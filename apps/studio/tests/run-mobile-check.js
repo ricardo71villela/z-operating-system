@@ -1,5 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════
 //  Z STUDIO — MOBILE CENTER + INFORMATION FLOW CONTRACT
+//  ZSTUDIO_MOBILE_INFORMATION_FLOW_V2_CONTRACT
 // ═══════════════════════════════════════════════════════════════════════
 //
 // Abre a app num Chromium real a 390×844 e prova:
