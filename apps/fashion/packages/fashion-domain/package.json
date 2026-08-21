@@ -1,8 +1,8 @@
 {
-  "name": "@zos/fashion-domain",
+  "name": "@zfashion/domain",
   "version": "0.0.0",
   "private": true,
-  "description": "Pure TypeScript/JS domain rules for Z Fashion — Partner, Product, Corner, Campaign. No framework, no I/O, no dependency on other ZOS bounded contexts.",
+  "description": "Pure TypeScript/JS domain rules owned by Z Fashion — Partner, Product, Corner, Campaign and Cart. No framework or I/O authority.",
   "main": "src/partner.js",
   "scripts": {
     "test": "node tests/partner.test.js && node tests/brand.test.js && node tests/product.test.js && node tests/campaign-corner.test.js && node tests/recommendations.test.js && node tests/homepage.test.js && node tests/stock.test.js && node tests/onboarding.test.js && node tests/corner-config.test.js && node tests/cart.test.js && node tests/corner-page.test.js && node tests/price-history.test.js && node tests/campaign-pricing.test.js"
