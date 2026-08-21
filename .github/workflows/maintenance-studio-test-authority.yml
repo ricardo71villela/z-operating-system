@@ -1,0 +1,98 @@
+name: One-shot Z Studio test authority repair
+
+on:
+  push:
+    branches:
+      - chore/zos-five-app-convergence-v1
+    paths:
+      - '.github/workflows/maintenance-studio-test-authority.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chore/zos-five-app-convergence-v1
+          fetch-depth: 0
+
+      - name: Apply exact authority replacements
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          tests = Path('apps/studio/tests/run-tests.js')
+          text = tests.read_text()
+
+          replacements = [
+              (
+                  '//  MY STUDIO — TESTES FUNCIONAIS AUTOMATIZADOS',
+                  '//  Z STUDIO — TESTES FUNCIONAIS AUTOMATIZADOS',
+              ),
+              (
+                  "assert('marca por defeito é My Studio', state.brand.name === 'My Studio', state.brand.name);",
+                  "assert('marca por defeito é Z Studio', state.brand.name === 'Z Studio', state.brand.name);",
+              ),
+              (
+                  "assert('sem \"Z Studio\" residual (nome antigo do produto)', !document.body.innerHTML.includes('Z Studio'));",
+                  "assert('sem \"My Studio\" residual (identidade legada)', !document.body.innerHTML.includes('My Studio'));",
+              ),
+              (
+                  '// ENDPOINT DE IA CONFIGURÁVEL — a app não deve assumir que "/api/ai" serve\n    // para tudo; em contexto nativo precisa de um URL absoluto configurável.',
+                  '// ENDPOINT DE IA SPLIT-BACKEND — Web e native usam a autoridade absoluta\n    // validada pelo release contract; não há fallback relativo neste build.',
+              ),
+              (
+                  "assert('sem Capacitor, o endpoint usa o caminho relativo normal', AI_ENDPOINT === '/api/ai', AI_ENDPOINT);",
+                  "assert('sem Capacitor, o endpoint usa o backend AI split', AI_ENDPOINT === 'https://z-studio-platform-seven.vercel.app/api/ai', AI_ENDPOINT);",
+              ),
+              (
+                  "assert('a constante de configuração nativa existe (mesmo que vazia por preencher)', typeof AI_API_BASE_URL_NATIVE === 'string');",
+                  "assert('a constante nativa aponta para o mesmo backend AI split', AI_API_BASE_URL_NATIVE === AI_ENDPOINT, AI_API_BASE_URL_NATIVE);",
+              ),
+              (
+                  '// simula estar em contexto nativo, sem URL configurado — tem de cair para o relativo, não rebentar',
+                  '// simula contexto nativo para confirmar que a deteção permanece independente do URL',
+              ),
+          ]
+
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'expected exactly one match in run-tests.js, got {count}: {old[:80]}')
+              text = text.replace(old, new, 1)
+
+          tests.write_text(text)
+
+          workflow = Path('.github/workflows/zstudio-release-authority.yml')
+          release = workflow.read_text()
+          start_marker = '      - name: Run functional tests with exact transitional assertions allowance\n'
+          end_marker = '      - name: Run renderer layout regression contract\n'
+          if release.count(start_marker) != 1 or release.count(end_marker) != 1:
+              raise SystemExit('release authority transitional block markers are not unique')
+          start = release.index(start_marker)
+          end = release.index(end_marker, start)
+          replacement = '      - name: Run functional tests\n        run: npm test\n'
+          release = release[:start] + replacement + release[end:]
+          workflow.write_text(release)
+
+          print('STUDIO_TEST_AUTHORITY_REPAIR=PASS')
+          PY
+
+      - name: Verify exact source boundary
+        run: |
+          set -euo pipefail
+          git diff --check
+          git diff -- apps/studio/tests/run-tests.js .github/workflows/zstudio-release-authority.yml
+          test "$(git diff --name-only | sort)" = "$(printf '%s\n' '.github/workflows/zstudio-release-authority.yml' 'apps/studio/tests/run-tests.js' | sort)"
+
+      - name: Commit repaired authority
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/studio/tests/run-tests.js .github/workflows/zstudio-release-authority.yml
+          git commit -m 'test(studio): align functional authority with current product'
+          git push origin HEAD:chore/zos-five-app-convergence-v1
