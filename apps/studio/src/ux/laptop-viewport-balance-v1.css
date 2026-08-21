@@ -1,16 +1,12 @@
 /* ZSTUDIO_LAPTOP_VIEWPORT_BALANCE_V1
-   Final laptop composition pass over the approved three-zone workspace.
-   Goals:
-   - keep header + canvas + slide navigation + export actions inside one viewport;
-   - give left/right rails the same structural vertical authority;
-   - keep PNG as the only bright primary export;
-   - reduce right-rail dead space without changing its width;
-   - finish thumbnail micro-controls without changing media behavior.
+   Laptop composition authority over the approved three-zone workspace.
 
-   CENTER BALANCE V1 refinement:
-   - reserve vertical budget explicitly for navigation + export controls;
-   - prevent the canvas frame from consuming the full creative column;
-   - preserve the approved horizontal three-zone geometry.
+   CENTER RENDER RECOVERY V1:
+   - the creative column owns three intrinsic rows: canvas / optional nav / export;
+   - no fixed viewport-subtraction max-height values;
+   - canvas size is measured by ZSTUDIO_PREVIEW_STATE_MACHINE_V1 at runtime;
+   - left/right rails keep the approved horizontal geometry;
+   - the page itself stays fixed while the editing rail scrolls internally.
 */
 
 @media (min-width: 981px) {
@@ -34,7 +30,6 @@
     grid-row: 2;
     min-height: 0 !important;
     height: 100%;
-    overflow: hidden;
   }
 
   .controls {
@@ -48,7 +43,6 @@
   .stage {
     height: 100%;
     min-height: 0 !important;
-    overflow: hidden;
     padding-top: 12px;
     padding-bottom: 10px;
   }
@@ -75,7 +69,7 @@
 
   .site-footer-brand span,
   .site-footer-legal a {
-    font-size: .58rem;
+    font-size: .64rem;
   }
 
   .site-footer-legal {
@@ -121,33 +115,42 @@
   .ph.incar .tick::before {
     opacity: 1;
   }
+
+  .zs-media-disabled {
+    opacity: .38 !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
 }
 
 @media (min-width: 1200px) {
   .stage {
-    grid-template-rows: minmax(0, 1fr) 30px 40px;
+    grid-template-rows: minmax(0, 1fr) auto auto;
     row-gap: 8px;
     align-content: stretch;
   }
 
   .canvas-frame {
     box-sizing: border-box;
-    max-height: 100%;
+    min-width: 0;
     min-height: 0;
-    max-width: 100%;
-    padding: 8px;
+    padding: 10px;
     overflow: hidden;
   }
 
   #preview {
-    width: auto !important;
-    height: auto !important;
-    max-width: 100% !important;
-    max-height: min(64vh, calc(100vh - 260px)) !important;
+    display: block;
+    max-width: none !important;
+    max-height: none !important;
+  }
+
+  html:not([data-zstudio-preview-state="ready"]) .slide-nav {
+    display: none !important;
   }
 
   .slide-nav {
-    min-height: 30px;
+    min-height: 0;
     gap: 9px;
     color: #a7adb1;
   }
@@ -176,8 +179,8 @@
     min-height: 38px;
   }
 
-  /* One bright action only. Carousel remains directly available, but no longer
-     competes with the default PNG export for visual attention. */
+  /* One bright action only. Carousel remains directly available when media is
+     READY, but never competes with the default PNG export for attention. */
   #btnCarousel:not(.hide) {
     color: #c7cbce !important;
     border: 1px solid var(--studio-hairline) !important;
@@ -194,7 +197,7 @@
   }
 
   /* The assistant is a rail, not a card. The separator spans the same vertical
-     workspace authority as the left rail instead of starting after stage padding. */
+     workspace authority as the left rail. */
   .caption-box {
     position: relative;
     height: 100%;
@@ -218,7 +221,6 @@
     min-height: 0;
   }
 
-  /* Authored captions should be an editor, not a full-height empty rectangle. */
   .caption-box textarea {
     flex: 0 1 auto;
     height: clamp(220px, 38vh, 360px);
@@ -234,7 +236,6 @@
     padding-bottom: 24px;
   }
 
-  /* AI generation is the primary assistant action; translation is secondary. */
   #btnAICaptionAll {
     color: #b8bdc1 !important;
     border: 1px solid var(--studio-hairline) !important;
@@ -246,11 +247,5 @@
     color: #eef0f0 !important;
     border-color: var(--studio-hairline-hover) !important;
     background: rgba(255,255,255,.025) !important;
-  }
-}
-
-@media (min-width: 1500px) {
-  #preview {
-    max-height: min(66vh, calc(100vh - 248px)) !important;
   }
 }
