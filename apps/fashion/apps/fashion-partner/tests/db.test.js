@@ -25,16 +25,20 @@ async function run() {
   const fetched = await getPartner(pool, partner.id);
   assert.strictEqual(fetched.legalName, 'Atelier du Marais');
 
-  // Activating without a feed reliability tier fails at the DATABASE level
-  // (fashion_partners_active_requires_feed_tier CHECK), not just in JS —
-  // this is the real proof the constraint moved from application code
-  // into the schema itself.
+  // Respect the database-owned lifecycle before testing the activation gate:
+  // applied -> under_review -> approved -> active.
+  await updatePartnerStatus(pool, partner.id, { onboardingStatus: 'under_review' });
+  await updatePartnerStatus(pool, partner.id, { onboardingStatus: 'approved' });
+
+  // Activating from approved without a feed reliability tier fails at the
+  // DATABASE level (fashion_partners_active_requires_feed_tier CHECK), not
+  // at the lifecycle trigger. This isolates the contract this assertion owns.
   await assert.rejects(
     () => updatePartnerStatus(pool, partner.id, { onboardingStatus: 'active' }),
     /fashion_partners_active_requires_feed_tier/
   );
 
-  // With a feed tier, it succeeds — a real UPDATE against a real row.
+  // With a feed tier, the valid approved -> active transition succeeds.
   const activated = await updatePartnerStatus(pool, partner.id, {
     onboardingStatus: 'active', feedReliabilityTier: 'live',
   });
@@ -49,6 +53,8 @@ async function run() {
     categories: ['clothing'], ageSegments: ['children'],
     minorSafeDataAcknowledged: false,
   });
+  await updatePartnerStatus(pool, kidsPartner.id, { onboardingStatus: 'under_review' });
+  await updatePartnerStatus(pool, kidsPartner.id, { onboardingStatus: 'approved' });
   await assert.rejects(
     () => updatePartnerStatus(pool, kidsPartner.id, { onboardingStatus: 'active', feedReliabilityTier: 'live' }),
     /fashion_partners_minor_safe_gate/
