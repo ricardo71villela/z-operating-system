@@ -1,111 +1,102 @@
 # Z Fashion
 
-Z Fashion is the Fashion & Lifestyle Retail vertical of the Z Operating System
-(ZOS) ecosystem. It is a multi-partner marketplace for clothing, footwear,
-sportswear, accessories/leather goods and cosmetics across children, youth
-and adult segments, converging with shared
-ZOS capabilities according to the **ZOS Architectural Constitution v1.1**.
+Z Fashion is the Fashion & Lifestyle Retail vertical of the Z Operating System (ZOS) ecosystem. It is a multi-partner marketplace for clothing, footwear, sportswear, accessories/leather goods and cosmetics across children, youth and adult segments, converging with shared ZOS capabilities according to the **ZOS Architectural Constitution v1.1**.
 
-Inventory belongs to each adherent store (**Partner**). Every Partner can run
-its own branded **Corner** (comparable to a department-store concession, e.g.
-Galeries Lafayette) while also participating in the platform-wide **All Sale**
-section. The unified customer experience — single cart, single checkout, single
-order — is owned by Z Fashion regardless of how many Partners a basket spans.
+Inventory belongs to each adherent store (**Partner**). Every Partner can operate its own branded **Corner** while also participating in the platform-wide **All Sale** discovery surface. The unified customer experience — cart, checkout and order orchestration across Partners — is owned by Z Fashion.
 
 ## Architecture status
 
-Pre-implementation. This README and the linked architecture notes establish
-scope and the ZOS ownership boundary before any application code is written,
-mirroring how Z Jobs and Z Mobility declared their boundary early.
+**Foundation implementation in progress.** The initial architecture-only phase has already advanced into executable code and database contracts.
 
-See `docs/architecture/ZOS-ALIGNMENT.md` and
-[`140-roadmaps/Z-FASHION-STRATEGY.md`](../../140-roadmaps/Z-FASHION-STRATEGY.md).
+Current implemented foundation includes:
+
+- `packages/fashion-domain/` — pure Z Fashion domain rules for Partner, Brand, Product, Campaign, Corner, Stock, onboarding, recommendations, pricing history and multi-partner Cart;
+- `apps/fashion-partner/` — Partner API with in-memory development/test path plus PostgreSQL integration path;
+- integrated `fashion.*` migrations under `infrastructure/supabase/migrations/` for Partner, Brand/Product, Campaigns, Stock, onboarding transitions, price history and atomic checkout;
+- PostgreSQL convergence workflow and real DB integration tests;
+- explicit ZOS alignment, internationalization, stock-feed, legal and brand-voice documentation.
+
+The current source is not evidence of a live Z Fashion production database deployment. Live/shared Supabase mutation remains a separate operational gate.
+
+See `docs/architecture/ZOS-ALIGNMENT.md` and [`140-roadmaps/Z-FASHION-STRATEGY.md`](../../140-roadmaps/Z-FASHION-STRATEGY.md).
 
 ## Product surface
 
 - **Client segments** — Children, Youth, Adults.
-- **Categories** — Clothing, Footwear, Sportswear, Accessories & Leather
-  Goods (Maroquinaria), Cosmetics (explicitly includes Perfumes/Fragrances —
-  not a separate category, since a perfume boutique's Partner profile and
-  Corner needs are the same as skincare/makeup, and both fall under the same
-  EU Cosmetic Regulation (EC) No 1223/2009 framework, including the
-  fragrance-allergen declaration duty for the 26 allergens on Annex III —
-  relevant to product-data requirements the same way the hygiene-seal
-  return exemption already is, see DOMAIN-SKETCH.md). Accessories & Leather
-  Goods is its own
-  category rather than a Clothing sub-filter for the same reason department
-  stores give it a dedicated floor space (Galeries Lafayette, Le Bon Marché
-  both run a distinct "Espace Maroquinerie") — bags, wallets, belts have
-  their own material/craftsmanship attributes and their own Partner profile
-  (small artisan ateliers), separate from apparel sizing logic entirely.
-  Sportswear is its own category (not a filter within Clothing/Footwear) because it has
-  distinct attributes (sport/activity, technical fabric specs) and because
-  Partners in this space — Decathlon-style specialists, sneaker/sportswear
-  boutiques — expect their own Corner identity the same way a fashion
-  boutique does.
-- **Corners** — Partner-branded storefronts within Z Fashion (own visual
-  identity, storytelling, curation); commerce plumbing (cart, checkout,
-  fulfillment, payments) stays platform-owned. A Corner belongs to a
-  **Partner** (the store/legal entity), which is a separate concept from
-  **Brand**: a Corner can be mono-brand (a brand selling direct, e.g. a
-  Nike-run Corner) or multi-brand (a boutique or chain selling several
-  brands under one roof, e.g. a JD Sports- or Miinto-style Corner selling
-  Nike, adidas and New Balance together) — both are first-class, neither is
-  a special case of the other. Category is a **Product**-level attribute,
-  never a Partner-level one: a single Partner/Corner routinely spans several
-  Categories at once (a fashion house selling clothing, footwear and leather
-  goods together is the common case, not an edge case), so a Partner
-  declares which Categories it operates in (for eligibility and taxonomy
-  purposes) but each product carries its own Category (**multi-valued, but
-  never by resemblance alone** — a performance running shoe is Footwear +
-  Sportswear, a casual sneaker that merely looks athletic is Footwear only;
-  see DOMAIN-SKETCH.md) *and* its own Brand independently — the Corner simply aggregates whatever Categories and
-  Brands that Partner's catalog actually contains.
-- **All Sale** — cross-partner discovery surface, filterable across every
-  Corner's catalog.
-- **Campaigns** — Destaques (editorial highlights), Saldos (partner-driven
-  clearance), Vendas Privadas (private/early-access sales), Novas Coleções
-  (scheduled drops), Black Friday (platform-wide seasonal event).
+- **Categories** — Clothing, Footwear, Sportswear, Accessories & Leather Goods, Cosmetics. Category is Product-owned; a Partner/Corner can span several categories.
+- **Brand** — Product-level identity independent from Partner identity. A Partner can be mono-brand or multi-brand without changing the Partner model.
+- **Corners** — Partner-branded storefronts inside Z Fashion; visual identity and curation may be Partner-specific while commerce plumbing remains platform-owned.
+- **All Sale** — cross-partner discovery surface across participating Corners.
+- **Campaigns** — Destaques, Saldos, Vendas Privadas, Novas Coleções and Black Friday.
+- **Stock** — Partner-owned inventory with stale-feed protection and transactional reservation semantics.
+- **Cart / checkout** — Z Fashion-owned multi-partner cart with atomic checkout rules; not promoted to ZOS Core unless a second independent product demonstrates the same semantic requirement.
 
 ## ZOS ownership boundary
 
-### Shared-platform candidates
-Person identity, Partner/Organization identity, Registry references, Trust
-Engine mechanics, Partner Quality Score, Geography/Locale/Currency, audit
-mechanics, and integration transport — reused as-is from the ZOS core rather
-than rebuilt per vertical.
+### Reused shared ZOS capabilities
+
+Person identity, Partner/Organization identity, Registry references, Trust Engine mechanics, Partner Quality Score, canonical Geography/Locale/Currency, audit mechanics and integration transport are reused from ZOS rather than reimplemented as Fashion-specific authorities.
+
+The local `@zos/geography` JavaScript package is an offline/unit-test fixture. Canonical runtime Geography remains the shared Supabase `zos.geography_*` model.
 
 ### Z Fashion-owned domain
-Product catalog (apparel/footwear/sportswear/leather-goods/cosmetics
-attributes — size grid (Category-conditional, not universal), age segment,
-material, shade/variant — Category and Brand
-both live on the Product, not the Partner, since one Partner can be
-mono-brand or multi-brand), Corner configuration, All Sale aggregation
-rules,
-Campaign types and scheduling (Saldos, Vendas Privadas, Novas Coleções, Black
-Friday), unified cart/checkout across Partners, returns/exchange policy
-harmonization, and minor-safe data handling for the Children/Youth segments.
 
-## Repository structure (proposed)
+Z Fashion owns:
+
+- product catalog and Fashion-specific attributes;
+- Brand/Product/Category/Age Segment relationships;
+- Corner configuration and presentation semantics;
+- All Sale aggregation rules;
+- campaign types and scheduling;
+- Partner stock-feed semantics and reservation rules;
+- pricing-history rules used by Fashion campaigns;
+- Partner onboarding state machine extensions specific to Fashion operations;
+- unified multi-partner Cart/checkout/order orchestration;
+- returns/exchange harmonization rules;
+- minor-safe handling rules specific to Children/Youth product experiences.
+
+No Fashion-owned package should use the `@zos/*` namespace. Fashion-owned packages use `@zfashion/*`; `@zos/*` is reserved for genuinely shared ZOS capabilities.
+
+## Repository structure
 
 ```text
 apps/
-  fashion-admin/   internal ops console (partner onboarding, campaign scheduling)
-  fashion-partner/ partner-facing portal (catalog, stock, pricing, Corner design)
-  fashion-web/     customer-facing storefront (Corners, All Sale, checkout)
+  fashion-partner/               implemented Partner API foundation
+  fashion-admin/                 planned internal operations surface
+  fashion-web/                   planned customer storefront
 packages/
-  fashion-domain/  pure TypeScript domain rules (catalog, campaigns, cart)
+  fashion-domain/                implemented pure domain rules
 docs/
-  architecture/    ZOS alignment, data model, decision records
-  legal/           minor-safe data handling, returns policy, partner terms
+  architecture/                  ZOS alignment and domain contracts
 ```
 
+Shared/integrated database migrations intentionally live outside this product directory under:
+
+```text
+infrastructure/supabase/migrations/
+```
+
+That directory is the integrated ZOS Supabase migration authority.
+
+## Quality gates
+
+From the repository root, after product setup:
+
+```bash
+npm run fashion:setup
+npm run fashion:check
+```
+
+The deeper PostgreSQL gate applies the full ordered ZOS migration sequence before running Fashion-specific DB checks.
+
 ## Related domains
-`20-registry`, `30-trust-engine`, `40-partner-quality-score`, `50-marketplace`,
-`100-security`, `160-legal-and-compliance`.
+
+`20-registry`, `30-trust-engine`, `40-partner-quality-score`, `50-marketplace`, `60-data`, `100-security`, `160-legal-and-compliance`.
 
 ## Status
-Draft
+
+Foundation implementation — not production-launched.
 
 ## Last Updated
-2026-08-20
+
+2026-08-21
