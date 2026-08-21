@@ -2,6 +2,6 @@
   "name": "@zos/geography",
   "version": "0.1.0",
   "private": true,
-  "description": "Shared ZOS canonical geography: Country/Region/City/Zone hierarchy, multilingual place names, and Currency resolution. Consumed by Z Find and Z Fashion; owns no vertical-specific logic.",
+  "description": "Shared ZOS Geography domain fixture for offline/unit use. The canonical runtime source of truth is the shared Supabase zos.geography_* model; this package owns no vertical-specific logic.",
   "main": "./geography.js"
 }
