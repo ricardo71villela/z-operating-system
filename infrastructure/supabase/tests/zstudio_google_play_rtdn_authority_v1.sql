@@ -244,7 +244,9 @@ begin
 end;
 $$;
 
--- Pending refund review is queued for support without mutating commercial access.
+-- Pending refund review is queued through the service RPC without exposing the
+-- support-only queue table to service_role. Internal row contents are verified
+-- only after returning to the disposable-test owner role.
 set role service_role;
 do $$
 declare
@@ -263,6 +265,22 @@ begin
     raise exception 'Pending refund review was not recorded';
   end if;
 
+  begin
+    perform 1
+    from studio.google_play_pending_refund_reviews r
+    where r.message_id = '9000000000000002';
+    raise exception 'TEST_RTDN_PRIVATE_QUEUE_EXPOSED';
+  exception when insufficient_privilege then
+    null;
+  end;
+end;
+$$;
+reset role;
+
+do $$
+declare
+  v_person uuid := current_setting('zstudio.test.rtdn_person_a')::uuid;
+begin
   if not exists (
     select 1
     from studio.google_play_pending_refund_reviews r
@@ -278,7 +296,6 @@ begin
   end if;
 end;
 $$;
-reset role;
 
 select 'ZSTUDIO_GOOGLE_PLAY_RTDN_POSTGRES_AUTHORITY=PASS';
 rollback;
