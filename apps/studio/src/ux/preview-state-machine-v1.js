@@ -1,4 +1,4 @@
-// ZSTUDIO_PREVIEW_STATE_MACHINE_V1
+// Z Studio — preview state machine v1
 // Laptop preview authority injected immediately before loadAll().
 // It separates EMPTY / LOADING / READY / ERROR rendering, makes restored
 // draft media deterministic, gates media exports until a decoded image exists,
@@ -103,9 +103,6 @@ function renderStudioPreviewStateCanvas(ctx, W, H, mode) {
     return;
   }
 
-  // Loading/error are intentionally neutral preview states. They never enter
-  // the production template renderer and therefore can never overlap title,
-  // price, badge or location with placeholder content.
   const cx = W / 2;
   const cy = H * 0.46;
   const radius = Math.max(22, Math.min(W, H) * 0.032);
@@ -174,7 +171,6 @@ function fitStudioPreviewToWorkspace() {
   const intrinsicHeight = Math.max(1, Number(preview.height) || 1350);
   let scale = Math.min(maxCanvasWidth / intrinsicWidth, maxCanvasHeight / intrinsicHeight);
 
-  // Empty/loading states should invite content, not dominate the workspace.
   const mode = resolveStudioPreviewState();
   if (mode !== ZSTUDIO_PREVIEW_STATES.READY) scale *= 0.84;
   scale = Math.max(0.12, scale);
@@ -225,7 +221,6 @@ async function hydrateStudioActivePhoto(reason) {
   }
 }
 
-// ── Renderer state isolation ────────────────────────────────────────────────
 const zstudioBaseDrawListing = drawListing;
 drawListing = async function zstudioStateAwareDrawListing(ctx, W, H) {
   const mode = resolveStudioPreviewState();
@@ -236,7 +231,6 @@ drawListing = async function zstudioStateAwareDrawListing(ctx, W, H) {
   return zstudioBaseDrawListing(ctx, W, H);
 };
 
-// ── Deterministic draft hydration ──────────────────────────────────────────
 const zstudioBaseLoadDraftIfAny = loadDraftIfAny;
 loadDraftIfAny = async function zstudioStateAwareLoadDraftIfAny() {
   setStudioPreviewState(ZSTUDIO_PREVIEW_STATES.LOADING, 'draft-start');
@@ -249,8 +243,6 @@ loadDraftIfAny = async function zstudioStateAwareLoadDraftIfAny() {
   }
 };
 
-// Any canonical slide rebuild after media decode reasserts READY. When the
-// collection is empty it reasserts EMPTY. This covers fresh uploads/removals.
 const zstudioBaseBuildSlides = buildSlides;
 buildSlides = function zstudioStateAwareBuildSlides() {
   const result = zstudioBaseBuildSlides.apply(this, arguments);
