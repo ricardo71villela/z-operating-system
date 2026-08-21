@@ -1,0 +1,126 @@
+name: Z Mobility PostgreSQL
+
+on:
+  push:
+    branches:
+      - main
+      - chore/zos-five-app-convergence-v1
+    paths:
+      - "apps/mobility/**"
+      - "infrastructure/supabase/migrations/**"
+      - "infrastructure/supabase/tests/z_mobility_database_convergence_v1.sql"
+      - ".github/workflows/mobility-postgres.yml"
+  pull_request:
+    branches:
+      - main
+      - chore/zos-five-app-convergence-v1
+    paths:
+      - "apps/mobility/**"
+      - "infrastructure/supabase/migrations/**"
+      - "infrastructure/supabase/tests/z_mobility_database_convergence_v1.sql"
+      - ".github/workflows/mobility-postgres.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  postgres:
+    name: Full ZOS migration sequence + Mobility convergence
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: zmobility_dev_pw
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Create disposable Supabase-compatible database
+        env:
+          PGPASSWORD: zmobility_dev_pw
+        run: |
+          psql -h localhost -U postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE zos_mobility_ci;"
+          psql -h localhost -U postgres -d zos_mobility_ci -v ON_ERROR_STOP=1 -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+          psql -h localhost -U postgres -d zos_mobility_ci -v ON_ERROR_STOP=1 <<'SQL'
+          create role anon nologin;
+          create role authenticated nologin;
+          create role service_role nologin bypassrls;
+          create schema if not exists auth;
+          create table auth.users (
+            id uuid primary key default gen_random_uuid(),
+            email text unique,
+            created_at timestamptz not null default now()
+          );
+          create or replace function auth.uid() returns uuid language sql stable as $$
+            select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
+          $$;
+          create or replace function auth.jwt() returns jsonb language sql stable as $$
+            select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb;
+          $$;
+          create or replace function auth.role() returns text language sql stable as $$
+            select coalesce(nullif(current_setting('request.jwt.claim.role', true), ''), 'anon');
+          $$;
+          revoke all on function auth.uid() from public;
+          grant usage on schema auth to anon, authenticated, service_role;
+          grant execute on function auth.uid() to anon, authenticated, service_role;
+          grant execute on function auth.jwt() to anon, authenticated, service_role;
+          grant execute on function auth.role() to anon, authenticated, service_role;
+          create schema if not exists storage;
+          create table storage.buckets (
+            id text primary key,
+            name text not null unique,
+            public boolean not null default false
+          );
+          create table storage.objects (
+            id uuid primary key default gen_random_uuid(),
+            bucket_id text not null,
+            name text not null,
+            owner uuid,
+            owner_id uuid,
+            created_at timestamptz not null default now(),
+            updated_at timestamptz not null default now()
+          );
+          SQL
+
+      - name: Apply complete integrated ZOS migration chain
+        env:
+          PGPASSWORD: zmobility_dev_pw
+        run: |
+          set -euo pipefail
+          count=0
+          while IFS= read -r migration; do
+            echo "--- ${migration} ---"
+            psql -h localhost -U postgres -d zos_mobility_ci -v ON_ERROR_STOP=1 -f "${migration}"
+            count=$((count + 1))
+          done < <(find infrastructure/supabase/migrations -maxdepth 1 -type f -name '*.sql' -print | sort)
+          test "$count" -gt 0
+          echo "INTEGRATED_MIGRATIONS_APPLIED=${count}"
+
+      - name: Verify Mobility database convergence
+        env:
+          PGPASSWORD: zmobility_dev_pw
+        run: psql -h localhost -U postgres -d zos_mobility_ci -v ON_ERROR_STOP=1 -f infrastructure/supabase/tests/z_mobility_database_convergence_v1.sql
+
+      - name: Verify Mobility domain and ingestion contracts
+        run: |
+          npm ci
+          npm run mobility:typecheck
+          npm run mobility:test
+
+      - name: Final Mobility PostgreSQL marker
+        env:
+          PGPASSWORD: zmobility_dev_pw
+        run: psql -h localhost -U postgres -d zos_mobility_ci -v ON_ERROR_STOP=1 -Atc "select 'ZMOBILITY_POSTGRES=PASS';"
