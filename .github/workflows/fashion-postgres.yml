@@ -2,30 +2,40 @@ name: Z Fashion PostgreSQL
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - chore/zos-five-app-convergence-v1
     paths:
       - "apps/fashion/**"
+      - "packages/geography/**"
       - "infrastructure/supabase/migrations/**"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/fashion-postgres.yml"
   pull_request:
-    branches: [main]
+    branches:
+      - main
+      - chore/zos-five-app-convergence-v1
     paths:
       - "apps/fashion/**"
+      - "packages/geography/**"
       - "infrastructure/supabase/migrations/**"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/fashion-postgres.yml"
 
+permissions:
+  contents: read
+
 jobs:
   postgres:
-    name: Full ZOS migration sequence + fashion-domain + fashion-partner
+    name: Full ZOS migration sequence + Fashion DB/domain/API
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     services:
       postgres:
-        image: postgres:16
+        image: postgres:17
         env:
           POSTGRES_PASSWORD: zfashion_dev_pw
         ports:
@@ -38,51 +48,93 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: package-lock.json
 
-      - name: Create database and Supabase-shape stubs
+      - name: Create disposable Supabase-compatible database
         env:
           PGPASSWORD: zfashion_dev_pw
         run: |
-          psql -h localhost -U postgres -c "CREATE DATABASE zos_ci;"
-          psql -h localhost -U postgres -d zos_ci -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
-          psql -h localhost -U postgres -d zos_ci -c "CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;"
-          psql -h localhost -U postgres -d zos_ci -c "CREATE SCHEMA auth; CREATE TABLE auth.users (id uuid primary key default gen_random_uuid());"
-          psql -h localhost -U postgres -d zos_ci -c "CREATE OR REPLACE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql AS \$\$ SELECT '{}'::jsonb \$\$;"
-          psql -h localhost -U postgres -d zos_ci -c "CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS \$\$ SELECT NULL::uuid \$\$;"
-          psql -h localhost -U postgres -d zos_ci -c "CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql AS \$\$ SELECT 'anon'::text \$\$;"
-          psql -h localhost -U postgres -d zos_ci -c "CREATE SCHEMA storage; CREATE TABLE storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text, owner uuid);"
+          psql -h localhost -U postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE zos_ci;"
+          psql -h localhost -U postgres -d zos_ci -v ON_ERROR_STOP=1 -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+          psql -h localhost -U postgres -d zos_ci -v ON_ERROR_STOP=1 <<'SQL'
+          create role anon nologin;
+          create role authenticated nologin;
+          create role service_role nologin bypassrls;
+          create schema if not exists auth;
+          create table auth.users (
+            id uuid primary key default gen_random_uuid(),
+            email text unique,
+            created_at timestamptz not null default now()
+          );
+          create or replace function auth.uid() returns uuid language sql stable as $$
+            select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
+          $$;
+          create or replace function auth.jwt() returns jsonb language sql stable as $$
+            select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb;
+          $$;
+          create or replace function auth.role() returns text language sql stable as $$
+            select coalesce(nullif(current_setting('request.jwt.claim.role', true), ''), 'anon');
+          $$;
+          revoke all on function auth.uid() from public;
+          grant usage on schema auth to anon, authenticated, service_role;
+          grant execute on function auth.uid() to anon, authenticated, service_role;
+          grant execute on function auth.jwt() to anon, authenticated, service_role;
+          grant execute on function auth.role() to anon, authenticated, service_role;
+          create schema if not exists storage;
+          create table storage.buckets (
+            id text primary key,
+            name text not null unique,
+            public boolean not null default false
+          );
+          create table storage.objects (
+            id uuid primary key default gen_random_uuid(),
+            bucket_id text not null,
+            name text not null,
+            owner uuid,
+            owner_id uuid,
+            created_at timestamptz not null default now(),
+            updated_at timestamptz not null default now()
+          );
+          SQL
 
-      - name: Apply every ZOS migration in order, including Z Fashion
+      - name: Apply complete integrated ZOS migration chain
         env:
           PGPASSWORD: zfashion_dev_pw
         run: |
-          for f in $(ls infrastructure/supabase/migrations/*.sql | sort); do
-            echo "--- $f ---"
-            psql -h localhost -U postgres -d zos_ci -v ON_ERROR_STOP=1 -f "$f"
-          done
+          set -euo pipefail
+          count=0
+          while IFS= read -r migration; do
+            echo "--- ${migration} ---"
+            psql -h localhost -U postgres -d zos_ci -v ON_ERROR_STOP=1 -f "${migration}"
+            count=$((count + 1))
+          done < <(find infrastructure/supabase/migrations -maxdepth 1 -type f -name '*.sql' -print | sort)
+          test "$count" -gt 0
+          echo "INTEGRATED_MIGRATIONS_APPLIED=${count}"
 
-      - name: Verify fashion.partners CHECK constraints with real inserts
+      - name: Verify Fashion partner constraint smoke
         env:
           PGPASSWORD: zfashion_dev_pw
         run: |
           psql -h localhost -U postgres -d zos_ci -v ON_ERROR_STOP=1 -c "
-            INSERT INTO fashion.partners (legal_name, country_iso, locales, categories)
-            VALUES ('CI Smoke Test', 'FR', ARRAY['fr'], ARRAY['clothing']::fashion.category[]);
+            insert into fashion.partners (legal_name, country_iso, locales, categories)
+            values ('CI Smoke Test', 'FR', array['fr'], array['clothing']::fashion.category[]);
           "
 
-      - name: Install monorepo dependencies
-        run: npm install --prefix apps/fashion/packages/fashion-domain
-      - run: npm test --prefix apps/fashion/packages/fashion-domain
+      - name: Verify Fashion domain
+        run: |
+          npm ci --prefix apps/fashion/packages/fashion-domain
+          npm test --prefix apps/fashion/packages/fashion-domain
 
-      - name: Run fashion-partner real Postgres integration test
+      - name: Verify Fashion Partner API against real PostgreSQL
         env:
           DATABASE_URL: postgres://postgres:zfashion_dev_pw@localhost:5432/zos_ci
         run: |
           npm ci --prefix apps/fashion/apps/fashion-partner
           node apps/fashion/apps/fashion-partner/tests/db.test.js
+
+      - name: Final Fashion PostgreSQL marker
+        env:
+          PGPASSWORD: zfashion_dev_pw
+        run: psql -h localhost -U postgres -d zos_ci -v ON_ERROR_STOP=1 -Atc "select 'ZFASHION_POSTGRES=PASS';"
