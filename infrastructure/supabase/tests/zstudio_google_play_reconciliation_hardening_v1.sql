@@ -222,6 +222,9 @@ begin
 end;
 $$;
 
+-- Service role exercises only the public server-side commands it is actually
+-- authorized to call in production. Internal-table assertions happen after
+-- RESET ROLE so this test does not require or encourage broader grants.
 set role service_role;
 do $$
 declare
@@ -244,7 +247,14 @@ begin
   if v_failed ->> 'result' <> 'failed' then
     raise exception 'Canceled pending Google intent was not failed';
   end if;
+end;
+$$;
+reset role;
 
+do $$
+declare
+  v_person uuid := current_setting('zstudio.test.google_fail_person')::uuid;
+begin
   if exists (
     select 1 from studio.production_trial_authority t
     where t.person_id = v_person and t.state = 'reserved'
@@ -257,7 +267,6 @@ begin
   end if;
 end;
 $$;
-reset role;
 
 select 'ZSTUDIO_GOOGLE_PLAY_RECONCILIATION_HARDENING_POSTGRES_AUTHORITY=PASS';
 rollback;
