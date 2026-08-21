@@ -1,6 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════
 //  Z STUDIO — MOBILE CENTER + INFORMATION FLOW CONTRACT
-//  ZSTUDIO_MOBILE_INFORMATION_FLOW_V2_CONTRACT
 // ═══════════════════════════════════════════════════════════════════════
 //
 // Abre a app num Chromium real a 390×844 e prova:
@@ -159,6 +158,7 @@ const INSPECT_CODE = `
       { role: canvasFrame.getAttribute('role'), action: canvasFrame.dataset.zsMobileEmptyAction });
   }
 
+  // testar o modal de produção em massa, se existir
   if (typeof toggleRealEstateModule === 'function' && typeof openBulk === 'function') {
     toggleRealEstateModule(true); await sleep(80);
     openBulk(); await sleep(150);
@@ -171,6 +171,7 @@ const INSPECT_CODE = `
     closeBulk(); toggleRealEstateModule(false);
   }
 
+  // Carrega duas fotos reais em memória para provar EMPTY → READY e carousel.
   if (typeof handleUploadFiles === 'function') {
     function makeTestFile(name, w, h, color) {
       const c = document.createElement('canvas'); c.width=w; c.height=h;
