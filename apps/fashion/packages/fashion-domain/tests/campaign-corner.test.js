@@ -35,15 +35,18 @@ assert.strictEqual(blackFriday2026.countryIso, null);
 
 // Corner and All Sale over a small fixture catalog.
 const shoe = createProduct({
+  title: 'Test Product',
   id: 'prod_shoe', partnerId: 'partner_a', brandId: 'brand_nike',
   categories: ['footwear', 'sportswear'], technicalPurpose: true,
   size: { system: 'EU', value: 42 },
 });
 const perfume = createProduct({
+  title: 'Test Product',
   id: 'prod_perfume', partnerId: 'partner_a', brandId: 'brand_house_label',
   categories: ['cosmetics'], format: { volumeMl: 50 },
 });
 const exclusiveBag = createProduct({
+  title: 'Test Product',
   id: 'prod_bag', partnerId: 'partner_b', brandId: 'brand_longchamp',
   categories: ['accessories_leather_goods'], cornerExclusive: true,
 });

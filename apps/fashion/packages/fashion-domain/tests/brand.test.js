@@ -18,8 +18,8 @@ assert.throws(() => createBrand({ id: 'b1' }), /name is required/);
 
 // Multi-brand Partner (JD Sports style): several distinct Brands in catalog.
 const jdSportsProducts = [
-  createProduct({ id: 'p1', partnerId: 'partner_jd', brandId: 'brand_nike', categories: ['footwear', 'sportswear'], technicalPurpose: true, size: { system: 'EU', value: 42 } }),
-  createProduct({ id: 'p2', partnerId: 'partner_jd', brandId: 'brand_adidas', categories: ['footwear', 'sportswear'], technicalPurpose: true, size: { system: 'EU', value: 43 } }),
+  createProduct({ title: 'Test Product', id: 'p1', partnerId: 'partner_jd', brandId: 'brand_nike', categories: ['footwear', 'sportswear'], technicalPurpose: true, size: { system: 'EU', value: 42 } }),
+  createProduct({ title: 'Test Product', id: 'p2', partnerId: 'partner_jd', brandId: 'brand_adidas', categories: ['footwear', 'sportswear'], technicalPurpose: true, size: { system: 'EU', value: 43 } }),
 ];
 const jdProfile = partnerBrandProfile(jdSportsProducts, 'partner_jd');
 assert.strictEqual(jdProfile.type, 'multi');
@@ -27,8 +27,8 @@ assert.deepStrictEqual(jdProfile.brandIds.sort(), ['brand_adidas', 'brand_nike']
 
 // Mono-brand Partner (an artisan atelier selling only its own house label).
 const atelierProducts = [
-  createProduct({ id: 'p3', partnerId: 'partner_atelier_du_marais', brandId: 'brand_atelier_du_marais', categories: ['accessories_leather_goods'] }),
-  createProduct({ id: 'p4', partnerId: 'partner_atelier_du_marais', brandId: 'brand_atelier_du_marais', categories: ['accessories_leather_goods'] }),
+  createProduct({ title: 'Test Product', id: 'p3', partnerId: 'partner_atelier_du_marais', brandId: 'brand_atelier_du_marais', categories: ['accessories_leather_goods'] }),
+  createProduct({ title: 'Test Product', id: 'p4', partnerId: 'partner_atelier_du_marais', brandId: 'brand_atelier_du_marais', categories: ['accessories_leather_goods'] }),
 ];
 const atelierProfile = partnerBrandProfile(atelierProducts, 'partner_atelier_du_marais');
 assert.strictEqual(atelierProfile.type, 'mono');
