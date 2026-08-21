@@ -67,6 +67,9 @@ function createProduct(input) {
   }
   if (!input.id) errors.push('id is required');
   if (!input.partnerId) errors.push('partnerId is required');
+  if (!input.title || !input.title.trim()) {
+    errors.push('title is required — every discoverable Product must carry a stable human-readable title.');
+  }
   if (!input.brandId) {
     errors.push(
       'brandId is required — even a Partner\'s own house label is a Brand, ' +
@@ -125,6 +128,8 @@ function createProduct(input) {
     id: input.id,
     partnerId: input.partnerId,
     brandId: input.brandId,
+    title: input.title.trim(),
+    shortDescription: input.shortDescription ? input.shortDescription.trim() : '',
     categories: [...categories],
     technicalPurpose: !!input.technicalPurpose,
     ageSegments: [...ageSegments],
