@@ -1,7 +1,0 @@
-{
-  "name": "@zos/geography",
-  "version": "0.1.0",
-  "private": true,
-  "description": "Shared ZOS Geography domain fixture for offline/unit use. The canonical runtime source of truth is the shared Supabase zos.geography_* model; this package owns no vertical-specific logic.",
-  "main": "./geography.js"
-}
