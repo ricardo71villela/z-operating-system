@@ -20,6 +20,7 @@ const WEB_INDEX_OUTPUT = path.join(ROOT, 'app', 'index.html');
 const WEB_LEGACY_OUTPUT = path.join(ROOT, 'app', 'my-studio.html');
 const STORE_CATALOG = path.join(ROOT, 'commercial', 'store-products.v1.json');
 const LAPTOP_BRAND_HEADER_CSS = path.join(SRC, 'ux', 'laptop-brand-header.css');
+const LAPTOP_PREMIUM_POLISH_CSS = path.join(SRC, 'ux', 'laptop-premium-polish-v2.css');
 
 const PLACEHOLDER = '__MYSTUDIO_SCRIPT_PLACEHOLDER__';
 const LEGACY_BRAND = 'My Studio';
@@ -29,6 +30,7 @@ const COMMERCIAL_BRAND_UPPER = 'Z STUDIO';
 const SUPABASE_ORIGIN = 'https://dcdggqyazdddrfuzwavw.supabase.co';
 const SUPABASE_CDN_ORIGIN = 'https://cdn.jsdelivr.net';
 const LAPTOP_BRAND_HEADER_MARKER = 'ZSTUDIO_LAPTOP_BRAND_HEADER_V1';
+const LAPTOP_PREMIUM_POLISH_MARKER = 'ZSTUDIO_LAPTOP_PREMIUM_POLISH_V2';
 
 function applyCommercialIdentity(text) {
   return String(text)
@@ -101,12 +103,21 @@ function publicCommercialConfig(baseUrl) {
 }
 
 function injectLaptopBrandHeaderCss(template) {
-  const css = fs.readFileSync(LAPTOP_BRAND_HEADER_CSS, 'utf-8').trim();
-  if (!css.includes(LAPTOP_BRAND_HEADER_MARKER)) {
-    throw new Error('CSS de marca laptop sem autoridade ' + LAPTOP_BRAND_HEADER_MARKER + '.');
-  }
-  if (String(template).includes(LAPTOP_BRAND_HEADER_MARKER)) {
-    throw new Error('Template já contém a autoridade de marca laptop; recusa duplicação.');
+  const modules = [
+    [LAPTOP_BRAND_HEADER_CSS, LAPTOP_BRAND_HEADER_MARKER, 'marca laptop'],
+    [LAPTOP_PREMIUM_POLISH_CSS, LAPTOP_PREMIUM_POLISH_MARKER, 'polish premium laptop'],
+  ];
+  const cssParts = [];
+
+  for (const [file, marker, label] of modules) {
+    const css = fs.readFileSync(file, 'utf-8').trim();
+    if (!css.includes(marker)) {
+      throw new Error('CSS de ' + label + ' sem autoridade ' + marker + '.');
+    }
+    if (String(template).includes(marker)) {
+      throw new Error('Template já contém a autoridade ' + marker + '; recusa duplicação.');
+    }
+    cssParts.push(css);
   }
 
   const closingStyle = '</style>';
@@ -115,10 +126,12 @@ function injectLaptopBrandHeaderCss(template) {
     throw new Error('Template Z Studio deve conter exatamente um </style> para injeção UX.');
   }
 
-  const output = String(template).replace(closingStyle, '\n' + css + '\n\n' + closingStyle);
-  const markerCount = output.split(LAPTOP_BRAND_HEADER_MARKER).length - 1;
-  if (markerCount !== 1) {
-    throw new Error('Autoridade de marca laptop não foi injetada exatamente uma vez.');
+  const output = String(template).replace(closingStyle, '\n' + cssParts.join('\n\n') + '\n\n' + closingStyle);
+  for (const [, marker] of modules) {
+    const markerCount = output.split(marker).length - 1;
+    if (markerCount !== 1) {
+      throw new Error('Autoridade ' + marker + ' não foi injetada exatamente uma vez.');
+    }
   }
   return output;
 }
@@ -205,9 +218,11 @@ function assemble() {
   const withCommercialCsp = applyCommercialRuntimeCsp(withAuth, commercialBaseUrl);
   const html = applyCommercialIdentity(withCommercialCsp.replace(PLACEHOLDER, script));
   assertCommercialIdentity(html, 'artefacto web Z Studio');
-  const laptopBrandMarkerCount = html.split(LAPTOP_BRAND_HEADER_MARKER).length - 1;
-  if (laptopBrandMarkerCount !== 1) {
-    throw new Error('Artefacto web não contém exatamente uma autoridade de marca laptop.');
+  for (const marker of [LAPTOP_BRAND_HEADER_MARKER, LAPTOP_PREMIUM_POLISH_MARKER]) {
+    const markerCount = html.split(marker).length - 1;
+    if (markerCount !== 1) {
+      throw new Error('Artefacto web não contém exatamente uma autoridade ' + marker + '.');
+    }
   }
 
   fs.mkdirSync(path.dirname(WEB_INDEX_OUTPUT), { recursive: true });
@@ -215,6 +230,7 @@ function assemble() {
   fs.writeFileSync(WEB_LEGACY_OUTPUT, html, 'utf-8');
   console.log('✅ Montados app/index.html e app/my-studio.html com identidade Z Studio (' + html.length + ' caracteres)');
   console.log('LAPTOP_BRAND_HEADER=' + LAPTOP_BRAND_HEADER_MARKER);
+  console.log('LAPTOP_PREMIUM_POLISH=' + LAPTOP_PREMIUM_POLISH_MARKER);
   console.log('COMMERCIAL_RUNTIME=' + (commercialConfig.enabled ? commercialConfig.baseUrl : 'DISABLED'));
   return html;
 }
