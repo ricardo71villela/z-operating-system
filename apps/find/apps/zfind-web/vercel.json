@@ -5,7 +5,8 @@
   "build": {
     "env": {
       "SUPABASE_URL": "https://dcdggqyazdddrfuzwavw.supabase.co",
-      "SUPABASE_ANON_KEY": "sb_publishable_LQqhseuSfNibffNh_cLLGQ_0cVxHQzX"
+      "SUPABASE_ANON_KEY": "sb_publishable_LQqhseuSfNibffNh_cLLGQ_0cVxHQzX",
+      "SITE_BASE_URL": "https://zfind.online"
     }
   },
   "buildCommand": "cd ../.. && node apps/zfind-web/scripts/build.js && node apps/zfind-web/scripts/generate-seo-pages.js && node apps/zfind-web/scripts/prepare-vercel-output.js",
