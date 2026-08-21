@@ -37,7 +37,7 @@ See `docs/architecture/ZOS-ALIGNMENT.md` and [`140-roadmaps/Z-FASHION-STRATEGY.m
 
 Person identity, Partner/Organization identity, Registry references, Trust Engine mechanics, Partner Quality Score, canonical Geography/Locale/Currency, audit mechanics and integration transport are reused from ZOS rather than reimplemented as Fashion-specific authorities.
 
-The local `@zos/geography` JavaScript package is an offline/unit-test fixture. Canonical runtime Geography remains the shared Supabase `zos.geography_*` model.
+`packages/geography/geography.js` is a shared offline/unit-test fixture module, not an npm package and not runtime Geography authority. Canonical runtime Geography remains the shared Supabase `zos.geography_*` model.
 
 ### Z Fashion-owned domain
 
