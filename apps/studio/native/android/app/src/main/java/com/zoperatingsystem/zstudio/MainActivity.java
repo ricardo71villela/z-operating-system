@@ -28,8 +28,15 @@ public class MainActivity extends BridgeActivity {
             .getString("commercialBaseUrl", "")
             .trim();
 
+        // A non-empty native override wins. An empty Capacitor setting must not
+        // erase the build-injected ZSTUDIO_COMMERCIAL_BASE_URL used by Web/iOS/
+        // Android from the canonical build pipeline.
+        String configJs = baseUrl.isEmpty()
+            ? ""
+            : "window.ZSTUDIO_COMMERCIAL_BASE_URL=" + JSONObject.quote(baseUrl) + ";";
+
         String js = "(function(){"
-            + "window.ZSTUDIO_COMMERCIAL_BASE_URL=" + JSONObject.quote(baseUrl) + ";"
+            + configJs
             + "var run=function(){"
             + "if(window.ZStudioGooglePlay&&window.ZStudioGooglePlay.onNativeResume){"
             + "window.ZStudioGooglePlay.onNativeResume();return;}"

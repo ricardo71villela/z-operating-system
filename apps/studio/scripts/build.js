@@ -5,16 +5,12 @@
 // app/index.html é a entrada web canónica. app/my-studio.html mantém-se apenas
 // como rota de compatibilidade. Ambos são FICHEIROS GERADOS — não editar
 // diretamente. A fonte real vive em:
-//   src/template.html              — a estrutura HTML/CSS, com um placeholder
-//   src/data/i18n.js               — traduções (conteúdo dos posts + interface)
-//   src/data/categories.js         — categorias, paletas, selos, campos extra
-//   src/main.js                    — estado, rendering, UI, exportações
-//   src/render/layout-guards.js    — guards de layout carregados após o renderer legado
-//   src/platform/auth.js           — sessão passwordless e Bearer bridge para IA
-//
-// Durante a convergência comercial A1.2A, os módulos históricos ainda podem
-// conter o nome legado "My Studio". A identidade emitida pelo build é sempre
-// "Z Studio"; um contrato explícito impede que o nome antigo volte ao artefacto.
+//   src/template.html              — estrutura HTML/CSS
+//   src/data/*                     — conteúdo e catálogo visual
+//   src/main.js                    — estado/rendering/UI/exportações
+//   src/platform/auth.js           — sessão ZOS / Bearer bridge
+//   src/platform/apple-billing.js  — lifecycle StoreKit 2
+//   src/platform/billing-ui.js     — planos Web/Apple/Google/Microsoft PWA
 const fs = require('fs');
 const path = require('path');
 
@@ -22,6 +18,7 @@ const ROOT = path.join(__dirname, '..');
 const SRC = path.join(ROOT, 'src');
 const WEB_INDEX_OUTPUT = path.join(ROOT, 'app', 'index.html');
 const WEB_LEGACY_OUTPUT = path.join(ROOT, 'app', 'my-studio.html');
+const STORE_CATALOG = path.join(ROOT, 'commercial', 'store-products.v1.json');
 
 const PLACEHOLDER = '__MYSTUDIO_SCRIPT_PLACEHOLDER__';
 const LEGACY_BRAND = 'My Studio';
@@ -41,6 +38,64 @@ function assertCommercialIdentity(text, label) {
   if (text.includes(LEGACY_BRAND) || text.includes(LEGACY_BRAND_UPPER)) {
     throw new Error(label + ' ainda contém a identidade legada My Studio.');
   }
+}
+
+function normalizeCommercialBaseUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  let parsed;
+  try { parsed = new URL(raw); }
+  catch { throw new Error('ZSTUDIO_COMMERCIAL_BASE_URL inválido.'); }
+  if (
+    parsed.protocol !== 'https:'
+    || parsed.username
+    || parsed.password
+    || parsed.search
+    || parsed.hash
+    || (parsed.pathname && parsed.pathname !== '/')
+  ) {
+    throw new Error('ZSTUDIO_COMMERCIAL_BASE_URL deve ser uma origem HTTPS sem path/query/hash.');
+  }
+  return parsed.origin;
+}
+
+function publicCommercialConfig(baseUrl) {
+  const catalog = JSON.parse(fs.readFileSync(STORE_CATALOG, 'utf-8'));
+  if (
+    catalog.authority !== 'ZSTUDIO_STORE_PRODUCT_AUTHORITY_V1'
+    || catalog.appId !== 'com.zoperatingsystem.zstudio'
+    || catalog.commercialTargetCurrency !== 'EUR'
+    || catalog.trialDays !== 3
+  ) throw new Error('Catálogo comercial Z Studio inválido para build público.');
+
+  const plans = {};
+  for (const planCode of ['weekly', 'monthly', 'annual']) {
+    const plan = catalog.plans?.[planCode];
+    if (
+      plan?.billingCadence !== planCode
+      || !Number.isInteger(plan?.commercialTargetPriceMinor)
+      || plan.commercialTargetPriceMinor <= 0
+      || typeof plan?.apple?.productId !== 'string'
+      || typeof plan?.google?.productId !== 'string'
+      || plan?.google?.basePlanId !== planCode
+    ) throw new Error('Plano comercial público inválido: ' + planCode);
+    plans[planCode] = Object.freeze({
+      priceMinor: plan.commercialTargetPriceMinor,
+      appleProductId: plan.apple.productId,
+      googleProductId: plan.google.productId,
+      googleBasePlanId: plan.google.basePlanId,
+    });
+  }
+
+  return Object.freeze({
+    authority: catalog.authority,
+    enabled: Boolean(baseUrl),
+    baseUrl,
+    appId: catalog.appId,
+    currency: catalog.commercialTargetCurrency,
+    trialDays: catalog.trialDays,
+    plans: Object.freeze(plans),
+  });
 }
 
 function applyAuthRuntimeCsp(template) {
@@ -68,6 +123,19 @@ function applyAuthRuntimeCsp(template) {
   return output;
 }
 
+function applyCommercialRuntimeCsp(template, baseUrl) {
+  if (!baseUrl) return template;
+  const marker = "connect-src 'self' https://z-studio-platform-seven.vercel.app https://dcdggqyazdddrfuzwavw.supabase.co;";
+  const replacement = marker.slice(0, -1) + ' ' + baseUrl + ';';
+  const occurrences = String(template).split(marker).length - 1;
+  if (occurrences !== 2) throw new Error('CSP comercial não encontrou exatamente duas políticas connect-src canónicas.');
+  const output = String(template).replaceAll(marker, replacement);
+  const escaped = baseUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const count = (output.match(new RegExp('connect-src[^;]*' + escaped, 'g')) || []).length;
+  if (count !== 2) throw new Error('CSP comercial não recebeu a origem runtime exatamente duas vezes.');
+  return output;
+}
+
 function assemble() {
   const template = fs.readFileSync(path.join(SRC, 'template.html'), 'utf-8');
   const i18n = fs.readFileSync(path.join(SRC, 'data', 'i18n.js'), 'utf-8');
@@ -78,23 +146,45 @@ function assemble() {
   const main = fs.readFileSync(path.join(SRC, 'main.js'), 'utf-8');
   const layoutGuards = fs.readFileSync(path.join(SRC, 'render', 'layout-guards.js'), 'utf-8');
   const auth = fs.readFileSync(path.join(SRC, 'platform', 'auth.js'), 'utf-8');
+  const appleBilling = fs.readFileSync(path.join(SRC, 'platform', 'apple-billing.js'), 'utf-8');
+  const billingUi = fs.readFileSync(path.join(SRC, 'platform', 'billing-ui.js'), 'utf-8');
 
   if (!template.includes(PLACEHOLDER)) {
     throw new Error('src/template.html não tem o placeholder ' + PLACEHOLDER + ' — a montagem não sabe onde inserir o script.');
   }
 
-  // ordem importa: dados primeiro (main.js lê I18N/CATEGORY_* como já definidos),
-  // depois state, storage e renderer legado. Os guards estabilizam o layout e
-  // Auth vem por último para substituir a bridge askAI já definida por main.js.
-  const script = [i18n, categories, stateModule, storage, platformStorage, main, layoutGuards, auth].join('\n\n');
-  const templateWithAuthCsp = applyAuthRuntimeCsp(template);
-  const html = applyCommercialIdentity(templateWithAuthCsp.replace(PLACEHOLDER, script));
+  const commercialBaseUrl = normalizeCommercialBaseUrl(process.env.ZSTUDIO_COMMERCIAL_BASE_URL);
+  const commercialConfig = publicCommercialConfig(commercialBaseUrl);
+  const commercialBoot = [
+    '// ZSTUDIO_PUBLIC_COMMERCIAL_RUNTIME_V1',
+    'window.ZSTUDIO_COMMERCIAL_BASE_URL=' + JSON.stringify(commercialBaseUrl) + ';',
+    'window.ZStudioCommercialConfig=Object.freeze(' + JSON.stringify(commercialConfig) + ');',
+  ].join('\n');
+
+  const script = [
+    commercialBoot,
+    i18n,
+    categories,
+    stateModule,
+    storage,
+    platformStorage,
+    main,
+    layoutGuards,
+    auth,
+    appleBilling,
+    billingUi,
+  ].join('\n\n');
+
+  const withAuth = applyAuthRuntimeCsp(template);
+  const withCommercialCsp = applyCommercialRuntimeCsp(withAuth, commercialBaseUrl);
+  const html = applyCommercialIdentity(withCommercialCsp.replace(PLACEHOLDER, script));
   assertCommercialIdentity(html, 'artefacto web Z Studio');
 
   fs.mkdirSync(path.dirname(WEB_INDEX_OUTPUT), { recursive: true });
   fs.writeFileSync(WEB_INDEX_OUTPUT, html, 'utf-8');
   fs.writeFileSync(WEB_LEGACY_OUTPUT, html, 'utf-8');
   console.log('✅ Montados app/index.html e app/my-studio.html com identidade Z Studio (' + html.length + ' caracteres)');
+  console.log('COMMERCIAL_RUNTIME=' + (commercialConfig.enabled ? commercialConfig.baseUrl : 'DISABLED'));
   return html;
 }
 
@@ -119,8 +209,6 @@ function propagate() {
   fs.writeFileSync(path.join(nativeWww, 'index.html'), html, 'utf-8');
   console.log('✅ Copiado para native/www/index.html');
 
-  // PWA: a mesma fonte serve o web build e o wrapper nativo. A raiz web é agora
-  // a entrada canónica; my-studio.html permanece apenas para links legados.
   const pwaDir = path.join(ROOT, 'pwa');
   const appDir = path.join(ROOT, 'app');
   const pwaTextFiles = ['manifest.webmanifest', 'sw.js'];
@@ -138,8 +226,6 @@ function propagate() {
   }
   if (iconFiles.length) console.log('✅ Copiados', iconFiles.length, 'ícones para app/ e native/www/');
 
-  // Legal: mantém uma única fonte em legal/ e publica cópias coerentes nos dois
-  // destinos. A1.2A altera apenas a marca; a revisão jurídica continua separada.
   const legalDir = path.join(ROOT, 'legal');
   for (const f of ['termos-de-servico.html', 'politica-privacidade.html']) {
     const source = path.join(legalDir, f);
