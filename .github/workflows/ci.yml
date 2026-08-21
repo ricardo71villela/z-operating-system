@@ -33,11 +33,16 @@ jobs:
             'apps/jobs',
             'apps/studio',
             'apps/fashion',
+            'packages/geography/geography.js',
+            'packages/geography/README.md',
             'infrastructure/supabase/migrations',
             '150-standards/MONOREPO-CONTRACT.md',
           ];
           for (const p of required) {
             if (!fs.existsSync(p)) throw new Error(`Missing required ZOS path: ${p}`);
+          }
+          if (fs.existsSync('packages/geography/package.json')) {
+            throw new Error('Geography fixture must not silently become an npm workspace package');
           }
           for (const script of ['zos:setup','zos:check','zos:test','zos:build','fashion:check','studio:check']) {
             if (!pkg.scripts?.[script]) throw new Error(`Missing root script: ${script}`);
@@ -48,9 +53,9 @@ jobs:
           const fashionPartner = JSON.parse(fs.readFileSync('apps/fashion/apps/fashion-partner/package.json', 'utf8'));
           if (fashionDomain.name !== '@zfashion/domain') throw new Error('Fashion domain must be vertical-owned');
           if (fashionPartner.name !== '@zfashion/partner') throw new Error('Fashion partner must be vertical-owned');
-          const geography = JSON.parse(fs.readFileSync('packages/geography/package.json', 'utf8'));
-          if (!/fixture/i.test(geography.description) || !/Supabase/i.test(geography.description)) {
-            throw new Error('Geography JS package must declare non-authoritative fixture status');
+          const geoReadme = fs.readFileSync('packages/geography/README.md', 'utf8');
+          if (!/fixture/i.test(geoReadme) || !/Supabase/i.test(geoReadme) || !/not the canonical runtime/i.test(geoReadme)) {
+            throw new Error('Geography fixture authority must be explicit');
           }
           console.log('ZOS_MONOREPO_CONTRACT=PASS');
           NODE
