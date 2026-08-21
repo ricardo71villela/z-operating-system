@@ -1,17 +1,18 @@
 // ═══════════════════════════════════════════════════════════════════════
-//  Z STUDIO — MOBILE CENTER + VIEWPORT CONTRACT
+//  Z STUDIO — MOBILE CENTER + INFORMATION FLOW CONTRACT
 // ═══════════════════════════════════════════════════════════════════════
 //
 // Abre a app num Chromium real a 390×844 e prova:
 // - ausência de overflow horizontal;
 // - preview state EMPTY → READY;
-// - export bloqueado sem media e ativo com media;
+// - EMPTY = criação primeiro, sem export/caption prematuros;
+// - READY = preview primeiro, export/caption novamente disponíveis;
 // - fit responsivo dos cinco formatos;
-// - hierarquia mobile de exportação;
-// - SVG icon system e Z AI empty state disponíveis no telemóvel;
-// - scroll vertical natural da página (ao contrário do workspace laptop).
+// - identidade Z Studio e SVG icon system no header mobile;
+// - copy de upload própria de telefone e sem pasta desktop;
+// - detalhes de texto em progressive disclosure;
+// - scroll vertical natural da página.
 //
-// Também mantém as verificações históricas de header, modal e seleção de foto.
 // As screenshots ficam em ./test-output/ para revisão visual opcional.
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -67,7 +68,7 @@ const INSPECT_CODE = `
     }
     return false;
   };
-  await sleep(550);
+  await sleep(650);
 
   const checks = [];
   const check = (name, pass, extra) => checks.push({ name, pass: !!pass, extra: extra ?? null });
@@ -75,13 +76,17 @@ const INSPECT_CODE = `
 
   check('viewport real é 390×844', window.innerWidth === 390 && window.innerHeight === 844, viewport());
   check('mobile runtime authority carregada', !!window.ZStudioMobileRuntime && window.ZStudioMobileRuntime.authority === 'ZSTUDIO_MOBILE_RUNTIME_AUTHORITY_V1');
+  check('mobile information flow v2 carregado', !!window.ZStudioMobileRuntime && window.ZStudioMobileRuntime.flowAuthority === 'ZSTUDIO_MOBILE_INFORMATION_FLOW_V2',
+    window.ZStudioMobileRuntime && window.ZStudioMobileRuntime.flowAuthority);
   check('preview state authority carregada', !!window.ZStudioPreviewRuntime && window.ZStudioPreviewRuntime.authority === 'ZSTUDIO_PREVIEW_STATE_MACHINE_V1');
 
   if (window.ZStudioMobileRuntime) window.ZStudioMobileRuntime.refresh();
-  await sleep(80);
+  await sleep(120);
 
   check('fit mobile runtime aplicado', document.documentElement.getAttribute('data-zstudio-preview-fit') === 'mobile-runtime-v1',
     document.documentElement.getAttribute('data-zstudio-preview-fit'));
+  check('flow mobile v2 aplicado', document.documentElement.getAttribute('data-zstudio-mobile-flow') === 'v2',
+    document.documentElement.getAttribute('data-zstudio-mobile-flow'));
 
   const bodyStyle = getComputedStyle(document.body);
   const htmlStyle = getComputedStyle(document.documentElement);
@@ -97,6 +102,11 @@ const INSPECT_CODE = `
   if (header) check('cabeçalho cabe no ecrã sem cortar', header.scrollWidth <= header.clientWidth + 2,
     { scrollWidth: header.scrollWidth, clientWidth: header.clientWidth });
 
+  const brandTag = document.querySelector('header .brand .tag');
+  const brandBefore = brandTag ? getComputedStyle(brandTag, '::before').content : '';
+  check('header mobile mostra identidade Z Studio', !!brandTag && getComputedStyle(brandTag).display !== 'none' && /Z Studio/.test(brandBefore),
+    { display: brandTag && getComputedStyle(brandTag).display, before: brandBefore });
+
   check('estado inicial sem rascunho é EMPTY', window.ZStudioPreviewRuntime && window.ZStudioPreviewRuntime.getState() === 'empty',
     window.ZStudioPreviewRuntime && window.ZStudioPreviewRuntime.getState());
 
@@ -106,24 +116,46 @@ const INSPECT_CODE = `
 
   check('SVG icon system chegou ao header mobile', !!document.querySelector('#btnHeaderBulk .zs-icon'));
   check('SVG icon system chegou à dropzone mobile', !!document.querySelector('.dropzone > .zs-dropzone-icon'));
+  check('Brand & Languages usa SVG no mobile', !!document.querySelector('#brandStep .step-label .zs-icon'));
 
-  const captionBox = document.querySelector('.caption-box');
-  if (captionBox && typeof syncStudioAssistantEmptyState === 'function') {
-    captionBox.classList.add('open');
-    syncStudioAssistantEmptyState();
-    await sleep(60);
-    const assistantEmpty = document.getElementById('zsAssistantEmptyState');
-    check('Z AI empty state existe no mobile', !!assistantEmpty);
-    check('Z AI empty state fica visível quando Caption abre vazio', !!assistantEmpty && getComputedStyle(assistantEmpty).display !== 'none',
-      assistantEmpty && getComputedStyle(assistantEmpty).display);
-    captionBox.classList.remove('open');
+  const controls = document.querySelector('.controls');
+  const stage = document.querySelector('.stage');
+  if (controls && stage) {
+    const cr = controls.getBoundingClientRect();
+    const sr = stage.getBoundingClientRect();
+    check('EMPTY põe criação antes do preview', cr.top < sr.top, { controlsTop: cr.top, stageTop: sr.top });
   }
+
+  const exportRow = document.querySelector('.export-row');
+  const captionBox = document.querySelector('.caption-box');
+  check('EMPTY não ocupa espaço com exportações', !!exportRow && getComputedStyle(exportRow).display === 'none',
+    exportRow && getComputedStyle(exportRow).display);
+  check('EMPTY não ocupa espaço com Caption', !!captionBox && getComputedStyle(captionBox).display === 'none',
+    captionBox && getComputedStyle(captionBox).display);
+
+  const folderPicker = document.getElementById('btnFolderPicker');
+  check('mobile remove ação de pasta sincronizada no computador', !!folderPicker && getComputedStyle(folderPicker).display === 'none',
+    folderPicker && getComputedStyle(folderPicker).display);
+
+  const uploadLabel = document.querySelector('#mediaStep > label.f');
+  check('mobile usa copy de upload própria de telefone', !!uploadLabel && /phone|telemóvel|téléphone|teléfono|Smartphone|telefono/i.test(uploadLabel.textContent),
+    uploadLabel && uploadLabel.textContent);
+
+  const detailsToggle = document.getElementById('zsMobileTextDetailsToggle');
+  const details = document.getElementById('zsMobileTextDetails');
+  check('detalhes adicionais têm disclosure mobile', !!detailsToggle && getComputedStyle(detailsToggle).display !== 'none');
+  check('detalhes adicionais começam recolhidos', !!details && getComputedStyle(details).display === 'none',
+    details && getComputedStyle(details).display);
 
   const canvasFrame = document.querySelector('.canvas-frame');
   if (canvasFrame) {
     const r = canvasFrame.getBoundingClientRect();
     check('pré-visualização vazia cabe no ecrã sem cortar', r.left >= -2 && r.right <= window.innerWidth + 2,
       { left: r.left, right: r.right, viewport: window.innerWidth });
+    check('preview EMPTY é compacto no mobile', r.height <= Math.min(window.innerHeight * 0.42, 355),
+      { height: r.height, viewportHeight: window.innerHeight });
+    check('preview EMPTY também funciona como ação de upload', canvasFrame.getAttribute('role') === 'button' && canvasFrame.dataset.zsMobileEmptyAction === 'true',
+      { role: canvasFrame.getAttribute('role'), action: canvasFrame.dataset.zsMobileEmptyAction });
   }
 
   // testar o modal de produção em massa, se existir
@@ -150,14 +182,35 @@ const INSPECT_CODE = `
     const f2 = await makeTestFile('b.png', 800, 600, '#996633');
     await handleUploadFiles([f1, f2]);
     await waitFor(() => window.ZStudioPreviewRuntime && window.ZStudioPreviewRuntime.isReady(), 2200);
-    if (window.ZStudioMobileRuntime) window.ZStudioMobileRuntime.fit();
-    await sleep(120);
+    if (window.ZStudioMobileRuntime) window.ZStudioMobileRuntime.refresh();
+    await sleep(160);
 
     check('2 fotos carregadas', state.photos && state.photos.length === 2, state.photos && state.photos.length);
     check('mobile passa a READY depois do decode', window.ZStudioPreviewRuntime && window.ZStudioPreviewRuntime.isReady(),
       window.ZStudioPreviewRuntime && window.ZStudioPreviewRuntime.getState());
     check('READY desbloqueia Download PNG no mobile', !!primary && primary.disabled === false,
       primary && { disabled: primary.disabled, ariaDisabled: primary.getAttribute('aria-disabled') });
+
+    if (controls && stage) {
+      const cr = controls.getBoundingClientRect();
+      const sr = stage.getBoundingClientRect();
+      check('READY devolve preview ao topo', sr.top < cr.top, { controlsTop: cr.top, stageTop: sr.top });
+    }
+    check('READY volta a mostrar exportações', !!exportRow && getComputedStyle(exportRow).display !== 'none',
+      exportRow && getComputedStyle(exportRow).display);
+    check('READY volta a mostrar Caption', !!captionBox && getComputedStyle(captionBox).display !== 'none',
+      captionBox && getComputedStyle(captionBox).display);
+
+    if (captionBox && typeof syncStudioAssistantEmptyState === 'function') {
+      captionBox.classList.add('open');
+      syncStudioAssistantEmptyState();
+      await sleep(60);
+      const assistantEmpty = document.getElementById('zsAssistantEmptyState');
+      check('Z AI empty state existe no mobile READY', !!assistantEmpty);
+      check('Z AI empty state fica visível ao abrir Caption vazio', !!assistantEmpty && getComputedStyle(assistantEmpty).display !== 'none',
+        assistantEmpty && getComputedStyle(assistantEmpty).display);
+      captionBox.classList.remove('open');
+    }
 
     const tile = document.querySelectorAll('#photoGrid .ph')[1];
     if (tile) {
@@ -207,7 +260,7 @@ const INSPECT_CODE = `
     }
 
     const moreToggle = document.querySelector('.export-more-toggle');
-    check('Mais opções de exportação continua acessível', !!moreToggle && getComputedStyle(moreToggle).display !== 'none');
+    check('Mais opções de exportação continua acessível em READY', !!moreToggle && getComputedStyle(moreToggle).display !== 'none');
   }
 
   check('sem overflow horizontal depois de carregar media', document.documentElement.scrollWidth <= window.innerWidth + 2,
@@ -258,7 +311,7 @@ async function main() {
   const checks = report.checks || [];
   const failed = checks.filter(c => !c.pass);
   console.log('\n════════════════════════════════════════');
-  console.log('Z STUDIO — MOBILE CENTER + VIEWPORT CONTRACT (390×844) — ' + targetName);
+  console.log('Z STUDIO — MOBILE CENTER + INFORMATION FLOW CONTRACT (390×844) — ' + targetName);
   console.log('RESULTADO: ' + (checks.length - failed.length) + ' passaram, ' + failed.length + ' falharam (de ' + checks.length + ')');
   console.log('════════════════════════════════════════\n');
   checks.forEach(c => console.log((c.pass ? '✅ ' : '❌ ') + c.name + (c.pass ? '' : ' → ' + JSON.stringify(c.extra))));
