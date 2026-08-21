@@ -93,8 +93,6 @@
   }
 
   window.addEventListener('load', refreshStudioLaptopRuntime, { once: true });
-
-  // Cover late draft restoration / asynchronous runtime hydration without polling.
   queueMicrotask(refreshStudioLaptopRuntime);
   setTimeout(refreshStudioLaptopRuntime, 80);
   setTimeout(refreshStudioLaptopRuntime, 450);
@@ -109,53 +107,17 @@
 
   const mobileQuery = window.matchMedia('(max-width:620px)');
   let mobileFitObserver = null;
-  let mobileMutationObserver = null;
+  let mobileStateObserver = null;
   let applyingMobileIcons = false;
   let syncingMobileFlow = false;
 
   const mobileFlowCopy = Object.freeze({
-    pt: Object.freeze({
-      uploadLabel: 'Adicione fotos ou vídeos do seu telemóvel',
-      uploadTitle: 'Escolher fotos ou vídeos',
-      uploadSub: 'Fototeca · Câmara · Ficheiros',
-      details: 'Detalhes adicionais',
-      previewAction: 'Adicionar foto ou vídeo'
-    }),
-    en: Object.freeze({
-      uploadLabel: 'Add photos or videos from your phone',
-      uploadTitle: 'Choose photos or videos',
-      uploadSub: 'Photo Library · Camera · Files',
-      details: 'Additional details',
-      previewAction: 'Add photo or video'
-    }),
-    fr: Object.freeze({
-      uploadLabel: 'Ajoutez des photos ou vidéos depuis votre téléphone',
-      uploadTitle: 'Choisir des photos ou vidéos',
-      uploadSub: 'Photothèque · Appareil photo · Fichiers',
-      details: 'Détails supplémentaires',
-      previewAction: 'Ajouter une photo ou vidéo'
-    }),
-    es: Object.freeze({
-      uploadLabel: 'Añade fotos o vídeos desde tu teléfono',
-      uploadTitle: 'Elegir fotos o vídeos',
-      uploadSub: 'Fotos · Cámara · Archivos',
-      details: 'Detalles adicionales',
-      previewAction: 'Añadir foto o vídeo'
-    }),
-    de: Object.freeze({
-      uploadLabel: 'Fotos oder Videos vom Smartphone hinzufügen',
-      uploadTitle: 'Fotos oder Videos auswählen',
-      uploadSub: 'Fotomediathek · Kamera · Dateien',
-      details: 'Weitere Details',
-      previewAction: 'Foto oder Video hinzufügen'
-    }),
-    it: Object.freeze({
-      uploadLabel: 'Aggiungi foto o video dal telefono',
-      uploadTitle: 'Scegli foto o video',
-      uploadSub: 'Libreria foto · Fotocamera · File',
-      details: 'Dettagli aggiuntivi',
-      previewAction: 'Aggiungi foto o video'
-    })
+    pt: Object.freeze({ uploadLabel: 'Adicione fotos ou vídeos do seu telemóvel', uploadTitle: 'Escolher fotos ou vídeos', uploadSub: 'Fototeca · Câmara · Ficheiros', details: 'Detalhes adicionais', previewAction: 'Adicionar foto ou vídeo' }),
+    en: Object.freeze({ uploadLabel: 'Add photos or videos from your phone', uploadTitle: 'Choose photos or videos', uploadSub: 'Photo Library · Camera · Files', details: 'Additional details', previewAction: 'Add photo or video' }),
+    fr: Object.freeze({ uploadLabel: 'Ajoutez des photos ou vidéos depuis votre téléphone', uploadTitle: 'Choisir des photos ou vidéos', uploadSub: 'Photothèque · Appareil photo · Fichiers', details: 'Détails supplémentaires', previewAction: 'Ajouter une photo ou vidéo' }),
+    es: Object.freeze({ uploadLabel: 'Añade fotos o vídeos desde tu teléfono', uploadTitle: 'Elegir fotos o vídeos', uploadSub: 'Fotos · Cámara · Archivos', details: 'Detalles adicionales', previewAction: 'Añadir foto o vídeo' }),
+    de: Object.freeze({ uploadLabel: 'Fotos oder Videos vom Smartphone hinzufügen', uploadTitle: 'Fotos oder Videos auswählen', uploadSub: 'Fotomediathek · Kamera · Dateien', details: 'Weitere Details', previewAction: 'Foto oder Video hinzufügen' }),
+    it: Object.freeze({ uploadLabel: 'Aggiungi foto o video dal telefono', uploadTitle: 'Scegli foto o video', uploadSub: 'Libreria foto · Fotocamera · File', details: 'Dettagli aggiuntivi', previewAction: 'Aggiungi foto o video' })
   });
 
   function isStudioMobileViewport() {
@@ -266,42 +228,44 @@
       textStep.insertBefore(toggle, wrapper);
     }
 
-    toggle.textContent = getMobileFlowCopy().details;
+    const label = getMobileFlowCopy().details;
+    if (toggle.textContent !== label) toggle.textContent = label;
     return { wrapper, toggle };
   }
 
   function renderMobileUploadCopy() {
+    const copy = getMobileFlowCopy();
     const uploadLabel = document.querySelector('#mediaStep > label.f');
-    if (uploadLabel) uploadLabel.textContent = getMobileFlowCopy().uploadLabel;
+    if (uploadLabel && uploadLabel.textContent !== copy.uploadLabel) uploadLabel.textContent = copy.uploadLabel;
 
     const dropzone = document.getElementById('dropZone');
     if (!dropzone) return;
-    const icon = dropzone.querySelector(':scope > .zs-icon');
-    Array.from(dropzone.childNodes).forEach(node => {
-      if (node !== icon) node.remove();
-    });
     let title = dropzone.querySelector(':scope > .zs-mobile-upload-title');
-    if (!title) {
-      title = document.createElement('div');
-      title.className = 'zs-mobile-upload-title';
-      dropzone.appendChild(title);
-    }
     let sub = dropzone.querySelector(':scope > .zs-mobile-upload-sub');
-    if (!sub) {
-      sub = document.createElement('div');
-      sub.className = 'zs-mobile-upload-sub';
-      dropzone.appendChild(sub);
+    if (!title || !sub) {
+      const icon = dropzone.querySelector(':scope > .zs-icon');
+      Array.from(dropzone.childNodes).forEach(node => {
+        if (node !== icon && node !== title && node !== sub) node.remove();
+      });
+      if (!title) {
+        title = document.createElement('div');
+        title.className = 'zs-mobile-upload-title';
+        dropzone.appendChild(title);
+      }
+      if (!sub) {
+        sub = document.createElement('div');
+        sub.className = 'zs-mobile-upload-sub';
+        dropzone.appendChild(sub);
+      }
     }
-    title.textContent = getMobileFlowCopy().uploadTitle;
-    sub.textContent = getMobileFlowCopy().uploadSub;
-    dropzone.setAttribute('aria-label', getMobileFlowCopy().uploadTitle);
+    if (title.textContent !== copy.uploadTitle) title.textContent = copy.uploadTitle;
+    if (sub.textContent !== copy.uploadSub) sub.textContent = copy.uploadSub;
+    if (dropzone.getAttribute('aria-label') !== copy.uploadTitle) dropzone.setAttribute('aria-label', copy.uploadTitle);
   }
 
   function syncMobileHeaderIdentity() {
     const bulk = document.getElementById('btnHeaderBulk');
-    if (bulk && !bulk.getAttribute('aria-label')) {
-      bulk.setAttribute('aria-label', stripStudioIconPrefix(bulk.textContent) || 'Bulk generation');
-    }
+    if (bulk && !bulk.getAttribute('aria-label')) bulk.setAttribute('aria-label', stripStudioIconPrefix(bulk.textContent) || 'Bulk generation');
   }
 
   function syncMobilePreviewAction() {
@@ -309,11 +273,12 @@
     const upload = document.getElementById('uploadInput');
     if (!frame || !upload) return;
     const ready = typeof resolveStudioPreviewState === 'function' && resolveStudioPreviewState() === 'ready';
+    const copy = getMobileFlowCopy();
     if (!ready) {
-      frame.setAttribute('role', 'button');
-      frame.setAttribute('tabindex', '0');
-      frame.setAttribute('aria-label', getMobileFlowCopy().previewAction);
-      frame.dataset.zsMobileEmptyAction = 'true';
+      if (frame.getAttribute('role') !== 'button') frame.setAttribute('role', 'button');
+      if (frame.getAttribute('tabindex') !== '0') frame.setAttribute('tabindex', '0');
+      if (frame.getAttribute('aria-label') !== copy.previewAction) frame.setAttribute('aria-label', copy.previewAction);
+      if (frame.dataset.zsMobileEmptyAction !== 'true') frame.dataset.zsMobileEmptyAction = 'true';
       if (frame.dataset.zsMobileEmptyActionObserved !== 'true') {
         frame.dataset.zsMobileEmptyActionObserved = 'true';
         frame.addEventListener('click', () => {
@@ -343,7 +308,7 @@
       renderMobileUploadCopy();
       syncMobileHeaderIdentity();
       syncMobilePreviewAction();
-      document.documentElement.setAttribute('data-zstudio-mobile-flow', 'v2');
+      if (document.documentElement.getAttribute('data-zstudio-mobile-flow') !== 'v2') document.documentElement.setAttribute('data-zstudio-mobile-flow', 'v2');
     } finally {
       syncingMobileFlow = false;
     }
@@ -359,16 +324,8 @@
     const stageStyle = getComputedStyle(stage);
     const frameStyle = getComputedStyle(frame);
     const stagePaddingX = (parseFloat(stageStyle.paddingLeft) || 0) + (parseFloat(stageStyle.paddingRight) || 0);
-    const frameChromeX =
-      (parseFloat(frameStyle.paddingLeft) || 0) +
-      (parseFloat(frameStyle.paddingRight) || 0) +
-      (parseFloat(frameStyle.borderLeftWidth) || 0) +
-      (parseFloat(frameStyle.borderRightWidth) || 0);
-    const frameChromeY =
-      (parseFloat(frameStyle.paddingTop) || 0) +
-      (parseFloat(frameStyle.paddingBottom) || 0) +
-      (parseFloat(frameStyle.borderTopWidth) || 0) +
-      (parseFloat(frameStyle.borderBottomWidth) || 0);
+    const frameChromeX = (parseFloat(frameStyle.paddingLeft) || 0) + (parseFloat(frameStyle.paddingRight) || 0) + (parseFloat(frameStyle.borderLeftWidth) || 0) + (parseFloat(frameStyle.borderRightWidth) || 0);
+    const frameChromeY = (parseFloat(frameStyle.paddingTop) || 0) + (parseFloat(frameStyle.paddingBottom) || 0) + (parseFloat(frameStyle.borderTopWidth) || 0) + (parseFloat(frameStyle.borderBottomWidth) || 0);
 
     const viewportWidth = Math.max(280, window.innerWidth || document.documentElement.clientWidth || 390);
     const viewportHeight = Math.max(520, window.innerHeight || document.documentElement.clientHeight || 844);
@@ -376,16 +333,12 @@
     const maxFrameWidth = Math.max(240, Math.min(stageWidth - stagePaddingX, viewportWidth - 24));
     const maxCanvasWidth = Math.max(220, maxFrameWidth - frameChromeX);
     const mode = typeof resolveStudioPreviewState === 'function' ? resolveStudioPreviewState() : 'ready';
-    const heightBudget = mode === 'ready'
-      ? Math.min(viewportHeight * 0.58, 520)
-      : Math.min(viewportHeight * 0.36, 330);
+    const heightBudget = mode === 'ready' ? Math.min(viewportHeight * 0.58, 520) : Math.min(viewportHeight * 0.36, 330);
     const maxCanvasHeight = Math.max(220, heightBudget - frameChromeY);
 
     const intrinsicWidth = Math.max(1, Number(preview.width) || 1080);
     const intrinsicHeight = Math.max(1, Number(preview.height) || 1350);
-    let scale = Math.min(maxCanvasWidth / intrinsicWidth, maxCanvasHeight / intrinsicHeight);
-    scale = Math.max(0.10, scale);
-
+    const scale = Math.max(0.10, Math.min(maxCanvasWidth / intrinsicWidth, maxCanvasHeight / intrinsicHeight));
     const renderWidth = Math.max(150, Math.floor(intrinsicWidth * scale));
     const renderHeight = Math.max(150, Math.floor(intrinsicHeight * scale));
 
@@ -445,7 +398,6 @@
     const box = caption && caption.closest('.caption-box');
     const empty = ensureStudioAssistantEmptyState();
     if (!caption || !box || !empty) return;
-
     const authored = typeof zstudioAssistantAuthored !== 'undefined' && zstudioAssistantAuthored;
     const manual = typeof zstudioAssistantManualMode !== 'undefined' && zstudioAssistantManualMode;
     const showEmpty = !authored && !manual;
@@ -478,7 +430,6 @@
 
   function startStudioMobileRuntime() {
     if (!isStudioMobileViewport()) return;
-
     if (typeof installStudioUxHooks === 'function') installStudioUxHooks();
     if (typeof ensureStudioAssistantEmptyState === 'function') ensureStudioAssistantEmptyState();
     if (typeof observeStudioCaptionAuthoring === 'function') observeStudioCaptionAuthoring();
@@ -497,9 +448,9 @@
       mobileFitObserver.observe(stage);
     }
 
-    if (document.body && typeof MutationObserver === 'function' && !mobileMutationObserver) {
-      mobileMutationObserver = new MutationObserver(() => queueMicrotask(refreshStudioMobileRuntime));
-      mobileMutationObserver.observe(document.body, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ['data-zstudio-preview-state'] });
+    if (document.documentElement && typeof MutationObserver === 'function' && !mobileStateObserver) {
+      mobileStateObserver = new MutationObserver(() => queueMicrotask(refreshStudioMobileRuntime));
+      mobileStateObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-zstudio-preview-state'] });
     }
 
     refreshStudioMobileRuntime();
@@ -510,15 +461,10 @@
 
   window.addEventListener('resize', refreshStudioMobileRuntime, { passive: true });
   window.addEventListener('orientationchange', refreshStudioMobileRuntime, { passive: true });
-  mobileQuery.addEventListener?.('change', () => {
-    if (isStudioMobileViewport()) startStudioMobileRuntime();
-  });
+  mobileQuery.addEventListener?.('change', () => { if (isStudioMobileViewport()) startStudioMobileRuntime(); });
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', startStudioMobileRuntime, { once: true });
-  } else {
-    startStudioMobileRuntime();
-  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startStudioMobileRuntime, { once: true });
+  else startStudioMobileRuntime();
   window.addEventListener('load', startStudioMobileRuntime, { once: true });
 
   window.ZStudioMobileRuntime = Object.freeze({
