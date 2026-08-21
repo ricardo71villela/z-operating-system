@@ -3,7 +3,7 @@
 // - EMPTY never paints production title/price/badge over the placeholder;
 // - restored media is LOADING until decoded, then READY;
 // - export is disabled outside READY;
-// - all five formats fit inside the creative column at 1440x900.
+// - all five formats fit inside the creative column at a true 1440x900 content viewport.
 
 const { app, BrowserWindow } = require('electron');
 const http = require('http');
@@ -24,6 +24,7 @@ if (!fs.existsSync(targetPath)) {
 }
 
 app.commandLine.appendSwitch('disable-gpu');
+app.commandLine.appendSwitch('force-device-scale-factor', '1');
 app.disableHardwareAcceleration();
 
 function startServer(dir) {
@@ -50,6 +51,12 @@ const TEST_CODE = String.raw`
   const assert = (name, cond, extra) => results.push({ name, pass: !!cond, extra: extra ?? null });
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   await sleep(450);
+
+  assert(
+    'harness abriu viewport laptop real',
+    window.innerWidth >= 1380 && window.innerHeight >= 840,
+    { innerWidth: window.innerWidth, innerHeight: window.innerHeight, dpr: window.devicePixelRatio }
+  );
 
   const runtime = window.ZStudioPreviewRuntime;
   assert('preview state authority carregada', !!runtime && runtime.authority === 'ZSTUDIO_PREVIEW_STATE_MACHINE_V1');
@@ -161,10 +168,18 @@ const TEST_CODE = String.raw`
       assert(format + ': export não atravessa o footer', ar.bottom <= footerTop + 1, { ar, footerTop });
     }
 
+    const htmlOverflow = getComputedStyle(document.documentElement).overflowY;
+    const bodyOverflow = getComputedStyle(document.body).overflowY;
     assert(
-      'workspace não cria scroll vertical do documento',
-      document.documentElement.scrollHeight <= document.documentElement.clientHeight + 2,
-      { scrollHeight: document.documentElement.scrollHeight, clientHeight: document.documentElement.clientHeight }
+      'workspace fixa o documento e delega scroll ao rail',
+      ['hidden', 'clip'].includes(htmlOverflow) && ['hidden', 'clip'].includes(bodyOverflow),
+      {
+        htmlOverflow,
+        bodyOverflow,
+        scrollHeight: document.documentElement.scrollHeight,
+        clientHeight: document.documentElement.clientHeight,
+        innerHeight: window.innerHeight
+      }
     );
     assert('runtime fit authority aplicada', document.documentElement.getAttribute('data-zstudio-preview-fit') === 'runtime-v1');
   } catch (error) {
@@ -193,12 +208,16 @@ async function main() {
     width: 1440,
     height: 900,
     show: false,
+    useContentSize: true,
     webPreferences: { offscreen: true, contextIsolation: false, sandbox: false }
   });
+  win.setContentSize(1440, 900, false);
+  win.webContents.setZoomFactor(1);
   win.webContents.setFrameRate(30);
   win.webContents.on('paint', () => {});
 
   await win.loadURL('http://127.0.0.1:' + port + '/' + targetName);
+  win.setContentSize(1440, 900, false);
   let results;
   try {
     results = await win.webContents.executeJavaScript(TEST_CODE, true);
