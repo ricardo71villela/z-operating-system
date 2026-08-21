@@ -324,7 +324,7 @@ function renderStudioAssistantCopy() {
   const copy = zstudioAssistantStrings();
   document.querySelectorAll('[data-zs-assistant-copy]').forEach(el => {
     const key = el.getAttribute('data-zs-assistant-copy');
-    if (copy[key]) el.textContent = copy[key];
+    if (copy[key] && el.textContent !== copy[key]) el.textContent = copy[key];
   });
 }
 
