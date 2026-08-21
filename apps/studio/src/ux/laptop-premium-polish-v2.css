@@ -440,3 +440,26 @@
     color:#eef0f0 !important;
   }
 }
+
+/* ZSTUDIO_SIDE_RAIL_BALANCE_V1
+   Match the left editing rail with an open assistant rail: one structural
+   separator only, no framed box ending above the footer. */
+@media (min-width: 1200px) {
+  .caption-box {
+    border:0 !important;
+    border-left:1px solid var(--studio-hairline) !important;
+    border-radius:0 !important;
+    background:transparent !important;
+    box-shadow:none !important;
+    padding:18px 0 18px 18px !important;
+  }
+
+  .zs-assistant-empty-state {
+    border:0 !important;
+    border-radius:0 !important;
+    background:transparent !important;
+    box-shadow:none !important;
+    padding-left:18px;
+    padding-right:18px;
+  }
+}
