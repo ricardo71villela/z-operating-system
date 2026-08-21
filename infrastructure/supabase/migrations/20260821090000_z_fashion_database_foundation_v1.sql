@@ -78,11 +78,25 @@ comment on table fashion.corner_configs is 'What a Partner may customize about t
 
 alter table fashion.corner_configs enable row level security;
 
+-- Read the claim from PostgreSQL's request.jwt.claims GUC directly rather than
+-- depending on Supabase's auth.jwt() helper. Supabase populates this GUC for
+-- authenticated requests, while the same expression remains valid in the
+-- disposable plain-PostgreSQL convergence harness used by ZOS CI.
 create policy "partners manage their own record"
 on fashion.partners
 for all
 to authenticated
-using (id = (auth.jwt() ->> 'fashion_partner_id')::uuid)
-with check (id = (auth.jwt() ->> 'fashion_partner_id')::uuid);
+using (
+  id = (
+    coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb
+    ->> 'fashion_partner_id'
+  )::uuid
+)
+with check (
+  id = (
+    coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb
+    ->> 'fashion_partner_id'
+  )::uuid
+);
 
 comment on policy "partners manage their own record" on fashion.partners is 'Placeholder claim-based policy — fashion_partner_id is not yet issued by any auth flow. Revisit once fashion-partner auth is wired to Supabase Auth; do not treat this as production-ready access control yet.';
