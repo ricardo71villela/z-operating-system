@@ -349,3 +349,361 @@
     max-height:calc(100vh - 195px);
   }
 }
+
+/* ZSTUDIO_LAPTOP_PREMIUM_POLISH_V1
+   Visual refinement only. The approved three-zone workspace geometry remains unchanged.
+   Goals: calmer type rhythm, deliberate spacing, neutral empty surfaces, stronger focus states,
+   quieter iconography, and a more finished desktop-product feel without changing behavior.
+*/
+
+@media (min-width: 981px) {
+  body {
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+
+  header {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0)),
+      #0b0d0e;
+    border-bottom-color:#34393d;
+    box-shadow:0 1px 0 rgba(255,255,255,0.018);
+  }
+
+  .controls {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.012), transparent 28%),
+      #0a0c0d;
+    border-right-color:#34393d;
+  }
+
+  .controls::-webkit-scrollbar {
+    width:7px;
+  }
+
+  .controls::-webkit-scrollbar-thumb {
+    background:#33383c;
+    border:2px solid #0a0c0d;
+  }
+
+  .controls .step {
+    padding-bottom:2px;
+  }
+
+  .controls .step-label {
+    color:#c6c9cc;
+    font-size:0.64rem;
+    font-weight:500;
+    letter-spacing:0.18em;
+    line-height:1.2;
+  }
+
+  .controls .step-label::after {
+    background:linear-gradient(90deg, #353a3e, rgba(53,58,62,0));
+  }
+
+  .controls label.f {
+    margin-top:11px;
+    margin-bottom:6px;
+    color:#b7bcc0;
+    font-size:0.72rem;
+    line-height:1.35;
+  }
+
+  .controls .hint {
+    color:#92989d;
+    font-size:0.68rem;
+    line-height:1.52;
+  }
+
+  .controls select,
+  .controls input[type=text],
+  .controls input[type=number],
+  .controls textarea {
+    min-height:39px;
+    padding:9px 11px;
+    border-color:#3b4145;
+    border-radius:5px;
+    background:#121517;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.015);
+  }
+
+  .controls select:hover,
+  .controls input[type=text]:hover,
+  .controls input[type=number]:hover,
+  .controls textarea:hover {
+    border-color:#50575c;
+  }
+
+  .controls select:focus,
+  .controls input:focus,
+  .controls textarea:focus {
+    border-color:#777f85;
+    box-shadow:0 0 0 3px rgba(255,255,255,0.055);
+  }
+
+  .seg {
+    gap:7px;
+  }
+
+  .seg button {
+    min-height:36px;
+    border-color:#3b4145;
+    border-radius:5px;
+    background:#111416;
+  }
+
+  .seg button:hover {
+    border-color:#626a70;
+    color:#f2f2ef;
+    background:#15191b;
+    transform:translateY(-1px);
+  }
+
+  .seg button.active {
+    border-color:#747c82;
+    color:#f7f7f4;
+    background:rgba(255,255,255,0.055);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.035);
+  }
+
+  .chip {
+    border-color:#41474b;
+    background:rgba(255,255,255,0.008);
+  }
+
+  .chip:hover,
+  .chip.active {
+    border-color:#6a7278;
+    color:#f1f2ef;
+    background:rgba(255,255,255,0.045);
+  }
+
+  .dropzone {
+    min-height:116px;
+    padding:24px 18px;
+    border-color:#454b50;
+    border-radius:7px;
+    background:
+      radial-gradient(circle at 50% 24%, rgba(255,255,255,0.035), transparent 42%),
+      linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0.006)),
+      #111416;
+    color:#c4c8cb;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.018);
+  }
+
+  .dropzone:hover,
+  .dropzone.drag {
+    border-color:#7a8287;
+    color:#f2f2ef;
+    background:
+      radial-gradient(circle at 50% 24%, rgba(255,255,255,0.055), transparent 42%),
+      linear-gradient(180deg, rgba(255,255,255,0.026), rgba(255,255,255,0.008)),
+      #131719;
+  }
+
+  #btnFolderPicker,
+  #advancedToggleRow,
+  #draftHint button {
+    transition:border-color .18s ease, color .18s ease, background-color .18s ease, opacity .18s ease;
+  }
+
+  #btnFolderPicker {
+    border-radius:5px;
+    border-color:#42484c;
+    background:#0f1213;
+  }
+
+  #btnFolderPicker:hover {
+    border-color:#697177;
+    background:#141719;
+  }
+
+  #advancedToggleRow:hover {
+    color:#d8dbdd;
+  }
+
+  .btn,
+  .lang-select {
+    border-radius:5px;
+  }
+
+  .btn {
+    font-weight:500;
+  }
+
+  .btn:focus-visible,
+  .lang-select:focus-visible,
+  .dropzone:focus-visible,
+  .step-label[role=button]:focus-visible,
+  .chip:focus-visible,
+  .seg button:focus-visible {
+    outline:2px solid rgba(230,233,235,0.72);
+    outline-offset:2px;
+  }
+
+  .stage {
+    background:
+      radial-gradient(ellipse 72% 62% at 42% 42%, rgba(255,255,255,0.018), transparent 72%);
+  }
+
+  .stage-glow {
+    opacity:0.72;
+    filter:blur(28px);
+  }
+
+  .canvas-frame {
+    border-color:#3e4448;
+    border-radius:9px;
+    background:#101315;
+    box-shadow:
+      0 28px 72px rgba(0,0,0,0.56),
+      0 0 0 1px rgba(255,255,255,0.012),
+      inset 0 1px 0 rgba(255,255,255,0.028);
+    transition:border-color .22s ease, box-shadow .22s ease, transform .22s ease;
+  }
+
+  .canvas-frame:hover {
+    border-color:#50575c;
+    box-shadow:
+      0 32px 80px rgba(0,0,0,0.60),
+      0 0 0 1px rgba(255,255,255,0.018),
+      inset 0 1px 0 rgba(255,255,255,0.035);
+  }
+
+  #preview {
+    border-radius:4px;
+  }
+
+  .slide-nav button {
+    border-color:#3f454a;
+    background:#101315;
+  }
+
+  .slide-nav button:hover {
+    border-color:#70787d;
+    color:#f1f2ef;
+    background:#161a1c;
+  }
+
+  .actions .export-primary {
+    border-radius:5px;
+    background:#f2f1ec;
+    border-color:#f2f1ec;
+    color:#0a0b0c;
+    box-shadow:0 8px 24px rgba(0,0,0,0.20);
+  }
+
+  .actions .export-primary:hover {
+    background:#ffffff;
+    border-color:#ffffff;
+    box-shadow:0 10px 28px rgba(0,0,0,0.28);
+    transform:translateY(-1px);
+  }
+
+  .export-more-toggle {
+    border-color:#454b50;
+    background:#101315;
+    color:#c9cdd0;
+  }
+
+  .export-more-toggle:hover,
+  .export-more-shell.open .export-more-toggle {
+    border-color:#686f75;
+    color:#f2f2ef;
+    background:#15191b;
+  }
+
+  .export-secondary-group {
+    border-color:#454b50;
+    border-radius:7px;
+    background:rgba(15,18,20,0.985);
+    box-shadow:0 22px 54px rgba(0,0,0,0.56);
+  }
+
+  .export-secondary-group .export-secondary {
+    border-radius:4px;
+    background:#111416;
+  }
+
+  .export-secondary-group .export-secondary:hover {
+    border-color:#656d72;
+    color:#f1f2ef;
+    background:#171b1d;
+  }
+
+  .header-actions .btn,
+  .header-actions .lang-select {
+    min-height:38px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .caption-box {
+    padding:20px;
+    border-color:#3d4347;
+    border-radius:9px;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(255,255,255,0.032), transparent 30%),
+      linear-gradient(180deg, rgba(255,255,255,0.022), rgba(255,255,255,0.006)),
+      #101315;
+    box-shadow:
+      0 24px 58px rgba(0,0,0,0.28),
+      inset 0 1px 0 rgba(255,255,255,0.025);
+  }
+
+  .caption-head > label.f {
+    color:#c9cdd0;
+    font-weight:500;
+    letter-spacing:0.15em;
+  }
+
+  .caption-head > div .btn {
+    border-radius:5px;
+    background:
+      linear-gradient(#121517,#121517) padding-box,
+      linear-gradient(90deg,
+        rgba(255,104,118,.56),
+        rgba(235,184,79,.52),
+        rgba(96,188,153,.50),
+        rgba(88,154,216,.52),
+        rgba(143,111,213,.56)) border-box !important;
+    color:#e8eaeb !important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.018);
+  }
+
+  .caption-head > div .btn:hover,
+  .caption-head > div .btn:focus {
+    background:
+      linear-gradient(#171b1d,#171b1d) padding-box,
+      linear-gradient(90deg,
+        rgba(255,104,118,.76),
+        rgba(235,184,79,.72),
+        rgba(96,188,153,.70),
+        rgba(88,154,216,.72),
+        rgba(143,111,213,.76)) border-box !important;
+    color:#ffffff !important;
+  }
+
+  .caption-box textarea {
+    padding:14px;
+    border-color:#3b4145;
+    border-radius:6px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.008), rgba(255,255,255,0)),
+      #0b0d0e;
+    color:#e9ebec;
+    line-height:1.7;
+    caret-color:#f3f3ef;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.012);
+  }
+
+  .caption-box textarea:hover {
+    border-color:#4c5358;
+  }
+
+  .caption-box textarea:focus {
+    border-color:#777f85;
+    box-shadow:0 0 0 3px rgba(255,255,255,0.05);
+  }
+}
