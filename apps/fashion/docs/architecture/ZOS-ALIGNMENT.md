@@ -31,6 +31,26 @@ applied by Z Jobs and Z Mobility.
   size, image quality) as vertical-specific extensions, or stay generic?
 
 ## Resolved
+
+- **Partner monetization (subscription + commission)** — resolved as a
+  deliberate market-entry position below the two direct France precedents
+  (Miinto ~16-20% + ~EUR98/month; Galeries Lafayette ~15% + ~EUR40-49/month,
+  see Z-FASHION-COMPETITIVE-LANDSCAPE.md): first month free (subscription
+  only — commission still applies from day 1, since it is charged only on a
+  sale the Platform already facilitated), a EUR35/month subscription from
+  month 2 onward, and category base commission rates (10-15%, lower for
+  Sportswear/Cosmetics per their thinner real-world margins) reduced further
+  by a volume-progressive discount and a Partner Quality Score discount,
+  combined discount capped at 5 percentage points. Built in
+  `fashion-domain/src/commission.js` and mirrored in SQL
+  (`20260821170000_z_fashion_commission_v1.sql`,
+  `fashion.effective_commission_rate()`), same dual-enforcement discipline
+  as `cart.js`/`attempt_checkout()` and
+  `campaign-pricing.js`/`validate_campaign_discount()` — rate tables are
+  reference data (`fashion.commission_rates`,
+  `fashion.volume_discount_tiers`, `fashion.partner_monetization_config`),
+  not hardcoded in functions, so a rate change is a data update, not a
+  migration.
 - **Order/Cart primitive** — resolved as Fashion-owned for now, not
   promoted to a ZOS-level shared capability. No other current vertical
   (Z Find, Z Jobs, Z Mobility) needs a multi-seller cart — Z Find sells
