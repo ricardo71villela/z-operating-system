@@ -6,6 +6,11 @@
    - keep PNG as the only bright primary export;
    - reduce right-rail dead space without changing its width;
    - finish thumbnail micro-controls without changing media behavior.
+
+   CENTER BALANCE V1 refinement:
+   - reserve vertical budget explicitly for navigation + export controls;
+   - prevent the canvas frame from consuming the full creative column;
+   - preserve the approved horizontal three-zone geometry.
 */
 
 @media (min-width: 981px) {
@@ -44,8 +49,8 @@
     height: 100%;
     min-height: 0 !important;
     overflow: hidden;
-    padding-top: 18px;
-    padding-bottom: 14px;
+    padding-top: 12px;
+    padding-bottom: 10px;
   }
 
   .site-footer {
@@ -120,23 +125,30 @@
 
 @media (min-width: 1200px) {
   .stage {
-    grid-template-rows: minmax(0, 1fr) 32px 42px;
-    row-gap: 10px;
+    grid-template-rows: minmax(0, 1fr) 30px 40px;
+    row-gap: 8px;
+    align-content: stretch;
   }
 
   .canvas-frame {
+    box-sizing: border-box;
     max-height: 100%;
     min-height: 0;
-    padding: 10px;
+    max-width: 100%;
+    padding: 8px;
+    overflow: hidden;
   }
 
   #preview {
-    max-height: min(100%, calc(100vh - 286px)) !important;
+    width: auto !important;
+    height: auto !important;
+    max-width: 100% !important;
+    max-height: min(64vh, calc(100vh - 260px)) !important;
   }
 
   .slide-nav {
-    min-height: 32px;
-    gap: 10px;
+    min-height: 30px;
+    gap: 9px;
     color: #a7adb1;
   }
 
@@ -155,13 +167,13 @@
   }
 
   .actions {
-    min-height: 42px;
+    min-height: 40px;
     gap: 8px;
   }
 
   .actions .export-primary,
   .actions .export-more-toggle {
-    min-height: 40px;
+    min-height: 38px;
   }
 
   /* One bright action only. Carousel remains directly available, but no longer
@@ -195,8 +207,8 @@
     content: '';
     position: absolute;
     left: 0;
-    top: -18px;
-    bottom: -14px;
+    top: -12px;
+    bottom: -10px;
     width: 1px;
     background: var(--studio-hairline);
     pointer-events: none;
@@ -239,6 +251,6 @@
 
 @media (min-width: 1500px) {
   #preview {
-    max-height: min(100%, calc(100vh - 272px)) !important;
+    max-height: min(66vh, calc(100vh - 248px)) !important;
   }
 }
