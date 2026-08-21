@@ -124,3 +124,19 @@ update accepted, reservation reduces sellable without touching total stock,
 over-reservation rejected, release frees units, confirm commits the
 deduction without false-triggering staleness, and a subsequent real feed
 update still works correctly afterward.
+
+## Onboarding transitions & price-history SQL validation notes
+`20260821140000_z_fashion_onboarding_transitions_v1.sql`: onboarding_status
+could previously be set to any value via plain UPDATE — the state machine
+only existed in onboarding.js. A trigger now mirrors ALLOWED_TRANSITIONS
+exactly, including rejected as a terminal state. Validated all 7 cases:
+applied→active (skipping a step) rejected, applied→under_review→approved→
+active accepted in sequence, active→under_review (invalid reverse) rejected,
+active→suspended accepted, and rejected→under_review rejected (terminal).
+
+`20260821150000_z_fashion_price_history_v1.sql`: mirrors price-history.js
+and campaign-pricing.js. Validated the same 3 cases as
+campaign-pricing.test.js — a genuine 25% reduction below the real 30-day
+low accepted, a price equal to the 30-day low correctly rejected as not a
+genuine reduction, and a product with no price history in the window
+rejected rather than falling back to a guess.
