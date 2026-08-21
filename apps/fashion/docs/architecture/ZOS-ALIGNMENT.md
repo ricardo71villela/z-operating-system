@@ -36,8 +36,18 @@ applied by Z Jobs and Z Mobility.
   (Z Find, Z Jobs, Z Mobility) needs a multi-seller cart — Z Find sells
   single properties, not multi-partner baskets — so there is no second
   consumer yet to justify shared-platform status, unlike Geography (which
-  had one from day one). Built in `fashion-domain/src/cart.js`. If a future
-  vertical needs the same multi-seller-split-settlement shape, promote then,
+  had one from day one). Built in `fashion-domain/src/cart.js`, **and now
+  also in SQL** (`20260821160000_z_fashion_cart_checkout_v1.sql`,
+  `fashion.attempt_checkout()`) — validated with the exact critical case
+  from cart.js's own tests: two Partners in one Cart, one has enough
+  stock, the other doesn't. The whole checkout fails, the first Partner's
+  reservation is fully reverted (`quantity_reserved` back to 0), and no
+  Order row is created at all. The SQL version needed no manual rollback
+  code to achieve this — a single `RAISE EXCEPTION` inside the
+  transaction unwinds every change made earlier in the same function
+  call automatically, which is structurally safer than cart.js's
+  hand-written rollback loop, not merely an independent re-check of it.
+  If a future vertical needs the same multi-seller-split-settlement shape, promote then,
   following the exact precedent Geography already set — not before.
 - **Geography reuse** — resolved as reuse, with one correction made along
   the way: `@zos/geography` (`packages/geography/geography.js`) is a
