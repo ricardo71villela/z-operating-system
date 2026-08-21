@@ -88,3 +88,45 @@ export function loadGooglePlayCommercialConfig(env = process.env) {
     supabaseSecretKey: requiredSupabaseSecretKey(env),
   });
 }
+
+export function loadGooglePlayRtdnConfig(env = process.env) {
+  const base = loadGooglePlayCommercialConfig(env);
+  const pubsubAudience = requiredHttpsUrl(
+    env,
+    'GOOGLE_PLAY_PUBSUB_AUDIENCE',
+  );
+  const pubsubServiceAccountEmail = required(
+    env,
+    'GOOGLE_PLAY_PUBSUB_SERVICE_ACCOUNT_EMAIL',
+  ).toLowerCase();
+  if (
+    !/^[a-z0-9._%+-]+@[a-z0-9.-]+\.iam\.gserviceaccount\.com$/.test(
+      pubsubServiceAccountEmail,
+    )
+  ) {
+    throw new Error(
+      'ZSTUDIO_GOOGLE_PLAY_CONFIG_INVALID:GOOGLE_PLAY_PUBSUB_SERVICE_ACCOUNT_EMAIL',
+    );
+  }
+
+  const pubsubSubscription = required(
+    env,
+    'GOOGLE_PLAY_PUBSUB_SUBSCRIPTION',
+  );
+  if (
+    !/^projects\/[a-z][a-z0-9-]{4,61}[a-z0-9]\/subscriptions\/[A-Za-z0-9._~+%-]{3,255}$/.test(
+      pubsubSubscription,
+    )
+  ) {
+    throw new Error(
+      'ZSTUDIO_GOOGLE_PLAY_CONFIG_INVALID:GOOGLE_PLAY_PUBSUB_SUBSCRIPTION',
+    );
+  }
+
+  return Object.freeze({
+    ...base,
+    pubsubAudience,
+    pubsubServiceAccountEmail,
+    pubsubSubscription,
+  });
+}

@@ -11,6 +11,7 @@ on:
       - "infrastructure/supabase/tests/zstudio_google_play_pause_authority_v1.sql"
       - "infrastructure/supabase/tests/zstudio_google_play_purchase_preflight_v1.sql"
       - "infrastructure/supabase/tests/zstudio_google_play_reconciliation_hardening_v1.sql"
+      - "infrastructure/supabase/tests/zstudio_google_play_rtdn_authority_v1.sql"
       - ".github/workflows/studio-commercial-activation-postgres.yml"
 
   pull_request:
@@ -21,6 +22,7 @@ on:
       - "infrastructure/supabase/tests/zstudio_google_play_pause_authority_v1.sql"
       - "infrastructure/supabase/tests/zstudio_google_play_purchase_preflight_v1.sql"
       - "infrastructure/supabase/tests/zstudio_google_play_reconciliation_hardening_v1.sql"
+      - "infrastructure/supabase/tests/zstudio_google_play_rtdn_authority_v1.sql"
       - ".github/workflows/studio-commercial-activation-postgres.yml"
 
 permissions:
@@ -269,6 +271,17 @@ jobs:
             -d zstudio_commercial_test \
             -v ON_ERROR_STOP=1 \
             -f infrastructure/supabase/tests/zstudio_google_play_reconciliation_hardening_v1.sql
+
+      - name: Verify Google Play RTDN authority
+        env:
+          PGPASSWORD: zstudio_test_pw
+        run: |
+          psql \
+            -h localhost \
+            -U postgres \
+            -d zstudio_commercial_test \
+            -v ON_ERROR_STOP=1 \
+            -f infrastructure/supabase/tests/zstudio_google_play_rtdn_authority_v1.sql
 
       - name: Final authority marker
         env:
