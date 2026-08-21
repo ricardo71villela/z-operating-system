@@ -4,7 +4,7 @@
    CENTER RENDER RECOVERY V1:
    - the creative column owns three intrinsic rows: canvas / optional nav / export;
    - no fixed viewport-subtraction max-height values;
-   - canvas size is measured by ZSTUDIO_PREVIEW_STATE_MACHINE_V1 at runtime;
+   - canvas size is measured by the preview state runtime;
    - left/right rails keep the approved horizontal geometry;
    - the page itself stays fixed while the editing rail scrolls internally.
 */
