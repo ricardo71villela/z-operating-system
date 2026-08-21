@@ -1,0 +1,163 @@
+/* ZSTUDIO_MOBILE_HEADER_V1
+   Phone header authority:
+   - two deliberate bars instead of forcing brand + actions into one row;
+   - first bar restores a readable Z Studio identity with a materially larger mark;
+   - second bar keeps Bulk Generation, Sign In / Account and language available;
+   - no creation-flow, preview, renderer, auth or billing behavior changes.
+*/
+
+@media (max-width: 620px) {
+  header {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100%;
+    min-width: 0;
+    padding: 0 !important;
+    gap: 0 !important;
+    align-items: stretch !important;
+    background: #0b0d0e;
+    border-bottom: 1px solid #34393d;
+  }
+
+  header .brand {
+    width: 100%;
+    min-width: 0;
+    min-height: 66px;
+    display: flex !important;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 11px 16px 10px;
+    border-bottom: 1px solid rgba(177, 184, 189, .16);
+  }
+
+  header #headerLogo {
+    width: 40px !important;
+    height: 40px !important;
+    flex: 0 0 40px;
+    object-fit: contain;
+    opacity: 1;
+  }
+
+  header .brand .tag {
+    min-width: 0;
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 !important;
+    border: 0 !important;
+    font-size: 0 !important;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  header .brand .tag::before {
+    content: 'Z Studio';
+    display: block;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.62rem;
+    line-height: .96;
+    font-style: normal;
+    font-weight: 600;
+    letter-spacing: .012em;
+    color: #f7f4ed;
+    white-space: nowrap;
+  }
+
+  header .brand .tag [data-i18n="headerTagline"] {
+    display: none !important;
+  }
+
+  header .header-actions {
+    width: 100%;
+    min-width: 0;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px 10px;
+  }
+
+  header #btnHeaderBulk {
+    width: 100%;
+    min-width: 0;
+    min-height: 40px;
+    padding: 9px 10px !important;
+    font-size: .62rem !important;
+    line-height: 1.15;
+    letter-spacing: .08em !important;
+    white-space: nowrap !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  header .lang-switch {
+    min-width: 0;
+    display: grid !important;
+    grid-template-columns: auto 62px;
+    align-items: stretch;
+    gap: 7px;
+  }
+
+  header #zstudioAuthButton {
+    min-height: 40px;
+    padding: 9px 11px !important;
+    font-size: .62rem !important;
+    line-height: 1.15;
+    letter-spacing: .08em;
+    white-space: nowrap;
+  }
+
+  header #langSwitch {
+    width: 62px;
+    min-width: 62px;
+    min-height: 40px;
+    padding: 8px 7px;
+    font-size: .69rem;
+  }
+}
+
+@media (max-width: 360px) {
+  header .brand {
+    min-height: 62px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  header #headerLogo {
+    width: 36px !important;
+    height: 36px !important;
+    flex-basis: 36px;
+  }
+
+  header .brand .tag::before {
+    font-size: 1.48rem;
+  }
+
+  header .header-actions {
+    gap: 6px;
+    padding-left: 9px;
+    padding-right: 9px;
+  }
+
+  header #btnHeaderBulk,
+  header #zstudioAuthButton {
+    font-size: .58rem !important;
+    letter-spacing: .065em !important;
+  }
+
+  header #zstudioAuthButton {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+
+  header .lang-switch {
+    grid-template-columns: auto 58px;
+    gap: 6px;
+  }
+
+  header #langSwitch {
+    width: 58px;
+    min-width: 58px;
+  }
+}
