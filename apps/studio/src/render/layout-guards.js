@@ -179,11 +179,10 @@ function drawGridTextBand(ctx, W, H, P, gridH, FS, story, locLine) {
   });
 }
 
-// ZSTUDIO_ASSISTANT_EMPTY_STATE_V1
-// Laptop-only UX layer. It does not change the editor/canvas/export authority;
-// it turns the caption rail into a deliberate assistant state until a useful
-// caption exists, and replaces provisional emoji UI glyphs with one coherent
-// inline icon language. Mobile keeps the existing shell untouched.
+// ZSTUDIO_ASSISTANT_EMPTY_STATE_V2
+// Laptop-only UX authority. Auto-composed captions are not treated as authored
+// content. The rail stays in its deliberate assistant state until the person
+// explicitly writes or asks Z AI to generate a caption.
 
 const ZSTUDIO_ASSISTANT_COPY = Object.freeze({
   pt: {
@@ -277,9 +276,11 @@ const ZSTUDIO_ICON_TARGETS = Object.freeze([
 
 let zstudioApplyingIcons = false;
 function decorateStudioIconTarget(el, iconName) {
-  if (!el || el.querySelector('.zs-icon')) return;
+  if (!el) return;
+  if (el.querySelector('.zs-icon') && el.dataset.zsIconName === iconName) return;
   const label = stripStudioIconPrefix(el.textContent);
   el.textContent = '';
+  el.dataset.zsIconName = iconName;
   el.classList.add('zs-iconized');
   el.appendChild(createStudioIcon(iconName));
   el.appendChild(document.createTextNode(label));
@@ -287,34 +288,32 @@ function decorateStudioIconTarget(el, iconName) {
 
 function decorateStudioDropzone() {
   const el = document.querySelector('.dropzone');
-  if (!el || el.querySelector(':scope > .zs-icon')) return;
-  const textNode = Array.from(el.childNodes).find(node => node.nodeType === Node.TEXT_NODE && String(node.nodeValue || '').trim());
-  if (textNode) textNode.nodeValue = String(textNode.nodeValue || '').replace(/^\s*📷\s*/u, '');
-  el.classList.add('zs-dropzone-iconized');
-  el.prepend(createStudioIcon('camera', 'zs-dropzone-icon'));
+  if (!el) return;
+  if (!el.querySelector(':scope > .zs-icon')) {
+    const textNode = Array.from(el.childNodes).find(node => node.nodeType === Node.TEXT_NODE && String(node.nodeValue || '').trim());
+    if (textNode) textNode.nodeValue = String(textNode.nodeValue || '').replace(/^\s*📷\s*/u, '');
+    el.classList.add('zs-dropzone-iconized');
+    el.prepend(createStudioIcon('camera', 'zs-dropzone-icon'));
+  }
 }
 
 function applyStudioIconSystem() {
-  if (!window.matchMedia || !window.matchMedia('(min-width:981px)').matches) return;
-  if (zstudioApplyingIcons) return;
+  if (!window.matchMedia || !window.matchMedia('(min-width:981px)').matches || zstudioApplyingIcons) return;
   zstudioApplyingIcons = true;
   try {
     ZSTUDIO_ICON_TARGETS.forEach(([selector, icon]) => {
       document.querySelectorAll(selector).forEach(el => decorateStudioIconTarget(el, icon));
     });
     decorateStudioDropzone();
+    document.documentElement.setAttribute('data-zstudio-icon-system', 'v2');
   } finally {
     zstudioApplyingIcons = false;
   }
 }
 
+let zstudioAssistantAuthored = false;
 let zstudioAssistantManualMode = false;
-function zstudioAssistantCaptionIsMeaningful(value) {
-  const ctas = new Set(Object.values(typeof I18N === 'object' && I18N ? I18N : {}).map(t => String(t && t.cta || '').trim()).filter(Boolean));
-  const decorative = new Set(['✨', '✦', '✧']);
-  const lines = String(value || '').split(/\n+/).map(line => line.trim()).filter(Boolean);
-  return lines.some(line => !decorative.has(line) && !ctas.has(line));
-}
+let zstudioAssistantAiRequested = false;
 
 function zstudioAssistantStrings() {
   return ZSTUDIO_ASSISTANT_COPY[state && state.lang] || ZSTUDIO_ASSISTANT_COPY.en;
@@ -333,63 +332,72 @@ function ensureStudioAssistantEmptyState() {
   const caption = document.getElementById('caption');
   if (!body || !caption) return null;
   let empty = document.getElementById('zsAssistantEmptyState');
-  if (!empty) {
-    empty = document.createElement('section');
-    empty.id = 'zsAssistantEmptyState';
-    empty.className = 'zs-assistant-empty-state';
-    empty.setAttribute('aria-live', 'polite');
+  if (empty) return empty;
 
-    const iconWrap = document.createElement('div');
-    iconWrap.className = 'zs-assistant-empty-icon';
-    iconWrap.appendChild(createStudioIcon('sparkles'));
+  empty = document.createElement('section');
+  empty.id = 'zsAssistantEmptyState';
+  empty.className = 'zs-assistant-empty-state';
+  empty.setAttribute('aria-live', 'polite');
 
-    const kicker = document.createElement('div');
-    kicker.className = 'zs-assistant-empty-kicker';
-    kicker.setAttribute('data-zs-assistant-copy', 'kicker');
+  const iconWrap = document.createElement('div');
+  iconWrap.className = 'zs-assistant-empty-icon';
+  iconWrap.appendChild(createStudioIcon('sparkles'));
 
-    const title = document.createElement('h3');
-    title.className = 'zs-assistant-empty-title';
-    title.setAttribute('data-zs-assistant-copy', 'title');
+  const kicker = document.createElement('div');
+  kicker.className = 'zs-assistant-empty-kicker';
+  kicker.setAttribute('data-zs-assistant-copy', 'kicker');
 
-    const bodyText = document.createElement('p');
-    bodyText.className = 'zs-assistant-empty-body';
-    bodyText.setAttribute('data-zs-assistant-copy', 'body');
+  const title = document.createElement('h3');
+  title.className = 'zs-assistant-empty-title';
+  title.setAttribute('data-zs-assistant-copy', 'title');
 
-    const actions = document.createElement('div');
-    actions.className = 'zs-assistant-empty-actions';
+  const bodyText = document.createElement('p');
+  bodyText.className = 'zs-assistant-empty-body';
+  bodyText.setAttribute('data-zs-assistant-copy', 'body');
 
-    const generate = document.createElement('button');
-    generate.type = 'button';
-    generate.id = 'zsAssistantGenerate';
-    generate.className = 'btn zs-assistant-primary zs-iconized';
-    generate.appendChild(createStudioIcon('sparkles'));
-    const generateText = document.createElement('span');
-    generateText.setAttribute('data-zs-assistant-copy', 'generate');
-    generate.appendChild(generateText);
-    generate.addEventListener('click', () => {
-      zstudioAssistantManualMode = false;
-      if (typeof aiCaption === 'function') aiCaption();
-    });
+  const actions = document.createElement('div');
+  actions.className = 'zs-assistant-empty-actions';
 
-    const write = document.createElement('button');
-    write.type = 'button';
-    write.id = 'zsAssistantWrite';
-    write.className = 'btn btn-line zs-assistant-secondary zs-iconized';
-    write.appendChild(createStudioIcon('pencil'));
-    const writeText = document.createElement('span');
-    writeText.setAttribute('data-zs-assistant-copy', 'write');
-    write.appendChild(writeText);
-    write.addEventListener('click', () => {
-      if (!zstudioAssistantCaptionIsMeaningful(caption.value)) caption.value = '';
-      zstudioAssistantManualMode = true;
-      syncStudioAssistantEmptyState();
-      requestAnimationFrame(() => caption.focus());
-    });
+  const generate = document.createElement('button');
+  generate.type = 'button';
+  generate.id = 'zsAssistantGenerate';
+  generate.className = 'btn zs-assistant-primary zs-iconized';
+  generate.appendChild(createStudioIcon('sparkles'));
+  const generateText = document.createElement('span');
+  generateText.setAttribute('data-zs-assistant-copy', 'generate');
+  generate.appendChild(generateText);
+  generate.addEventListener('click', async () => {
+    zstudioAssistantAiRequested = true;
+    zstudioAssistantManualMode = false;
+    try {
+      if (typeof aiCaption === 'function') await aiCaption();
+      const captionValue = String(caption.value || '').trim();
+      if (captionValue) zstudioAssistantAuthored = true;
+    } finally {
+      zstudioAssistantAiRequested = false;
+      queueStudioUxRefresh();
+    }
+  });
 
-    actions.append(generate, write);
-    empty.append(iconWrap, kicker, title, bodyText, actions);
-    caption.before(empty);
-  }
+  const write = document.createElement('button');
+  write.type = 'button';
+  write.id = 'zsAssistantWrite';
+  write.className = 'btn btn-line zs-assistant-secondary zs-iconized';
+  write.appendChild(createStudioIcon('pencil'));
+  const writeText = document.createElement('span');
+  writeText.setAttribute('data-zs-assistant-copy', 'write');
+  write.appendChild(writeText);
+  write.addEventListener('click', () => {
+    caption.value = '';
+    zstudioAssistantAuthored = true;
+    zstudioAssistantManualMode = true;
+    syncStudioAssistantEmptyState();
+    requestAnimationFrame(() => caption.focus());
+  });
+
+  actions.append(generate, write);
+  empty.append(iconWrap, kicker, title, bodyText, actions);
+  caption.before(empty);
   renderStudioAssistantCopy();
   return empty;
 }
@@ -400,37 +408,77 @@ function syncStudioAssistantEmptyState() {
   const box = caption && caption.closest('.caption-box');
   const empty = ensureStudioAssistantEmptyState();
   if (!caption || !box || !empty) return;
-  const meaningful = zstudioAssistantCaptionIsMeaningful(caption.value);
-  if (meaningful) zstudioAssistantManualMode = false;
-  const showEmpty = !meaningful && !zstudioAssistantManualMode;
+
+  const showEmpty = !zstudioAssistantAuthored && !zstudioAssistantManualMode;
   box.classList.toggle('zs-assistant-empty-active', showEmpty);
   empty.setAttribute('aria-hidden', showEmpty ? 'false' : 'true');
+  document.documentElement.setAttribute('data-zstudio-assistant-state', showEmpty ? 'empty' : 'editor');
 }
 
-function observeStudioCaptionValue() {
+function observeStudioCaptionAuthoring() {
   const caption = document.getElementById('caption');
-  if (!caption || caption.dataset.zsValueObserved === 'true') return;
-  const descriptor = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value');
-  if (descriptor && descriptor.get && descriptor.set) {
-    Object.defineProperty(caption, 'value', {
-      configurable: true,
-      enumerable: descriptor.enumerable,
-      get() { return descriptor.get.call(this); },
-      set(value) {
-        descriptor.set.call(this, value);
-        queueMicrotask(syncStudioAssistantEmptyState);
-      }
-    });
-    caption.dataset.zsValueObserved = 'true';
-  }
+  if (!caption || caption.dataset.zsAuthoringObserved === 'true') return;
+  caption.dataset.zsAuthoringObserved = 'true';
+
   caption.addEventListener('input', () => {
-    if (String(caption.value || '').trim()) zstudioAssistantManualMode = true;
+    zstudioAssistantAuthored = true;
+    zstudioAssistantManualMode = true;
     syncStudioAssistantEmptyState();
   });
   caption.addEventListener('blur', () => {
-    if (!String(caption.value || '').trim()) zstudioAssistantManualMode = false;
+    if (!String(caption.value || '').trim()) {
+      zstudioAssistantAuthored = false;
+      zstudioAssistantManualMode = false;
+    }
     syncStudioAssistantEmptyState();
   });
+
+  const aiButton = document.getElementById('btnAICaption');
+  if (aiButton && aiButton.dataset.zsAiObserved !== 'true') {
+    aiButton.dataset.zsAiObserved = 'true';
+    aiButton.addEventListener('click', () => { zstudioAssistantAiRequested = true; }, true);
+  }
+}
+
+function installStudioUxHooks() {
+  if (typeof applyUIStrings === 'function' && !applyUIStrings.__zstudioUxWrapped) {
+    const originalApplyUIStrings = applyUIStrings;
+    const wrappedApplyUIStrings = function(...args) {
+      const result = originalApplyUIStrings.apply(this, args);
+      queueStudioUxRefresh();
+      return result;
+    };
+    wrappedApplyUIStrings.__zstudioUxWrapped = true;
+    applyUIStrings = wrappedApplyUIStrings;
+  }
+
+  if (typeof aiCaption === 'function' && !aiCaption.__zstudioUxWrapped) {
+    const originalAiCaption = aiCaption;
+    const wrappedAiCaption = async function(...args) {
+      zstudioAssistantAiRequested = true;
+      try {
+        const result = await originalAiCaption.apply(this, args);
+        const caption = document.getElementById('caption');
+        if (caption && String(caption.value || '').trim()) zstudioAssistantAuthored = true;
+        return result;
+      } finally {
+        zstudioAssistantAiRequested = false;
+        queueStudioUxRefresh();
+      }
+    };
+    wrappedAiCaption.__zstudioUxWrapped = true;
+    aiCaption = wrappedAiCaption;
+  }
+
+  if (typeof aiCaptionAllLangs === 'function' && !aiCaptionAllLangs.__zstudioUxWrapped) {
+    const originalAiCaptionAll = aiCaptionAllLangs;
+    const wrappedAiCaptionAll = async function(...args) {
+      try { return await originalAiCaptionAll.apply(this, args); }
+      finally { queueStudioUxRefresh(); }
+    };
+    wrappedAiCaptionAll.__zstudioUxWrapped = true;
+    aiCaptionAllLangs = wrappedAiCaptionAll;
+  }
 }
 
 let zstudioUxRefreshQueued = false;
@@ -445,18 +493,39 @@ function queueStudioUxRefresh() {
   });
 }
 
-function initStudioAssistantAndIcons() {
+let zstudioUxObserver = null;
+function startStudioAssistantAndIcons() {
   if (!window.matchMedia || !window.matchMedia('(min-width:981px)').matches) return;
+  installStudioUxHooks();
   ensureStudioAssistantEmptyState();
-  observeStudioCaptionValue();
+  observeStudioCaptionAuthoring();
   applyStudioIconSystem();
   syncStudioAssistantEmptyState();
 
   const langSwitch = document.getElementById('langSwitch');
-  if (langSwitch) langSwitch.addEventListener('change', queueStudioUxRefresh);
+  if (langSwitch && langSwitch.dataset.zsUxObserved !== 'true') {
+    langSwitch.dataset.zsUxObserved = 'true';
+    langSwitch.addEventListener('change', queueStudioUxRefresh);
+  }
 
-  const observer = new MutationObserver(queueStudioUxRefresh);
-  observer.observe(document.body, { childList: true, characterData: true, subtree: true });
+  if (!zstudioUxObserver && document.body) {
+    zstudioUxObserver = new MutationObserver(() => queueStudioUxRefresh());
+    zstudioUxObserver.observe(document.body, { childList: true, characterData: true, subtree: true });
+  }
+
+  requestAnimationFrame(() => {
+    applyStudioIconSystem();
+    syncStudioAssistantEmptyState();
+  });
+  setTimeout(() => {
+    applyStudioIconSystem();
+    syncStudioAssistantEmptyState();
+  }, 80);
 }
 
-initStudioAssistantAndIcons();
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startStudioAssistantAndIcons, { once:true });
+} else {
+  startStudioAssistantAndIcons();
+}
+window.addEventListener('load', startStudioAssistantAndIcons, { once:true });
