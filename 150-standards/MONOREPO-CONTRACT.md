@@ -13,7 +13,9 @@ Products may use different internal structures when justified by their runtime s
 
 ## 2. Package namespaces
 - `@zos/*` is reserved for capabilities that are genuinely shared across products and owned by ZOS Core.
-- Product-owned packages use a product namespace, for example `@zjobs/*`, `@zfind/*`, `@zmobility/*`, `@zstudio/*`, `@zfashion/*`.
+- New product-owned packages, and product packages renamed for architectural reasons, use a product namespace, for example `@zjobs/*`, `@zfind/*`, `@zmobility/*`, `@zstudio/*`, `@zfashion/*`.
+- A pre-existing unscoped or historical product package identifier may remain stable when renaming it would create unnecessary workspace, deployment, build-cache or external-project risk. Such an identifier must never use the reserved `@zos/*` namespace and its owning product must be explicit in source/documentation.
+- Historical identifiers are compatibility names, not evidence of shared ZOS ownership.
 - A capability is not promoted to `@zos/*` until at least two independent products require the same semantic capability and Governance approves the promotion.
 
 ## 3. Required product contract
@@ -39,19 +41,23 @@ Every new integrated migration must:
 5. avoid introducing a second canonical source for an existing ZOS identity or shared capability.
 
 ## 5. Shared runtime authority
-Canonical shared identity, Registry bindings, Geography, Consent and other approved ZOS Core capabilities live in their designated shared authority. Fixtures, mirrors, caches and local test packages must identify themselves as non-authoritative when they are not the source of truth.
+Canonical shared identity, Registry bindings, Geography, Consent and other approved ZOS Core capabilities live in their designated shared authority. Fixtures, mirrors, caches and local test modules must identify themselves as non-authoritative when they are not the source of truth.
+
+A shared source fixture does not automatically become an npm workspace package. Package-manager authority is introduced only when there is a real package dependency contract and the root lockfile is updated atomically with it.
 
 ## 6. Root quality gates
 The repository root must expose an aggregate gate that covers every active product. A green root CI result must never imply whole-ZOS health while silently excluding an active product.
 
 Product-specific workflows remain allowed and encouraged, but the root gate is the ecosystem-level authority.
 
+The root lockfile and workspace declarations must remain mutually consistent so `npm ci` is deterministic.
+
 ## 7. Branch convergence
 Long-running product branches may evolve independently, but two branches that both change shared infrastructure cannot be promoted independently without a convergence gate.
 
 Before either branch becomes integrated authority, the combined tree must validate:
 - the complete ordered Supabase migration sequence;
-- root package/workspace consistency;
+- root package/workspace/lockfile consistency;
 - each affected product's tests/typechecks/build contract;
 - namespace and source-of-truth invariants;
 - no accidental live deployment or production database mutation.
@@ -60,6 +66,8 @@ No force-push or history rewrite is required for convergence.
 
 ## 8. Documentation authority
 Top-level repository documentation must list every active ZOS product and distinguish independent marketplaces/verticals from horizontal products or tools. Historical READMEs must not claim obsolete states such as "not pushed to GitHub" or "pre-implementation" once implementation exists.
+
+Operational documentation must describe durable repository/provider authority, not the network limitations or credentials of a particular development assistant or workstation.
 
 ## Status
 Adopted for convergence work; production-neutral.
