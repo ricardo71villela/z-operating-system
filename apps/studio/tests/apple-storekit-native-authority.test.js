@@ -90,9 +90,9 @@ const catalog = JSON.parse(read(paths.catalog));
 
 check(
   plugin.includes(
-    'ZSTUDIO_APPLE_STOREKIT_NATIVE_AUTHORITY_V1',
+    'Z STUDIO — APPLE STOREKIT NATIVE AUTHORITY V2',
   ),
-  'native authority marker',
+  'native authority marker v2',
 );
 
 check(
@@ -130,6 +130,7 @@ const methods = Array.from(
 );
 
 const expectedMethods = [
+  'appTransaction',
   'loadProducts',
   'purchase',
   'currentEntitlements',
@@ -141,7 +142,24 @@ const expectedMethods = [
 check(
   JSON.stringify(methods)
     === JSON.stringify(expectedMethods),
-  'exact six public StoreKit methods',
+  'exact seven public StoreKit methods',
+);
+
+check(
+  plugin.includes('AppTransaction.shared'),
+  'verified AppTransaction preflight primitive present',
+);
+
+check(
+  plugin.includes('case .verified(let appTransaction)'),
+  'AppTransaction preflight fails closed on verification',
+);
+
+check(
+  plugin.includes(
+    '"appTransactionId": appTransaction.appTransactionID',
+  ),
+  'verified appTransactionID crosses JS boundary',
 );
 
 check(
@@ -158,16 +176,23 @@ check(
 
 check(
   plugin.includes(
+    '.introductoryOfferEligibility(compactJWS: eligibilityJws)',
+  ),
+  'purchase uses server-signed introductory eligibility option',
+);
+
+check(
+  plugin.includes(
     'guard transaction.ownershipType == .purchased',
   ),
-  'Family Sharing rejected in v1',
+  'Family Sharing rejected in v2',
 );
 
 check(
   plugin.includes(
     'guard let appAccountToken = transaction.appAccountToken',
   ),
-  'tokenless Apple transaction rejected in v1',
+  'tokenless Apple transaction rejected in v2',
 );
 
 check(
@@ -527,12 +552,12 @@ check(
 if (failures > 0) {
   console.error('');
   console.error(
-    `ZSTUDIO_APPLE_STOREKIT_NATIVE_AUTHORITY_V1_FAIL=${failures}`,
+    `ZSTUDIO_APPLE_STOREKIT_NATIVE_AUTHORITY_V2_FAIL=${failures}`,
   );
   process.exit(1);
 }
 
 console.log('');
 console.log(
-  'ZSTUDIO_APPLE_STOREKIT_NATIVE_AUTHORITY_V1_PASS',
+  'ZSTUDIO_APPLE_STOREKIT_NATIVE_AUTHORITY_V2_PASS',
 );
