@@ -145,6 +145,7 @@ export function createGooglePlayPreflightHttpHandler({
     send(res, 200, {
       ok: true,
       purchase_intent_id: prepared.intentId,
+      obfuscated_account_id: personId,
       plan_code: prepared.planCode,
       use_trial_offer: prepared.trialEligible,
       expires_at: prepared.intentExpiresAt,

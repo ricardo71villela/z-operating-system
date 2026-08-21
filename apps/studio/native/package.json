@@ -6,7 +6,8 @@
   "scripts": {
     "sync": "npx cap sync",
     "open:ios": "npx cap open ios",
-    "open:android": "npx cap open android"
+    "open:android": "npx cap open android",
+    "test:google-play": "node --test tests/*.test.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
