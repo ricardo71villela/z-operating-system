@@ -1,0 +1,88 @@
+name: Z Fashion PostgreSQL
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/fashion/**"
+      - "infrastructure/supabase/migrations/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/fashion-postgres.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/fashion/**"
+      - "infrastructure/supabase/migrations/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/fashion-postgres.yml"
+
+jobs:
+  postgres:
+    name: Full ZOS migration sequence + fashion-domain + fashion-partner
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: zfashion_dev_pw
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Create database and Supabase-shape stubs
+        env:
+          PGPASSWORD: zfashion_dev_pw
+        run: |
+          psql -h localhost -U postgres -c "CREATE DATABASE zos_ci;"
+          psql -h localhost -U postgres -d zos_ci -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+          psql -h localhost -U postgres -d zos_ci -c "CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;"
+          psql -h localhost -U postgres -d zos_ci -c "CREATE SCHEMA auth; CREATE TABLE auth.users (id uuid primary key default gen_random_uuid());"
+          psql -h localhost -U postgres -d zos_ci -c "CREATE OR REPLACE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql AS \$\$ SELECT '{}'::jsonb \$\$;"
+          psql -h localhost -U postgres -d zos_ci -c "CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS \$\$ SELECT NULL::uuid \$\$;"
+          psql -h localhost -U postgres -d zos_ci -c "CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql AS \$\$ SELECT 'anon'::text \$\$;"
+          psql -h localhost -U postgres -d zos_ci -c "CREATE SCHEMA storage; CREATE TABLE storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text, owner uuid);"
+
+      - name: Apply every ZOS migration in order, including Z Fashion
+        env:
+          PGPASSWORD: zfashion_dev_pw
+        run: |
+          for f in $(ls infrastructure/supabase/migrations/*.sql | sort); do
+            echo "--- $f ---"
+            psql -h localhost -U postgres -d zos_ci -v ON_ERROR_STOP=1 -f "$f"
+          done
+
+      - name: Verify fashion.partners CHECK constraints with real inserts
+        env:
+          PGPASSWORD: zfashion_dev_pw
+        run: |
+          psql -h localhost -U postgres -d zos_ci -v ON_ERROR_STOP=1 -c "
+            INSERT INTO fashion.partners (legal_name, country_iso, locales, categories)
+            VALUES ('CI Smoke Test', 'FR', ARRAY['fr'], ARRAY['clothing']::fashion.category[]);
+          "
+
+      - name: Install monorepo dependencies
+        run: npm install --prefix apps/fashion/packages/fashion-domain
+      - run: npm test --prefix apps/fashion/packages/fashion-domain
+
+      - name: Run fashion-partner real Postgres integration test
+        env:
+          DATABASE_URL: postgres://postgres:zfashion_dev_pw@localhost:5432/zos_ci
+        run: |
+          npm ci --prefix apps/fashion/apps/fashion-partner
+          node apps/fashion/apps/fashion-partner/tests/db.test.js

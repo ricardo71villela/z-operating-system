@@ -1,9 +1,17 @@
 /* ============================================================
-   Z FIND — GEOGRAPHY (bounded context)
+   ZOS — GEOGRAPHY (shared bounded context, packages/geography)
    ============================================================
    Owns ONLY: canonical place identity, administrative hierarchy
    (Country -> Region? -> City -> Zone?), multilingual place names,
    and Currencies (referenced by Country, not duplicated per place).
+
+   Promoted from apps/find/packages/geography to packages/geography
+   (@zos/geography) once a second vertical — Z Fashion — needed the
+   identical Country/Region/City/Zone/Currency shape on day one of
+   its own design (see apps/fashion/docs/architecture/
+   MARKETS-AND-I18N.md and ZOS-ALIGNMENT.md's open question, now
+   resolved: reuse, not fork). Z Find and Z Fashion both consume
+   this module; neither owns it.
 
    Explicitly does NOT own and never will, per approved scope:
    market intelligence, lifestyle classification, investment scoring,
@@ -12,11 +20,12 @@
    this file must never grow those responsibilities.
 
    This module has zero knowledge of Registry, Marketplace, Data,
-   Trust Engine or Intelligence. It is consumed by them; it never
-   consumes them. Region and Zone are deliberately optional in the
-   hierarchy — not every country needs a Region layer (see Country
-   without a Region below), and not every City needs Zones (e.g. a
-   rural land Asset may resolve only to a City).
+   Trust Engine, Intelligence, or any vertical-specific domain (Z Find's
+   Asset/Listing, Z Fashion's Partner/Product). It is consumed by
+   them; it never consumes them. Region and Zone are deliberately
+   optional in the hierarchy — not every country needs a Region layer
+   (see Country without a Region below), and not every City needs
+   Zones (e.g. a rural land Asset may resolve only to a City).
    ============================================================ */
 
 const GEOGRAPHY = {
@@ -74,6 +83,15 @@ function geoName(namesMap, lang) {
 
 function getCurrency(currencyId) { return GEOGRAPHY.currencies[currencyId] || null; }
 function getCountry(countryId) { return GEOGRAPHY.countries[countryId] || null; }
+
+/** Looks up a Country by its ISO-3166-1 alpha-2 code — the real Geography
+ *  database convention (zos.geography_locations.country_iso), distinct
+ *  from this fixture's internal synthetic ids (country_fr). Callers
+ *  outside this fixture (fashion-domain, and any future vertical) should
+ *  key on ISO codes, never on the fixture's internal id shape. */
+function getCountryByIsoCode(isoCode) {
+  return Object.values(GEOGRAPHY.countries).find((c) => c.isoCode === isoCode) || null;
+}
 function getRegion(regionId) { return regionId ? (GEOGRAPHY.regions[regionId] || null) : null; }
 function getCity(cityId) { return GEOGRAPHY.cities[cityId] || null; }
 function getZone(zoneId) { return GEOGRAPHY.zones[zoneId] || null; }
@@ -99,3 +117,16 @@ function locationLabel(locationId, lang) {
   const zoneOrCity = r.zone ? geoName(r.zone.names, lang) : geoName(r.city.names, lang);
   return r.zone ? `${zoneOrCity}, ${geoName(r.city.names, lang)}` : zoneOrCity;
 }
+
+module.exports = {
+  GEOGRAPHY,
+  geoName,
+  getCurrency,
+  getCountry,
+  getCountryByIsoCode,
+  getRegion,
+  getCity,
+  getZone,
+  resolveLocation,
+  locationLabel,
+};
