@@ -23,6 +23,7 @@ const LAPTOP_BRAND_HEADER_CSS = path.join(SRC, 'ux', 'laptop-brand-header.css');
 const LAPTOP_PREMIUM_POLISH_CSS = path.join(SRC, 'ux', 'laptop-premium-polish-v2.css');
 const LAPTOP_VIEWPORT_BALANCE_CSS = path.join(SRC, 'ux', 'laptop-viewport-balance-v1.css');
 const LAPTOP_ICON_RUNTIME_AUTHORITY_JS = path.join(SRC, 'ux', 'laptop-icon-runtime-authority-v2.js');
+const PREVIEW_STATE_MACHINE_JS = path.join(SRC, 'ux', 'preview-state-machine-v1.js');
 
 const PLACEHOLDER = '__MYSTUDIO_SCRIPT_PLACEHOLDER__';
 const LEGACY_BRAND = 'My Studio';
@@ -35,6 +36,7 @@ const LAPTOP_BRAND_HEADER_MARKER = 'ZSTUDIO_LAPTOP_BRAND_HEADER_V1';
 const LAPTOP_PREMIUM_POLISH_MARKER = 'ZSTUDIO_LAPTOP_PREMIUM_POLISH_V2';
 const LAPTOP_VIEWPORT_BALANCE_MARKER = 'ZSTUDIO_LAPTOP_VIEWPORT_BALANCE_V1';
 const LAPTOP_ICON_RUNTIME_AUTHORITY_MARKER = 'ZSTUDIO_LAPTOP_ICON_RUNTIME_AUTHORITY_V2';
+const PREVIEW_STATE_MACHINE_MARKER = 'ZSTUDIO_PREVIEW_STATE_MACHINE_V1';
 
 function applyCommercialIdentity(text) {
   return String(text)
@@ -141,6 +143,31 @@ function injectLaptopBrandHeaderCss(template) {
   return output;
 }
 
+function injectPreviewStateMachine(main, runtime) {
+  if (!String(runtime).includes(PREVIEW_STATE_MACHINE_MARKER)) {
+    throw new Error('Preview runtime sem autoridade ' + PREVIEW_STATE_MACHINE_MARKER + '.');
+  }
+  if (String(main).includes(PREVIEW_STATE_MACHINE_MARKER)) {
+    throw new Error('main.js já contém a autoridade ' + PREVIEW_STATE_MACHINE_MARKER + '; recusa duplicação.');
+  }
+
+  const bootSentinel = '\nloadAll();';
+  const occurrences = String(main).split(bootSentinel).length - 1;
+  if (occurrences !== 1) {
+    throw new Error('main.js deve conter exatamente um boot loadAll() para injeção da preview state machine.');
+  }
+
+  const output = String(main).replace(
+    bootSentinel,
+    '\n\n' + String(runtime).trim() + '\n\nloadAll();'
+  );
+  const markerCount = output.split(PREVIEW_STATE_MACHINE_MARKER).length - 1;
+  if (markerCount !== 1) {
+    throw new Error('Preview state machine não foi injetada exatamente uma vez.');
+  }
+  return output;
+}
+
 function applyAuthRuntimeCsp(template) {
   const withScriptOrigin = String(template)
     .replaceAll(
@@ -187,6 +214,8 @@ function assemble() {
   const storage = fs.readFileSync(path.join(SRC, 'storage', 'indexeddb.js'), 'utf-8');
   const platformStorage = fs.readFileSync(path.join(SRC, 'platform', 'storage.js'), 'utf-8');
   const main = fs.readFileSync(path.join(SRC, 'main.js'), 'utf-8');
+  const previewStateMachine = fs.readFileSync(PREVIEW_STATE_MACHINE_JS, 'utf-8');
+  const mainWithPreviewState = injectPreviewStateMachine(main, previewStateMachine);
   const layoutGuards = fs.readFileSync(path.join(SRC, 'render', 'layout-guards.js'), 'utf-8');
   const laptopIconRuntimeAuthority = fs.readFileSync(LAPTOP_ICON_RUNTIME_AUTHORITY_JS, 'utf-8');
   const auth = fs.readFileSync(path.join(SRC, 'platform', 'auth.js'), 'utf-8');
@@ -215,7 +244,7 @@ function assemble() {
     stateModule,
     storage,
     platformStorage,
-    main,
+    mainWithPreviewState,
     layoutGuards,
     laptopIconRuntimeAuthority,
     auth,
@@ -233,6 +262,7 @@ function assemble() {
     LAPTOP_PREMIUM_POLISH_MARKER,
     LAPTOP_VIEWPORT_BALANCE_MARKER,
     LAPTOP_ICON_RUNTIME_AUTHORITY_MARKER,
+    PREVIEW_STATE_MACHINE_MARKER,
   ]) {
     const markerCount = html.split(marker).length - 1;
     if (markerCount !== 1) {
@@ -248,6 +278,7 @@ function assemble() {
   console.log('LAPTOP_PREMIUM_POLISH=' + LAPTOP_PREMIUM_POLISH_MARKER);
   console.log('LAPTOP_VIEWPORT_BALANCE=' + LAPTOP_VIEWPORT_BALANCE_MARKER);
   console.log('LAPTOP_ICON_RUNTIME=' + LAPTOP_ICON_RUNTIME_AUTHORITY_MARKER);
+  console.log('PREVIEW_STATE_MACHINE=' + PREVIEW_STATE_MACHINE_MARKER);
   console.log('COMMERCIAL_RUNTIME=' + (commercialConfig.enabled ? commercialConfig.baseUrl : 'DISABLED'));
   return html;
 }
