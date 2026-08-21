@@ -22,6 +22,7 @@ const STORE_CATALOG = path.join(ROOT, 'commercial', 'store-products.v1.json');
 const LAPTOP_BRAND_HEADER_CSS = path.join(SRC, 'ux', 'laptop-brand-header.css');
 const LAPTOP_PREMIUM_POLISH_CSS = path.join(SRC, 'ux', 'laptop-premium-polish-v2.css');
 const LAPTOP_VIEWPORT_BALANCE_CSS = path.join(SRC, 'ux', 'laptop-viewport-balance-v1.css');
+const MOBILE_HEADER_CSS = path.join(SRC, 'ux', 'mobile-header-v1.css');
 const LAPTOP_ICON_RUNTIME_AUTHORITY_JS = path.join(SRC, 'ux', 'laptop-icon-runtime-authority-v2.js');
 const PREVIEW_STATE_MACHINE_JS = path.join(SRC, 'ux', 'preview-state-machine-v1.js');
 
@@ -35,6 +36,7 @@ const SUPABASE_CDN_ORIGIN = 'https://cdn.jsdelivr.net';
 const LAPTOP_BRAND_HEADER_MARKER = 'ZSTUDIO_LAPTOP_BRAND_HEADER_V1';
 const LAPTOP_PREMIUM_POLISH_MARKER = 'ZSTUDIO_LAPTOP_PREMIUM_POLISH_V2';
 const LAPTOP_VIEWPORT_BALANCE_MARKER = 'ZSTUDIO_LAPTOP_VIEWPORT_BALANCE_V1';
+const MOBILE_HEADER_MARKER = 'ZSTUDIO_MOBILE_HEADER_V1';
 const LAPTOP_ICON_RUNTIME_AUTHORITY_MARKER = 'ZSTUDIO_LAPTOP_ICON_RUNTIME_AUTHORITY_V2';
 const PREVIEW_STATE_MACHINE_MARKER = 'ZSTUDIO_PREVIEW_STATE_MACHINE_V1';
 
@@ -113,6 +115,7 @@ function injectLaptopBrandHeaderCss(template) {
     [LAPTOP_BRAND_HEADER_CSS, LAPTOP_BRAND_HEADER_MARKER, 'marca laptop'],
     [LAPTOP_PREMIUM_POLISH_CSS, LAPTOP_PREMIUM_POLISH_MARKER, 'polish premium laptop'],
     [LAPTOP_VIEWPORT_BALANCE_CSS, LAPTOP_VIEWPORT_BALANCE_MARKER, 'equilíbrio viewport laptop'],
+    [MOBILE_HEADER_CSS, MOBILE_HEADER_MARKER, 'cabeçalho mobile'],
   ];
   const cssParts = [];
 
@@ -261,6 +264,7 @@ function assemble() {
     LAPTOP_BRAND_HEADER_MARKER,
     LAPTOP_PREMIUM_POLISH_MARKER,
     LAPTOP_VIEWPORT_BALANCE_MARKER,
+    MOBILE_HEADER_MARKER,
     LAPTOP_ICON_RUNTIME_AUTHORITY_MARKER,
     PREVIEW_STATE_MACHINE_MARKER,
   ]) {
@@ -277,6 +281,7 @@ function assemble() {
   console.log('LAPTOP_BRAND_HEADER=' + LAPTOP_BRAND_HEADER_MARKER);
   console.log('LAPTOP_PREMIUM_POLISH=' + LAPTOP_PREMIUM_POLISH_MARKER);
   console.log('LAPTOP_VIEWPORT_BALANCE=' + LAPTOP_VIEWPORT_BALANCE_MARKER);
+  console.log('MOBILE_HEADER=' + MOBILE_HEADER_MARKER);
   console.log('LAPTOP_ICON_RUNTIME=' + LAPTOP_ICON_RUNTIME_AUTHORITY_MARKER);
   console.log('PREVIEW_STATE_MACHINE=' + PREVIEW_STATE_MACHINE_MARKER);
   console.log('COMMERCIAL_RUNTIME=' + (commercialConfig.enabled ? commercialConfig.baseUrl : 'DISABLED'));
