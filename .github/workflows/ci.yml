@@ -2,11 +2,57 @@ name: ZOS Platform CI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - chore/zos-five-app-convergence-v1
   pull_request:
-    branches: [main]
+    branches:
+      - main
+      - chore/zos-five-app-convergence-v1
+
+permissions:
+  contents: read
 
 jobs:
+  contract:
+    name: ZOS Monorepo Contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify five-product root authority
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const required = [
+            'apps/find',
+            'apps/mobility',
+            'apps/jobs',
+            'apps/studio',
+            'apps/fashion',
+            'infrastructure/supabase/migrations',
+            '150-standards/MONOREPO-CONTRACT.md',
+          ];
+          for (const p of required) {
+            if (!fs.existsSync(p)) throw new Error(`Missing required ZOS path: ${p}`);
+          }
+          for (const script of ['zos:setup','zos:check','zos:test','zos:build','fashion:check','studio:check']) {
+            if (!pkg.scripts?.[script]) throw new Error(`Missing root script: ${script}`);
+          }
+          const fashionDomain = JSON.parse(fs.readFileSync('apps/fashion/packages/fashion-domain/package.json', 'utf8'));
+          const fashionPartner = JSON.parse(fs.readFileSync('apps/fashion/apps/fashion-partner/package.json', 'utf8'));
+          if (fashionDomain.name !== '@zfashion/domain') throw new Error('Fashion domain must be vertical-owned');
+          if (fashionPartner.name !== '@zfashion/partner') throw new Error('Fashion partner must be vertical-owned');
+          const geography = JSON.parse(fs.readFileSync('packages/geography/package.json', 'utf8'));
+          if (!/fixture/i.test(geography.description) || !/Supabase/i.test(geography.description)) {
+            throw new Error('Geography JS package must declare non-authoritative fixture status');
+          }
+          console.log('ZOS_MONOREPO_CONTRACT=PASS');
+          NODE
+
   jobs:
     name: Z Jobs
     runs-on: ubuntu-latest
@@ -47,3 +93,132 @@ jobs:
       - run: npm ci
       - run: npm run mobility:typecheck
       - run: npm run mobility:test
+
+  studio:
+    name: Z Studio
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm run studio:setup
+      - run: npm ci --prefix apps/studio/backend
+      - run: npm ci --prefix apps/studio/commercial
+      - run: npm run studio:check
+
+  fashion:
+    name: Z Fashion
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm run fashion:setup
+      - run: npm run fashion:check
+
+  postgres-convergence:
+    name: ZOS Shared PostgreSQL Convergence
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: zos_ci_pw
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Create disposable Supabase-compatible database
+        env:
+          PGPASSWORD: zos_ci_pw
+        run: |
+          psql -h localhost -U postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE zos_convergence_test;"
+          psql -h localhost -U postgres -d zos_convergence_test -v ON_ERROR_STOP=1 -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+          psql -h localhost -U postgres -d zos_convergence_test -v ON_ERROR_STOP=1 <<'SQL'
+          create role anon nologin;
+          create role authenticated nologin;
+          create role service_role nologin bypassrls;
+
+          create schema if not exists auth;
+          create table auth.users (
+            id uuid primary key default gen_random_uuid(),
+            email text unique,
+            created_at timestamptz not null default now()
+          );
+          create or replace function auth.uid() returns uuid language sql stable as $$
+            select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
+          $$;
+          create or replace function auth.jwt() returns jsonb language sql stable as $$
+            select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb;
+          $$;
+          create or replace function auth.role() returns text language sql stable as $$
+            select coalesce(nullif(current_setting('request.jwt.claim.role', true), ''), 'anon');
+          $$;
+          revoke all on function auth.uid() from public;
+          grant usage on schema auth to anon, authenticated, service_role;
+          grant execute on function auth.uid() to anon, authenticated, service_role;
+          grant execute on function auth.jwt() to anon, authenticated, service_role;
+          grant execute on function auth.role() to anon, authenticated, service_role;
+
+          create schema if not exists storage;
+          create table storage.buckets (
+            id text primary key,
+            name text not null unique,
+            public boolean not null default false
+          );
+          create table storage.objects (
+            id uuid primary key default gen_random_uuid(),
+            bucket_id text not null,
+            name text not null,
+            owner uuid,
+            owner_id uuid,
+            created_at timestamptz not null default now(),
+            updated_at timestamptz not null default now()
+          );
+          SQL
+      - name: Apply complete integrated migration chain
+        env:
+          PGPASSWORD: zos_ci_pw
+        run: |
+          set -euo pipefail
+          count=0
+          while IFS= read -r migration; do
+            echo "APPLYING ${migration}"
+            psql -h localhost -U postgres -d zos_convergence_test -v ON_ERROR_STOP=1 -f "${migration}"
+            count=$((count + 1))
+          done < <(find infrastructure/supabase/migrations -maxdepth 1 -type f -name '*.sql' -print | sort)
+          test "$count" -gt 0
+          echo "INTEGRATED_MIGRATIONS_APPLIED=${count}"
+      - name: Verify Z Studio cross-platform authorities
+        env:
+          PGPASSWORD: zos_ci_pw
+        run: |
+          psql -h localhost -U postgres -d zos_convergence_test -v ON_ERROR_STOP=1 -f infrastructure/supabase/tests/zstudio_apple_purchase_preflight_v1.sql
+          psql -h localhost -U postgres -d zos_convergence_test -v ON_ERROR_STOP=1 -f infrastructure/supabase/tests/zstudio_web_customer_portal_authority_v1.sql
+      - name: Verify Z Fashion database contract
+        env:
+          PGPASSWORD: zos_ci_pw
+          DATABASE_URL: postgres://postgres:zos_ci_pw@localhost:5432/zos_convergence_test
+        run: |
+          psql -h localhost -U postgres -d zos_convergence_test -v ON_ERROR_STOP=1 -c "
+            insert into fashion.partners (legal_name, country_iso, locales, categories)
+            values ('ZOS Convergence Smoke', 'FR', array['fr'], array['clothing']::fashion.category[]);
+          "
+          npm ci --prefix apps/fashion/apps/fashion-partner
+          node apps/fashion/apps/fashion-partner/tests/db.test.js
+      - name: Final convergence marker
+        env:
+          PGPASSWORD: zos_ci_pw
+        run: |
+          psql -h localhost -U postgres -d zos_convergence_test -v ON_ERROR_STOP=1 -Atc "select 'ZOS_FIVE_APP_POSTGRES_CONVERGENCE=PASS';"
