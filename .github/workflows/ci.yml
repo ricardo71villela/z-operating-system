@@ -42,6 +42,8 @@ jobs:
           for (const script of ['zos:setup','zos:check','zos:test','zos:build','fashion:check','studio:check']) {
             if (!pkg.scripts?.[script]) throw new Error(`Missing root script: ${script}`);
           }
+          const studio = JSON.parse(fs.readFileSync('apps/studio/package.json', 'utf8'));
+          if (studio.name !== '@zstudio/app') throw new Error('Studio root package must be product-owned');
           const fashionDomain = JSON.parse(fs.readFileSync('apps/fashion/packages/fashion-domain/package.json', 'utf8'));
           const fashionPartner = JSON.parse(fs.readFileSync('apps/fashion/apps/fashion-partner/package.json', 'utf8'));
           if (fashionDomain.name !== '@zfashion/domain') throw new Error('Fashion domain must be vertical-owned');
@@ -103,7 +105,6 @@ jobs:
         with:
           node-version: 22
       - run: npm run studio:setup
-      - run: npm ci --prefix apps/studio/backend
       - run: npm ci --prefix apps/studio/commercial
       - run: npm run studio:check
 
