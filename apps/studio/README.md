@@ -83,12 +83,17 @@ From the repository root:
 
 ```bash
 npm run studio:setup
-npm ci --prefix apps/studio/backend
 npm ci --prefix apps/studio/commercial
 npm run studio:check
 ```
 
+`backend/` currently has no third-party dependencies or lockfile, so its syntax/tests run directly through `studio:ai:check`; there is intentionally no fake install step for it.
+
 The root ZOS CI also runs Studio inside the five-product ecosystem gate. Product-specific Studio workflows remain responsible for deeper release, billing-provider and PostgreSQL authority tests.
+
+## Package identity
+
+The product root is `@zstudio/app`. Existing internal component package names may remain as compatibility identifiers where changing them would add deployment/build risk; they are Studio-owned and do not use the reserved `@zos/*` namespace. New Studio-owned packages use `@zstudio/*`.
 
 ## External activation
 
