@@ -35,7 +35,8 @@ jobs:
             'apps/fashion',
             'packages/geography/geography.js',
             'packages/geography/README.md',
-            'infrastructure/supabase/migrations',
+            'infrastructure/supabase/migrations/20260821170000_z_mobility_database_convergence_v1.sql',
+            'infrastructure/supabase/tests/z_mobility_database_convergence_v1.sql',
             '150-standards/MONOREPO-CONTRACT.md',
           ];
           for (const p of required) {
@@ -206,6 +207,10 @@ jobs:
           done < <(find infrastructure/supabase/migrations -maxdepth 1 -type f -name '*.sql' -print | sort)
           test "$count" -gt 0
           echo "INTEGRATED_MIGRATIONS_APPLIED=${count}"
+      - name: Verify Z Mobility database convergence
+        env:
+          PGPASSWORD: zos_ci_pw
+        run: psql -h localhost -U postgres -d zos_convergence_test -v ON_ERROR_STOP=1 -f infrastructure/supabase/tests/z_mobility_database_convergence_v1.sql
       - name: Verify Z Studio cross-platform authorities
         env:
           PGPASSWORD: zos_ci_pw
