@@ -106,6 +106,7 @@ function build() {
   const viewmodels = read('viewmodels.js');
   const app = read('app.js');
   const internationalWelcomeService = read('services/international-welcome.js');
+  const internationalWelcomeRouteSyncService = read('services/international-welcome-route-sync.js');
 
   // ---- Logo path placeholder (unchanged since Sprint A) ----
   const resolvedBody = resolvePlaceholders(body, { '__PATH_D__': pathD }, 'body.html');
@@ -152,6 +153,7 @@ function build() {
     + rentabilityService + '\n'
     + geography + '\n' + i18n + '\n' + viewmodels + '\n' + app
     + '\n' + internationalWelcomeService
+    + '\n' + internationalWelcomeRouteSyncService
     + '\n</script>\n</body>\n</html>\n';
 
   fs.mkdirSync(DIST, { recursive: true });
