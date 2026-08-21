@@ -23,7 +23,7 @@ See `docs/architecture/ZOS-ALIGNMENT.md` and
 
 ## Product surface
 
-- **Client segments** — Children, Youth, Adults.
+- **Client segments** — Baby, Children, Youth, Adults.
 - **Categories** — Clothing, Footwear, Sportswear, Accessories & Leather
   Goods (Maroquinaria), Cosmetics (explicitly includes Perfumes/Fragrances —
   not a separate category, since a perfume boutique's Partner profile and

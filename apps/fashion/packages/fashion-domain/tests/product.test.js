@@ -54,6 +54,24 @@ const kidsJacket = createProduct({
 });
 assert.deepStrictEqual(kidsJacket.safetyCertifications, ['EN 14682']);
 
+// Baby clothing without safety certifications is rejected — same
+// discipline as children/youth, not a lighter-touch check.
+assert.throws(
+  () => createProduct({
+    id: 'prod_baby_onesie', partnerId: 'p1', brandId: 'b1',
+    categories: ['clothing'], ageSegments: ['baby'],
+    size: { system: 'age', value: '3-6m' },
+  }),
+  /never inferred from size or appearance alone/
+);
+const babyOnesie = createProduct({
+  id: 'prod_baby_onesie', partnerId: 'p1', brandId: 'b1',
+  categories: ['clothing'], ageSegments: ['baby'],
+  safetyCertifications: ['EN 14682'],
+  size: { system: 'age', value: '3-6m' },
+});
+assert.deepStrictEqual(babyOnesie.ageSegments, ['baby']);
+
 // Cosmetics (including a perfume) requires `format`, forbids `size`.
 assert.throws(
   () => createProduct({

@@ -133,13 +133,20 @@ investment; everything else waits for a second market to justify it.
    unconditional — see DOMAIN-SKETCH.md), not Partner-configurable.
 10. All Sale aggregation and filtering (segment × category × Partner) —
     done in Phase 0 (`corner.js`'s `allSale()`).
-11. **Corner storefront rendering — done.** `corner-page.js` assembles the
-    view model a Corner page needs (header from CornerConfig, categories
-    present, mono/multi brand profile, product cards with resolved Brand
-    names) from existing domain records — same bridging-function pattern
-    Z Find's `viewmodels.js` already established, not a new concept.
-    `cornerExclusive` products still render here; only All Sale excludes
-    them.
+11. **Corner storefront view model — done; visual rendering — not started.**
+    `corner-page.js` assembles the view model a Corner page needs (header
+    from CornerConfig, categories present, mono/multi brand profile,
+    product cards with resolved Brand names) from existing domain records —
+    same bridging-function pattern Z Find's `viewmodels.js` already
+    established, not a new concept. This is domain logic that decides *what*
+    a Corner page should show, not the HTML/React that actually renders it —
+    `apps/fashion-web` (README's proposed repository structure) does not
+    exist yet in any branch as of 2026-08-21. Do not read "done" here as
+    "a customer can open a Corner page" — that remains Phase 2's open item.
+    `cornerExclusive` products are already correctly scoped in the view
+    model (rendered on the Corner page; excluded from All Sale), so the
+    only remaining work is the rendering layer itself, not further domain
+    design.
 
 ### Phase 3 — Growth mechanics
 12. **Campaign engine — pricing legality done.** `price-history.js` and

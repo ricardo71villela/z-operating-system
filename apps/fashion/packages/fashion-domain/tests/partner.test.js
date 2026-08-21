@@ -62,6 +62,24 @@ const kidsPartner = createPartner({
 });
 assert.strictEqual(isAgeSegmentEligible(kidsPartner, 'children'), true);
 
+// Baby eligibility carries the exact same minor-safe gate as
+// children/youth — never a weaker check just because "baby" is a smaller
+// word than "children" in the array.
+assert.throws(
+  () => createPartner({
+    id: 'p5b', legalName: 'Baby Corner', countryIso: 'FR',
+    locales: ['fr'], categories: ['clothing'], ageSegments: ['baby'],
+  }),
+  /has not acknowledged the minor-safe data policy/
+);
+const babyPartner = createPartner({
+  id: 'p5c', legalName: 'Baby Corner', countryIso: 'FR',
+  locales: ['fr'], categories: ['clothing'], ageSegments: ['baby'],
+  minorSafeDataAcknowledged: true,
+});
+assert.strictEqual(isAgeSegmentEligible(babyPartner, 'baby'), true);
+assert.strictEqual(isAgeSegmentEligible(babyPartner, 'children'), false);
+
 // countryIso is required — no silent default, since a Partner is never
 // "geography-less" (mirrors Geography's own zero-null-default discipline).
 assert.throws(

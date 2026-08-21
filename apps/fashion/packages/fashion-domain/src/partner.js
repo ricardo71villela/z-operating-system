@@ -31,7 +31,7 @@ const CATEGORIES = Object.freeze([
   'cosmetics', // includes perfumes/fragrances — see DOMAIN-SKETCH.md
 ]);
 
-const AGE_SEGMENTS = Object.freeze(['children', 'youth', 'adults']);
+const AGE_SEGMENTS = Object.freeze(['baby', 'children', 'youth', 'adults']);
 
 /**
  * Creates a Partner record. Throws on any violation of the invariants
@@ -105,11 +105,11 @@ function createPartner(input) {
     errors.push(`unknown ageSegments: ${invalidSegments.join(', ')}`);
   }
   if (
-    (ageSegments.includes('children') || ageSegments.includes('youth')) &&
+    (ageSegments.includes('baby') || ageSegments.includes('children') || ageSegments.includes('youth')) &&
     !input.minorSafeDataAcknowledged
   ) {
     errors.push(
-      'Partner declares children/youth eligibility but has not ' +
+      'Partner declares baby/children/youth eligibility but has not ' +
       'acknowledged the minor-safe data policy ' +
       '(160-legal-and-compliance/Z-FASHION-MINOR-SAFE-DATA.md) — this is ' +
       'a compliance gate, not a formality, and must not be bypassable by ' +

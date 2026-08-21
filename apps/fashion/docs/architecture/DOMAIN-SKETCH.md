@@ -55,15 +55,22 @@ schema — a checkpoint to catch the next inconsistency before it becomes code.
   *and* in All Sale by default (see "Resolved" below) — Corner and All Sale
   are two lenses on the same underlying Product set, not two places a
   Partner uploads to separately.
-- **Age Segment** — Children, Youth, Adults. Lives on the **Product**, same
-  discipline as Category: **never inferred from size or appearance alone**.
-  A children's-sized version of an adult product is not automatically
-  eligible for the Children segment — genuine Children/Youth eligibility
-  depends on the applicable safety certification and material compliance
-  for that Category (EU toy-safety-adjacent standards for younger children's
-  clothing hardware — drawstrings, small parts; EU Cosmetic Regulation
-  Annex III age-based restrictions for Cosmetics aimed at under-3s in
-  particular) — not on "it comes in a small size" or "it looks childlike."
+- **Age Segment** — Baby, Children, Youth, Adults. Lives on the **Product**,
+  same discipline as Category: **never inferred from size or appearance
+  alone**. Baby is a distinct segment from Children, not a synonym for "very
+  small child" — it carries its own safety-certification regime and its own
+  size conventions (age-in-months rather than a shared grid; pre-walking
+  Footwear is barely a real product line, unlike Children's), so collapsing
+  it into Children would repeat the same single-field mistake this section
+  keeps correcting, just at the segment boundary this time. A children's-sized
+  version of an adult product is not automatically eligible for the Children
+  segment — genuine Baby/Children/Youth eligibility depends on the applicable
+  safety certification and material compliance for that Category (EU
+  toy-safety-adjacent standards for younger children's clothing hardware —
+  drawstrings, small parts — apply with extra weight to Baby; EU Cosmetic
+  Regulation Annex III age-based restrictions for Cosmetics aimed at
+  under-3s in particular, which is precisely the Baby segment's core age
+  range) — not on "it comes in a small size" or "it looks childlike."
   This is the same resemblance-vs-genuine-purpose principle just corrected
   for Sportswear, applied to the segment with real regulatory stakes
   (`160-legal-and-compliance`), not just a curation-quality stake.

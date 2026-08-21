@@ -43,7 +43,7 @@ const SIZED_CATEGORIES = Object.freeze(['clothing', 'footwear', 'sportswear']);
  * @param {boolean} [input.technicalPurpose] - required truthy iff
  *                                           categories includes 'sportswear'
  * @param {string[]} input.ageSegments    - multi-valued; if it includes
- *                                           'children' or 'youth',
+ *                                           'baby', 'children' or 'youth',
  *                                           input.safetyCertifications must
  *                                           be a non-empty array — never
  *                                           inferred from size/appearance
@@ -94,11 +94,11 @@ function createProduct(input) {
   const invalidSegments = ageSegments.filter((s) => !AGE_SEGMENTS.includes(s));
   if (invalidSegments.length > 0) errors.push(`unknown ageSegments: ${invalidSegments.join(', ')}`);
 
-  const needsCertification = ageSegments.includes('children') || ageSegments.includes('youth');
+  const needsCertification = ageSegments.includes('baby') || ageSegments.includes('children') || ageSegments.includes('youth');
   if (needsCertification && (!Array.isArray(input.safetyCertifications) || input.safetyCertifications.length === 0)) {
     errors.push(
-      'ageSegments includes children/youth but safetyCertifications is ' +
-      'empty — Children/Youth eligibility is never inferred from size or ' +
+      'ageSegments includes baby/children/youth but safetyCertifications is ' +
+      'empty — Baby/Children/Youth eligibility is never inferred from size or ' +
       'appearance alone (see DOMAIN-SKETCH.md Age Segment).'
     );
   }

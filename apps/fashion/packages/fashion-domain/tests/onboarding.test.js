@@ -53,4 +53,31 @@ kidsApp = transition(kidsApp, 'approved');
 kidsApp = transition(kidsApp, 'active', { partner: kidsPartner, feedReliabilityTier: 'live' });
 assert.strictEqual(kidsApp.status, 'active');
 
+// Same for Baby — and this time exercise the actual failure path: a
+// Partner record constructed without going through createPartner()'s own
+// gate (e.g. a future alternate code path) must still be blocked here,
+// since onboarding.js re-checks independently rather than trusting the
+// caller already validated it.
+const babyPartnerUnacknowledged = {
+  id: 'partner_baby', legalName: 'Bébé Bien', countryIso: 'FR',
+  locales: ['fr'], categories: ['clothing'], ageSegments: ['baby'],
+  minorSafeDataAcknowledged: false,
+};
+let babyApp = transition(createApplication('partner_baby'), 'under_review');
+babyApp = transition(babyApp, 'approved');
+assert.throws(
+  () => transition(babyApp, 'active', { partner: babyPartnerUnacknowledged, feedReliabilityTier: 'live' }),
+  /cannot activate a Partner declaring baby\/children\/youth/
+);
+
+const babyPartner = createPartner({
+  id: 'partner_baby2', legalName: 'Bébé Bien', countryIso: 'FR',
+  locales: ['fr'], categories: ['clothing'], ageSegments: ['baby'],
+  minorSafeDataAcknowledged: true,
+});
+let babyApp2 = transition(createApplication('partner_baby2'), 'under_review');
+babyApp2 = transition(babyApp2, 'approved');
+babyApp2 = transition(babyApp2, 'active', { partner: babyPartner, feedReliabilityTier: 'live' });
+assert.strictEqual(babyApp2.status, 'active');
+
 console.log('onboarding.js: all invariant checks passed.');
