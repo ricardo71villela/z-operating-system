@@ -83,6 +83,19 @@ assert.deepStrictEqual(
   []
 );
 
+// All Sale filtered by size: value-only match (no cross-system
+// translation yet — see the comment in corner.js). The shoe is EU 42;
+// filtering for that exact value returns it, any other value excludes
+// it, and a Product without a `size` at all (the perfume) never matches.
+assert.deepStrictEqual(
+  allSale(catalog, { sizeValue: 42 }).map((p) => p.id),
+  ['prod_shoe']
+);
+assert.deepStrictEqual(
+  allSale(catalog, { sizeValue: 40 }).map((p) => p.id),
+  []
+);
+
 // Corner B still shows the exclusive bag — Corner is not filtered by
 // All Sale eligibility, only by Partner.
 assert.deepStrictEqual(

@@ -16,8 +16,9 @@ function corner(products, partnerId) {
 
 /**
  * The cross-Partner All Sale view, filterable by Segment × Gender ×
- * Category × Brand × Partner (all optional). Excludes cornerExclusive
- * Products — All Sale is comprehensive by default (opt-out, not opt-in).
+ * Category × Size × Brand × Partner (all optional). Excludes
+ * cornerExclusive Products — All Sale is comprehensive by default
+ * (opt-out, not opt-in).
  */
 function allSale(products, filter = {}) {
   return products.filter((p) => {
@@ -25,6 +26,12 @@ function allSale(products, filter = {}) {
     if (filter.ageSegment && !p.ageSegments.includes(filter.ageSegment)) return false;
     if (filter.gender && p.gender !== filter.gender) return false;
     if (filter.category && !p.categories.includes(filter.category)) return false;
+    // Size match is deliberately loose (value only, not system) — this
+    // catalog has no cross-system size-grid translation yet
+    // (MARKETS-AND-I18N.md flags the translation itself as needed, not
+    // yet built); filtering on the raw value is honest about that gap
+    // rather than pretending a translated match exists.
+    if (filter.sizeValue !== undefined && (!p.size || p.size.value !== filter.sizeValue)) return false;
     if (filter.brandId && p.brandId !== filter.brandId) return false;
     if (filter.partnerId && p.partnerId !== filter.partnerId) return false;
     return true;
