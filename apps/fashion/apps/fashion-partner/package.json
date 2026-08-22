@@ -2,7 +2,7 @@
   "name": "@zos/fashion-partner",
   "version": "0.0.0",
   "private": true,
-  "description": "Z Fashion Partner API — onboarding and stock feed endpoints wired to fashion-domain.",
+  "description": "Z Fashion Partner API — onboarding, stock feed, brand and product management endpoints wired to fashion-domain.",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

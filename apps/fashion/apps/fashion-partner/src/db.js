@@ -125,4 +125,101 @@ function toDomainShape(row) {
   };
 }
 
-module.exports = { createPool, insertPartner, updatePartnerStatus, getPartner };
+/** Inserts a Brand row — typically a Partner's own house label
+ *  (houseLabelOfPartnerId set), but Brand is never a Partner itself
+ *  (brand.js's own distinction) — a Product always references a
+ *  Brand, and a Brand references a Partner only optionally. */
+async function insertBrand(pool, brand) {
+  const result = await pool.query(
+    `insert into fashion.brands (name, house_label_of_partner_id)
+     values ($1, $2)
+     returning id, name, house_label_of_partner_id`,
+    [brand.name, brand.houseLabelOfPartnerId || null]
+  );
+  const row = result.rows[0];
+  return { id: row.id, name: row.name, houseLabelOfPartnerId: row.house_label_of_partner_id };
+}
+
+/** Inserts a Product row. Assumes the caller already ran createProduct()
+ *  (product.js) validation — this function trusts its input shape, the
+ *  same discipline insertPartner() already follows for Partner. gender
+ *  and style_id were added by later migrations (20260821190000,
+ *  20260821220000) — both included here since this function is written
+ *  against the schema as it stands today, not the original foundation
+ *  migration alone. */
+async function insertProduct(pool, product) {
+  const result = await pool.query(
+    `insert into fashion.products
+       (partner_id, brand_id, names, descriptions, categories, technical_purpose,
+        gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id)
+     values ($1, $2, $3::jsonb, $4::jsonb, $5::fashion.category[], $6,
+             $7::fashion.gender, $8::fashion.age_segment[], $9, $10::jsonb, $11::jsonb, $12, $13)
+     returning id, partner_id, brand_id, names, descriptions, categories, technical_purpose,
+               gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id`,
+    [
+      product.partnerId,
+      product.brandId,
+      JSON.stringify(product.names),
+      JSON.stringify(product.descriptions || {}),
+      product.categories,
+      product.technicalPurpose,
+      product.gender,
+      product.ageSegments,
+      product.safetyCertifications || [],
+      product.size ? JSON.stringify(product.size) : null,
+      product.format ? JSON.stringify(product.format) : null,
+      product.cornerExclusive || false,
+      product.styleId || null,
+    ]
+  );
+  return toProductDomainShape(result.rows[0]);
+}
+
+/** Lists every Product belonging to one Partner — the Partner-facing
+ *  catalog view (never scoped by Market/All Sale rules, which are a
+ *  Client-facing concern owned by market.js/corner.js, not this
+ *  Partner-owned listing). */
+async function listProductsForPartner(pool, partnerId) {
+  const result = await pool.query(
+    `select id, partner_id, brand_id, names, descriptions, categories, technical_purpose,
+            gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id
+     from fashion.products where partner_id = $1
+     order by created_at desc`,
+    [partnerId]
+  );
+  return result.rows.map(toProductDomainShape);
+}
+
+async function getProduct(pool, productId) {
+  const result = await pool.query(
+    `select id, partner_id, brand_id, names, descriptions, categories, technical_purpose,
+            gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id
+     from fashion.products where id = $1`,
+    [productId]
+  );
+  return result.rows[0] ? toProductDomainShape(result.rows[0]) : null;
+}
+
+function toProductDomainShape(row) {
+  return {
+    id: row.id,
+    partnerId: row.partner_id,
+    brandId: row.brand_id,
+    names: row.names,
+    descriptions: row.descriptions,
+    categories: row.categories,
+    technicalPurpose: row.technical_purpose,
+    gender: row.gender,
+    ageSegments: row.age_segments,
+    safetyCertifications: row.safety_certifications,
+    size: row.size,
+    format: row.format,
+    cornerExclusive: row.corner_exclusive,
+    styleId: row.style_id,
+  };
+}
+
+module.exports = {
+  createPool, insertPartner, updatePartnerStatus, getPartner,
+  insertBrand, insertProduct, listProductsForPartner, getProduct,
+};

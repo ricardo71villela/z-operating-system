@@ -32,6 +32,21 @@ applied by Z Jobs and Z Mobility.
 
 ## Resolved
 
+- **Partner-facing Product/Brand API** — resolved 2026-08-21 (ponto 1 of
+  the partner-side audit): `fashion-partner`'s API surface had been
+  confirmed, by direct inspection, to cover only onboarding and single-
+  Product stock updates — Product and Brand had rich domain validation
+  (`product.js`, `brand.js`) with zero HTTP surface, meaning a real
+  Partner could not put a single item up for sale through this API.
+  Fixed by adding `POST /partners/:id/brands`, `POST /partners/:id/products`,
+  `GET /partners/:id/products`, `GET /products/:id` — same dual-mode
+  discipline as every existing endpoint (in-memory when `DATABASE_URL` is
+  unset, real Postgres via `db.js` otherwise), same "domain validation
+  runs before the DB ever sees the row" pattern `handleApplyPartner()`
+  already established. `db.js` gained `insertBrand()`/`insertProduct()`/
+  `listProductsForPartner()`/`getProduct()`, mirroring `insertPartner()`'s
+  shape exactly.
+
 - **Shipment & Return lifecycle** — resolved 2026-08-21 (ponto 2 of the
   "onde estamos" status review): `fashion.orders.status` had been a single
   global value (`confirmed`/`cancelled`) with no fulfillment progression at

@@ -77,6 +77,56 @@ async function run() {
   assert.strictEqual(res.status, 200);
   assert.strictEqual(res.body.stock.quantityAvailable, 5);
 
+  // Brand creation over HTTP — a Product cannot exist without one.
+  res = await request('POST', '/partners/partner_atelier/brands', { name: 'Atelier du Marais' });
+  assert.strictEqual(res.status, 201);
+  const brandId = res.body.brand.id;
+  assert.strictEqual(res.body.brand.name, 'Atelier du Marais');
+
+  // Product creation over HTTP — real createProduct() validation runs
+  // behind this, same as Partner over /partners.
+  res = await request('POST', '/partners/partner_atelier/products', {
+    brandId, names: { fr: 'Sac besace en cuir' }, gender: 'unisex',
+    categories: ['accessories_leather_goods'],
+  });
+  assert.strictEqual(res.status, 201);
+  const productId = res.body.product.id;
+  assert.strictEqual(res.body.product.names.fr, 'Sac besace en cuir');
+  assert.strictEqual(res.body.product.partnerId, 'partner_atelier');
+
+  // Missing required fields (gender) rejected over HTTP with 422, same
+  // validation as direct createProduct() calls.
+  res = await request('POST', '/partners/partner_atelier/products', {
+    brandId, names: { fr: 'Ceinture' }, categories: ['accessories_leather_goods'],
+  });
+  assert.strictEqual(res.status, 422);
+  assert.ok(/gender is required/.test(res.body.error));
+
+  // A Sportswear Product without size is rejected over HTTP too — the
+  // sized-category rule reaches all the way to the wire.
+  res = await request('POST', '/partners/partner_atelier/products', {
+    brandId, names: { fr: 'Legging' }, gender: 'female',
+    categories: ['clothing', 'sportswear'], technicalPurpose: true,
+  });
+  assert.strictEqual(res.status, 422);
+  assert.ok(/require a `size`/.test(res.body.error));
+
+  // Listing a Partner's products over HTTP returns what was created —
+  // never another Partner's Products.
+  res = await request('GET', '/partners/partner_atelier/products');
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.products.length, 1);
+  assert.strictEqual(res.body.products[0].id, productId);
+
+  // Fetching a single Product by id over HTTP.
+  res = await request('GET', `/products/${productId}`);
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.product.id, productId);
+
+  // A non-existent Product returns 404, never a silent empty success.
+  res = await request('GET', '/products/does_not_exist');
+  assert.strictEqual(res.status, 404);
+
   server.close();
   console.log('fashion-partner API: all integration checks passed.');
 }
