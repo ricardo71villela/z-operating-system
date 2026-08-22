@@ -32,6 +32,28 @@ applied by Z Jobs and Z Mobility.
 
 ## Resolved
 
+- **Shipment & Return lifecycle** — resolved 2026-08-21 (ponto 2 of the
+  "onde estamos" status review): `fashion.orders.status` had been a single
+  global value (`confirmed`/`cancelled`) with no fulfillment progression at
+  all, and no Return entity existed anywhere despite the 14-day policy and
+  Cosmetics hygiene-seal exception both already being real rules
+  (`isReturnEligible()`, product.js) with nothing to invoke them. Fixed by
+  introducing two new state machines, same `ALLOWED_TRANSITIONS` +
+  `transition()` + `history` pattern already established by onboarding.js:
+  - `shipment.js` — one Shipment per Partner within an Order (the same
+    unit `partnerSplits()`/cart.js already uses at checkout, carried
+    forward into fulfillment): `confirmed → preparing → shipped →
+    delivered`, cancellable only before shipping — once shipped, the
+    Client-side remedy is a Return, never a Shipment cancellation.
+  - `return.js` — one Return per Product, gated on `isWithinReturnWindow()`
+    (14 days from the owning Shipment's `deliveredAt`, never from
+    purchase) and `isReturnEligible()` (reused, not re-derived):
+    `requested → approved/rejected → in_transit → refunded`.
+  Both mirrored in SQL (`20260821230000_z_fashion_shipment_return_v1.sql`)
+  as triggers enforcing the exact same transition graphs and eligibility
+  checks, same dual-enforcement discipline as `attempt_checkout()` and
+  `validate_campaign_discount()`.
+
 - **Partner monetization (subscription + commission)** — resolved as a
   deliberate market-entry position below the two direct France precedents
   (Miinto ~16-20% + ~EUR98/month; Galeries Lafayette ~15% + ~EUR40-49/month,
