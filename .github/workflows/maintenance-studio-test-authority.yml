@@ -3,7 +3,7 @@ name: One-shot Z Studio convergence repair
 on:
   push:
     branches:
-      - chore/zos-five-app-convergence-v1
+      - fix/zstudio-empty-states-icons-v1
     paths:
       - '.github/workflows/maintenance-studio-test-authority.yml'
 
@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: chore/zos-five-app-convergence-v1
+          ref: fix/zstudio-empty-states-icons-v1
           fetch-depth: 0
 
       - uses: actions/setup-node@v4
@@ -95,4 +95,4 @@ jobs:
             apps/studio/tests/run-tests.js
           git diff --cached --check
           git commit -m 'test(studio): reconcile test and generated authorities'
-          git push origin HEAD:chore/zos-five-app-convergence-v1
+          git push origin HEAD:fix/zstudio-empty-states-icons-v1
