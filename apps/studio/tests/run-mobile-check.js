@@ -112,9 +112,9 @@ const INSPECT_CODE = `
   check('header mobile mostra identidade Z Studio', !!brandTag && getComputedStyle(brandTag).display !== 'none' && /Z Studio/.test(brandBefore),
     { display: brandTag && getComputedStyle(brandTag).display, before: brandBefore });
 
-  // Header geometry contract — guards the real-iPhone regression where the
-  // legacy runtime reduced Bulk Generation to an icon-sized frame and split
-  // Sign In / language across the full row.
+  // Header geometry contract — at 390px Bulk + account/language must share one
+  // utility row. This prevents both the old icon-sized Bulk regression and an
+  // over-tall two-row header. Narrow-phone fallback is CSS-scoped <=360px.
   const headerActions = document.querySelector('header .header-actions');
   const bulk = document.getElementById('btnHeaderBulk');
   const auth = document.getElementById('zstudioAuthButton');
@@ -127,28 +127,44 @@ const INSPECT_CODE = `
     const lwr = rect(langWrap);
     const lr = rect(lang);
     const actionStyle = getComputedStyle(headerActions);
+    const langStyle = getComputedStyle(lang);
     const actionContentLeft = ar.left + parseFloat(actionStyle.paddingLeft || '0');
     const actionContentRight = ar.right - parseFloat(actionStyle.paddingRight || '0');
+    const bulkUtilityGap = lwr.left - bur.right;
     const authLangGap = lr.left - aur.right;
+    const padLeft = parseFloat(langStyle.paddingLeft || '0');
+    const padRight = parseFloat(langStyle.paddingRight || '0');
 
-    check('Bulk Generation ocupa a largura útil da barra', bur.width >= 300 && Math.abs(bur.left - actionContentLeft) <= 2 && Math.abs(bur.right - actionContentRight) <= 2,
-      { bulk:bur, actionContentLeft, actionContentRight });
+    check('Bulk e utility partilham a mesma linha', Math.abs(bur.top - lwr.top) <= 2 && Math.abs(bur.height - lwr.height) <= 2,
+      { bulk:bur, utility:lwr });
+    check('Bulk começa na margem útil esquerda', Math.abs(bur.left - actionContentLeft) <= 2,
+      { bulkLeft:bur.left, actionContentLeft });
+    check('Bulk mantém largura legível', bur.width >= 175 && bur.width <= 200,
+      bur);
     check('texto Bulk Generation fica contido no botão', bulk.scrollWidth <= bulk.clientWidth + 1,
       { scrollWidth:bulk.scrollWidth, clientWidth:bulk.clientWidth, text:bulk.textContent.trim() });
     check('Bulk Generation não regressa a icon-only', parseFloat(getComputedStyle(bulk).fontSize) >= 9,
       { fontSize:getComputedStyle(bulk).fontSize });
-    check('Sign In + idioma formam cluster compacto', lwr.width >= 190 && lwr.width <= 255,
+    check('gap Bulk → utility é curto e deliberado', bulkUtilityGap >= 6 && bulkUtilityGap <= 10,
+      { gap:bulkUtilityGap, bulkRight:bur.right, utilityLeft:lwr.left });
+    check('utility alinha à margem útil direita', Math.abs(lwr.right - actionContentRight) <= 2,
+      { utilityRight:lwr.right, actionContentRight });
+    check('Sign In + idioma formam cluster compacto', lwr.width >= 158 && lwr.width <= 170,
       lwr);
     check('Sign In e idioma estão na mesma linha e altura', Math.abs(aur.top - lr.top) <= 2 && Math.abs(aur.height - lr.height) <= 2,
       { auth:aur, lang:lr });
-    check('gap Sign In → idioma é curto', authLangGap >= 6 && authLangGap <= 12,
+    check('Sign In e idioma encostam no controlo segmentado', Math.abs(authLangGap) <= 2,
       { gap:authLangGap, authRight:aur.right, langLeft:lr.left });
-    check('Sign In tem largura útil', aur.width >= 120,
+    check('Sign In mantém largura útil', aur.width >= 100,
       aur);
-    check('idioma mantém largura compacta', lr.width >= 58 && lr.width <= 72,
+    check('idioma mantém largura compacta', lr.width >= 54 && lr.width <= 58,
       lr);
-    check('cluster Sign In/idioma alinha à direita útil', Math.abs(lwr.right - actionContentRight) <= 2,
-      { langWrapRight:lwr.right, actionContentRight });
+    check('idioma remove seta nativa do browser', langStyle.appearance === 'none' || langStyle.webkitAppearance === 'none',
+      { appearance:langStyle.appearance, webkitAppearance:langStyle.webkitAppearance });
+    check('idioma usa padding horizontal simétrico', Math.abs(padLeft - padRight) <= 0.5,
+      { paddingLeft:padLeft, paddingRight:padRight });
+    check('idioma está centrado no próprio segmento', langStyle.textAlign === 'center' && langStyle.textAlignLast === 'center',
+      { textAlign:langStyle.textAlign, textAlignLast:langStyle.textAlignLast });
   } else {
     check('controlos completos do header mobile existem', false,
       { headerActions:!!headerActions, bulk:!!bulk, auth:!!auth, langWrap:!!langWrap, lang:!!lang });
@@ -343,7 +359,6 @@ async function main() {
   });
   win.webContents.setFrameRate(30);
   win.webContents.setZoomFactor(1);
-  win.webContents.on('paint', () => {});
   win.setContentSize(390, 844);
   await new Promise(r => setTimeout(r, 100));
 
