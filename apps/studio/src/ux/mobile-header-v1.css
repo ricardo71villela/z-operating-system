@@ -3,7 +3,7 @@
    - two deliberate bars instead of forcing brand + actions into one row;
    - first bar restores a readable Z Studio identity with a materially larger mark;
    - second bar uses two internal rows so Bulk Generation can never be clipped;
-   - Sign In / Account and language remain available beneath the primary utility action;
+   - Sign In / Account and language form one compact utility cluster;
    - no creation-flow, preview, renderer, auth or billing behavior changes.
 */
 
@@ -69,60 +69,133 @@
     display: none !important;
   }
 
-  /* Bar 2 is deliberately two rows on phones. This removes the width race
-     between Bulk Generation and the auth/language group seen on real iPhone. */
+  /* Bar 2 is deliberately two rows on phones. */
   header .header-actions {
     width: 100%;
     min-width: 0;
+    max-width: none;
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) !important;
     grid-template-rows: auto auto;
     align-items: stretch;
+    justify-items: stretch;
     gap: 8px;
     padding: 10px 16px 12px;
+    margin: 0 !important;
   }
 
   header #btnHeaderBulk {
     grid-row: 1;
-    width: 100%;
-    min-width: 0;
-    min-height: 42px;
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 42px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
     padding: 9px 12px !important;
     font-size: .64rem !important;
     line-height: 1.15;
     letter-spacing: .085em !important;
     white-space: nowrap !important;
-    overflow: visible;
-    text-overflow: clip;
+    overflow: hidden !important;
+    text-overflow: ellipsis;
+    flex: none !important;
   }
 
   header .lang-switch {
     grid-row: 2;
-    width: 100%;
-    min-width: 0;
+    width: min(100%, 248px) !important;
+    min-width: 0 !important;
+    max-width: 248px !important;
+    justify-self: end;
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) 68px;
+    grid-template-columns: minmax(0, 1fr) 68px !important;
     align-items: stretch;
-    gap: 8px;
+    gap: 8px !important;
+    margin: 0 !important;
   }
 
   header #zstudioAuthButton {
-    width: 100%;
-    min-width: 0;
-    min-height: 40px;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 40px !important;
     padding: 9px 11px !important;
     font-size: .62rem !important;
     line-height: 1.15;
     letter-spacing: .08em;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: none !important;
   }
 
   header #langSwitch {
-    width: 68px;
-    min-width: 68px;
-    min-height: 40px;
+    width: 68px !important;
+    min-width: 68px !important;
+    max-width: 68px !important;
+    height: auto !important;
+    min-height: 40px !important;
     padding: 8px 7px;
     font-size: .69rem;
+    flex: none !important;
+  }
+
+  /* The mobile information-flow runtime predates this header authority and
+     injects legacy compact-header declarations after page CSS. These selectors
+     intentionally outrank only those legacy declarations so there is one
+     deterministic rendered geometry on real phones. */
+  html[data-zstudio-mobile-flow="v2"] body header .header-actions {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: none !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto auto !important;
+    flex: none !important;
+    margin: 0 !important;
+    padding: 10px 16px 12px !important;
+    gap: 8px !important;
+  }
+
+  html[data-zstudio-mobile-flow="v2"] body header #btnHeaderBulk {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 42px !important;
+    padding: 9px 12px !important;
+    font-size: .64rem !important;
+    letter-spacing: .085em !important;
+    overflow: hidden !important;
+  }
+
+  html[data-zstudio-mobile-flow="v2"] body header .lang-switch {
+    width: min(100%, 248px) !important;
+    max-width: 248px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 68px !important;
+    justify-self: end !important;
+    gap: 8px !important;
+  }
+
+  html[data-zstudio-mobile-flow="v2"] body header #zstudioAuthButton {
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 40px !important;
+  }
+
+  html[data-zstudio-mobile-flow="v2"] body header #langSwitch {
+    width: 68px !important;
+    min-width: 68px !important;
+    max-width: 68px !important;
+    height: auto !important;
+    min-height: 40px !important;
   }
 
   /* ZSTUDIO_MOBILE_BORDER_AUTHORITY_V1
@@ -219,10 +292,11 @@
     font-size: 1.48rem;
   }
 
-  header .header-actions {
-    gap: 7px;
-    padding-left: 10px;
-    padding-right: 10px;
+  header .header-actions,
+  html[data-zstudio-mobile-flow="v2"] body header .header-actions {
+    gap: 7px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
   }
 
   header #btnHeaderBulk,
@@ -236,13 +310,18 @@
     padding-right: 8px !important;
   }
 
-  header .lang-switch {
-    grid-template-columns: minmax(0, 1fr) 60px;
-    gap: 7px;
+  header .lang-switch,
+  html[data-zstudio-mobile-flow="v2"] body header .lang-switch {
+    width: min(100%, 224px) !important;
+    max-width: 224px !important;
+    grid-template-columns: minmax(0, 1fr) 60px !important;
+    gap: 7px !important;
   }
 
-  header #langSwitch {
-    width: 60px;
-    min-width: 60px;
+  header #langSwitch,
+  html[data-zstudio-mobile-flow="v2"] body header #langSwitch {
+    width: 60px !important;
+    min-width: 60px !important;
+    max-width: 60px !important;
   }
 }
