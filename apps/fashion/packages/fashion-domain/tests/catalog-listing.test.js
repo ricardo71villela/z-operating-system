@@ -41,4 +41,22 @@ const cardsNoBrandMap = buildListingCards([shoe], { prod_shoe: inStock });
 assert.strictEqual(cardsNoBrandMap[0].brandName, null);
 assert.strictEqual(cardsNoBrandMap[0].availability.label, 'in_stock');
 
+// --- name: fixed 2026-08-21 — a listing card previously had no display
+// name at all, impossible to actually render a product grid with it. ---
+const namedShoe = createProduct({
+  id: 'prod_named_shoe', partnerId: 'partner_atelier', brandId: 'brand_atelier',
+  names: { fr: 'Escarpins en cuir souple', en: 'Leather pumps' }, gender: 'female',
+  categories: ['footwear'], size: { system: 'EU', value: 38 },
+});
+const namedCard = buildListingCard({ product: namedShoe, stock: inStock, brand });
+assert.strictEqual(namedCard.name, 'Escarpins en cuir souple'); // default locale ('fr')
+
+const namedCardEn = buildListingCard({ product: namedShoe, stock: inStock, brand, locale: 'en' });
+assert.strictEqual(namedCardEn.name, 'Leather pumps');
+
+// Falls back to 'fr' when the requested locale has no translation —
+// same fallback productName() already guarantees, never a second rule.
+const namedCardDe = buildListingCard({ product: namedShoe, stock: inStock, brand, locale: 'de' });
+assert.strictEqual(namedCardDe.name, 'Escarpins en cuir souple');
+
 console.log('catalog-listing.js: all invariant checks passed.');

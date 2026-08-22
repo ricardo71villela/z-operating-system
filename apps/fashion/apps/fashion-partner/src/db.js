@@ -416,11 +416,45 @@ async function getBrand(pool, brandId) {
   return { id: row.id, name: row.name, houseLabelOfPartnerId: row.house_label_of_partner_id };
 }
 
+/** Lists every Product across every Partner — closes the gap
+ *  PAYMENT-STRIPE-STATUS.md-style-flagged as "not built" in the
+ *  catalog endpoint's own comment (2026-08-21): All Sale is a
+ *  cross-Partner view by definition (corner.js's allSale()), so a
+ *  Partner-scoped query alone can never serve it. Never filters by
+ *  Market or any other scoping here — that stays market.js's
+ *  productsVisibleInMarket()'s job, composed by the caller, same
+ *  separation corner.js's allSaleInMarket() already establishes. */
+async function listAllProducts(pool) {
+  const result = await pool.query(
+    `select id, partner_id, brand_id, names, descriptions, categories, technical_purpose,
+            gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id
+     from fashion.products`
+  );
+  return result.rows.map(toProductDomainShape);
+}
+
+/** Fetches Stock for many Products in one query — avoids an N+1 query
+ *  pattern now that callers (the Catalog endpoint) may need stock for
+ *  the full cross-Partner catalog, not just one Partner's handful of
+ *  Products. Products with no Stock row yet are simply absent from the
+ *  returned map — the caller (catalog-listing.js's buildListingCards())
+ *  already treats a missing entry as out_of_stock, never as "in stock
+ *  by default". */
+async function getStockForProductsPg(pool, productIds) {
+  if (productIds.length === 0) return {};
+  const result = await pool.query(`select * from fashion.stock where product_id = any($1::uuid[])`, [productIds]);
+  const byId = {};
+  for (const row of result.rows) {
+    byId[row.product_id] = toStockDomainShape(row);
+  }
+  return byId;
+}
+
 module.exports = {
   createPool, insertPartner, updatePartnerStatus, getPartner,
-  insertBrand, getBrand, insertProduct, listProductsForPartner, getProduct,
+  insertBrand, getBrand, insertProduct, listProductsForPartner, listAllProducts, getProduct,
   insertShipment, listShipmentsForPartner, updateShipmentStatus,
   insertReturn, listReturnsForPartner, updateReturnStatus,
-  applyStockUpdatePg, getStockPg,
+  applyStockUpdatePg, getStockPg, getStockForProductsPg,
   recordPricePg, getCurrentPricePg,
 };

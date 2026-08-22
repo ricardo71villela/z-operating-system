@@ -17,6 +17,8 @@ const shipmentDomain = require('../../../packages/fashion-domain/src/shipment');
 const returnDomain = require('../../../packages/fashion-domain/src/return');
 const priceHistory = require('../../../packages/fashion-domain/src/price-history');
 const { buildProductPageViewModel } = require('../../../packages/fashion-domain/src/product-page');
+const { allSale } = require('../../../packages/fashion-domain/src/corner');
+const { buildListingCards } = require('../../../packages/fashion-domain/src/catalog-listing');
 const db = require('./db');
 
 const usingPostgres = !!process.env.DATABASE_URL;
@@ -434,13 +436,11 @@ async function handleTransitionReturn(req, res, returnId) {
  * already expose more broadly (this reads the same Product/Stock/Brand
  * rows a Partner can already read about their own catalog).
  *
- * Known simplification, stated openly rather than silently: the
- * "sibling catalog" passed to buildProductPageViewModel() is scoped to
- * the Product's own Partner (same-Corner recommendations work fully;
- * the fallback path recommendations.js defines for when same-Corner
- * has too few matches will find nothing cross-Partner yet, since no
- * "list every Product across every Partner" query exists — building
- * that is bigger scope than this endpoint's purpose today).
+ * Recommendations/style-groups see the full cross-Partner catalog
+ * (db.listAllProducts()) — same-Corner recommendations and the
+ * catalog-wide fallback recommendations.js defines both work fully,
+ * not just the same-Corner case (fixed 2026-08-21, was originally
+ * scoped to the Product's own Partner only).
  */
 async function handleGetCatalogProduct(req, res, productId) {
   try {
@@ -454,12 +454,12 @@ async function handleGetCatalogProduct(req, res, productId) {
       brand = product.brandId ? await db.getBrand(pool, product.brandId) : null;
       partner = await db.getPartner(pool, product.partnerId);
       priceMinorUnits = await db.getCurrentPricePg(pool, productId);
-      siblingProducts = await db.listProductsForPartner(pool, product.partnerId);
-
-      stockByProductId = {};
-      for (const p of siblingProducts) {
-        stockByProductId[p.id] = await db.getStockPg(pool, p.id);
-      }
+      // Full cross-Partner catalog now that db.listAllProducts() exists —
+      // closes the "same-Corner only" simplification this endpoint
+      // originally shipped with; recommendations.js's fallback path can
+      // now actually find something outside the Product's own Partner.
+      siblingProducts = await db.listAllProducts(pool);
+      stockByProductId = await db.getStockForProductsPg(pool, siblingProducts.map((p) => p.id));
     } else {
       product = memory.products.get(productId);
       if (!product) return sendJson(res, 404, { error: `no product with id ${productId}` });
@@ -487,6 +487,73 @@ async function handleGetCatalogProduct(req, res, productId) {
     });
 
     sendJson(res, 200, { productPage: viewModel });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
+/**
+ * Public Catalog listing — GET /catalog/all-sale, optionally filtered
+ * by ?gender=&category=&sizeValue=&ageSegment= (same filter shape
+ * allSale() already accepts in corner.js). The second real Client-
+ * facing endpoint, same day as the Product Page one — All Sale is a
+ * cross-Partner view by definition, so it always reads the full
+ * catalog (db.listAllProducts()), never one Partner's.
+ *
+ * Each card is decorated via catalog-listing.js's buildListingCards()
+ * (stock availability, Brand name) plus current price and the selling
+ * Partner's name attached here — price/Partner-name are not
+ * catalog-listing.js's concern, same separation-of-concerns the rest
+ * of this domain already keeps (Price lives in price-history.js,
+ * Partner identity is its own thing).
+ */
+async function handleGetAllSale(req, res, query) {
+  try {
+    const filter = {};
+    if (query.get('gender')) filter.gender = query.get('gender');
+    if (query.get('category')) filter.category = query.get('category');
+    if (query.get('ageSegment')) filter.ageSegment = query.get('ageSegment');
+    if (query.get('sizeValue')) filter.sizeValue = Number(query.get('sizeValue'));
+
+    let allProducts, stockByProductId, brandsById, partnersById;
+
+    if (usingPostgres) {
+      allProducts = await db.listAllProducts(pool);
+      stockByProductId = await db.getStockForProductsPg(pool, allProducts.map((p) => p.id));
+      // Brands/Partners resolved individually below per-card — a batch
+      // fetch for these would be a further optimization, not done here
+      // (same honestly-scoped-for-today discipline as everything else).
+    } else {
+      allProducts = [...memory.products.values()];
+      stockByProductId = Object.fromEntries(
+        allProducts.map((p) => [p.id, memory.stockByProductId.get(p.id) || initStock(p.id)])
+      );
+    }
+
+    const matching = allSale(allProducts, filter);
+
+    const cards = [];
+    for (const product of matching) {
+      let brand = null, partner = null, price = null;
+      if (usingPostgres) {
+        brand = product.brandId ? await db.getBrand(pool, product.brandId) : null;
+        partner = await db.getPartner(pool, product.partnerId);
+        price = await db.getCurrentPricePg(pool, product.id);
+      } else {
+        brand = product.brandId ? memory.brands.get(product.brandId) || null : null;
+        partner = memory.partners.get(product.partnerId) || null;
+        price = priceHistory.currentPrice(memory.priceHistoryByProductId.get(product.id) || priceHistory.emptyHistory());
+      }
+
+      const [card] = buildListingCards([product], stockByProductId, brand ? { [brand.id]: brand } : {});
+      cards.push({
+        ...card,
+        priceMinorUnits: price,
+        cornerName: partner ? partner.legalName : null,
+      });
+    }
+
+    sendJson(res, 200, { products: cards, total: cards.length });
   } catch (err) {
     sendJson(res, 400, { error: err.message });
   }
@@ -529,6 +596,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'GET' && parts[0] === 'catalog' && parts[1] === 'products' && parts.length === 3) {
       return await handleGetCatalogProduct(req, res, parts[2]);
+    }
+    if (req.method === 'GET' && parts[0] === 'catalog' && parts[1] === 'all-sale' && parts.length === 2) {
+      return await handleGetAllSale(req, res, url.searchParams);
     }
     if (req.method === 'POST' && parts[0] === 'shipments' && parts.length === 1) {
       return await handleCreateShipment(req, res);

@@ -35,6 +35,25 @@ applied by Z Jobs and Z Mobility.
 
 ## Resolved
 
+- **Public All Sale listing + cross-Partner catalog query** — resolved
+  2026-08-21: `GET /catalog/all-sale` (filterable by
+  gender/category/ageSegment/sizeValue, same shape `allSale()` already
+  accepts) is the second real Client-facing endpoint today, after the
+  Product Page one. Required `db.listAllProducts()` — a genuine gap
+  (All Sale is a cross-Partner view by definition, a Partner-scoped
+  query alone could never serve it) — and `db.getStockForProductsPg()`
+  (a batch stock query, avoiding an N+1 pattern now that the full
+  catalog can be large). Also fixed a real gap found while building
+  this: `catalog-listing.js`'s `buildListingCard()` had every
+  filterable Product attribute but no display `name` at all —
+  impossible to render an actual product grid without one; now reuses
+  `productName()`'s own locale-fallback rule. The Product Page endpoint
+  was also upgraded to use the full cross-Partner catalog for its
+  recommendations/style-groups, closing a simplification it had
+  shipped with hours earlier. `z-fashion-allsale-corners.html`'s All
+  Sale view is now wired to real data (Chaussures/Corners views remain
+  static demo data, stated openly — only All Sale was connected today).
+
 - **Public Catalog read API + first real Client-facing prototype** —
   resolved 2026-08-21: every Client-facing prototype so far (Product
   Page included) rendered hardcoded demo data, never a real endpoint —

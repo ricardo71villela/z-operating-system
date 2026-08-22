@@ -24,13 +24,28 @@ const { stockAvailabilityLabel } = require('./stock');
  * @param {object} args.stock - stock.js shape for this exact Product
  * @param {object} [args.brand] - brand.js createBrand() shape, or null
  */
-function buildListingCard({ product, stock, brand }) {
+const { productName } = require('./product');
+
+/**
+ * @param {object} args
+ * @param {object} args.product - product.js createProduct() shape
+ * @param {object} args.stock - stock.js shape for this exact Product
+ * @param {object} [args.brand] - brand.js createBrand() shape, or null
+ * @param {string} [args.locale] - passed through to productName(),
+ *   defaults to REQUIRED_NAME_LOCALE ('fr') same as everywhere else
+ */
+function buildListingCard({ product, stock, brand, locale }) {
   if (!product) throw new Error('buildListingCard: product is required');
   if (!stock) throw new Error('buildListingCard: stock is required');
 
   return Object.freeze({
     productId: product.id,
     partnerId: product.partnerId,
+    // Fixed 2026-08-21: a listing card had every filterable attribute
+    // but no display name at all — impossible to render an actual
+    // product grid without one. Reuses productName()'s own fr-fallback,
+    // never a second name-resolution rule invented here.
+    name: productName(product, locale),
     brandName: brand ? brand.name : null,
     categories: product.categories,
     gender: product.gender,
@@ -58,10 +73,10 @@ function buildListingCard({ product, stock, brand }) {
  * @param {Object.<string, object>} stockByProductId
  * @param {Object.<string, object>} [brandsById]
  */
-function buildListingCards(products, stockByProductId, brandsById = {}) {
+function buildListingCards(products, stockByProductId, brandsById = {}, locale) {
   return products.map((p) => {
     const stock = stockByProductId[p.id] || { productId: p.id, quantityAvailable: 0, quantityReserved: 0, lastUpdatedAt: null };
-    return buildListingCard({ product: p, stock, brand: brandsById[p.brandId] });
+    return buildListingCard({ product: p, stock, brand: brandsById[p.brandId], locale });
   });
 }
 

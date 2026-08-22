@@ -198,6 +198,47 @@ async function run() {
   res = await request('GET', '/catalog/products/does_not_exist');
   assert.strictEqual(res.status, 404);
 
+  // --- Public All Sale listing over HTTP ---
+
+  // A second Product, different gender, to prove filtering is real.
+  res = await request('POST', '/partners/partner_atelier/products', {
+    brandId: stockBrandId, names: { fr: 'Chemise homme' }, gender: 'male',
+    categories: ['clothing'], size: { system: 'alpha', value: 'L' },
+  });
+  const menswearId = res.body.product.id;
+  await request('POST', `/partners/partner_atelier/stock/${menswearId}`, { quantityAvailable: 10, observedAt: '2026-08-20T10:00:00.000Z' });
+
+  res = await request('GET', '/catalog/all-sale');
+  assert.strictEqual(res.status, 200);
+  // Every previously-created sellable, priced, non-cornerExclusive
+  // Product shows up — at minimum the female catalogProductId and this
+  // new male menswearId.
+  const ids = res.body.products.map((p) => p.productId);
+  assert.ok(ids.includes(catalogProductId));
+  assert.ok(ids.includes(menswearId));
+
+  // Filtering by gender is real — never a decorative query param.
+  res = await request('GET', '/catalog/all-sale?gender=male');
+  assert.strictEqual(res.status, 200);
+  assert.ok(res.body.products.every((p) => p.gender === 'male'));
+  assert.ok(res.body.products.map((p) => p.productId).includes(menswearId));
+  assert.ok(!res.body.products.map((p) => p.productId).includes(catalogProductId));
+
+  // Each card carries the decoration a listing needs: availability,
+  // price, and the selling Corner's (Partner's) name — never just a
+  // bare Product record.
+  const menswearCard = res.body.products.find((p) => p.productId === menswearId);
+  assert.strictEqual(menswearCard.availability.label, 'in_stock'); // 10 > LOW_STOCK_THRESHOLD
+  assert.strictEqual(menswearCard.priceMinorUnits, null); // no price recorded for this fixture — honest, never fabricated
+  assert.strictEqual(menswearCard.cornerName, 'Atelier du Marais');
+
+  // Filtering by size: only sizeless/mismatched Products are excluded.
+  res = await request('GET', '/catalog/all-sale?category=footwear&sizeValue=38');
+  assert.ok(res.body.products.map((p) => p.productId).includes(catalogProductId));
+
+  res = await request('GET', '/catalog/all-sale?category=footwear&sizeValue=41');
+  assert.ok(!res.body.products.map((p) => p.productId).includes(catalogProductId));
+
   // --- Bulk stock feed over HTTP ---
   res = await request('POST', '/partners/partner_atelier/stock/bulk', {
     updates: [
