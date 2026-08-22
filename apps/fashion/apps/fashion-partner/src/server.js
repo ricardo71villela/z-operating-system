@@ -19,6 +19,8 @@ const priceHistory = require('../../../packages/fashion-domain/src/price-history
 const { buildProductPageViewModel } = require('../../../packages/fashion-domain/src/product-page');
 const { allSale, corner: cornerProducts } = require('../../../packages/fashion-domain/src/corner');
 const { createCornerConfig } = require('../../../packages/fashion-domain/src/corner-config');
+const accountDomain = require('../../../packages/fashion-domain/src/account');
+const addressDomain = require('../../../packages/fashion-domain/src/address');
 const { buildListingCards } = require('../../../packages/fashion-domain/src/catalog-listing');
 const db = require('./db');
 
@@ -30,6 +32,8 @@ const memory = {
   partners: new Map(), applications: new Map(), stockByProductId: new Map(),
   brands: new Map(), products: new Map(), shipments: new Map(), returns: new Map(),
   priceHistoryByProductId: new Map(), cornerConfigs: new Map(),
+  wishlist: accountDomain.emptyWishlist(), cornerFollows: accountDomain.emptyCornerFollows(),
+  addressBook: addressDomain.emptyAddressBook(),
 };
 
 function readBody(req) {
@@ -560,6 +564,173 @@ async function handleGetAllSale(req, res, query) {
   }
 }
 
+/**
+ * Client Account endpoints — Wishlist, Corner Follows, Addresses.
+ * Closes the last major Client-facing gap of today's sprint: every
+ * other prototype (Product Page, All Sale, Chaussures, Corners) is
+ * wired to real data, the Account panels never were. `:clientId` is a
+ * plain path parameter here, not real Supabase Auth — this server has
+ * no auth layer at all yet, same "domain + SQL scaffolding first, real
+ * auth wiring later" scoping as the identity bridge migration itself
+ * (public.zfashion_ensure_client() exists, nothing calls it from here).
+ */
+async function handleAddWishlistItem(req, res, clientId) {
+  const body = await readBody(req);
+  try {
+    if (usingPostgres) {
+      await db.addWishlistItemPg(pool, clientId, body.productId);
+    } else {
+      memory.wishlist = accountDomain.addWishlistItem(memory.wishlist, clientId, body.productId);
+    }
+    sendJson(res, 201, { ok: true });
+  } catch (err) {
+    sendJson(res, 422, { error: err.message });
+  }
+}
+
+async function handleRemoveWishlistItem(req, res, clientId, productId) {
+  try {
+    if (usingPostgres) {
+      await db.removeWishlistItemPg(pool, clientId, productId);
+    } else {
+      memory.wishlist = accountDomain.removeWishlistItem(memory.wishlist, clientId, productId);
+    }
+    sendJson(res, 200, { ok: true });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
+/** Decorates each wishlisted productId with the same listing-card
+ *  shape All Sale/Corner cards already use — a Client's Wishlist is a
+ *  list of Products, it should look like one, not a bare id array. */
+async function handleListWishlist(req, res, clientId) {
+  try {
+    let entries, products, stockByProductId, brandsById;
+    if (usingPostgres) {
+      entries = await db.listWishlistForClientPg(pool, clientId);
+      products = [];
+      for (const e of entries) {
+        const p = await db.getProduct(pool, e.productId);
+        if (p) products.push(p);
+      }
+      stockByProductId = await db.getStockForProductsPg(pool, products.map((p) => p.id));
+      brandsById = {};
+      for (const p of products) {
+        if (p.brandId && !brandsById[p.brandId]) brandsById[p.brandId] = await db.getBrand(pool, p.brandId);
+      }
+    } else {
+      const productIds = accountDomain.listWishlistProductIds(memory.wishlist, clientId);
+      products = productIds.map((id) => memory.products.get(id)).filter(Boolean);
+      stockByProductId = Object.fromEntries(products.map((p) => [p.id, memory.stockByProductId.get(p.id) || initStock(p.id)]));
+      brandsById = {};
+      for (const p of products) {
+        if (p.brandId) brandsById[p.brandId] = memory.brands.get(p.brandId) || null;
+      }
+    }
+
+    const cards = buildListingCards(products, stockByProductId, brandsById);
+    sendJson(res, 200, { products: cards, total: cards.length });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
+async function handleFollowCorner(req, res, clientId) {
+  const body = await readBody(req);
+  try {
+    if (usingPostgres) {
+      await db.followCornerPg(pool, clientId, body.partnerId);
+    } else {
+      memory.cornerFollows = accountDomain.followCorner(memory.cornerFollows, clientId, body.partnerId);
+    }
+    sendJson(res, 201, { ok: true });
+  } catch (err) {
+    sendJson(res, 422, { error: err.message });
+  }
+}
+
+async function handleUnfollowCorner(req, res, clientId, partnerId) {
+  try {
+    if (usingPostgres) {
+      await db.unfollowCornerPg(pool, clientId, partnerId);
+    } else {
+      memory.cornerFollows = accountDomain.unfollowCorner(memory.cornerFollows, clientId, partnerId);
+    }
+    sendJson(res, 200, { ok: true });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
+/** Decorates each followed partnerId with its Corner config — a
+ *  Client follows a boutique, the response should show its name/
+ *  byline/accent, not a bare id. A Partner without a configured Corner
+ *  yet is skipped, same "never fabricate a Corner" rule the public
+ *  directory already follows. */
+async function handleListFollows(req, res, clientId) {
+  try {
+    let partnerIds, configs;
+    if (usingPostgres) {
+      const entries = await db.listFollowsForClientPg(pool, clientId);
+      partnerIds = entries.map((e) => e.partnerId);
+      configs = [];
+      for (const id of partnerIds) {
+        const c = await db.getCornerConfig(pool, id);
+        if (c) configs.push(c);
+      }
+    } else {
+      partnerIds = accountDomain.listFollowedPartnerIds(memory.cornerFollows, clientId);
+      configs = partnerIds.map((id) => memory.cornerConfigs.get(id)).filter(Boolean);
+    }
+    sendJson(res, 200, { corners: configs, total: configs.length });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
+async function handleCreateClientAddress(req, res, clientId) {
+  const body = await readBody(req);
+  try {
+    if (usingPostgres) {
+      const address = await db.insertClientAddressPg(pool, { ...body, clientUserId: clientId });
+      return sendJson(res, 201, { address });
+    }
+
+    const address = addressDomain.createAddress({ ...body, id: require('crypto').randomUUID(), clientUserId: clientId });
+    memory.addressBook = addressDomain.addAddress(memory.addressBook, address);
+    sendJson(res, 201, { address });
+  } catch (err) {
+    sendJson(res, 422, { error: err.message });
+  }
+}
+
+async function handleListClientAddresses(req, res, clientId) {
+  try {
+    const addresses = usingPostgres
+      ? await db.listClientAddressesPg(pool, clientId)
+      : addressDomain.listAddressesForClient(memory.addressBook, clientId);
+    sendJson(res, 200, { addresses, total: addresses.length });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
+async function handleSetDefaultClientAddress(req, res, clientId, addressId) {
+  try {
+    if (usingPostgres) {
+      const address = await db.setDefaultClientAddressPg(pool, clientId, addressId);
+      return sendJson(res, 200, { address });
+    }
+
+    memory.addressBook = addressDomain.setDefaultAddress(memory.addressBook, clientId, addressId);
+    const address = addressDomain.listAddressesForClient(memory.addressBook, clientId).find((a) => a.id === addressId);
+    sendJson(res, 200, { address });
+  } catch (err) {
+    sendJson(res, 422, { error: err.message });
+  }
+}
+
 async function handleUpsertCornerConfig(req, res, partnerId) {
   const body = await readBody(req);
   try {
@@ -687,6 +858,33 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'GET' && parts[0] === 'catalog' && parts[1] === 'corners' && parts.length === 3) {
       return await handleGetCornerDetail(req, res, parts[2]);
+    }
+    if (req.method === 'POST' && parts[0] === 'clients' && parts[2] === 'wishlist' && parts.length === 3) {
+      return await handleAddWishlistItem(req, res, parts[1]);
+    }
+    if (req.method === 'DELETE' && parts[0] === 'clients' && parts[2] === 'wishlist' && parts.length === 4) {
+      return await handleRemoveWishlistItem(req, res, parts[1], parts[3]);
+    }
+    if (req.method === 'GET' && parts[0] === 'clients' && parts[2] === 'wishlist' && parts.length === 3) {
+      return await handleListWishlist(req, res, parts[1]);
+    }
+    if (req.method === 'POST' && parts[0] === 'clients' && parts[2] === 'follows' && parts.length === 3) {
+      return await handleFollowCorner(req, res, parts[1]);
+    }
+    if (req.method === 'DELETE' && parts[0] === 'clients' && parts[2] === 'follows' && parts.length === 4) {
+      return await handleUnfollowCorner(req, res, parts[1], parts[3]);
+    }
+    if (req.method === 'GET' && parts[0] === 'clients' && parts[2] === 'follows' && parts.length === 3) {
+      return await handleListFollows(req, res, parts[1]);
+    }
+    if (req.method === 'POST' && parts[0] === 'clients' && parts[2] === 'addresses' && parts.length === 3) {
+      return await handleCreateClientAddress(req, res, parts[1]);
+    }
+    if (req.method === 'GET' && parts[0] === 'clients' && parts[2] === 'addresses' && parts.length === 3) {
+      return await handleListClientAddresses(req, res, parts[1]);
+    }
+    if (req.method === 'POST' && parts[0] === 'clients' && parts[2] === 'addresses' && parts[4] === 'set-default') {
+      return await handleSetDefaultClientAddress(req, res, parts[1], parts[3]);
     }
     if (req.method === 'POST' && parts[0] === 'shipments' && parts.length === 1) {
       return await handleCreateShipment(req, res);

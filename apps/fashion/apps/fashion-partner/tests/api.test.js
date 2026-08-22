@@ -300,6 +300,83 @@ async function run() {
   res = await request('GET', '/catalog/corners/partner_other_corner');
   assert.strictEqual(res.body.products.length, 0);
 
+  // --- Client Account: Wishlist, Corner Follows, Addresses over HTTP ---
+  const clientId = 'client_ines';
+
+  // Wishlist starts empty.
+  res = await request('GET', `/clients/${clientId}/wishlist`);
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.total, 0);
+
+  res = await request('POST', `/clients/${clientId}/wishlist`, { productId: catalogProductId });
+  assert.strictEqual(res.status, 201);
+  // Idempotent add — a second identical add is not an error.
+  res = await request('POST', `/clients/${clientId}/wishlist`, { productId: catalogProductId });
+  assert.strictEqual(res.status, 201);
+
+  res = await request('GET', `/clients/${clientId}/wishlist`);
+  assert.strictEqual(res.body.total, 1);
+  assert.strictEqual(res.body.products[0].productId, catalogProductId);
+  assert.ok(res.body.products[0].name); // decorated like a real listing card, not a bare id
+
+  res = await request('DELETE', `/clients/${clientId}/wishlist/${catalogProductId}`);
+  assert.strictEqual(res.status, 200);
+  res = await request('GET', `/clients/${clientId}/wishlist`);
+  assert.strictEqual(res.body.total, 0);
+
+  // Corner Follows.
+  res = await request('GET', `/clients/${clientId}/follows`);
+  assert.strictEqual(res.body.total, 0);
+
+  res = await request('POST', `/clients/${clientId}/follows`, { partnerId: 'partner_atelier' });
+  assert.strictEqual(res.status, 201);
+
+  res = await request('GET', `/clients/${clientId}/follows`);
+  assert.strictEqual(res.body.total, 1);
+  assert.strictEqual(res.body.corners[0].displayName, 'Atelier du Marais');
+
+  res = await request('DELETE', `/clients/${clientId}/follows/partner_atelier`);
+  assert.strictEqual(res.status, 200);
+  res = await request('GET', `/clients/${clientId}/follows`);
+  assert.strictEqual(res.body.total, 0);
+
+  // Addresses.
+  res = await request('POST', `/clients/${clientId}/addresses`, {
+    type: 'shipping', recipientName: 'Inès Moreau', line1: '10 rue de Rivoli',
+    postalCode: '75001', city: 'Paris', countryIso: 'FR', isDefault: true,
+  });
+  assert.strictEqual(res.status, 201);
+  const addr1Id = res.body.address.id;
+  assert.strictEqual(res.body.address.isDefault, true);
+
+  res = await request('POST', `/clients/${clientId}/addresses`, {
+    type: 'shipping', recipientName: 'Inès Moreau (bureau)', line1: '5 avenue Foch',
+    postalCode: '75116', city: 'Paris', countryIso: 'FR', isDefault: false,
+  });
+  const addr2Id = res.body.address.id;
+
+  res = await request('GET', `/clients/${clientId}/addresses`);
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.total, 2);
+
+  // Setting the second address as default un-defaults the first —
+  // never two simultaneous defaults of the same type.
+  res = await request('POST', `/clients/${clientId}/addresses/${addr2Id}/set-default`);
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.address.isDefault, true);
+
+  res = await request('GET', `/clients/${clientId}/addresses`);
+  const addr1After = res.body.addresses.find((a) => a.id === addr1Id);
+  assert.strictEqual(addr1After.isDefault, false);
+
+  // Invalid address (missing line1) rejected over HTTP, same
+  // validation as address.js's createAddress().
+  res = await request('POST', `/clients/${clientId}/addresses`, {
+    type: 'shipping', line1: '', postalCode: '75001', city: 'Paris', countryIso: 'FR',
+  });
+  assert.strictEqual(res.status, 422);
+  assert.ok(/line1 is required/.test(res.body.error));
+
   // --- Bulk stock feed over HTTP ---
   res = await request('POST', '/partners/partner_atelier/stock/bulk', {
     updates: [

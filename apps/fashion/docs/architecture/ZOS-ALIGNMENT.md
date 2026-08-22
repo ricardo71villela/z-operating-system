@@ -35,6 +35,32 @@ applied by Z Jobs and Z Mobility.
 
 ## Resolved
 
+- **Client Account API (Wishlist/Follows/Addresses) + last major Client
+  prototype connected** — resolved 2026-08-21: closes today's final
+  Client-facing gap — every other prototype (Product Page, All Sale,
+  Chaussures, Corners) was already wired, the Account panels never
+  were. Added `POST/GET/DELETE /clients/:id/wishlist`,
+  `POST/GET/DELETE /clients/:id/follows`,
+  `POST/GET /clients/:id/addresses`,
+  `POST /clients/:id/addresses/:addressId/set-default`. Found and
+  closed a real gap while building the last one: `address.js` had no
+  function for marking an *existing* Address as default (only
+  `addAddress()`'s exclusivity at insertion time) — the real UI action
+  a Client actually performs ("set this saved address as default").
+  Added `setDefaultAddress()` with its own tests, mirrored by
+  `db.setDefaultClientAddressPg()` (the DB's own
+  `fashion_client_addresses_single_default` trigger enforces the
+  exclusivity independently, same as everywhere else).
+  `z-fashion-account.html`'s Wishlist/Boutiques suivies/Adresses
+  panels now call the real API (reusing the same 3 demo Corners
+  bootstrapped by the Corners directory prototype, idempotently).
+  "Mes commandes" now shows an honest empty state instead of three
+  fabricated Orders — no checkout API exists yet to create a real one,
+  and this pass chose not to fake it. `:clientId` is a plain path
+  parameter here, not real Supabase Auth — same "domain + SQL
+  scaffolding first, real auth wiring later" scoping as the identity
+  bridge migration itself.
+
 - **Corner Config API + Chaussures/Corners connected to real data** —
   resolved 2026-08-21: `fashion.corner_configs` had existed as a real
   table since the earliest migrations with zero API surface — same

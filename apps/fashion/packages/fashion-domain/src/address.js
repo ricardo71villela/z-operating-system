@@ -126,6 +126,38 @@ function defaultAddressForClient(addressBook, clientUserId, type) {
   return addressBook.items.find((a) => a.clientUserId === clientUserId && a.type === type && a.isDefault) || null;
 }
 
+/**
+ * Marks an existing Address as the default of its type — distinct
+ * from addAddress()'s exclusivity handling, which only runs at
+ * insertion time. A Client managing their address book (the real UI
+ * action: "set this one as default" on an address already saved)
+ * needs this separately; same exclusivity rule (every other Address of
+ * the same Client and type loses default status in the same
+ * operation), never two simultaneous defaults.
+ *
+ * @param {object} addressBook
+ * @param {string} clientUserId
+ * @param {string} addressId - must belong to clientUserId, or this
+ *   throws rather than silently letting a Client default someone
+ *   else's Address
+ */
+function setDefaultAddress(addressBook, clientUserId, addressId) {
+  const target = addressBook.items.find((a) => a.id === addressId);
+  if (!target) {
+    throw new Error(`setDefaultAddress: no address with id ${addressId}`);
+  }
+  if (target.clientUserId !== clientUserId) {
+    throw new Error(`setDefaultAddress: address ${addressId} does not belong to client ${clientUserId}`);
+  }
+
+  return Object.freeze({
+    items: addressBook.items.map((a) => {
+      if (a.clientUserId !== clientUserId || a.type !== target.type) return a;
+      return Object.freeze({ ...a, isDefault: a.id === addressId });
+    }),
+  });
+}
+
 module.exports = {
   ADDRESS_TYPES,
   emptyAddressBook,
@@ -134,4 +166,5 @@ module.exports = {
   removeAddress,
   listAddressesForClient,
   defaultAddressForClient,
+  setDefaultAddress,
 };

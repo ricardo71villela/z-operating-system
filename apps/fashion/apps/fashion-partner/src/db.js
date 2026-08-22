@@ -501,6 +501,102 @@ function toCornerConfigDomainShape(row) {
   };
 }
 
+/** Idempotent-add mirrors account.js's addWishlistItem() — the primary
+ *  key on (client_user_id, product_id) makes a second insert of the
+ *  same pair a structural no-op, not an error. */
+async function addWishlistItemPg(pool, clientUserId, productId) {
+  await pool.query(
+    `insert into fashion.wishlist_items (client_user_id, product_id) values ($1, $2) on conflict do nothing`,
+    [clientUserId, productId]
+  );
+}
+
+async function removeWishlistItemPg(pool, clientUserId, productId) {
+  await pool.query(`delete from fashion.wishlist_items where client_user_id = $1 and product_id = $2`, [clientUserId, productId]);
+}
+
+async function listWishlistForClientPg(pool, clientUserId) {
+  const result = await pool.query(
+    `select product_id, added_at from fashion.wishlist_items where client_user_id = $1 order by added_at desc`,
+    [clientUserId]
+  );
+  return result.rows.map((r) => ({ productId: r.product_id, addedAt: r.added_at }));
+}
+
+async function followCornerPg(pool, clientUserId, partnerId) {
+  await pool.query(
+    `insert into fashion.corner_follows (client_user_id, partner_id) values ($1, $2) on conflict do nothing`,
+    [clientUserId, partnerId]
+  );
+}
+
+async function unfollowCornerPg(pool, clientUserId, partnerId) {
+  await pool.query(`delete from fashion.corner_follows where client_user_id = $1 and partner_id = $2`, [clientUserId, partnerId]);
+}
+
+async function listFollowsForClientPg(pool, clientUserId) {
+  const result = await pool.query(
+    `select partner_id, followed_at from fashion.corner_follows where client_user_id = $1 order by followed_at desc`,
+    [clientUserId]
+  );
+  return result.rows.map((r) => ({ partnerId: r.partner_id, followedAt: r.followed_at }));
+}
+
+/** Mirrors createAddress() in address.js — the DB's own CHECK
+ *  constraints (non-empty line1/postalCode/city) and the
+ *  fashion_client_addresses_single_default trigger are the second,
+ *  independent enforcement, same discipline as everywhere else. */
+async function insertClientAddressPg(pool, address) {
+  const result = await pool.query(
+    `insert into fashion.client_addresses (client_user_id, type, recipient_name, line1, line2, postal_code, city, country_iso, is_default)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+     returning id, client_user_id, type, recipient_name, line1, line2, postal_code, city, country_iso, is_default`,
+    [address.clientUserId, address.type, address.recipientName || null, address.line1, address.line2 || null, address.postalCode, address.city, address.countryIso, !!address.isDefault]
+  );
+  return toAddressDomainShape(result.rows[0]);
+}
+
+async function listClientAddressesPg(pool, clientUserId) {
+  const result = await pool.query(
+    `select id, client_user_id, type, recipient_name, line1, line2, postal_code, city, country_iso, is_default
+     from fashion.client_addresses where client_user_id = $1 order by created_at desc`,
+    [clientUserId]
+  );
+  return result.rows.map(toAddressDomainShape);
+}
+
+/** Mirrors setDefaultAddress() in address.js — the
+ *  fashion_client_addresses_single_default trigger unsets every other
+ *  Address of the same Client/type in the same statement, this
+ *  function does not re-implement that exclusivity itself. */
+async function setDefaultClientAddressPg(pool, clientUserId, addressId) {
+  const result = await pool.query(
+    `update fashion.client_addresses set is_default = true
+     where id = $1 and client_user_id = $2
+     returning id, client_user_id, type, recipient_name, line1, line2, postal_code, city, country_iso, is_default`,
+    [addressId, clientUserId]
+  );
+  if (result.rows.length === 0) {
+    throw new Error(`setDefaultClientAddressPg: no address ${addressId} for client ${clientUserId}`);
+  }
+  return toAddressDomainShape(result.rows[0]);
+}
+
+function toAddressDomainShape(row) {
+  return {
+    id: row.id,
+    clientUserId: row.client_user_id,
+    type: row.type,
+    recipientName: row.recipient_name,
+    line1: row.line1,
+    line2: row.line2,
+    postalCode: row.postal_code,
+    city: row.city,
+    countryIso: row.country_iso,
+    isDefault: row.is_default,
+  };
+}
+
 module.exports = {
   createPool, insertPartner, updatePartnerStatus, getPartner,
   insertBrand, getBrand, insertProduct, listProductsForPartner, listAllProducts, getProduct,
@@ -509,4 +605,7 @@ module.exports = {
   applyStockUpdatePg, getStockPg, getStockForProductsPg,
   recordPricePg, getCurrentPricePg,
   upsertCornerConfig, getCornerConfig, listCornerConfigs,
+  addWishlistItemPg, removeWishlistItemPg, listWishlistForClientPg,
+  followCornerPg, unfollowCornerPg, listFollowsForClientPg,
+  insertClientAddressPg, listClientAddressesPg, setDefaultClientAddressPg,
 };

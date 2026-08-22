@@ -3,7 +3,7 @@
 const assert = require('assert');
 const {
   emptyAddressBook, createAddress, addAddress, removeAddress,
-  listAddressesForClient, defaultAddressForClient, ADDRESS_TYPES,
+  listAddressesForClient, defaultAddressForClient, setDefaultAddress, ADDRESS_TYPES,
 } = require('../src/address');
 
 assert.deepStrictEqual(ADDRESS_TYPES, ['shipping', 'billing']);
@@ -77,5 +77,26 @@ assert.strictEqual(defaultAddressForClient(book, 'client_tiago', 'billing'), nul
 book = removeAddress(book, 'client_ines', 'addr_1');
 assert.strictEqual(listAddressesForClient(book, 'client_ines').length, 2); // addr_2 (shipping) + addr_3 (billing)
 assert.strictEqual(listAddressesForClient(book, 'client_tiago').length, 1); // untouched
+
+// --- setDefaultAddress: marking an EXISTING address as default, not
+// at insertion time ---
+assert.throws(() => setDefaultAddress(book, 'client_ines', 'addr_does_not_exist'), /no address with id/);
+assert.throws(() => setDefaultAddress(book, 'client_tiago', 'addr_2'), /does not belong to client/);
+
+// addr_2 (shipping) is already default at this point; add a second
+// shipping address for client_ines, not yet default.
+const addr5 = createAddress({
+  clientUserId: 'client_ines', id: 'addr_5', type: 'shipping',
+  line1: '2 place Vendôme', postalCode: '75001', city: 'Paris', countryIso: 'FR', isDefault: false,
+});
+book = addAddress(book, addr5);
+assert.strictEqual(defaultAddressForClient(book, 'client_ines', 'shipping').id, 'addr_2');
+
+book = setDefaultAddress(book, 'client_ines', 'addr_5');
+assert.strictEqual(defaultAddressForClient(book, 'client_ines', 'shipping').id, 'addr_5');
+// addr_2 lost default status — never two simultaneous defaults.
+assert.strictEqual(listAddressesForClient(book, 'client_ines').find((a) => a.id === 'addr_2').isDefault, false);
+// billing default (addr_3) untouched — exclusivity is scoped per type.
+assert.strictEqual(defaultAddressForClient(book, 'client_ines', 'billing').id, 'addr_3');
 
 console.log('address.js: all invariant checks passed.');
