@@ -219,7 +219,153 @@ function toProductDomainShape(row) {
   };
 }
 
+/** Creates a Shipment with its line items in one transaction. In real
+ *  deployment a Shipment is created by the checkout process (one per
+ *  Partner in a multi-Partner Order, mirroring partnerSplits() in
+ *  cart.js) — exposed here directly since no checkout API exists yet
+ *  (a separate, larger piece of work; see ZOS-ALIGNMENT.md), not
+ *  because a Partner is meant to create their own Shipments in
+ *  production. */
+async function insertShipment(pool, { orderId, partnerId, productIds }) {
+  const client = await pool.connect();
+  try {
+    await client.query('begin');
+    const shipRes = await client.query(
+      `insert into fashion.shipments (order_id, partner_id) values ($1, $2)
+       returning id, order_id, partner_id, status, delivered_at`,
+      [orderId, partnerId]
+    );
+    const shipment = shipRes.rows[0];
+    for (const productId of productIds) {
+      await client.query(
+        `insert into fashion.shipment_items (shipment_id, product_id) values ($1, $2)`,
+        [shipment.id, productId]
+      );
+    }
+    await client.query('commit');
+    return toShipmentDomainShape(shipment, productIds);
+  } catch (err) {
+    await client.query('rollback');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/** Lists every Shipment for one Partner, each with its Product line
+ *  items — the Partner-facing "what do I need to fulfill" view. */
+async function listShipmentsForPartner(pool, partnerId) {
+  const shipRes = await pool.query(
+    `select id, order_id, partner_id, status, delivered_at, created_at
+     from fashion.shipments where partner_id = $1 order by created_at desc`,
+    [partnerId]
+  );
+  const shipments = shipRes.rows;
+  if (shipments.length === 0) return [];
+
+  const itemsRes = await pool.query(
+    `select shipment_id, product_id from fashion.shipment_items where shipment_id = any($1::uuid[])`,
+    [shipments.map((s) => s.id)]
+  );
+  const itemsByShipment = {};
+  for (const row of itemsRes.rows) {
+    (itemsByShipment[row.shipment_id] = itemsByShipment[row.shipment_id] || []).push(row.product_id);
+  }
+  return shipments.map((s) => toShipmentDomainShape(s, itemsByShipment[s.id] || []));
+}
+
+/** Updates a Shipment's status directly — fashion.shipments' own
+ *  trg_fashion_shipments_transition trigger is what actually enforces
+ *  the transition graph (and sets delivered_at automatically on
+ *  'delivered'), the same "DB is the second, independent enforcement"
+ *  discipline as everywhere else in this schema; this function does
+ *  not re-validate the transition itself. */
+async function updateShipmentStatus(pool, shipmentId, toStatus) {
+  const result = await pool.query(
+    `update fashion.shipments set status = $2 where id = $1
+     returning id, order_id, partner_id, status, delivered_at`,
+    [shipmentId, toStatus]
+  );
+  if (result.rows.length === 0) {
+    throw new Error(`updateShipmentStatus: no shipment with id ${shipmentId}`);
+  }
+  const itemsRes = await pool.query(
+    `select product_id from fashion.shipment_items where shipment_id = $1`,
+    [shipmentId]
+  );
+  return toShipmentDomainShape(result.rows[0], itemsRes.rows.map((r) => r.product_id));
+}
+
+function toShipmentDomainShape(row, productIds) {
+  return {
+    id: row.id,
+    orderId: row.order_id,
+    partnerId: row.partner_id,
+    productIds,
+    status: row.status,
+    deliveredAt: row.delivered_at,
+  };
+}
+
+/** Creates a Return request. In real deployment this is Client-triggered
+ *  (from an Order/Shipment detail view, not built yet) — exposed here
+ *  directly for the same reason insertShipment() is: no Client-facing
+ *  Order API exists yet. fashion.returns' own
+ *  trg_fashion_returns_eligibility trigger enforces the 14-day window
+ *  and the Cosmetics seal exception — this function does not
+ *  re-validate either, same dual-enforcement discipline. */
+async function insertReturn(pool, { orderId, partnerId, productId, reason, sealBroken }) {
+  const result = await pool.query(
+    `insert into fashion.returns (order_id, partner_id, product_id, reason, seal_broken)
+     values ($1, $2, $3, $4, $5)
+     returning id, order_id, partner_id, product_id, status, reason, seal_broken, created_at`,
+    [orderId, partnerId, productId, reason || null, !!sealBroken]
+  );
+  return toReturnDomainShape(result.rows[0]);
+}
+
+/** Lists every Return request for one Partner — the "what do I need to
+ *  review" view (pending 'requested' status shown first by the caller,
+ *  not this query — sorting for UI purposes is a presentation
+ *  decision, this just returns everything newest-first). */
+async function listReturnsForPartner(pool, partnerId) {
+  const result = await pool.query(
+    `select id, order_id, partner_id, product_id, status, reason, seal_broken, created_at
+     from fashion.returns where partner_id = $1 order by created_at desc`,
+    [partnerId]
+  );
+  return result.rows.map(toReturnDomainShape);
+}
+
+/** Updates a Return's status — trg_fashion_returns_transition enforces
+ *  the transition graph, same discipline as updateShipmentStatus(). */
+async function updateReturnStatus(pool, returnId, toStatus) {
+  const result = await pool.query(
+    `update fashion.returns set status = $2 where id = $1
+     returning id, order_id, partner_id, product_id, status, reason, seal_broken, created_at`,
+    [returnId, toStatus]
+  );
+  if (result.rows.length === 0) {
+    throw new Error(`updateReturnStatus: no return with id ${returnId}`);
+  }
+  return toReturnDomainShape(result.rows[0]);
+}
+
+function toReturnDomainShape(row) {
+  return {
+    id: row.id,
+    orderId: row.order_id,
+    partnerId: row.partner_id,
+    productId: row.product_id,
+    status: row.status,
+    reason: row.reason,
+    sealBroken: row.seal_broken,
+  };
+}
+
 module.exports = {
   createPool, insertPartner, updatePartnerStatus, getPartner,
   insertBrand, insertProduct, listProductsForPartner, getProduct,
+  insertShipment, listShipmentsForPartner, updateShipmentStatus,
+  insertReturn, listReturnsForPartner, updateReturnStatus,
 };

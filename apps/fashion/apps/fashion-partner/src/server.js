@@ -13,6 +13,8 @@ const { createApplication, transition } = require('../../../packages/fashion-dom
 const { initStock, applyStockUpdate, sellableQuantity } = require('../../../packages/fashion-domain/src/stock');
 const { createBrand } = require('../../../packages/fashion-domain/src/brand');
 const { createProduct } = require('../../../packages/fashion-domain/src/product');
+const shipmentDomain = require('../../../packages/fashion-domain/src/shipment');
+const returnDomain = require('../../../packages/fashion-domain/src/return');
 const db = require('./db');
 
 const usingPostgres = !!process.env.DATABASE_URL;
@@ -21,7 +23,7 @@ const pool = usingPostgres ? db.createPool() : null;
 // In-memory fallback store — only reachable when usingPostgres is false.
 const memory = {
   partners: new Map(), applications: new Map(), stockByProductId: new Map(),
-  brands: new Map(), products: new Map(),
+  brands: new Map(), products: new Map(), shipments: new Map(), returns: new Map(),
 };
 
 function readBody(req) {
@@ -181,6 +183,108 @@ async function handleGetProduct(req, res, productId) {
 }
 
 
+async function handleCreateShipment(req, res) {
+  const body = await readBody(req);
+  try {
+    if (usingPostgres) {
+      const shipment = await db.insertShipment(pool, body);
+      return sendJson(res, 201, { shipment });
+    }
+
+    const shipment = shipmentDomain.createShipment(body);
+    const id = `${shipment.orderId}:${shipment.partnerId}`;
+    const withId = { id, ...shipment };
+    memory.shipments.set(id, withId);
+    sendJson(res, 201, { shipment: withId });
+  } catch (err) {
+    sendJson(res, 422, { error: err.message });
+  }
+}
+
+async function handleListShipments(req, res, partnerId) {
+  try {
+    if (usingPostgres) {
+      const shipments = await db.listShipmentsForPartner(pool, partnerId);
+      return sendJson(res, 200, { shipments });
+    }
+
+    const shipments = [...memory.shipments.values()].filter((s) => s.partnerId === partnerId);
+    sendJson(res, 200, { shipments });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
+async function handleTransitionShipment(req, res, shipmentId) {
+  const body = await readBody(req);
+  try {
+    if (usingPostgres) {
+      const shipment = await db.updateShipmentStatus(pool, shipmentId, body.toStatus);
+      return sendJson(res, 200, { shipment });
+    }
+
+    const shipment = memory.shipments.get(shipmentId);
+    if (!shipment) return sendJson(res, 404, { error: `no shipment with id ${shipmentId}` });
+    const updated = { id: shipmentId, ...shipmentDomain.transition(shipment, body.toStatus) };
+    memory.shipments.set(shipmentId, updated);
+    sendJson(res, 200, { shipment: updated });
+  } catch (err) {
+    sendJson(res, 422, { error: err.message });
+  }
+}
+
+async function handleCreateReturn(req, res) {
+  const body = await readBody(req);
+  try {
+    if (usingPostgres) {
+      const ret = await db.insertReturn(pool, body);
+      return sendJson(res, 201, { return: ret });
+    }
+
+    const product = memory.products.get(body.productId);
+    if (!product) return sendJson(res, 422, { error: `no product with id ${body.productId}` });
+    const ret = returnDomain.requestReturn({ ...body, product });
+    const id = `${ret.orderId}:${ret.productId}`;
+    const withId = { id, ...ret };
+    memory.returns.set(id, withId);
+    sendJson(res, 201, { return: withId });
+  } catch (err) {
+    sendJson(res, 422, { error: err.message });
+  }
+}
+
+async function handleListReturns(req, res, partnerId) {
+  try {
+    if (usingPostgres) {
+      const returns = await db.listReturnsForPartner(pool, partnerId);
+      return sendJson(res, 200, { returns });
+    }
+
+    const returns = [...memory.returns.values()].filter((r) => r.partnerId === partnerId);
+    sendJson(res, 200, { returns });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
+async function handleTransitionReturn(req, res, returnId) {
+  const body = await readBody(req);
+  try {
+    if (usingPostgres) {
+      const ret = await db.updateReturnStatus(pool, returnId, body.toStatus);
+      return sendJson(res, 200, { return: ret });
+    }
+
+    const ret = memory.returns.get(returnId);
+    if (!ret) return sendJson(res, 404, { error: `no return with id ${returnId}` });
+    const updated = { id: returnId, ...returnDomain.transition(ret, body.toStatus) };
+    memory.returns.set(returnId, updated);
+    sendJson(res, 200, { return: updated });
+  } catch (err) {
+    sendJson(res, 422, { error: err.message });
+  }
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const parts = url.pathname.split('/').filter(Boolean);
@@ -212,6 +316,24 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'GET' && parts[0] === 'products' && parts.length === 2) {
       return await handleGetProduct(req, res, parts[1]);
+    }
+    if (req.method === 'POST' && parts[0] === 'shipments' && parts.length === 1) {
+      return await handleCreateShipment(req, res);
+    }
+    if (req.method === 'GET' && parts[0] === 'partners' && parts[2] === 'shipments') {
+      return await handleListShipments(req, res, parts[1]);
+    }
+    if (req.method === 'POST' && parts[0] === 'shipments' && parts[2] === 'transition') {
+      return await handleTransitionShipment(req, res, parts[1]);
+    }
+    if (req.method === 'POST' && parts[0] === 'returns' && parts.length === 1) {
+      return await handleCreateReturn(req, res);
+    }
+    if (req.method === 'GET' && parts[0] === 'partners' && parts[2] === 'returns') {
+      return await handleListReturns(req, res, parts[1]);
+    }
+    if (req.method === 'POST' && parts[0] === 'returns' && parts[2] === 'transition') {
+      return await handleTransitionReturn(req, res, parts[1]);
     }
     sendJson(res, 404, { error: 'not found' });
   } catch (err) {

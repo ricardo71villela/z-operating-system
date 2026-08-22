@@ -32,6 +32,24 @@ applied by Z Jobs and Z Mobility.
 
 ## Resolved
 
+- **Shipment & Return API + Partner dashboard prototype** — resolved
+  2026-08-21 (ponto 2 of the partner-side audit): `shipment.js`/
+  `return.js` existed only as pure domain logic with zero HTTP surface
+  and zero visual prototype — a Partner had no way to see which Orders
+  needed fulfilling nor to review Return requests, even though the
+  state machines themselves were already solid. Fixed by adding
+  `POST /shipments`, `GET /partners/:id/shipments`,
+  `POST /shipments/:id/transition`, `POST /returns`,
+  `GET /partners/:id/returns`, `POST /returns/:id/transition` (same
+  dual-mode discipline as every other endpoint), plus the first
+  Partner-facing visual prototype (`z-fashion-partner-dashboard.html`)
+  — unlike every Client-facing prototype built so far, this one calls
+  the real API instead of static demo data, proving the endpoints work
+  end-to-end rather than just in isolation. Shipment/Return creation is
+  exposed directly (rather than gated behind a Client-facing checkout/
+  order-detail flow, neither of which exists yet) with that scoping
+  decision documented inline in `db.js`.
+
 - **Partner-facing Product/Brand API** — resolved 2026-08-21 (ponto 1 of
   the partner-side audit): `fashion-partner`'s API surface had been
   confirmed, by direct inspection, to cover only onboarding and single-

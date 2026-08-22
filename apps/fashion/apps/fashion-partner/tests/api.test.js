@@ -127,6 +127,51 @@ async function run() {
   res = await request('GET', '/products/does_not_exist');
   assert.strictEqual(res.status, 404);
 
+  // --- Shipment lifecycle over HTTP ---
+  res = await request('POST', '/shipments', {
+    orderId: 'order_48213', partnerId: 'partner_atelier', productIds: [productId],
+  });
+  assert.strictEqual(res.status, 201);
+  const shipmentId = res.body.shipment.id;
+  assert.strictEqual(res.body.shipment.status, 'confirmed');
+
+  res = await request('GET', '/partners/partner_atelier/shipments');
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.shipments.length, 1);
+
+  res = await request('POST', `/shipments/${shipmentId}/transition`, { toStatus: 'preparing' });
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.shipment.status, 'preparing');
+
+  // Skipping straight to 'delivered' is rejected over HTTP too.
+  res = await request('POST', `/shipments/${shipmentId}/transition`, { toStatus: 'delivered' });
+  assert.strictEqual(res.status, 422);
+  assert.ok(/cannot move from "preparing" to "delivered"/.test(res.body.error));
+
+  res = await request('POST', `/shipments/${shipmentId}/transition`, { toStatus: 'shipped' });
+  assert.strictEqual(res.status, 200);
+  res = await request('POST', `/shipments/${shipmentId}/transition`, { toStatus: 'delivered' });
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.shipment.status, 'delivered');
+  assert.ok(res.body.shipment.deliveredAt);
+
+  // --- Return lifecycle over HTTP ---
+  res = await request('POST', '/returns', {
+    orderId: 'order_48213', partnerId: 'partner_atelier', productId,
+    deliveredAt: res.body.shipment.deliveredAt, reason: 'Ne convient pas',
+  });
+  assert.strictEqual(res.status, 201);
+  const returnId = res.body.return.id;
+  assert.strictEqual(res.body.return.status, 'requested');
+
+  res = await request('GET', '/partners/partner_atelier/returns');
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.returns.length, 1);
+
+  res = await request('POST', `/returns/${returnId}/transition`, { toStatus: 'approved' });
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.return.status, 'approved');
+
   server.close();
   console.log('fashion-partner API: all integration checks passed.');
 }
