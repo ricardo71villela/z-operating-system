@@ -21,6 +21,7 @@ const { allSale, corner: cornerProducts } = require('../../../packages/fashion-d
 const { createCornerConfig } = require('../../../packages/fashion-domain/src/corner-config');
 const accountDomain = require('../../../packages/fashion-domain/src/account');
 const addressDomain = require('../../../packages/fashion-domain/src/address');
+const commissionDomain = require('../../../packages/fashion-domain/src/commission');
 const { buildListingCards } = require('../../../packages/fashion-domain/src/catalog-listing');
 const db = require('./db');
 
@@ -731,6 +732,53 @@ async function handleSetDefaultClientAddress(req, res, clientId, addressId) {
   }
 }
 
+/**
+ * Partner-facing Commission/Billing view — GET /partners/:id/commission.
+ * Closes half of today's Dashboard gap flagged by Ricardo: the
+ * Overview panel's own empty-state literally said "not built yet."
+ *
+ * Deliberately honest about what cannot be shown: no column anywhere
+ * in this schema tracks a Partner's own revenue — fashion.orders.
+ * total_minor_units is the whole (possibly multi-Partner) Order's
+ * total, never split per Partner, and fashion.shipments (the
+ * Partner-scoped unit) carries no monetary column at all. Since no
+ * checkout API exists yet either (no real completed sale has ever
+ * happened through this system), `monthlyGmvMinorUnits` is honestly 0
+ * for every Partner today — never fabricated, never estimated from
+ * Shipment counts as a stand-in for money. What this endpoint CAN
+ * show honestly: the rate structure itself (base rates per Category,
+ * volume-discount tiers, subscription fee), computed directly from
+ * commission.js — true regardless of whether any real sale has
+ * happened yet.
+ */
+async function handleGetPartnerCommission(req, res, partnerId) {
+  try {
+    const partner = usingPostgres ? await db.getPartner(pool, partnerId) : memory.partners.get(partnerId);
+    if (!partner) return sendJson(res, 404, { error: `no partner with id ${partnerId}` });
+
+    // Real, honest, always 0 today — no checkout API exists to create
+    // a completed sale, so no Partner's GMV can be anything else.
+    const monthlyGmvMinorUnits = 0;
+
+    const categoryRates = (partner.categories || []).map((category) => {
+      const rate = commissionDomain.effectiveCommissionRate({
+        category, monthlyGmvMinorUnits, partnerQualityScore: null, // always null — see PARTNER-QUALITY-SCORE-STATUS.md
+      });
+      return { category, ...rate };
+    });
+
+    sendJson(res, 200, {
+      monthlySubscriptionFeeMinorUnits: commissionDomain.MONTHLY_SUBSCRIPTION_FEE_MINOR_UNITS,
+      monthlyGmvMinorUnits,
+      gmvNote: 'Aucune vente réelle possible pour l’instant — aucune API de paiement/checkout n’existe encore (voir ZOS-ALIGNMENT.md).',
+      categoryRates,
+      volumeDiscountTiers: commissionDomain.VOLUME_DISCOUNT_TIERS,
+    });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
 async function handleUpsertCornerConfig(req, res, partnerId) {
   const body = await readBody(req);
   try {
@@ -852,6 +900,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && parts[0] === 'partners' && parts[2] === 'corner-config') {
       return await handleUpsertCornerConfig(req, res, parts[1]);
+    }
+    if (req.method === 'GET' && parts[0] === 'partners' && parts[2] === 'commission') {
+      return await handleGetPartnerCommission(req, res, parts[1]);
     }
     if (req.method === 'GET' && parts[0] === 'catalog' && parts[1] === 'corners' && parts.length === 2) {
       return await handleListCorners(req, res);

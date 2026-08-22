@@ -35,6 +35,29 @@ applied by Z Jobs and Z Mobility.
 
 ## Resolved
 
+- **Partner Commission view + Corner Config panel in the Dashboard** —
+  resolved 2026-08-21: the Overview panel's own empty-state literally
+  said "not built yet" for revenue/commission, and the Corner Config
+  API (added earlier today) had no form anywhere for a Partner to
+  actually use it. Added `GET /partners/:id/commission` — deliberately
+  honest about what cannot be shown: no column anywhere in this schema
+  tracks a Partner's own revenue (`fashion.orders.total_minor_units`
+  is the whole Order's total, never split per Partner; `fashion.
+  shipments` carries no monetary column at all), and no checkout API
+  exists yet either, so `monthlyGmvMinorUnits` is honestly `0` for
+  every Partner today — never fabricated or estimated from Shipment
+  counts as a stand-in for money. What the endpoint DOES show
+  honestly: the rate structure itself (base rates per Category,
+  volume-discount tiers, subscription fee), computed directly from
+  `commission.js`, true regardless of whether any real sale has
+  happened. Dashboard gained "Ma boutique" (a real form wired to the
+  existing `POST /partners/:id/corner-config`, with live preview) and
+  "Commission" (the rate table) panels. Found and fixed a real bug
+  introduced while building this: an earlier edit accidentally dropped
+  the `async function loadProducts() {` declaration line, leaving its
+  body orphaned — caught immediately by `node --check` before
+  shipping, not left for Ricardo to discover.
+
 - **Client Account API (Wishlist/Follows/Addresses) + last major Client
   prototype connected** — resolved 2026-08-21: closes today's final
   Client-facing gap — every other prototype (Product Page, All Sale,

@@ -377,6 +377,21 @@ async function run() {
   assert.strictEqual(res.status, 422);
   assert.ok(/line1 is required/.test(res.body.error));
 
+  // --- Partner-facing Commission view over HTTP ---
+  res = await request('GET', '/partners/partner_atelier/commission');
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.monthlySubscriptionFeeMinorUnits, 3500);
+  // Honest: no checkout API exists, GMV is genuinely 0 for every
+  // Partner today — never fabricated.
+  assert.strictEqual(res.body.monthlyGmvMinorUnits, 0);
+  assert.ok(/Aucune vente réelle possible/.test(res.body.gmvNote));
+  // partner_atelier's own declared categories, each with a real rate.
+  assert.ok(res.body.categoryRates.length > 0);
+  assert.ok(res.body.categoryRates.every((r) => typeof r.effectiveRatePercent === 'number'));
+
+  res = await request('GET', '/partners/does_not_exist/commission');
+  assert.strictEqual(res.status, 404);
+
   // --- Bulk stock feed over HTTP ---
   res = await request('POST', '/partners/partner_atelier/stock/bulk', {
     updates: [
