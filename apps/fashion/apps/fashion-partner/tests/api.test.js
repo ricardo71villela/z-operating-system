@@ -170,6 +170,34 @@ async function run() {
   res = await request('POST', '/partners/partner_atelier/stock/does_not_exist', { quantityAvailable: 1, observedAt: '2026-08-20T11:00:00.000Z' });
   assert.strictEqual(res.status, 404);
 
+  // --- Public Catalog read surface over HTTP ---
+
+  // No price recorded yet — a clear 422, never a fabricated price.
+  res = await request('GET', `/catalog/products/${bagId}`);
+  assert.strictEqual(res.status, 422);
+  assert.ok(/no price recorded/.test(res.body.error));
+
+  // A brand-new Product, created with an initial price this time, to
+  // exercise the full Catalog view model.
+  res = await request('POST', '/partners/partner_atelier/products', {
+    brandId: stockBrandId, names: { fr: 'Escarpins catalogue' }, gender: 'female',
+    categories: ['footwear'], size: { system: 'EU', value: 38 }, priceMinorUnits: 13900,
+  });
+  const catalogProductId = res.body.product.id;
+  res = await request('POST', `/partners/partner_atelier/stock/${catalogProductId}`, { quantityAvailable: 4, observedAt: '2026-08-20T10:00:00.000Z' });
+  assert.strictEqual(res.status, 200);
+
+  res = await request('GET', `/catalog/products/${catalogProductId}`);
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.productPage.productId, catalogProductId);
+  assert.strictEqual(res.body.productPage.price.amountMinorUnits, 13900);
+  assert.strictEqual(res.body.productPage.availability.label, 'low_stock'); // 4 <= LOW_STOCK_THRESHOLD
+  assert.strictEqual(res.body.productPage.seller.legalName, 'Atelier du Marais');
+
+  // A non-existent Product is a 404, same as every other read endpoint.
+  res = await request('GET', '/catalog/products/does_not_exist');
+  assert.strictEqual(res.status, 404);
+
   // --- Bulk stock feed over HTTP ---
   res = await request('POST', '/partners/partner_atelier/stock/bulk', {
     updates: [

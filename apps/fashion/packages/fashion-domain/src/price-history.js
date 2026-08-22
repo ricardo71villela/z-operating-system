@@ -56,4 +56,23 @@ function referencePrice(history, { asOf, lookbackDays = DEFAULT_LOOKBACK_DAYS } 
   return Math.min(...inWindow.map((e) => e.priceMinorUnits));
 }
 
-module.exports = { DEFAULT_LOOKBACK_DAYS, emptyHistory, recordPrice, referencePrice };
+/**
+ * The current price a Client would actually pay right now — the most
+ * recent entry, by observedAt, never the same thing as referencePrice()
+ * (which deliberately looks for the *lowest* price in a lookback
+ * window, for discount-legality purposes, not "what does it cost
+ * today"). Returns null for an empty history — never 0 or a
+ * fabricated value, since "no price recorded yet" and "free" are not
+ * the same thing.
+ *
+ * @param {object} history - emptyHistory()/recordPrice() shape
+ * @returns {number|null}
+ */
+function currentPrice(history) {
+  if (history.entries.length === 0) return null;
+  // entries are kept sorted ascending by observedAt (recordPrice()'s own
+  // invariant) — the last one is the most recent.
+  return history.entries[history.entries.length - 1].priceMinorUnits;
+}
+
+module.exports = { DEFAULT_LOOKBACK_DAYS, emptyHistory, recordPrice, referencePrice, currentPrice };

@@ -15,6 +15,8 @@ const { createBrand } = require('../../../packages/fashion-domain/src/brand');
 const { createProduct } = require('../../../packages/fashion-domain/src/product');
 const shipmentDomain = require('../../../packages/fashion-domain/src/shipment');
 const returnDomain = require('../../../packages/fashion-domain/src/return');
+const priceHistory = require('../../../packages/fashion-domain/src/price-history');
+const { buildProductPageViewModel } = require('../../../packages/fashion-domain/src/product-page');
 const db = require('./db');
 
 const usingPostgres = !!process.env.DATABASE_URL;
@@ -24,6 +26,7 @@ const pool = usingPostgres ? db.createPool() : null;
 const memory = {
   partners: new Map(), applications: new Map(), stockByProductId: new Map(),
   brands: new Map(), products: new Map(), shipments: new Map(), returns: new Map(),
+  priceHistoryByProductId: new Map(),
 };
 
 function readBody(req) {
@@ -254,11 +257,29 @@ async function handleCreateProduct(req, res, partnerId) {
       // triggers are the second, independent enforcement, not the only one.
       createProduct({ ...body, id: 'pending', partnerId });
       const row = await db.insertProduct(pool, { ...body, partnerId });
+
+      // priceMinorUnits is optional on creation — Price is a separate
+      // History concept (price-history.js), never a field on Product
+      // itself, so this is a courtesy write-through, not something
+      // insertProduct() itself owns.
+      if (typeof body.priceMinorUnits === 'number') {
+        await db.recordPricePg(pool, row.id, body.priceMinorUnits, new Date().toISOString());
+      }
+
       return sendJson(res, 201, { product: row });
     }
 
     const product = createProduct({ ...body, id: require('crypto').randomUUID(), partnerId });
     memory.products.set(product.id, product);
+
+    if (typeof body.priceMinorUnits === 'number') {
+      const history = memory.priceHistoryByProductId.get(product.id) || priceHistory.emptyHistory();
+      memory.priceHistoryByProductId.set(
+        product.id,
+        priceHistory.recordPrice(history, { priceMinorUnits: body.priceMinorUnits, observedAt: new Date().toISOString() })
+      );
+    }
+
     sendJson(res, 201, { product });
   } catch (err) {
     sendJson(res, 422, { error: err.message });
@@ -398,6 +419,79 @@ async function handleTransitionReturn(req, res, returnId) {
   }
 }
 
+/**
+ * Public Catalog read surface — GET /catalog/products/:id. Closes the
+ * gap flagged since the customer-side audit (2026-08-21): every
+ * Client-facing prototype so far (Product Page included) rendered
+ * hardcoded demo data, never a real endpoint — this is the first one,
+ * assembling exactly what product-page.js's buildProductPageViewModel()
+ * needs (Product, Stock, Brand, Partner, current price, sibling
+ * catalog for recommendations/style groups).
+ *
+ * Deliberately public (no Partner-scoping, no auth) — a Product Page
+ * is meant to be browsable by anyone, same as every real e-commerce
+ * catalog. Never exposes anything Partner-management endpoints don't
+ * already expose more broadly (this reads the same Product/Stock/Brand
+ * rows a Partner can already read about their own catalog).
+ *
+ * Known simplification, stated openly rather than silently: the
+ * "sibling catalog" passed to buildProductPageViewModel() is scoped to
+ * the Product's own Partner (same-Corner recommendations work fully;
+ * the fallback path recommendations.js defines for when same-Corner
+ * has too few matches will find nothing cross-Partner yet, since no
+ * "list every Product across every Partner" query exists — building
+ * that is bigger scope than this endpoint's purpose today).
+ */
+async function handleGetCatalogProduct(req, res, productId) {
+  try {
+    let product, stock, brand, partner, priceMinorUnits, siblingProducts, stockByProductId;
+
+    if (usingPostgres) {
+      product = await db.getProduct(pool, productId);
+      if (!product) return sendJson(res, 404, { error: `no product with id ${productId}` });
+
+      stock = await db.getStockPg(pool, productId);
+      brand = product.brandId ? await db.getBrand(pool, product.brandId) : null;
+      partner = await db.getPartner(pool, product.partnerId);
+      priceMinorUnits = await db.getCurrentPricePg(pool, productId);
+      siblingProducts = await db.listProductsForPartner(pool, product.partnerId);
+
+      stockByProductId = {};
+      for (const p of siblingProducts) {
+        stockByProductId[p.id] = await db.getStockPg(pool, p.id);
+      }
+    } else {
+      product = memory.products.get(productId);
+      if (!product) return sendJson(res, 404, { error: `no product with id ${productId}` });
+
+      stock = memory.stockByProductId.get(productId) || initStock(productId);
+      brand = product.brandId ? memory.brands.get(product.brandId) || null : null;
+      partner = memory.partners.get(product.partnerId) || null;
+      priceMinorUnits = priceHistory.currentPrice(memory.priceHistoryByProductId.get(productId) || priceHistory.emptyHistory());
+      siblingProducts = [...memory.products.values()];
+      stockByProductId = Object.fromEntries(
+        siblingProducts.map((p) => [p.id, memory.stockByProductId.get(p.id) || initStock(p.id)])
+      );
+    }
+
+    if (!partner) {
+      return sendJson(res, 422, { error: `product ${productId} references partner ${product.partnerId}, which was not found — cannot render without the professional-seller disclosure` });
+    }
+    if (priceMinorUnits === null || priceMinorUnits === undefined) {
+      return sendJson(res, 422, { error: `no price recorded for product ${productId} yet` });
+    }
+
+    const viewModel = buildProductPageViewModel({
+      product, stock, brand, partner, discount: null, priceMinorUnits,
+      allProducts: siblingProducts, stockByProductId,
+    });
+
+    sendJson(res, 200, { productPage: viewModel });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const parts = url.pathname.split('/').filter(Boolean);
@@ -432,6 +526,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'GET' && parts[0] === 'products' && parts.length === 2) {
       return await handleGetProduct(req, res, parts[1]);
+    }
+    if (req.method === 'GET' && parts[0] === 'catalog' && parts[1] === 'products' && parts.length === 3) {
+      return await handleGetCatalogProduct(req, res, parts[2]);
     }
     if (req.method === 'POST' && parts[0] === 'shipments' && parts.length === 1) {
       return await handleCreateShipment(req, res);

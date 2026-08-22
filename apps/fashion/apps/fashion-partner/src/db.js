@@ -392,10 +392,35 @@ function toStockDomainShape(row) {
   };
 }
 
+/** Records a price entry — mirrors recordPrice() in price-history.js.
+ *  Append-only, same as the JS module: never updates an existing row,
+ *  the 30-day reference calculation needs the full history. */
+async function recordPricePg(pool, productId, priceMinorUnits, observedAt) {
+  await pool.query(
+    `insert into fashion.price_history (product_id, price_minor_units, observed_at)
+     values ($1, $2, $3)`,
+    [productId, priceMinorUnits, observedAt]
+  );
+}
+
+/** Mirrors currentPrice() in price-history.js via fashion.current_price(). */
+async function getCurrentPricePg(pool, productId) {
+  const result = await pool.query(`select fashion.current_price($1) as price`, [productId]);
+  return result.rows[0] ? result.rows[0].price : null;
+}
+
+async function getBrand(pool, brandId) {
+  const result = await pool.query(`select id, name, house_label_of_partner_id from fashion.brands where id = $1`, [brandId]);
+  if (result.rows.length === 0) return null;
+  const row = result.rows[0];
+  return { id: row.id, name: row.name, houseLabelOfPartnerId: row.house_label_of_partner_id };
+}
+
 module.exports = {
   createPool, insertPartner, updatePartnerStatus, getPartner,
-  insertBrand, insertProduct, listProductsForPartner, getProduct,
+  insertBrand, getBrand, insertProduct, listProductsForPartner, getProduct,
   insertShipment, listShipmentsForPartner, updateShipmentStatus,
   insertReturn, listReturnsForPartner, updateReturnStatus,
   applyStockUpdatePg, getStockPg,
+  recordPricePg, getCurrentPricePg,
 };

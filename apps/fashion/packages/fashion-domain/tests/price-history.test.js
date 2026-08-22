@@ -1,7 +1,7 @@
 /* Run with: node apps/fashion/packages/fashion-domain/tests/price-history.test.js */
 
 const assert = require('assert');
-const { emptyHistory, recordPrice, referencePrice } = require('../src/price-history');
+const { emptyHistory, recordPrice, referencePrice, currentPrice } = require('../src/price-history');
 
 let history = emptyHistory();
 history = recordPrice(history, { priceMinorUnits: 10000, observedAt: '2026-07-01T00:00:00.000Z' });
@@ -19,5 +19,20 @@ assert.strictEqual(referencePrice(history, { asOf: '2026-07-30T00:00:00.000Z' })
 // No price data at all in the window: null, not a guess or a fallback.
 const emptyHist = emptyHistory();
 assert.strictEqual(referencePrice(emptyHist, { asOf: '2026-07-30T00:00:00.000Z' }), null);
+
+// --- currentPrice: the most recent entry, never the lowest ---
+assert.strictEqual(currentPrice(emptyHist), null);
+let priceOrder = emptyHistory();
+priceOrder = recordPrice(priceOrder, { priceMinorUnits: 10000, observedAt: '2026-07-01T00:00:00.000Z' });
+priceOrder = recordPrice(priceOrder, { priceMinorUnits: 7500, observedAt: '2026-07-15T00:00:00.000Z' }); // lowest
+priceOrder = recordPrice(priceOrder, { priceMinorUnits: 8900, observedAt: '2026-07-28T00:00:00.000Z' }); // most recent
+assert.strictEqual(currentPrice(priceOrder), 8900); // not 7500 (that's what referencePrice() would return)
+
+// currentPrice is stable regardless of insertion order — recordPrice()
+// always keeps entries sorted by observedAt, not insertion time.
+let outOfOrder = emptyHistory();
+outOfOrder = recordPrice(outOfOrder, { priceMinorUnits: 8900, observedAt: '2026-07-28T00:00:00.000Z' });
+outOfOrder = recordPrice(outOfOrder, { priceMinorUnits: 10000, observedAt: '2026-07-01T00:00:00.000Z' });
+assert.strictEqual(currentPrice(outOfOrder), 8900);
 
 console.log('price-history.js: all invariant checks passed.');

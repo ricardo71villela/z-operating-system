@@ -35,6 +35,27 @@ applied by Z Jobs and Z Mobility.
 
 ## Resolved
 
+- **Public Catalog read API + first real Client-facing prototype** —
+  resolved 2026-08-21: every Client-facing prototype so far (Product
+  Page included) rendered hardcoded demo data, never a real endpoint —
+  only the Partner dashboard proved real end-to-end wiring. Closed two
+  gaps to get there: `price-history.js` had no `currentPrice()` (only
+  `referencePrice()`, a different legal-discount concept), and no
+  public read surface existed for a Client to browse a Product at all.
+  Added `currentPrice()` (mirrored in SQL as `fashion.current_price()`),
+  `GET /catalog/products/:id` (assembles `buildProductPageViewModel()`
+  from real Product/Stock/Brand/Partner/Price data, dual-mode same as
+  everything else), and rewired `z-fashion-product-page.html` to
+  bootstrap real data through the actual API and render it — same
+  proof-of-real-wiring pattern the Partner dashboard already
+  established. Known simplification, stated openly: the "sibling
+  catalog" this endpoint passes for recommendations/style-groups is
+  scoped to the Product's own Partner — same-Corner recommendations
+  work fully, cross-Partner fallback recommendations will find nothing
+  until a "list every Product across every Partner" query exists,
+  which this pass did not build (bigger scope than this endpoint's
+  purpose today).
+
 - **Stock: all three "Still open" items closed** — resolved 2026-08-21.
   Persistence (`fashion.stock`/`fashion.stock_reservations`, mirroring
   `stock.js` with the same row-locking discipline `attempt_checkout()`
