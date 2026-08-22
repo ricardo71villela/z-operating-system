@@ -70,20 +70,20 @@
   }
 
   /* ZSTUDIO_MOBILE_UTILITY_ROW_V1
-     One deliberate utility row on normal phone widths. At 390px the usable
-     width is 358px: ~186px goes to Bulk and 164px to the account/language
-     segment, with an 8px gap. This is compact without compressing touch areas. */
+     One deliberate utility row on normal phone widths. On the real 390px
+     contract the action box is slightly inset by the app shell; 8px internal
+     padding + a 158px utility segment leaves ~175px for Bulk Generation. */
   header .header-actions {
     width: 100%;
     min-width: 0;
     max-width: none;
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) 164px !important;
+    grid-template-columns: minmax(0, 1fr) 158px !important;
     grid-template-rows: 44px !important;
     align-items: stretch;
     justify-items: stretch;
-    gap: 8px;
-    padding: 10px 16px 12px;
+    gap: 7px;
+    padding: 10px 8px 12px;
     margin: 0 !important;
   }
 
@@ -117,9 +117,9 @@
   header .lang-switch {
     grid-column: 2;
     grid-row: 1;
-    width: 164px !important;
-    min-width: 164px !important;
-    max-width: 164px !important;
+    width: 158px !important;
+    min-width: 158px !important;
+    max-width: 158px !important;
     height: 44px !important;
     min-height: 44px !important;
     justify-self: stretch;
@@ -225,12 +225,12 @@
     min-width: 100% !important;
     max-width: none !important;
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) 164px !important;
+    grid-template-columns: minmax(0, 1fr) 158px !important;
     grid-template-rows: 44px !important;
     flex: none !important;
     margin: 0 !important;
-    padding: 10px 16px 12px !important;
-    gap: 8px !important;
+    padding: 10px 8px 12px !important;
+    gap: 7px !important;
   }
 
   html[data-zstudio-mobile-flow="v2"] body header #btnHeaderBulk {
@@ -251,9 +251,9 @@
   html[data-zstudio-mobile-flow="v2"] body header .lang-switch {
     grid-column: 2 !important;
     grid-row: 1 !important;
-    width: 164px !important;
-    min-width: 164px !important;
-    max-width: 164px !important;
+    width: 158px !important;
+    min-width: 158px !important;
+    max-width: 158px !important;
     height: 44px !important;
     min-height: 44px !important;
     display: grid !important;
