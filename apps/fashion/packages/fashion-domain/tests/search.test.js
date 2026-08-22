@@ -3,7 +3,8 @@
 const assert = require('assert');
 const { createProduct } = require('../src/product');
 const { createBrand } = require('../src/brand');
-const { searchProducts, searchWithinAllSale } = require('../src/search');
+const { createPartner } = require('../src/partner');
+const { searchProducts, searchWithinAllSale, searchInMarket } = require('../src/search');
 
 const brandNike = createBrand({ id: 'brand_nike', name: 'Nike' });
 const brandsById = { brand_nike: brandNike };
@@ -67,6 +68,24 @@ assert.deepStrictEqual(
 assert.deepStrictEqual(
   searchWithinAllSale(catalog, 'besace', { gender: 'unisex' }).map((p) => p.id),
   ['prod_bag']
+);
+
+// searchInMarket: the bag's Partner (partner_b) is based in France — an
+// FR-market search for "besace" finds it, a PT-market search finds
+// nothing at all from this catalog, even though the text would
+// otherwise match everywhere.
+const partnerB = createPartner({
+  id: 'partner_b', legalName: 'Maison Corbin', countryIso: 'FR', locales: ['fr'], categories: ['accessories_leather_goods'],
+});
+const partnersById = { partner_b: partnerB };
+
+assert.deepStrictEqual(
+  searchInMarket(catalog, partnersById, 'FR', 'besace').map((p) => p.id),
+  ['prod_bag']
+);
+assert.deepStrictEqual(
+  searchInMarket(catalog, partnersById, 'PT', 'besace').map((p) => p.id),
+  []
 );
 
 console.log('search.js: all invariant checks passed.');

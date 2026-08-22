@@ -12,6 +12,21 @@ layer.
 
 `apps/find/packages/geography` already implements, tested and approved:
 `Country → Region (optional) → City → Zone (optional)`, with `names{lang}`
+so a Client can browse in any of the 6 public locales while shopping in
+any Market — the two axes stay independent. **Market scoping implemented
+2026-08-21** (`market.js`): confirmed by direct inspection that
+`allSale()`/`corner()` filtered by every axis except Market until then — a
+Client in any Market would have seen every Partner's catalog mixed
+together, contradicting "France-first" in practice even though the intent
+was always documented here. `productsVisibleInMarket()` scopes by the
+Partner's own `countryIso` (already validated against `@zos/geography` in
+partner.js) — deliberately not a separate hardcoded "22 markets" allowlist,
+since that number was Z Find's legal-guide production scope, not a
+technical restriction on which countries a Z Fashion Partner can register
+in. `corner.js`'s `allSaleInMarket()` and `search.js`'s `searchInMarket()`
+compose this with the existing Segment/Gender/Category/Size/Brand/Partner
+filters and text search respectively, so Market scoping is never a step a
+caller can forget.
 multilingual place names and currency resolved once per Country and never
 duplicated per place. It explicitly owns *only* place identity and
 currency — not market intelligence, not editorial content — which is exactly

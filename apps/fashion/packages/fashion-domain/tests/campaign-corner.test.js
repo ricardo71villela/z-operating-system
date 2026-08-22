@@ -3,7 +3,8 @@
 const assert = require('assert');
 const { createCampaign, isActiveOn } = require('../src/campaign');
 const { createProduct } = require('../src/product');
-const { corner, allSale } = require('../src/corner');
+const { createPartner } = require('../src/partner');
+const { corner, allSale, allSaleInMarket } = require('../src/corner');
 
 // Real Soldes d'hiver 2026 window — must match exactly, or reject.
 const soldesHiver2026 = createCampaign({
@@ -101,6 +102,24 @@ assert.deepStrictEqual(
 assert.deepStrictEqual(
   corner(catalog, 'partner_b').map((p) => p.id),
   ['prod_bag']
+);
+
+// All Sale scoped to a Market: partner_a is FR, so an FR-market view sees
+// the shoe (assuming filters otherwise match), a PT-market view sees
+// nothing from this catalog at all — even though every other allSale()
+// filter would otherwise match.
+const partnerAFrance = createPartner({
+  id: 'partner_a', legalName: 'Partner A', countryIso: 'FR', locales: ['fr'], categories: ['footwear'],
+});
+const partnersById = { partner_a: partnerAFrance };
+
+assert.deepStrictEqual(
+  allSaleInMarket(catalog, partnersById, 'FR', { gender: 'female' }).map((p) => p.id),
+  ['prod_shoe']
+);
+assert.deepStrictEqual(
+  allSaleInMarket(catalog, partnersById, 'PT', { gender: 'female' }).map((p) => p.id),
+  []
 );
 
 console.log('campaign.js + corner.js: all invariant checks passed.');

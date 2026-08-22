@@ -17,6 +17,7 @@
 
 const { productName, isInAllSale } = require('./product');
 const { allSale } = require('./corner');
+const { productsVisibleInMarket } = require('./market');
 
 function normalize(text) {
   return (text || '')
@@ -78,6 +79,23 @@ function searchWithinAllSale(products, query, filter = {}, options = {}) {
   return searchProducts(allSale(products, filter), query, options);
 }
 
+/**
+ * Same as searchWithinAllSale(), scoped to a single Market first — the
+ * search box a Client actually types into always lives inside some
+ * Market context (per the header search bar shown on every prototype),
+ * so a search never reaches across Markets any more than browsing does.
+ *
+ * @param {object[]} products
+ * @param {Object.<string,object>} partnersById
+ * @param {string} marketCountryIso
+ * @param {string} query
+ * @param {object} [filter] - same shape allSale() accepts
+ * @param {object} [options] - same shape searchProducts() accepts
+ */
+function searchInMarket(products, partnersById, marketCountryIso, query, filter = {}, options = {}) {
+  return searchWithinAllSale(productsVisibleInMarket(products, partnersById, marketCountryIso), query, filter, options);
+}
+
 /*
    Deliberately not built here (out of scope for a pure domain
    function, flagged rather than silently absent):
@@ -90,4 +108,4 @@ function searchWithinAllSale(products, query, filter = {}, options = {}) {
      mechanic, not part of this closing-the-gap pass.
 */
 
-module.exports = { searchProducts, searchWithinAllSale };
+module.exports = { searchProducts, searchWithinAllSale, searchInMarket };
