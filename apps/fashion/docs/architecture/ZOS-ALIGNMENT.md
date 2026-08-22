@@ -35,6 +35,21 @@ applied by Z Jobs and Z Mobility.
 
 ## Resolved
 
+- **Payment (Stripe) — configured, not yet connected** — resolved
+  2026-08-21 (ponto 1 of the "o que falta" review, see
+  PAYMENT-STRIPE-STATUS.md for the full writeup): Payment had been the
+  last direct checkout blocker, deliberately left open pending a PSP
+  decision. Stripe confirmed and configured the same way Z Studio's
+  platform billing adapters and Z Jobs's `billing.ts` were — the real
+  shape (`payment.js`'s `PaymentIntent` lifecycle, mirroring Stripe's
+  own status graph exactly) and SQL (`fashion.orders` payment columns +
+  `fashion.stripe_webhook_events` idempotency table) are ready; the
+  live connection (real API keys, a webhook endpoint, the checkout API
+  that actually calls Stripe) is a deliberate, separate "go live" step
+  this pass does not perform. PCI-DSS scope stays outside Z Fashion
+  entirely — no code or column here ever receives raw card data, only
+  opaque Stripe-issued references.
+
 - **Partner Quality Score: deliberately inert, not integrated** —
   resolved 2026-08-21 (ponto 4 of the partner-side audit, see
   PARTNER-QUALITY-SCORE-STATUS.md for the full writeup): confirmed

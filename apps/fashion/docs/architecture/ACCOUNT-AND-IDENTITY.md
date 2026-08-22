@@ -40,11 +40,12 @@ source of truth for data `fashion.orders` already owns.
   `emptyCart()` throws without one. If guest checkout is ever wanted, it
   is a real product decision (how does a guest Order later get claimed by
   an account?), not a default to slip in quietly.
-- **Payment methods (saved cards, etc.).** Storing card data is a PSP-
-  integration decision (which provider, tokenization scheme), not a pure
-  domain-logic one — building it as a side effect of the address gap
-  would mean inventing a payment architecture without deciding it
-  properly first. Still open.
+- **Payment methods (saved cards, etc.).** Still open, but Stripe as the
+  PSP is now decided and configured (`payment.js`, 2026-08-21) — see
+  PAYMENT-STRIPE-STATUS.md. Saved/reusable payment methods specifically
+  (a Client choosing a card at checkout without re-entering it) is a
+  Stripe Payment Method / Customer feature this document's "going live"
+  list doesn't detail yet, deferred until the real checkout API exists.
 - **Client measurement profile.** Still open — distinct from the size-grid
   conversion tables themselves (resolved, `size-grid.js`, 2026-08-21): this
   is a Client saving their own measurements/preferred size once, not the
