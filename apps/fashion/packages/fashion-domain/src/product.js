@@ -3,11 +3,22 @@
    ============================================================
    Owns: the Product entity — the unit that actually carries
    Category (multi-valued), Brand (single reference), Age Segment
-   (multi-valued), Gender (single value), and a Category-conditional
+   (multi-valued), Gender (single value), display Names/Descriptions
+   (multilingual, `names{lang}` convention), and a Category-conditional
    size/format attribute. Belongs to exactly one Partner (the stock
    owner). See DOMAIN-SKETCH.md for the full rationale behind every
    invariant enforced below — this file makes those invariants
    impossible to bypass at runtime, not just documented.
+
+   `names`/`descriptions` close a gap that had been promised in
+   MARKETS-AND-I18N.md ("Product catalog stores names{lang} and
+   descriptions{lang}") since the earliest design pass but never
+   actually implemented here — flagged during the customer-side audit
+   (2026-08-21) when it became clear Search has nothing to search over
+   and the Product Page has no title field without it. Same shape as
+   `@zos/geography`'s `names{lang}` convention already established by
+   Z Find (apps/find/apps/zfind-web/src/geography.js) — a plain object
+   keyed by locale code, never a new i18n mechanism invented here.
 
    Depends on partner.js only for the shared CATEGORIES/AGE_SEGMENTS
    vocabulary, never for Partner-instance data — Product validates
@@ -22,6 +33,14 @@
    ============================================================ */
 
 const { CATEGORIES, AGE_SEGMENTS } = require('./partner');
+
+/* France-first, not France-only (MARKETS-AND-I18N.md): every Product
+   must carry a `fr` name from day one — the launch market — even
+   though the platform is designed for 6 public locales
+   (fr/en/it/es/de/pt) from the start. Other locale keys are populated
+   as translation work catches up, never blocking Product creation the
+   way requiring all 6 upfront would. */
+const REQUIRED_NAME_LOCALE = 'fr';
 
 /* Single-valued, never multi — a Product is marketed to one Gender or
    explicitly marketed as Unisex; unlike Category (where genuine dual-
@@ -57,6 +76,16 @@ const SIZED_CATEGORIES = Object.freeze(['clothing', 'footwear', 'sportswear']);
  *                                           never assigned by resemblance
  * @param {boolean} [input.technicalPurpose] - required truthy iff
  *                                           categories includes 'sportswear'
+ * @param {Object.<string,string>} input.names - multilingual display name,
+ *                                           `names{lang}` convention — must
+ *                                           include a non-empty 'fr' key
+ *                                           (REQUIRED_NAME_LOCALE), other
+ *                                           locale keys optional and added
+ *                                           as translation work catches up
+ * @param {Object.<string,string>} [input.descriptions] - same shape as
+ *                                           names, entirely optional —
+ *                                           a Product can list without
+ *                                           a long-form description
  * @param {string} input.gender           - one of GENDERS ('female',
  *                                           'male', 'unisex') — always
  *                                           explicit, never defaulted or
@@ -110,6 +139,16 @@ function createProduct(input) {
     }
   }
 
+  if (
+    !input.names || typeof input.names !== 'object' ||
+    !input.names[REQUIRED_NAME_LOCALE] || !input.names[REQUIRED_NAME_LOCALE].trim()
+  ) {
+    errors.push(
+      `names is required and must include a non-empty "${REQUIRED_NAME_LOCALE}" key ` +
+      '(France-first launch — see MARKETS-AND-I18N.md) — other locale keys are optional.'
+    );
+  }
+
   if (!input.gender || !GENDERS.includes(input.gender)) {
     errors.push(
       `gender is required and must be one of ${GENDERS.join(', ')} — ` +
@@ -152,6 +191,8 @@ function createProduct(input) {
     id: input.id,
     partnerId: input.partnerId,
     brandId: input.brandId,
+    names: { ...input.names },
+    descriptions: input.descriptions ? { ...input.descriptions } : {},
     categories: [...categories],
     technicalPurpose: !!input.technicalPurpose,
     gender: input.gender,
@@ -180,10 +221,26 @@ function isReturnEligible(product, { sealBroken = false } = {}) {
   return true;
 }
 
+/**
+ * Resolves a Product's display name for a given locale, falling back to
+ * REQUIRED_NAME_LOCALE ('fr') when the requested locale has no translation
+ * yet — never an empty string or the raw locale code, since `names.fr` is
+ * guaranteed non-empty by createProduct()'s own validation.
+ *
+ * @param {object} product - createProduct() shape
+ * @param {string} [locale] - one of the 6 public locales; defaults to
+ *   REQUIRED_NAME_LOCALE
+ */
+function productName(product, locale = REQUIRED_NAME_LOCALE) {
+  return product.names[locale] || product.names[REQUIRED_NAME_LOCALE];
+}
+
 module.exports = {
   SIZED_CATEGORIES,
   GENDERS,
+  REQUIRED_NAME_LOCALE,
   createProduct,
   isInAllSale,
   isReturnEligible,
+  productName,
 };

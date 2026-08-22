@@ -40,7 +40,13 @@ Concretely, for the Phase 0/1 work already sequenced in
   today, extensible tomorrow.
 - **Product catalog** (Phase 1, item 5) stores `names{lang}` and
   `descriptions{lang}` per the Geography convention, sized fields, not
-  free-text blobs that only work in one language.
+  free-text blobs that only work in one language. **Implemented
+  2026-08-21** (`product.js` `names`/`descriptions`, mirrored in SQL as
+  `fashion.products.names`/`descriptions` jsonb columns) — flagged during
+  the customer-side audit when it became clear Search had nothing to
+  search over and the Product Page had no title without it; this had been
+  promised in this document since the earliest design pass but was not
+  actually implemented until then.
   This includes clothing/footwear/sportswear sizing, which is not just
   translation — size charts differ by country (FR 38 ≠ IT 44 ≠ US 8 for the
   same garment) and must resolve through a canonical size-grid concept, not

@@ -44,7 +44,10 @@ schema — a checkpoint to catch the next inconsistency before it becomes code.
   never-inferred discipline already applied throughout this document.
 - **Product** — the unit that actually carries Category (multi-valued),
   Brand (single reference), Age Segment (multi-valued, genuine-eligibility
-  discipline), and belongs to exactly one Partner (the stock owner). **"Size"
+  discipline), Names/Descriptions (`names{lang}` — see MARKETS-AND-I18N.md;
+  a non-empty `fr` key is always required, other locale keys optional, same
+  France-first-not-France-only discipline applied everywhere else), and
+  belongs to exactly one Partner (the stock owner). **"Size"
   is not a universal Product field** — the same single-field mistake already
   caught for Category and Brand, just one layer deeper: Clothing/Footwear/
   Sportswear carry a genuine size (resolved via a canonical size-grid, per

@@ -30,11 +30,11 @@ const brand = createBrand({ id: 'brand_atelier', name: 'Atelier Rive Gauche' });
 
 const shoe = createProduct({
   id: 'prod_shoe', partnerId: 'partner_atelier', brandId: 'brand_atelier',
-  gender: 'female', categories: ['footwear'], size: { system: 'EU', value: 38 },
+  names: { fr: 'Produit test' }, gender: 'female', categories: ['footwear'], size: { system: 'EU', value: 38 },
 });
 const otherShoe = createProduct({
   id: 'prod_other_shoe', partnerId: 'partner_atelier', brandId: 'brand_atelier',
-  gender: 'female', categories: ['footwear'], size: { system: 'EU', value: 39 },
+  names: { fr: 'Produit test' }, gender: 'female', categories: ['footwear'], size: { system: 'EU', value: 39 },
 });
 const catalog = [shoe, otherShoe];
 
@@ -86,7 +86,7 @@ assert.strictEqual(vmOutOfStock.availability.sellable, false);
 // --- Cosmetics: returnEligible reuses product.js's own rule, not a duplicate ---
 const perfume = createProduct({
   id: 'prod_perfume', partnerId: 'partner_atelier', brandId: 'brand_atelier',
-  gender: 'unisex', categories: ['cosmetics'], format: { volumeMl: 50 },
+  names: { fr: 'Produit test' }, gender: 'unisex', categories: ['cosmetics'], format: { volumeMl: 50 },
 });
 const perfumeStock = applyStockUpdate(initStock('prod_perfume'), { quantityAvailable: 10, observedAt: '2026-08-21T10:00:00.000Z' });
 const vmPerfume = buildProductPageViewModel({

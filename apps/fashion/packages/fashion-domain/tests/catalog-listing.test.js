@@ -9,7 +9,7 @@ const { buildListingCard, buildListingCards } = require('../src/catalog-listing'
 const brand = createBrand({ id: 'brand_atelier', name: 'Atelier Rive Gauche' });
 const shoe = createProduct({
   id: 'prod_shoe', partnerId: 'partner_atelier', brandId: 'brand_atelier',
-  gender: 'female', categories: ['footwear'], size: { system: 'EU', value: 38 },
+  names: { fr: 'Produit test' }, gender: 'female', categories: ['footwear'], size: { system: 'EU', value: 38 },
 });
 
 const inStock = applyStockUpdate(initStock('prod_shoe'), { quantityAvailable: 20, observedAt: '2026-08-21T10:00:00.000Z' });
@@ -29,7 +29,7 @@ assert.strictEqual(cardOOS.availability.sellable, false);
 // available — a data-quality gap must never silently read as "in stock".
 const bagNoStockRecord = createProduct({
   id: 'prod_bag_no_stock', partnerId: 'partner_atelier', brandId: 'brand_atelier',
-  gender: 'unisex', categories: ['accessories_leather_goods'],
+  names: { fr: 'Produit test' }, gender: 'unisex', categories: ['accessories_leather_goods'],
 });
 const cardsFromListing = buildListingCards([bagNoStockRecord], {}, { brand_atelier: brand });
 assert.strictEqual(cardsFromListing[0].availability.label, 'out_of_stock');

@@ -7,7 +7,7 @@ const { productPageRecommendations, allSaleRecommendations } = require('../src/r
 // partner_big: a well-stocked multi-brand Corner with 5 sportswear items.
 const bigPartnerProducts = Array.from({ length: 5 }, (_, i) => createProduct({
   id: `prod_big_${i}`, partnerId: 'partner_big', brandId: 'brand_x',
-  gender: 'unisex', categories: ['footwear', 'sportswear'], technicalPurpose: true,
+  names: { fr: 'Produit test' }, gender: 'unisex', categories: ['footwear', 'sportswear'], technicalPurpose: true,
   size: { system: 'EU', value: 40 + i },
 }));
 const viewedBig = bigPartnerProducts[0];
@@ -16,11 +16,11 @@ const viewedBig = bigPartnerProducts[0];
 const smallPartnerProducts = [
   createProduct({
     id: 'prod_small_0', partnerId: 'partner_small', brandId: 'brand_atelier',
-    gender: 'unisex', categories: ['accessories_leather_goods'],
+    names: { fr: 'Produit test' }, gender: 'unisex', categories: ['accessories_leather_goods'],
   }),
   createProduct({
     id: 'prod_small_1', partnerId: 'partner_small', brandId: 'brand_atelier',
-    gender: 'unisex', categories: ['accessories_leather_goods'],
+    names: { fr: 'Produit test' }, gender: 'unisex', categories: ['accessories_leather_goods'],
   }),
 ];
 const viewedSmall = smallPartnerProducts[0];
@@ -28,7 +28,7 @@ const viewedSmall = smallPartnerProducts[0];
 // An unrelated cross-partner product available for fallback discovery.
 const otherPartnerBag = createProduct({
   id: 'prod_other_bag', partnerId: 'partner_other', brandId: 'brand_y',
-  gender: 'unisex', categories: ['accessories_leather_goods'],
+  names: { fr: 'Produit test' }, gender: 'unisex', categories: ['accessories_leather_goods'],
 });
 
 const catalog = [...bigPartnerProducts, ...smallPartnerProducts, otherPartnerBag];
