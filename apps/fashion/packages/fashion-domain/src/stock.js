@@ -121,6 +121,38 @@ function isExpired(reservation, now = new Date()) {
   return now.toISOString() > reservation.expiresAt;
 }
 
+/* Moved here from product-page.js (2026-08-21) to break a circular
+   require once style-group.js needed the same label logic — stock
+   display banding genuinely belongs with the rest of Stock, not with
+   the Product Page specifically; product-page.js re-exports these for
+   backward compatibility with existing callers/tests. */
+
+const STOCK_LABELS = Object.freeze({
+  OUT_OF_STOCK: 'out_of_stock',
+  LOW_STOCK: 'low_stock',
+  IN_STOCK: 'in_stock',
+});
+
+const LOW_STOCK_THRESHOLD = 5;
+
+/**
+ * Never a raw number shown to the Client without interpretation — a
+ * sellable quantity of 1 and 47 both just mean "in stock" for browsing
+ * purposes, but the low-stock band is worth surfacing explicitly since
+ * it changes Client behavior (buy now vs. can wait), while an exact
+ * "3 left" count would leak Partner inventory precision the Platform
+ * has no reason to expose.
+ *
+ * @param {object} stock - initStock()/applyStockUpdate() shape
+ * @returns {string} one of STOCK_LABELS
+ */
+function stockAvailabilityLabel(stock) {
+  const sellable = sellableQuantity(stock);
+  if (sellable <= 0) return STOCK_LABELS.OUT_OF_STOCK;
+  if (sellable <= LOW_STOCK_THRESHOLD) return STOCK_LABELS.LOW_STOCK;
+  return STOCK_LABELS.IN_STOCK;
+}
+
 module.exports = {
   DEFAULT_RESERVATION_HOLD_SECONDS,
   initStock,
@@ -130,4 +162,7 @@ module.exports = {
   releaseReservation,
   confirmReservation,
   isExpired,
+  STOCK_LABELS,
+  LOW_STOCK_THRESHOLD,
+  stockAvailabilityLabel,
 };

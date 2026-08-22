@@ -21,36 +21,15 @@
    asymmetry, honestly labeled).
    ============================================================ */
 
-const { sellableQuantity } = require('./stock');
+const {
+  sellableQuantity,
+  STOCK_LABELS,
+  LOW_STOCK_THRESHOLD,
+  stockAvailabilityLabel,
+} = require('./stock');
 const { productPageRecommendations } = require('./recommendations');
 const { isReturnEligible } = require('./product');
-
-const STOCK_LABELS = Object.freeze({
-  OUT_OF_STOCK: 'out_of_stock',
-  LOW_STOCK: 'low_stock',
-  IN_STOCK: 'in_stock',
-});
-
-const LOW_STOCK_THRESHOLD = 5;
-
-/**
- * Never a raw number shown to the Client without interpretation — a
- * sellable quantity of 1 and 47 both just mean "in stock" for browsing
- * purposes, but the low-stock band (per STOCK-FEED-CONTRACT.md's own
- * urgency framing) is worth surfacing explicitly since it changes
- * Client behavior (buy now vs. can wait), while an exact "3 left"
- * count would leak Partner inventory precision the Platform has no
- * reason to expose.
- *
- * @param {object} stock - stock.js initStock()/applyStockUpdate() shape
- * @returns {string} one of STOCK_LABELS
- */
-function stockAvailabilityLabel(stock) {
-  const sellable = sellableQuantity(stock);
-  if (sellable <= 0) return STOCK_LABELS.OUT_OF_STOCK;
-  if (sellable <= LOW_STOCK_THRESHOLD) return STOCK_LABELS.LOW_STOCK;
-  return STOCK_LABELS.IN_STOCK;
-}
+const { groupByStyle, buildStyleGroupViewModel } = require('./style-group');
 
 /**
  * @param {object} args
@@ -76,8 +55,12 @@ function stockAvailabilityLabel(stock) {
  * @param {object[]} args.allProducts - full Product catalog, passed
  *   through to productPageRecommendations() for the same-Corner/
  *   fallback computation
+ * @param {Object.<string,object>} [args.stockByProductId] - stock.js
+ *   records for every Product in allProducts, keyed by id — needed to
+ *   compute sizeVariants' per-size availability when this Product
+ *   belongs to a style group; harmless to omit when it doesn't
  */
-function buildProductPageViewModel({ product, stock, brand, partner, discount, priceMinorUnits, allProducts }) {
+function buildProductPageViewModel({ product, stock, brand, partner, discount, priceMinorUnits, allProducts, stockByProductId }) {
   if (!product) throw new Error('buildProductPageViewModel: product is required');
   if (!stock) throw new Error('buildProductPageViewModel: stock is required');
   if (!partner) {
@@ -93,6 +76,22 @@ function buildProductPageViewModel({ product, stock, brand, partner, discount, p
 
   const recommendations = productPageRecommendations(allProducts || [], product);
 
+  // Only populated when this Product belongs to a style group — a
+  // standalone Product (no styleId) has no size-selector to build,
+  // sizeVariants stays null rather than a fabricated single-item array.
+  let sizeVariants = null;
+  if (product.styleId) {
+    const groups = groupByStyle(allProducts || []);
+    const siblings = groups[product.styleId];
+    if (siblings) {
+      sizeVariants = buildStyleGroupViewModel({
+        styleId: product.styleId,
+        products: siblings,
+        stockByProductId: stockByProductId || {},
+      }).variants;
+    }
+  }
+
   return Object.freeze({
     productId: product.id,
     categories: product.categories,
@@ -101,6 +100,8 @@ function buildProductPageViewModel({ product, stock, brand, partner, discount, p
     brandName: brand ? brand.name : null,
     size: product.size,
     format: product.format,
+    styleId: product.styleId,
+    sizeVariants,
     seller: {
       partnerId: partner.id,
       legalName: partner.legalName,

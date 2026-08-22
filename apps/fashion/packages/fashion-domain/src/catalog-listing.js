@@ -16,7 +16,7 @@
    "low stock" on the page immediately distrusts both).
    ============================================================ */
 
-const { stockAvailabilityLabel } = require('./product-page');
+const { stockAvailabilityLabel } = require('./stock');
 
 /**
  * @param {object} args

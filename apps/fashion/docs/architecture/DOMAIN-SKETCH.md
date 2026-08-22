@@ -42,6 +42,19 @@ schema — a checkpoint to catch the next inconsistency before it becomes code.
   purely a Product classification, same shape as Brand. **Always explicit,
   never defaulted or inferred** from Category or Age Segment — the same
   never-inferred discipline already applied throughout this document.
+- **Style Group** — an optional grouping identifier (`styleId`) shared by
+  every size variant of "the same style." A Product row is still one size
+  (see Product, above) — this does not change that shape, it adds a way to
+  say "these Products are the same style, different sizes" on top of it.
+  Closes a genuine gap flagged twice during the customer-side audit
+  (2026-08-21): the Product Page size-selector had nothing to group
+  sibling sizes under before this. Every Product sharing a `styleId` must
+  agree on Partner/Brand/Gender/Categories/French name — only `size` (and,
+  by extension, stock/availability) may differ; enforced in both
+  `style-group.js`'s `validateStyleGroups()` and, independently, a
+  cross-row database trigger (`fashion.check_style_group_consistency()`).
+  A Product with no `styleId` is standalone, never bucketed under a
+  fabricated group.
 - **Product** — the unit that actually carries Category (multi-valued),
   Brand (single reference), Age Segment (multi-valued, genuine-eligibility
   discipline), Names/Descriptions (`names{lang}` — see MARKETS-AND-I18N.md;

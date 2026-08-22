@@ -106,4 +106,31 @@ assert.throws(
   /partner is required/
 );
 
+// --- sizeVariants: null for a standalone Product (no styleId) ---
+assert.strictEqual(vm.sizeVariants, null);
+
+// --- sizeVariants: populated for a Product that belongs to a style group ---
+const boot36 = createProduct({
+  id: 'prod_boot_36', partnerId: 'partner_atelier', brandId: 'brand_atelier',
+  names: { fr: 'Bottines cuir' }, gender: 'female',
+  categories: ['footwear'], size: { system: 'EU', value: 36 }, styleId: 'style_bottine',
+});
+const boot38 = createProduct({
+  id: 'prod_boot_38', partnerId: 'partner_atelier', brandId: 'brand_atelier',
+  names: { fr: 'Bottines cuir' }, gender: 'female',
+  categories: ['footwear'], size: { system: 'EU', value: 38 }, styleId: 'style_bottine',
+});
+const styledCatalog = [boot36, boot38];
+const boot36Stock = applyStockUpdate(initStock('prod_boot_36'), { quantityAvailable: 8, observedAt: '2026-08-21T10:00:00.000Z' });
+
+const vmStyled = buildProductPageViewModel({
+  product: boot36, stock: boot36Stock, brand, partner,
+  discount: null, priceMinorUnits: 15900, allProducts: styledCatalog,
+  stockByProductId: { prod_boot_36: boot36Stock }, // prod_boot_38 deliberately missing
+});
+assert.strictEqual(vmStyled.sizeVariants.length, 2);
+assert.deepStrictEqual(vmStyled.sizeVariants.map((v) => v.size.value), [36, 38]);
+assert.strictEqual(vmStyled.sizeVariants[0].availability.label, 'in_stock');
+assert.strictEqual(vmStyled.sizeVariants[1].availability.label, 'out_of_stock'); // missing Stock record
+
 console.log('product-page.js: all invariant checks passed.');

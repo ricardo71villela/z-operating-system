@@ -104,6 +104,18 @@ const SIZED_CATEGORIES = Object.freeze(['clothing', 'footwear', 'sportswear']);
  * @param {object} [input.format]         - Cosmetics-only: { volumeMl,
  *                                           shade } — a different concept
  *                                           from size, not interchangeable
+ * @param {string} [input.styleId] - optional grouping identifier shared by
+ *                                           every size variant of "the same
+ *                                           style" (a Product row is one
+ *                                           size, per DOMAIN-SKETCH.md; a
+ *                                           style-group.js function, not
+ *                                           this constructor, enforces that
+ *                                           every Product sharing a styleId
+ *                                           agrees on Partner/Brand/Gender/
+ *                                           Categories/name — this
+ *                                           constructor only accepts the
+ *                                           value as given, cross-row
+ *                                           consistency needs the whole set)
  * @param {boolean} [input.cornerExclusive] - defaults false; opt-out of
  *                                           All Sale, never opt-in
  *                                           (DOMAIN-SKETCH.md "Resolved")
@@ -147,6 +159,10 @@ function createProduct(input) {
       `names is required and must include a non-empty "${REQUIRED_NAME_LOCALE}" key ` +
       '(France-first launch — see MARKETS-AND-I18N.md) — other locale keys are optional.'
     );
+  }
+
+  if (input.styleId !== undefined && input.styleId !== null && (typeof input.styleId !== 'string' || !input.styleId.trim())) {
+    errors.push('styleId, when provided, must be a non-empty string');
   }
 
   if (!input.gender || !GENDERS.includes(input.gender)) {
@@ -200,6 +216,7 @@ function createProduct(input) {
     safetyCertifications: [...(input.safetyCertifications || [])],
     size: input.size ? { ...input.size } : null,
     format: input.format ? { ...input.format } : null,
+    styleId: input.styleId || null,
     // Opt-out, not opt-in — a published Product is in All Sale by default.
     cornerExclusive: !!input.cornerExclusive,
     campaignIds: [...(input.campaignIds || [])],
