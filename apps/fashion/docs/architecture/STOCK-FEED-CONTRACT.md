@@ -23,6 +23,15 @@ Two complementary mechanisms, not one:
    A stale update (older than what's already applied) is **rejected, not
    silently overwritten** — protects against an out-of-order delivery
    undoing a fresher in-store sale the Partner already reported.
+   **Bulk ingestion implemented 2026-08-21** (partner-side audit, ponto 3):
+   the only endpoint that existed before this accepted one Product at a
+   time — a Partner with 200 SKUs needed 200 separate requests for a
+   routine update. `POST /partners/:id/stock/bulk` now processes an array
+   of updates, each independently through the exact same
+   `applyStockUpdate()` the single-item endpoint uses — one stale item in
+   a 200-item batch fails only that item, never the other 199 (per-item
+   results, not all-or-nothing; all-or-nothing belongs to checkout
+   reservations across Partners, a different concern from feed ingestion).
 2. **The platform reserves stock at checkout**, not just at order
    confirmation. A reservation holds units for a short window (default 10
    minutes); if checkout doesn't complete, the reservation expires and the
@@ -47,6 +56,20 @@ their Corner may carry a lower Partner Quality Score weighting for
 inventory reliability (ties into the PQS-per-Category model in
 DOMAIN-SKETCH.md) — never presented to the Client as a full guarantee it
 cannot actually back.
+
+## Still open (honestly, not silently)
+- The reservation-window extension for `degraded`-tier Partners described
+  above is not implemented — `feedReliabilityTier` exists on the Partner
+  record (onboarding.js) but `stock.js`'s reservation hold duration is
+  still a single constant regardless of it.
+- Stock has no Postgres persistence at all — both the single-item and
+  bulk endpoints stay in-memory in every mode, unlike every other Fashion
+  entity, which already has a real table. Flagged here rather than
+  quietly left inconsistent with the rest of this document's own "trust
+  the schema, not just the endpoint" spirit.
+- No Partner-ownership check on `productId` — nothing today stops one
+  Partner from pushing a stock update for a Product that belongs to
+  another Partner.
 
 ## Status
 Draft

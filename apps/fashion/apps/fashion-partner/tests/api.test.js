@@ -77,6 +77,36 @@ async function run() {
   assert.strictEqual(res.status, 200);
   assert.strictEqual(res.body.stock.quantityAvailable, 5);
 
+  // --- Bulk stock feed over HTTP ---
+  res = await request('POST', '/partners/partner_atelier/stock/bulk', {
+    updates: [
+      { productId: 'prod_shoe', quantityAvailable: 12, observedAt: '2026-08-20T10:00:00.000Z' },
+      { productId: 'prod_belt', quantityAvailable: 8, observedAt: '2026-08-20T10:00:00.000Z' },
+      // stale relative to prod_bag's already-applied 10:00 update — this one item should fail
+      { productId: 'prod_bag', quantityAvailable: 99, observedAt: '2026-08-20T09:00:00.000Z' },
+    ],
+  });
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.summary.total, 3);
+  assert.strictEqual(res.body.summary.ok, 2);
+  assert.strictEqual(res.body.summary.failed, 1);
+  const shoeResult = res.body.results.find((r) => r.productId === 'prod_shoe');
+  assert.strictEqual(shoeResult.ok, true);
+  assert.strictEqual(shoeResult.sellable, 12);
+  const bagResult = res.body.results.find((r) => r.productId === 'prod_bag');
+  assert.strictEqual(bagResult.ok, false);
+  assert.ok(/stale update rejected/.test(bagResult.error));
+
+  // prod_bag's stock is untouched by its own failed item in the batch —
+  // still 5 from the single-item update earlier, the stale bulk item
+  // never silently overwrote it.
+  res = await request('GET', '/stock/prod_bag');
+  assert.strictEqual(res.body.stock.quantityAvailable, 5);
+
+  // A non-array `updates` is rejected outright, never partially processed.
+  res = await request('POST', '/partners/partner_atelier/stock/bulk', { updates: 'not-an-array' });
+  assert.strictEqual(res.status, 400);
+
   // Brand creation over HTTP — a Product cannot exist without one.
   res = await request('POST', '/partners/partner_atelier/brands', { name: 'Atelier du Marais' });
   assert.strictEqual(res.status, 201);

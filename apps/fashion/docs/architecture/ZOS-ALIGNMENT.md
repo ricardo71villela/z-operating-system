@@ -32,6 +32,21 @@ applied by Z Jobs and Z Mobility.
 
 ## Resolved
 
+- **Bulk stock feed** — resolved 2026-08-21 (ponto 3 of the partner-side
+  audit): the only stock endpoint that existed accepted one Product at a
+  time, despite STOCK-FEED-CONTRACT.md itself naming feed reliability the
+  project's single highest-churn-risk item. Fixed by
+  `POST /partners/:id/stock/bulk`, processing each item independently
+  through the same `applyStockUpdate()` the single-item endpoint already
+  uses — a stale/invalid item in a batch fails only that item, never the
+  whole batch. Honestly still open, documented in
+  STOCK-FEED-CONTRACT.md's "Still open": no Postgres persistence for stock
+  at all (unlike every other Fashion entity), no Partner-ownership check
+  on `productId`, and `degraded`-tier reservation-window extension is not
+  implemented despite `feedReliabilityTier` existing on the Partner
+  record. Partner dashboard prototype gained a stock-editing row per
+  Product with a single "Mettre à jour le stock (lot)" action.
+
 - **Shipment & Return API + Partner dashboard prototype** — resolved
   2026-08-21 (ponto 2 of the partner-side audit): `shipment.js`/
   `return.js` existed only as pure domain logic with zero HTTP surface

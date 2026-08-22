@@ -114,6 +114,50 @@ function handleGetStock(req, res, productId) {
   sendJson(res, 200, { stock, sellable: sellableQuantity(stock) });
 }
 
+/**
+ * Bulk stock feed ingestion — closes the gap STOCK-FEED-CONTRACT.md
+ * itself flagged as the project's single highest-churn-risk item
+ * (ponto 3 of the partner-side audit, 2026-08-21): the only stock
+ * endpoint that existed before this accepted one Product at a time,
+ * meaning a Partner with 200 SKUs needed 200 separate requests just to
+ * push a routine update.
+ *
+ * Each item is processed independently through the same
+ * applyStockUpdate() every single-item call already uses — a stale or
+ * invalid update for one Product never blocks the other 199 in the
+ * same batch from applying (per-item results, never all-or-nothing;
+ * that all-or-nothing discipline belongs to checkout reservations
+ * across Partners, a different concern from feed ingestion itself).
+ *
+ * No Partner-ownership check on productId yet — same known gap the
+ * single-item stock endpoints already carry (see the comment on
+ * handleStockUpdate), not newly introduced here, not silently
+ * pretended solved either.
+ */
+async function handleBulkStockUpdate(req, res, partnerId) {
+  const body = await readBody(req);
+  if (!Array.isArray(body.updates)) {
+    return sendJson(res, 400, { error: 'updates must be an array of { productId, quantityAvailable, observedAt }' });
+  }
+
+  const results = body.updates.map((update) => {
+    try {
+      const current = memory.stockByProductId.get(update.productId) || initStock(update.productId);
+      const updated = applyStockUpdate(current, update);
+      memory.stockByProductId.set(update.productId, updated);
+      return { productId: update.productId, ok: true, stock: updated, sellable: sellableQuantity(updated) };
+    } catch (err) {
+      // A stale/invalid item never aborts the batch — per-item failure,
+      // exactly matching STOCK-FEED-CONTRACT.md's "rejected, not
+      // silently overwritten" rule applied one item at a time.
+      return { productId: update.productId, ok: false, error: err.message };
+    }
+  });
+
+  const okCount = results.filter((r) => r.ok).length;
+  sendJson(res, 200, { results, summary: { total: results.length, ok: okCount, failed: results.length - okCount } });
+}
+
 async function handleCreateBrand(req, res, partnerId) {
   const body = await readBody(req);
   try {
@@ -298,6 +342,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && parts[0] === 'partners' && parts[2] === 'transition') {
       return await handleTransition(req, res, parts[1]);
+    }
+    if (req.method === 'POST' && parts[0] === 'partners' && parts[2] === 'stock' && parts[3] === 'bulk') {
+      return await handleBulkStockUpdate(req, res, parts[1]);
     }
     if (req.method === 'POST' && parts[0] === 'stock' && parts.length === 2) {
       return await handleStockUpdate(req, res, parts[1]);
