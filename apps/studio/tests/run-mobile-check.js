@@ -126,10 +126,13 @@ const INSPECT_CODE = `
     const aur = rect(auth);
     const lwr = rect(langWrap);
     const lr = rect(lang);
+    const actionStyle = getComputedStyle(headerActions);
+    const actionContentLeft = ar.left + parseFloat(actionStyle.paddingLeft || '0');
+    const actionContentRight = ar.right - parseFloat(actionStyle.paddingRight || '0');
     const authLangGap = lr.left - aur.right;
 
-    check('Bulk Generation ocupa a largura útil da barra', bur.width >= 325 && bur.left >= 8 && bur.right <= window.innerWidth - 8,
-      bur);
+    check('Bulk Generation ocupa a largura útil da barra', bur.width >= 300 && Math.abs(bur.left - actionContentLeft) <= 2 && Math.abs(bur.right - actionContentRight) <= 2,
+      { bulk:bur, actionContentLeft, actionContentRight });
     check('texto Bulk Generation fica contido no botão', bulk.scrollWidth <= bulk.clientWidth + 1,
       { scrollWidth:bulk.scrollWidth, clientWidth:bulk.clientWidth, text:bulk.textContent.trim() });
     check('Bulk Generation não regressa a icon-only', parseFloat(getComputedStyle(bulk).fontSize) >= 9,
@@ -144,8 +147,8 @@ const INSPECT_CODE = `
       aur);
     check('idioma mantém largura compacta', lr.width >= 58 && lr.width <= 72,
       lr);
-    check('cluster Sign In/idioma alinha à direita', Math.abs(lwr.right - ar.right) <= 2,
-      { langWrapRight:lwr.right, actionsRight:ar.right });
+    check('cluster Sign In/idioma alinha à direita útil', Math.abs(lwr.right - actionContentRight) <= 2,
+      { langWrapRight:lwr.right, actionContentRight });
   } else {
     check('controlos completos do header mobile existem', false,
       { headerActions:!!headerActions, bulk:!!bulk, auth:!!auth, langWrap:!!langWrap, lang:!!lang });
