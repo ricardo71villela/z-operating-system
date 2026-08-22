@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════
-//  MY STUDIO — TESTES FUNCIONAIS AUTOMATIZADOS
+//  Z STUDIO — TESTES FUNCIONAIS AUTOMATIZADOS
 // ═══════════════════════════════════════════════════════════════════════
 //
 // Corre a app dentro de um Chromium real (Electron), não apenas verifica
@@ -101,8 +101,8 @@ try {
     // Isto não altera a prova de first-run acima.
     setLang('pt');
     await sleep(80);
-    assert('marca por defeito é My Studio', state.brand.name === 'My Studio', state.brand.name);
-    assert('sem "Z Studio" residual (nome antigo do produto)', !document.body.innerHTML.includes('Z Studio'));
+    assert('marca por defeito é Z Studio', state.brand.name === 'Z Studio', state.brand.name);
+    assert('sem "My Studio" residual (identidade legada)', !document.body.innerHTML.includes('My Studio'));
     assert('rodapé mostra "Powered by ZOS" (marca da empresa, intencional)', document.getElementById('footerPoweredBy').textContent.includes('ZOS'));
     assert('logótipo do cliente NUNCA sobrepõe o logótipo ZOS do cabeçalho', document.getElementById('headerLogo').alt === 'ZOS');
     assert('categoria por defeito é genérico', state.category === 'generico', state.category);
@@ -679,12 +679,12 @@ try {
   } catch (e) { assert('BLOCO 3t (CSP presente) não rebentou', false, e.message + ' | ' + e.stack); }
 
   try {
-    // ENDPOINT DE IA CONFIGURÁVEL — a app não deve assumir que "/api/ai" serve
-    // para tudo; em contexto nativo precisa de um URL absoluto configurável.
+    // ENDPOINT DE IA SPLIT-BACKEND — Web e native usam a autoridade absoluta
+    // validada pelo release contract; não há fallback relativo neste build.
     assert('IS_NATIVE_PLATFORM existe e é falso neste teste (Chromium comum, não Capacitor)', IS_NATIVE_PLATFORM === false);
-    assert('sem Capacitor, o endpoint usa o caminho relativo normal', AI_ENDPOINT === '/api/ai', AI_ENDPOINT);
-    assert('a constante de configuração nativa existe (mesmo que vazia por preencher)', typeof AI_API_BASE_URL_NATIVE === 'string');
-    // simula estar em contexto nativo, sem URL configurado — tem de cair para o relativo, não rebentar
+    assert('sem Capacitor, o endpoint usa o backend AI split', AI_ENDPOINT === 'https://z-studio-platform-seven.vercel.app/api/ai', AI_ENDPOINT);
+    assert('a constante nativa aponta para o mesmo backend AI split', AI_API_BASE_URL_NATIVE === AI_ENDPOINT, AI_API_BASE_URL_NATIVE);
+    // simula contexto nativo para confirmar que a deteção permanece independente do URL
     window.Capacitor = { isNativePlatform: () => true };
     const wouldBeNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
     assert('deteção de plataforma nativa funciona quando window.Capacitor existe', wouldBeNative === true);
