@@ -106,9 +106,10 @@
   }
 
   /* ZSTUDIO_MOBILE_UTILITY_SEGMENT_V1
-     Sign In + language read as one utility instead of two competing buttons.
-     The select removes the platform arrow and uses symmetric padding so the
-     language code is optically centred; a quiet CSS chevron is overlaid.
+     Sign In + language remain two accessible controls but read as one utility.
+     The technical 8px grid gap is visually absorbed by the shared surface;
+     a one-pixel divider supplies the only visible separation. The platform
+     select arrow is removed and symmetric padding centres the language code.
   */
   header .lang-switch {
     grid-row: 2;
@@ -120,12 +121,24 @@
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) 68px !important;
     align-items: stretch;
-    gap: 0 !important;
+    gap: 8px !important;
     margin: 0 !important;
     border: 1px solid #565c61;
     border-radius: 3px;
     overflow: hidden;
-    background: rgba(255, 255, 255, .006);
+    background: #0b0d0e;
+  }
+
+  /* Visual divider centred inside the semantic grid gap. */
+  header .lang-switch::before {
+    content: '';
+    position: absolute;
+    right: 72px;
+    top: 8px;
+    bottom: 8px;
+    width: 1px;
+    background: rgba(177, 184, 189, .38);
+    pointer-events: none;
   }
 
   header .lang-switch::after {
@@ -150,8 +163,7 @@
     height: auto !important;
     min-height: 40px !important;
     padding: 9px 12px !important;
-    border: 0 !important;
-    border-right: 1px solid #565c61 !important;
+    border: 1px solid transparent !important;
     border-radius: 0 !important;
     background: transparent !important;
     color: #c8cccf !important;
@@ -171,7 +183,7 @@
     height: auto !important;
     min-height: 40px !important;
     padding: 0 20px !important;
-    border: 0 !important;
+    border: 1px solid transparent !important;
     border-radius: 0 !important;
     background: transparent !important;
     color: #f1f2ef !important;
@@ -232,7 +244,7 @@
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) 68px !important;
     justify-self: end !important;
-    gap: 0 !important;
+    gap: 8px !important;
     border: 1px solid #565c61 !important;
     border-radius: 3px !important;
     overflow: hidden !important;
@@ -243,8 +255,7 @@
     max-width: none !important;
     height: auto !important;
     min-height: 40px !important;
-    border: 0 !important;
-    border-right: 1px solid #565c61 !important;
+    border: 1px solid transparent !important;
     border-radius: 0 !important;
   }
 
@@ -256,7 +267,7 @@
     min-height: 40px !important;
     padding-left: 20px !important;
     padding-right: 20px !important;
-    border: 0 !important;
+    border: 1px solid transparent !important;
     border-radius: 0 !important;
     text-align: center !important;
     text-align-last: center !important;
@@ -378,7 +389,7 @@
     width: min(100%, 218px) !important;
     max-width: 218px !important;
     grid-template-columns: minmax(0, 1fr) 60px !important;
-    gap: 0 !important;
+    gap: 8px !important;
   }
 
   header #langSwitch,
@@ -388,6 +399,10 @@
     max-width: 60px !important;
     padding-left: 17px !important;
     padding-right: 17px !important;
+  }
+
+  header .lang-switch::before {
+    right: 64px;
   }
 
   header .lang-switch::after {
