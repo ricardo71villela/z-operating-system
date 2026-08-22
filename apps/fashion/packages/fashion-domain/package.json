@@ -5,6 +5,6 @@
   "description": "Pure TypeScript/JS domain rules for Z Fashion \u2014 Partner, Product, Corner, Campaign. No framework, no I/O, no dependency on other ZOS bounded contexts.",
   "main": "src/partner.js",
   "scripts": {
-    "test": "node tests/partner.test.js && node tests/brand.test.js && node tests/product.test.js && node tests/campaign-corner.test.js && node tests/recommendations.test.js && node tests/homepage.test.js && node tests/stock.test.js && node tests/onboarding.test.js && node tests/corner-config.test.js && node tests/cart.test.js && node tests/corner-page.test.js && node tests/price-history.test.js && node tests/campaign-pricing.test.js && node tests/commission.test.js && node tests/product-page.test.js && node tests/catalog-listing.test.js && node tests/search.test.js && node tests/account.test.js"
+    "test": "node tests/partner.test.js && node tests/brand.test.js && node tests/product.test.js && node tests/campaign-corner.test.js && node tests/recommendations.test.js && node tests/homepage.test.js && node tests/stock.test.js && node tests/onboarding.test.js && node tests/corner-config.test.js && node tests/cart.test.js && node tests/corner-page.test.js && node tests/price-history.test.js && node tests/campaign-pricing.test.js && node tests/commission.test.js && node tests/product-page.test.js && node tests/catalog-listing.test.js && node tests/search.test.js && node tests/account.test.js && node tests/size-grid.test.js"
   }
 }

@@ -48,9 +48,18 @@ Concretely, for the Phase 0/1 work already sequenced in
   promised in this document since the earliest design pass but was not
   actually implemented until then.
   This includes clothing/footwear/sportswear sizing, which is not just
-  translation — size charts differ by country (FR 38 ≠ IT 44 ≠ US 8 for the
-  same garment) and must resolve through a canonical size-grid concept, not
-  a lookup table per Partner. Sizing is itself Category-conditional (see
+  translation — size charts differ by country (FR 38 ≈ IT 42 ≈ DE 36 ≈
+  UK 10 ≈ US 8 for the same garment, women's) and must resolve through a
+  canonical size-grid concept, not a lookup table per Partner. **Implemented
+  2026-08-21** (`size-grid.js`) — Gender-scoped for Footwear (a women's and
+  a men's EU39 are genuinely different foot lengths, not the same number
+  relabeled), Alpha-canonical for men's/unisex Clothing (numeric FR/IT/DE
+  tables are not invented for a distinction the market itself barely makes
+  there), never interpolated or guessed for a size outside the sourced
+  reference tables. Explicitly labeled as reference/approximate — every
+  cross-checked source for these tables carries the same disclaimer
+  (brand cut varies), and Product Page copy must say so too, never present
+  this as exact. Sizing is itself Category-conditional (see
   DOMAIN-SKETCH.md): Cosmetics uses format/volume, not a size grid; most
   Accessories & Leather Goods carry no size dimension at all.
 - **Campaign calendar** (Phase 3): Black Friday and Soldes are not the same
