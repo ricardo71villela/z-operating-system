@@ -1,9 +1,9 @@
 name: One-shot Z Studio convergence repair
 
 on:
-  push:
+  pull_request:
     branches:
-      - fix/zstudio-empty-states-icons-v1
+      - chore/zos-five-app-convergence-v1
     paths:
       - '.github/workflows/maintenance-studio-test-authority.yml'
 
