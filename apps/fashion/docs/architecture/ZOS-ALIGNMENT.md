@@ -29,8 +29,25 @@ applied by Z Jobs and Z Mobility.
 ## Open questions
 - Should Partner Quality Score gain fashion-specific signals (return rate by
   size, image quality) as vertical-specific extensions, or stay generic?
+  Distinct from the "is it inert today" question below — that one is
+  resolved; this one (future signal design, once real integration exists)
+  is not.
 
 ## Resolved
+
+- **Partner Quality Score: deliberately inert, not integrated** —
+  resolved 2026-08-21 (ponto 4 of the partner-side audit, see
+  PARTNER-QUALITY-SCORE-STATUS.md for the full writeup): confirmed
+  `commission.js`'s discount and `homepage.js`'s sponsorship eligibility
+  both already degrade safely with no real score (never fabricated,
+  never inferred) — the finding was that this permanent inertness had
+  no visible documentation anywhere, not that either function behaved
+  unsafely. Considered and rejected building a Fashion-local substitute
+  score — `40-partner-quality-score/PARTNER-QUALITY-SCORE-MODEL.md`'s
+  own Boundary Rules explicitly forbid exactly that ("never a parallel
+  Quality Signal system," "no parallel Partner record"). Both functions
+  now carry an explicit comment stating they are permanently inert until
+  real Trust Engine integration happens — not a bug, not a silent gap.
 
 - **Bulk stock feed** — resolved 2026-08-21 (ponto 3 of the partner-side
   audit): the only stock endpoint that existed accepted one Product at a

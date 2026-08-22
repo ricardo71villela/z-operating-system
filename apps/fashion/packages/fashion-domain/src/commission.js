@@ -102,6 +102,21 @@ function volumeDiscount(monthlyGmvMinorUnits) {
  * @returns {number} the PQS discount, in percentage points — 0 if the
  *   Partner has no score yet or is below the minimum, never inferred
  *   or defaulted upward
+ *
+ * DELIBERATELY, PERMANENTLY INERT TODAY (2026-08-21, partner-side audit
+ * ponto 4): partnerQualityScore is null for every real Partner right
+ * now — no caller anywhere in this codebase has a real score to pass,
+ * because the score itself is owned by a separate, cross-vertical ZOS
+ * initiative (40-partner-quality-score/PARTNER-QUALITY-SCORE-MODEL.md,
+ * status: Draft, weights/methodology explicitly "not fixed here...
+ * separately governed phase") that Z Fashion is not yet registered
+ * against. Building a Fashion-local simplified score instead was
+ * considered and rejected — that document's own Boundary Rules
+ * explicitly forbid it ("never a parallel Quality Signal system," "no
+ * parallel Partner record"). So every Partner gets 0 PQS discount,
+ * always, until Z Fashion integrates with the real Trust Engine — a
+ * deliberate consequence of respecting that boundary, not a bug to
+ * silently work around.
  */
 function qualityScoreDiscount(partnerQualityScore, { minimumScore = DEFAULT_MINIMUM_PQS_FOR_DISCOUNT } = {}) {
   if (typeof partnerQualityScore !== 'number' || partnerQualityScore < minimumScore) {
