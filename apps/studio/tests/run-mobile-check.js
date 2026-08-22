@@ -9,6 +9,7 @@
 // - READY = preview primeiro, export/caption novamente disponíveis;
 // - fit responsivo dos cinco formatos;
 // - identidade Z Studio e SVG icon system no header mobile;
+// - geometria real de Bulk Generation + Sign In + idioma;
 // - copy de upload própria de telefone e sem pasta desktop;
 // - detalhes de texto em progressive disclosure;
 // - scroll vertical natural da página.
@@ -73,6 +74,10 @@ const INSPECT_CODE = `
   const checks = [];
   const check = (name, pass, extra) => checks.push({ name, pass: !!pass, extra: extra ?? null });
   const viewport = () => ({ width: window.innerWidth, height: window.innerHeight });
+  const rect = (el) => {
+    const r = el.getBoundingClientRect();
+    return { left:r.left, right:r.right, top:r.top, bottom:r.bottom, width:r.width, height:r.height };
+  };
 
   check('viewport real é 390×844', window.innerWidth === 390 && window.innerHeight === 844, viewport());
   check('mobile runtime authority carregada', !!window.ZStudioMobileRuntime && window.ZStudioMobileRuntime.authority === 'ZSTUDIO_MOBILE_RUNTIME_AUTHORITY_V1');
@@ -106,6 +111,57 @@ const INSPECT_CODE = `
   const brandBefore = brandTag ? getComputedStyle(brandTag, '::before').content : '';
   check('header mobile mostra identidade Z Studio', !!brandTag && getComputedStyle(brandTag).display !== 'none' && /Z Studio/.test(brandBefore),
     { display: brandTag && getComputedStyle(brandTag).display, before: brandBefore });
+
+  // Header geometry contract — guards the real-iPhone regression where the
+  // legacy runtime reduced Bulk Generation to an icon-sized frame and split
+  // Sign In / language across the full row.
+  const headerActions = document.querySelector('header .header-actions');
+  const bulk = document.getElementById('btnHeaderBulk');
+  const auth = document.getElementById('zstudioAuthButton');
+  const langWrap = document.querySelector('header .lang-switch');
+  const lang = document.getElementById('langSwitch');
+  if (headerActions && bulk && auth && langWrap && lang) {
+    const ar = rect(headerActions);
+    const bur = rect(bulk);
+    const aur = rect(auth);
+    const lwr = rect(langWrap);
+    const lr = rect(lang);
+    const authLangGap = lr.left - aur.right;
+
+    check('Bulk Generation ocupa a largura útil da barra', bur.width >= 325 && bur.left >= 8 && bur.right <= window.innerWidth - 8,
+      bur);
+    check('texto Bulk Generation fica contido no botão', bulk.scrollWidth <= bulk.clientWidth + 1,
+      { scrollWidth:bulk.scrollWidth, clientWidth:bulk.clientWidth, text:bulk.textContent.trim() });
+    check('Bulk Generation não regressa a icon-only', parseFloat(getComputedStyle(bulk).fontSize) >= 9,
+      { fontSize:getComputedStyle(bulk).fontSize });
+    check('Sign In + idioma formam cluster compacto', lwr.width >= 190 && lwr.width <= 255,
+      lwr);
+    check('Sign In e idioma estão na mesma linha e altura', Math.abs(aur.top - lr.top) <= 2 && Math.abs(aur.height - lr.height) <= 2,
+      { auth:aur, lang:lr });
+    check('gap Sign In → idioma é curto', authLangGap >= 6 && authLangGap <= 12,
+      { gap:authLangGap, authRight:aur.right, langLeft:lr.left });
+    check('Sign In tem largura útil', aur.width >= 120,
+      aur);
+    check('idioma mantém largura compacta', lr.width >= 58 && lr.width <= 72,
+      lr);
+    check('cluster Sign In/idioma alinha à direita', Math.abs(lwr.right - ar.right) <= 2,
+      { langWrapRight:lwr.right, actionsRight:ar.right });
+  } else {
+    check('controlos completos do header mobile existem', false,
+      { headerActions:!!headerActions, bulk:!!bulk, auth:!!auth, langWrap:!!langWrap, lang:!!lang });
+  }
+
+  const firstTextInput = document.querySelector('.controls input[type="text"]');
+  const borderTargets = [bulk, auth, lang, firstTextInput].filter(Boolean);
+  check('molduras principais usam 1px', borderTargets.length >= 3 && borderTargets.every(el => getComputedStyle(el).borderTopWidth === '1px'),
+    borderTargets.map(el => ({ id:el.id || el.tagName, border:getComputedStyle(el).borderTopWidth })));
+
+  const mediaStepLabel = document.querySelector('#mediaStep .step-label');
+  if (mediaStepLabel) {
+    const accent = getComputedStyle(mediaStepLabel, '::after').backgroundImage;
+    check('linha de secção usa gradiente sem sacrificar contraste do texto', accent.includes('linear-gradient') && getComputedStyle(mediaStepLabel).color !== 'transparent',
+      { accent, textColor:getComputedStyle(mediaStepLabel).color });
+  }
 
   check('estado inicial sem rascunho é EMPTY', window.ZStudioPreviewRuntime && window.ZStudioPreviewRuntime.getState() === 'empty',
     window.ZStudioPreviewRuntime && window.ZStudioPreviewRuntime.getState());
