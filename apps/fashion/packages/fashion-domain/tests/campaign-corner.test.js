@@ -36,16 +36,16 @@ assert.strictEqual(blackFriday2026.countryIso, null);
 // Corner and All Sale over a small fixture catalog.
 const shoe = createProduct({
   id: 'prod_shoe', partnerId: 'partner_a', brandId: 'brand_nike',
-  categories: ['footwear', 'sportswear'], technicalPurpose: true,
+  gender: 'female', categories: ['footwear', 'sportswear'], technicalPurpose: true,
   size: { system: 'EU', value: 42 },
 });
 const perfume = createProduct({
   id: 'prod_perfume', partnerId: 'partner_a', brandId: 'brand_house_label',
-  categories: ['cosmetics'], format: { volumeMl: 50 },
+  gender: 'unisex', categories: ['cosmetics'], format: { volumeMl: 50 },
 });
 const exclusiveBag = createProduct({
   id: 'prod_bag', partnerId: 'partner_b', brandId: 'brand_longchamp',
-  categories: ['accessories_leather_goods'], cornerExclusive: true,
+  gender: 'unisex', categories: ['accessories_leather_goods'], cornerExclusive: true,
 });
 const catalog = [shoe, perfume, exclusiveBag];
 
@@ -65,6 +65,22 @@ assert.deepStrictEqual(
 assert.deepStrictEqual(
   allSale(catalog, { category: 'sportswear' }).map((p) => p.id),
   ['prod_shoe']
+);
+
+// All Sale filtered by gender: exact match only — the female shoe shows
+// under 'female', not under 'unisex' (perfume), and vice versa. Unisex
+// is its own explicit bucket, never a silent match-all.
+assert.deepStrictEqual(
+  allSale(catalog, { gender: 'female' }).map((p) => p.id),
+  ['prod_shoe']
+);
+assert.deepStrictEqual(
+  allSale(catalog, { gender: 'unisex' }).map((p) => p.id),
+  ['prod_perfume']
+);
+assert.deepStrictEqual(
+  allSale(catalog, { gender: 'male' }).map((p) => p.id),
+  []
 );
 
 // Corner B still shows the exclusive bag — Corner is not filtered by

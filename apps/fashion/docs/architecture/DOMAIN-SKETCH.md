@@ -32,6 +32,16 @@ schema — a checkpoint to catch the next inconsistency before it becomes code.
   Modeling Category as a single field would force an arbitrary primary choice
   on products that genuinely span two — the same class of mistake already
   caught twice this conversation (Category-on-Partner, then Brand-on-Partner).
+- **Gender** — Female, Male, Unisex. Lives on the **Product**, single-valued
+  (never multi, unlike Category): a garment/accessory targets one Gender or
+  is explicitly marketed Unisex, it does not simultaneously target two
+  Genders the way a running shoe genuinely spans two Categories. Owned by
+  `product.js` itself, not `partner.js` — unlike Category and Age Segment, a
+  Partner never declares which Genders it operates in (no compliance-gate
+  question the way minor-safe data raises one for Age Segment); Gender is
+  purely a Product classification, same shape as Brand. **Always explicit,
+  never defaulted or inferred** from Category or Age Segment — the same
+  never-inferred discipline already applied throughout this document.
 - **Product** — the unit that actually carries Category (multi-valued),
   Brand (single reference), Age Segment (multi-valued, genuine-eligibility
   discipline), and belongs to exactly one Partner (the stock owner). **"Size"
@@ -91,10 +101,11 @@ Partner 1───* Product *───1 Brand
 Corner (1:1 with Partner)
 
 Product *───* Category    (multi-valued tag, genuine purpose not resemblance)
+Product 1───1 Gender      (single-valued: female / male / unisex, always explicit)
 Product *───* Age Segment (same discipline, real safety/cert stakes)
 Product *───* Campaign    (zero or more active at once)
 
-All Sale = view(Product) filtered by Segment × Category × Brand × Partner
+All Sale = view(Product) filtered by Segment × Gender × Category × Brand × Partner
 Corner   = view(Product) filtered by Partner = this Partner
 ```
 

@@ -46,7 +46,7 @@ same-Corner recommendations point back into.
 
 ### All Sale
 Cross-Partner discovery view (`allSale()` in corner.js), filterable by
-Segment × Category × Brand × Partner. Recommendations here work in the
+Segment × Gender × Category × Brand × Partner. Recommendations here work in the
 opposite direction from the Product Page by design: **complementary and
 similar products across Partners**, functioning as a Destaques-adjacent
 discovery opportunity rather than a single-Partner retention tool. "Similar"

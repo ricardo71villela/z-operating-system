@@ -3,20 +3,35 @@
    ============================================================
    Owns: the Product entity — the unit that actually carries
    Category (multi-valued), Brand (single reference), Age Segment
-   (multi-valued), and a Category-conditional size/format attribute.
-   Belongs to exactly one Partner (the stock owner). See
-   DOMAIN-SKETCH.md for the full rationale behind every invariant
-   enforced below — this file makes those invariants impossible to
-   bypass at runtime, not just documented.
+   (multi-valued), Gender (single value), and a Category-conditional
+   size/format attribute. Belongs to exactly one Partner (the stock
+   owner). See DOMAIN-SKETCH.md for the full rationale behind every
+   invariant enforced below — this file makes those invariants
+   impossible to bypass at runtime, not just documented.
 
    Depends on partner.js only for the shared CATEGORIES/AGE_SEGMENTS
    vocabulary, never for Partner-instance data — Product validates
    itself against the taxonomy, not against a specific Partner's
    declared eligibility (that cross-check is a Corner/catalog-
-   ingestion concern, not this module's).
+   ingestion concern, not this module's). GENDER is owned by this
+   module itself, not partner.js — unlike Category and Age Segment, a
+   Partner never declares which Genders it operates in (there is no
+   "eligibility" question here the way minor-safe data or size-grid
+   compliance raise one for Age Segment); Gender is purely a Product
+   classification, same shape as Brand.
    ============================================================ */
 
 const { CATEGORIES, AGE_SEGMENTS } = require('./partner');
+
+/* Single-valued, never multi — a Product is marketed to one Gender or
+   explicitly marketed as Unisex; unlike Category (where genuine dual-
+   purpose is common — a running shoe really is Footwear+Sportswear at
+   once), a garment/accessory does not simultaneously target two
+   distinct Genders the way it can span two Categories. 'unisex' is an
+   explicit value, never a default or an omission — the same
+   never-inferred discipline already applied to Category and Age
+   Segment. */
+const GENDERS = Object.freeze(['female', 'male', 'unisex']);
 
 /* Categories that carry a genuine size dimension at all. Cosmetics
    uses `format`, not `size` — a different concept, not a point on the
@@ -42,6 +57,11 @@ const SIZED_CATEGORIES = Object.freeze(['clothing', 'footwear', 'sportswear']);
  *                                           never assigned by resemblance
  * @param {boolean} [input.technicalPurpose] - required truthy iff
  *                                           categories includes 'sportswear'
+ * @param {string} input.gender           - one of GENDERS ('female',
+ *                                           'male', 'unisex') — always
+ *                                           explicit, never defaulted or
+ *                                           inferred from Category/Age
+ *                                           Segment
  * @param {string[]} input.ageSegments    - multi-valued; if it includes
  *                                           'baby', 'children' or 'youth',
  *                                           input.safetyCertifications must
@@ -90,6 +110,13 @@ function createProduct(input) {
     }
   }
 
+  if (!input.gender || !GENDERS.includes(input.gender)) {
+    errors.push(
+      `gender is required and must be one of ${GENDERS.join(', ')} — ` +
+      'always explicit, never defaulted or inferred from Category/Age Segment.'
+    );
+  }
+
   const ageSegments = input.ageSegments || ['adults'];
   const invalidSegments = ageSegments.filter((s) => !AGE_SEGMENTS.includes(s));
   if (invalidSegments.length > 0) errors.push(`unknown ageSegments: ${invalidSegments.join(', ')}`);
@@ -127,6 +154,7 @@ function createProduct(input) {
     brandId: input.brandId,
     categories: [...categories],
     technicalPurpose: !!input.technicalPurpose,
+    gender: input.gender,
     ageSegments: [...ageSegments],
     safetyCertifications: [...(input.safetyCertifications || [])],
     size: input.size ? { ...input.size } : null,
@@ -154,6 +182,7 @@ function isReturnEligible(product, { sealBroken = false } = {}) {
 
 module.exports = {
   SIZED_CATEGORIES,
+  GENDERS,
   createProduct,
   isInAllSale,
   isReturnEligible,
