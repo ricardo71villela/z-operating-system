@@ -35,6 +35,20 @@ applied by Z Jobs and Z Mobility.
 
 ## Resolved
 
+- **Canonical identity binding** — resolved 2026-08-21: Z Fashion is now
+  a registered `domain_code` (`fashion`/`client`) in the ZOS Identity
+  Bridge (`20260821260000_zos_fashion_identity_bridge_v1.sql`), following
+  the exact precedent Z Studio already set
+  (`20260817221500_zos_studio_identity_bridge_v1.sql`) — a new
+  `fashion.clients` anchor table mirroring `studio.accounts`, the same
+  `AFTER INSERT` trigger pattern registering into
+  `platform_internal.register_local_person_identity()`, and a
+  `public.zfashion_ensure_client()` bootstrap RPC mirroring
+  `public.zstudio_ensure_account()`. See ACCOUNT-AND-IDENTITY.md for the
+  full writeup. `client_user_id` on Cart/Wishlist/Address/Corner Follow
+  is unchanged — this is a Postgres-level canonical-identity layer
+  sitting alongside it, not a replacement.
+
 - **Payment (Stripe) — configured, not yet connected** — resolved
   2026-08-21 (ponto 1 of the "o que falta" review, see
   PAYMENT-STRIPE-STATUS.md for the full writeup): Payment had been the

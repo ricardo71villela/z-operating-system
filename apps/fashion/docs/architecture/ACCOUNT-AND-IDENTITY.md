@@ -58,25 +58,36 @@ source of truth for data `fashion.orders` already owns.
   seal exception). See ZOS-ALIGNMENT.md "Resolved" for the full writeup;
   not duplicated here.
 
-## Open: canonical identity binding
-`client_user_id` points directly at `auth.users(id)` — the same
-local-identity-first pattern Z Find and Z Jobs already used for their own
-human-identity fields (`find/profile`, `jobs/person` in
-`20260809213000_zos_identity_bridge_v1.sql`) before either was registered
-as a canonical `zos.persons` binding. Z Fashion is not yet a registered
-`domain_code` in that bridge, the same situation the bridge migration's own
-comment already notes for Z Mobility ("deliberately has no human binding
-contract yet because it does not currently own a local human identity
-model").
+## Resolved: canonical identity binding (2026-08-21)
+`client_user_id` points at `auth.users(id)` — that local-identity-first
+shape does not change (Cart/Wishlist/Corner Follows/Address all keep
+referencing `auth.users(id)` directly, same as before). What changed:
+Z Fashion is now a registered `domain_code` (`fashion` / `client`) in the
+ZOS Identity Bridge, following the exact precedent Z Studio already set
+(`20260817221500_zos_studio_identity_bridge_v1.sql`) rather than inventing
+a new pattern — `20260821260000_zos_fashion_identity_bridge_v1.sql`
+extends `platform_internal.register_local_person_identity()`,
+`zos_api.ensure_current_identity_binding()`,
+`zos_api.current_identity_bindings()`, and both `zos.registry_bindings`
+RLS policies with the `fashion`/`client` case, `create or replace`
+alongside Find/Jobs/Studio, never replacing their semantics.
 
-Registering Z Fashion as a supported `domain_code` (mirroring the
-`find/profile` / `jobs/person` contracts) would let a Client's Wishlist,
-Corner Follows, and Order history bind to the same canonical `zos.persons`
-identity their Z Find or Z Jobs activity already uses — one person across
-the whole ZOS ecosystem, not a Fashion-local identity island. Not done in
-this pass, deliberately scoped smaller (the immediate gap was "Orders have
-no owner at all," not "which identity system owns that owner"); worth
-doing before Z Fashion's Client-facing account ships for real, not after.
+A new `fashion.clients` table (id = `auth.users.id`, mirrors
+`studio.accounts` exactly) is the anchor an `AFTER INSERT` trigger
+(`fashion.register_client_identity()`) attaches to — it holds no
+Fashion-specific data itself, Cart/Wishlist/Address stay exactly where
+they already were. `public.zfashion_ensure_client()` (mirroring
+`public.zstudio_ensure_account()`) is the one RPC a future Client-facing
+surface calls, once, at first real engagement — it idempotently creates
+the local `fashion.clients` row and links it through the bridge to the
+caller's canonical `zos.persons` identity, returning that person id.
+
+Not yet done, correctly out of scope for this pass: nothing in
+`fashion-partner`'s API or any prototype actually calls
+`zfashion_ensure_client()` yet, since no real Client-facing surface
+exists to call it from (`fashion-web` is still unbuilt). The bridge is
+ready; nothing invokes it in production yet — the same "configured, not
+yet connected" shape as PAYMENT-STRIPE-STATUS.md.
 
 ## Status
 Draft
