@@ -2,7 +2,8 @@
    Phone header authority:
    - two deliberate bars instead of forcing brand + actions into one row;
    - first bar restores a readable Z Studio identity with a materially larger mark;
-   - second bar keeps Bulk Generation, Sign In / Account and language available;
+   - second bar uses two internal rows so Bulk Generation can never be clipped;
+   - Sign In / Account and language remain available beneath the primary utility action;
    - no creation-flow, preview, renderer, auth or billing behavior changes.
 */
 
@@ -68,38 +69,46 @@
     display: none !important;
   }
 
+  /* Bar 2 is deliberately two rows on phones. This removes the width race
+     between Bulk Generation and the auth/language group seen on real iPhone. */
   header .header-actions {
     width: 100%;
     min-width: 0;
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto auto;
+    align-items: stretch;
     gap: 8px;
-    padding: 9px 12px 10px;
+    padding: 10px 16px 12px;
   }
 
   header #btnHeaderBulk {
+    grid-row: 1;
     width: 100%;
     min-width: 0;
-    min-height: 40px;
-    padding: 9px 10px !important;
-    font-size: .62rem !important;
+    min-height: 42px;
+    padding: 9px 12px !important;
+    font-size: .64rem !important;
     line-height: 1.15;
-    letter-spacing: .08em !important;
+    letter-spacing: .085em !important;
     white-space: nowrap !important;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow: visible;
+    text-overflow: clip;
   }
 
   header .lang-switch {
+    grid-row: 2;
+    width: 100%;
     min-width: 0;
     display: grid !important;
-    grid-template-columns: auto 62px;
+    grid-template-columns: minmax(0, 1fr) 68px;
     align-items: stretch;
-    gap: 7px;
+    gap: 8px;
   }
 
   header #zstudioAuthButton {
+    width: 100%;
+    min-width: 0;
     min-height: 40px;
     padding: 9px 11px !important;
     font-size: .62rem !important;
@@ -109,11 +118,87 @@
   }
 
   header #langSwitch {
-    width: 62px;
-    min-width: 62px;
+    width: 68px;
+    min-width: 68px;
     min-height: 40px;
     padding: 8px 7px;
     font-size: .69rem;
+  }
+
+  /* ZSTUDIO_MOBILE_BORDER_AUTHORITY_V1
+     One optical border weight throughout the phone UI. Shape may still vary
+     by semantic component (chips stay pills), but stroke weight does not. */
+  header #btnHeaderBulk,
+  header #zstudioAuthButton,
+  header #langSwitch,
+  .controls select,
+  .controls input[type="text"],
+  .controls input[type="number"],
+  .controls textarea,
+  .controls .btn,
+  .controls .dropzone,
+  .controls .seg button,
+  .controls .chip,
+  .stage .canvas-frame,
+  .stage .export-more-toggle,
+  .stage .caption-mobile-toggle,
+  .stage .zs-assistant-empty-state,
+  .stage .btn {
+    border-width: 1px !important;
+    border-style: solid !important;
+  }
+
+  /* ZSTUDIO_MOBILE_SECTION_ACCENTS_V1
+     The logo rainbow is an accent, never a text treatment. Section titles stay
+     neutral/high-contrast while their 1px continuation line carries the brand. */
+  .controls .step-label {
+    color: #d7dadd;
+  }
+
+  .controls .step-label::after {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 92, 113, .70) 0%,
+      rgba(236, 190, 78, .70) 22%,
+      rgba(95, 194, 145, .68) 46%,
+      rgba(76, 157, 225, .70) 72%,
+      rgba(139, 104, 220, .72) 100%
+    ) !important;
+    opacity: .62;
+  }
+
+  /* Selection gets the same quiet one-pixel signature. The fill remains dark
+     so white text contrast stays stable and selected state is not color-only. */
+  .controls .seg button.active,
+  .controls .chip.active,
+  .caption-box.open .caption-mobile-toggle {
+    color: #f3f4f1 !important;
+    border: 1px solid transparent !important;
+    background:
+      linear-gradient(#141719, #141719) padding-box,
+      linear-gradient(
+        90deg,
+        rgba(255, 92, 113, .72),
+        rgba(236, 190, 78, .70),
+        rgba(95, 194, 145, .68),
+        rgba(76, 157, 225, .70),
+        rgba(139, 104, 220, .72)
+      ) border-box !important;
+  }
+
+  /* Accessible focus stays brighter than decorative accents and includes a
+     non-rainbow luminance change, so focus is not communicated by hue alone. */
+  .controls select:focus-visible,
+  .controls input:focus-visible,
+  .controls textarea:focus-visible,
+  .controls button:focus-visible,
+  .stage button:focus-visible,
+  header button:focus-visible,
+  header select:focus-visible {
+    outline: 2px solid rgba(242, 242, 239, .86) !important;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(76, 157, 225, .12) !important;
   }
 }
 
@@ -135,14 +220,14 @@
   }
 
   header .header-actions {
-    gap: 6px;
-    padding-left: 9px;
-    padding-right: 9px;
+    gap: 7px;
+    padding-left: 10px;
+    padding-right: 10px;
   }
 
   header #btnHeaderBulk,
   header #zstudioAuthButton {
-    font-size: .58rem !important;
+    font-size: .59rem !important;
     letter-spacing: .065em !important;
   }
 
@@ -152,12 +237,12 @@
   }
 
   header .lang-switch {
-    grid-template-columns: auto 58px;
-    gap: 6px;
+    grid-template-columns: minmax(0, 1fr) 60px;
+    gap: 7px;
   }
 
   header #langSwitch {
-    width: 58px;
-    min-width: 58px;
+    width: 60px;
+    min-width: 60px;
   }
 }
