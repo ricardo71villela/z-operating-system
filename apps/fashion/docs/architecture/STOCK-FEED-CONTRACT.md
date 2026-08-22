@@ -62,14 +62,26 @@ cannot actually back.
   above is not implemented — `feedReliabilityTier` exists on the Partner
   record (onboarding.js) but `stock.js`'s reservation hold duration is
   still a single constant regardless of it.
-- Stock has no Postgres persistence at all — both the single-item and
-  bulk endpoints stay in-memory in every mode, unlike every other Fashion
-  entity, which already has a real table. Flagged here rather than
-  quietly left inconsistent with the rest of this document's own "trust
-  the schema, not just the endpoint" spirit.
 - No Partner-ownership check on `productId` — nothing today stops one
   Partner from pushing a stock update for a Product that belongs to
   another Partner.
+
+## Resolved
+- **Stock Postgres persistence** — resolved 2026-08-21: Stock had been
+  the one entity in the entire Fashion schema with no real table — both
+  the single-item and bulk endpoints stayed in-memory in every mode.
+  `fashion.stock`/`fashion.stock_reservations` now mirror `stock.js`
+  exactly (`fashion.apply_stock_update()`, `fashion.reserve_stock()`,
+  `fashion.release_stock_reservation()`, `fashion.confirm_stock_reservation()`),
+  with the same staleness-rejection rule and row-level locking
+  (`select ... for update`) `attempt_checkout()` already uses elsewhere
+  in this schema for concurrency safety. `fashion-partner`'s stock
+  endpoints (single-item and bulk) now use this table when Postgres is
+  configured, same dual-mode discipline as every other endpoint. Not
+  verified against a real Postgres instance (none available in this
+  environment) — structural review and fidelity to `stock.js`'s own
+  shape is the guarantee available here, same limitation already
+  disclosed for the identity-bridge migration.
 
 ## Status
 Draft

@@ -363,9 +363,39 @@ function toReturnDomainShape(row) {
   };
 }
 
+/** Applies a stock update via fashion.apply_stock_update() — the SQL
+ *  function itself enforces the staleness rejection rule, mirroring
+ *  applyStockUpdate() in stock.js; this wrapper does not re-validate
+ *  it. */
+async function applyStockUpdatePg(pool, productId, quantityAvailable, observedAt) {
+  const result = await pool.query(
+    `select * from fashion.apply_stock_update($1, $2, $3)`,
+    [productId, quantityAvailable, observedAt]
+  );
+  return toStockDomainShape(result.rows[0]);
+}
+
+async function getStockPg(pool, productId) {
+  const result = await pool.query(`select * from fashion.stock where product_id = $1`, [productId]);
+  if (result.rows.length === 0) {
+    return { productId, quantityAvailable: 0, quantityReserved: 0, lastUpdatedAt: null };
+  }
+  return toStockDomainShape(result.rows[0]);
+}
+
+function toStockDomainShape(row) {
+  return {
+    productId: row.product_id,
+    quantityAvailable: row.quantity_available,
+    quantityReserved: row.quantity_reserved,
+    lastUpdatedAt: row.last_updated_at,
+  };
+}
+
 module.exports = {
   createPool, insertPartner, updatePartnerStatus, getPartner,
   insertBrand, insertProduct, listProductsForPartner, getProduct,
   insertShipment, listShipmentsForPartner, updateShipmentStatus,
   insertReturn, listReturnsForPartner, updateReturnStatus,
+  applyStockUpdatePg, getStockPg,
 };

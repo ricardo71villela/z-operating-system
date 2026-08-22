@@ -35,6 +35,18 @@ applied by Z Jobs and Z Mobility.
 
 ## Resolved
 
+- **Stock Postgres persistence** — resolved 2026-08-21 (first of three
+  "Still open" items in STOCK-FEED-CONTRACT.md): Stock had been the one
+  entity in the entire Fashion schema with no real table.
+  `fashion.stock`/`fashion.stock_reservations` now mirror `stock.js`
+  exactly, with the same row-level locking discipline
+  `attempt_checkout()` already uses for concurrency safety. Both
+  `fashion-partner` stock endpoints (single-item, bulk) now use this
+  table when Postgres is configured. See STOCK-FEED-CONTRACT.md
+  "Resolved" for the full writeup; two smaller "Still open" items remain
+  there (degraded-tier reservation-window extension, Partner-ownership
+  check on `productId`).
+
 - **Canonical identity binding** — resolved 2026-08-21: Z Fashion is now
   a registered `domain_code` (`fashion`/`client`) in the ZOS Identity
   Bridge (`20260821260000_zos_fashion_identity_bridge_v1.sql`), following

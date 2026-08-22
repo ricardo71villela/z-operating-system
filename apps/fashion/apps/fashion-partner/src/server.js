@@ -96,11 +96,13 @@ async function handleTransition(req, res, partnerId) {
 
 async function handleStockUpdate(req, res, productId) {
   const body = await readBody(req);
-  // Stock does not yet have a Postgres-backed path (Phase 1's stock.js
-  // reservation model isn't migrated to SQL yet) — stays in-memory in both
-  // modes for now, tracked as a follow-up rather than silently pretended.
-  const current = memory.stockByProductId.get(productId) || initStock(productId);
   try {
+    if (usingPostgres) {
+      const updated = await db.applyStockUpdatePg(pool, productId, body.quantityAvailable, body.observedAt);
+      return sendJson(res, 200, { stock: updated, sellable: sellableQuantity(updated) });
+    }
+
+    const current = memory.stockByProductId.get(productId) || initStock(productId);
     const updated = applyStockUpdate(current, body);
     memory.stockByProductId.set(productId, updated);
     sendJson(res, 200, { stock: updated, sellable: sellableQuantity(updated) });
@@ -109,9 +111,18 @@ async function handleStockUpdate(req, res, productId) {
   }
 }
 
-function handleGetStock(req, res, productId) {
-  const stock = memory.stockByProductId.get(productId) || initStock(productId);
-  sendJson(res, 200, { stock, sellable: sellableQuantity(stock) });
+async function handleGetStock(req, res, productId) {
+  try {
+    if (usingPostgres) {
+      const stock = await db.getStockPg(pool, productId);
+      return sendJson(res, 200, { stock, sellable: sellableQuantity(stock) });
+    }
+
+    const stock = memory.stockByProductId.get(productId) || initStock(productId);
+    sendJson(res, 200, { stock, sellable: sellableQuantity(stock) });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message });
+  }
 }
 
 /**
@@ -140,19 +151,37 @@ async function handleBulkStockUpdate(req, res, partnerId) {
     return sendJson(res, 400, { error: 'updates must be an array of { productId, quantityAvailable, observedAt }' });
   }
 
-  const results = body.updates.map((update) => {
-    try {
-      const current = memory.stockByProductId.get(update.productId) || initStock(update.productId);
-      const updated = applyStockUpdate(current, update);
-      memory.stockByProductId.set(update.productId, updated);
-      return { productId: update.productId, ok: true, stock: updated, sellable: sellableQuantity(updated) };
-    } catch (err) {
-      // A stale/invalid item never aborts the batch — per-item failure,
-      // exactly matching STOCK-FEED-CONTRACT.md's "rejected, not
-      // silently overwritten" rule applied one item at a time.
-      return { productId: update.productId, ok: false, error: err.message };
+  let results;
+  if (usingPostgres) {
+    // Sequential, not Promise.all — each item still gets an independent
+    // result (per-item failure, same as the in-memory path below), but
+    // running them one at a time avoids many concurrent row locks on
+    // fashion.stock racing each other for no benefit within a single
+    // Partner's own batch.
+    results = [];
+    for (const update of body.updates) {
+      try {
+        const updated = await db.applyStockUpdatePg(pool, update.productId, update.quantityAvailable, update.observedAt);
+        results.push({ productId: update.productId, ok: true, stock: updated, sellable: sellableQuantity(updated) });
+      } catch (err) {
+        results.push({ productId: update.productId, ok: false, error: err.message });
+      }
     }
-  });
+  } else {
+    results = body.updates.map((update) => {
+      try {
+        const current = memory.stockByProductId.get(update.productId) || initStock(update.productId);
+        const updated = applyStockUpdate(current, update);
+        memory.stockByProductId.set(update.productId, updated);
+        return { productId: update.productId, ok: true, stock: updated, sellable: sellableQuantity(updated) };
+      } catch (err) {
+        // A stale/invalid item never aborts the batch — per-item failure,
+        // exactly matching STOCK-FEED-CONTRACT.md's "rejected, not
+        // silently overwritten" rule applied one item at a time.
+        return { productId: update.productId, ok: false, error: err.message };
+      }
+    });
+  }
 
   const okCount = results.filter((r) => r.ok).length;
   sendJson(res, 200, { results, summary: { total: results.length, ok: okCount, failed: results.length - okCount } });
@@ -350,7 +379,7 @@ const server = http.createServer(async (req, res) => {
       return await handleStockUpdate(req, res, parts[1]);
     }
     if (req.method === 'GET' && parts[0] === 'stock' && parts.length === 2) {
-      return handleGetStock(req, res, parts[1]);
+      return await handleGetStock(req, res, parts[1]);
     }
     if (req.method === 'POST' && parts[0] === 'partners' && parts[2] === 'brands') {
       return await handleCreateBrand(req, res, parts[1]);
