@@ -35,6 +35,28 @@ applied by Z Jobs and Z Mobility.
 
 ## Resolved
 
+- **Corner Config API + Chaussures/Corners connected to real data** —
+  resolved 2026-08-21: `fashion.corner_configs` had existed as a real
+  table since the earliest migrations with zero API surface — same
+  pattern as every other schema-exists-no-endpoint gap found today.
+  Added `POST /partners/:id/corner-config`, `GET /catalog/corners`
+  (public directory — a Partner with no configured Corner yet never
+  appears, never fabricated from `legalName`), `GET
+  /catalog/corners/:partnerId` (Corner detail, includes
+  `cornerExclusive` Products unlike All Sale). `z-fashion-allsale-
+  corners.html`'s Chaussures view and Corners directory are now both
+  wired to real data (3 real demo Corners bootstrap via the actual
+  API), same proof-of-real-wiring pattern as every prototype connected
+  today — only the Portugal Market-toggle demo stays static, stated
+  openly (a genuine second Market isn't wired to the real backend,
+  bigger scope than today's pass). Also found and fixed a real,
+  serious bug while doing this: three `renderGrid()` calls at page
+  load referenced HTML elements that no longer existed after an
+  earlier refactor — `document.getElementById(...).innerHTML = ...`
+  on a `null` element throws, which would have silently halted every
+  script line after it (segment filters, theme toggle, the Corners
+  directory itself) on every page load. Removed the dead code entirely.
+
 - **Public All Sale listing + cross-Partner catalog query** — resolved
   2026-08-21: `GET /catalog/all-sale` (filterable by
   gender/category/ageSegment/sizeValue, same shape `allSale()` already

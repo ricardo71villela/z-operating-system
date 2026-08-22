@@ -17,7 +17,8 @@ const shipmentDomain = require('../../../packages/fashion-domain/src/shipment');
 const returnDomain = require('../../../packages/fashion-domain/src/return');
 const priceHistory = require('../../../packages/fashion-domain/src/price-history');
 const { buildProductPageViewModel } = require('../../../packages/fashion-domain/src/product-page');
-const { allSale } = require('../../../packages/fashion-domain/src/corner');
+const { allSale, corner: cornerProducts } = require('../../../packages/fashion-domain/src/corner');
+const { createCornerConfig } = require('../../../packages/fashion-domain/src/corner-config');
 const { buildListingCards } = require('../../../packages/fashion-domain/src/catalog-listing');
 const db = require('./db');
 
@@ -28,7 +29,7 @@ const pool = usingPostgres ? db.createPool() : null;
 const memory = {
   partners: new Map(), applications: new Map(), stockByProductId: new Map(),
   brands: new Map(), products: new Map(), shipments: new Map(), returns: new Map(),
-  priceHistoryByProductId: new Map(),
+  priceHistoryByProductId: new Map(), cornerConfigs: new Map(),
 };
 
 function readBody(req) {
@@ -559,6 +560,84 @@ async function handleGetAllSale(req, res, query) {
   }
 }
 
+async function handleUpsertCornerConfig(req, res, partnerId) {
+  const body = await readBody(req);
+  try {
+    if (usingPostgres) {
+      const config = await db.upsertCornerConfig(pool, { ...body, partnerId });
+      return sendJson(res, 200, { cornerConfig: config });
+    }
+
+    const config = createCornerConfig({ ...body, partnerId });
+    memory.cornerConfigs.set(partnerId, config);
+    sendJson(res, 200, { cornerConfig: config });
+  } catch (err) {
+    sendJson(res, 422, { error: err.message });
+  }
+}
+
+/**
+ * Public Corners directory — GET /catalog/corners. A Partner with no
+ * configured Corner yet simply doesn't appear here, never fabricated
+ * from `legalName` as a fallback — showing an unconfigured Corner
+ * would misrepresent a Partner who hasn't chosen their display name/
+ * byline/accent color yet as if they had.
+ */
+async function handleListCorners(req, res) {
+  try {
+    const configs = usingPostgres ? await db.listCornerConfigs(pool) : [...memory.cornerConfigs.values()];
+    sendJson(res, 200, { corners: configs, total: configs.length });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
+/**
+ * Public Corner detail — GET /catalog/corners/:partnerId. Every
+ * Product belonging to this Partner (corner.js's corner() — includes
+ * cornerExclusive Products, unlike All Sale, same distinction
+ * DOMAIN-SKETCH.md already establishes), decorated the same way All
+ * Sale's cards are.
+ */
+async function handleGetCornerDetail(req, res, partnerId) {
+  try {
+    let config, allProducts, stockByProductId, brandsById;
+
+    if (usingPostgres) {
+      config = await db.getCornerConfig(pool, partnerId);
+      if (!config) return sendJson(res, 404, { error: `no configured Corner for partner ${partnerId}` });
+
+      allProducts = await db.listProductsForPartner(pool, partnerId);
+      stockByProductId = await db.getStockForProductsPg(pool, allProducts.map((p) => p.id));
+      brandsById = {};
+      for (const p of allProducts) {
+        if (p.brandId && !brandsById[p.brandId]) {
+          brandsById[p.brandId] = await db.getBrand(pool, p.brandId);
+        }
+      }
+    } else {
+      config = memory.cornerConfigs.get(partnerId);
+      if (!config) return sendJson(res, 404, { error: `no configured Corner for partner ${partnerId}` });
+
+      allProducts = [...memory.products.values()].filter((p) => p.partnerId === partnerId);
+      stockByProductId = Object.fromEntries(
+        allProducts.map((p) => [p.id, memory.stockByProductId.get(p.id) || initStock(p.id)])
+      );
+      brandsById = {};
+      for (const p of allProducts) {
+        if (p.brandId) brandsById[p.brandId] = memory.brands.get(p.brandId) || null;
+      }
+    }
+
+    const cornerCatalog = cornerProducts(allProducts, partnerId);
+    const cards = buildListingCards(cornerCatalog, stockByProductId, brandsById);
+
+    sendJson(res, 200, { cornerConfig: config, products: cards, total: cards.length });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const parts = url.pathname.split('/').filter(Boolean);
@@ -599,6 +678,15 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'GET' && parts[0] === 'catalog' && parts[1] === 'all-sale' && parts.length === 2) {
       return await handleGetAllSale(req, res, url.searchParams);
+    }
+    if (req.method === 'POST' && parts[0] === 'partners' && parts[2] === 'corner-config') {
+      return await handleUpsertCornerConfig(req, res, parts[1]);
+    }
+    if (req.method === 'GET' && parts[0] === 'catalog' && parts[1] === 'corners' && parts.length === 2) {
+      return await handleListCorners(req, res);
+    }
+    if (req.method === 'GET' && parts[0] === 'catalog' && parts[1] === 'corners' && parts.length === 3) {
+      return await handleGetCornerDetail(req, res, parts[2]);
     }
     if (req.method === 'POST' && parts[0] === 'shipments' && parts.length === 1) {
       return await handleCreateShipment(req, res);

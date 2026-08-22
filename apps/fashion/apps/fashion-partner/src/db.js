@@ -450,6 +450,57 @@ async function getStockForProductsPg(pool, productIds) {
   return byId;
 }
 
+/** Inserts or updates a Corner config for a Partner — one row per
+ *  Partner (fashion.corner_configs.partner_id is the primary key),
+ *  mirrors createCornerConfig() in corner-config.js exactly (the
+ *  entire customizable surface, by that module's own design — no
+ *  layout/markup column exists to add). */
+async function upsertCornerConfig(pool, config) {
+  const result = await pool.query(
+    `insert into fashion.corner_configs (partner_id, display_name, byline, accent_color, logo_url)
+     values ($1, $2, $3, $4, $5)
+     on conflict (partner_id) do update
+       set display_name = excluded.display_name,
+           byline = excluded.byline,
+           accent_color = excluded.accent_color,
+           logo_url = excluded.logo_url,
+           updated_at = now()
+     returning partner_id, display_name, byline, accent_color, logo_url`,
+    [config.partnerId, config.displayName, config.byline || null, config.accentColor || null, config.logoUrl]
+  );
+  return toCornerConfigDomainShape(result.rows[0]);
+}
+
+async function getCornerConfig(pool, partnerId) {
+  const result = await pool.query(
+    `select partner_id, display_name, byline, accent_color, logo_url from fashion.corner_configs where partner_id = $1`,
+    [partnerId]
+  );
+  return result.rows[0] ? toCornerConfigDomainShape(result.rows[0]) : null;
+}
+
+/** Lists Corner configs for every Partner that has one — the public
+ *  Corners directory's data source. A Partner without a configured
+ *  Corner yet simply doesn't appear here (never fabricated from
+ *  legalName as a fallback — see the /catalog/corners handler's own
+ *  comment for why). */
+async function listCornerConfigs(pool) {
+  const result = await pool.query(
+    `select partner_id, display_name, byline, accent_color, logo_url from fashion.corner_configs order by created_at desc`
+  );
+  return result.rows.map(toCornerConfigDomainShape);
+}
+
+function toCornerConfigDomainShape(row) {
+  return {
+    partnerId: row.partner_id,
+    displayName: row.display_name,
+    byline: row.byline,
+    accentColor: row.accent_color,
+    logoUrl: row.logo_url,
+  };
+}
+
 module.exports = {
   createPool, insertPartner, updatePartnerStatus, getPartner,
   insertBrand, getBrand, insertProduct, listProductsForPartner, listAllProducts, getProduct,
@@ -457,4 +508,5 @@ module.exports = {
   insertReturn, listReturnsForPartner, updateReturnStatus,
   applyStockUpdatePg, getStockPg, getStockForProductsPg,
   recordPricePg, getCurrentPricePg,
+  upsertCornerConfig, getCornerConfig, listCornerConfigs,
 };

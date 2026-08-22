@@ -239,6 +239,67 @@ async function run() {
   res = await request('GET', '/catalog/all-sale?category=footwear&sizeValue=41');
   assert.ok(!res.body.products.map((p) => p.productId).includes(catalogProductId));
 
+  // --- Corner Config + public Corners directory over HTTP ---
+
+  // No Corner configured yet — the directory is empty, never fabricated
+  // from legalName as a stand-in.
+  res = await request('GET', '/catalog/corners');
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.corners.find((c) => c.partnerId === 'partner_atelier'), undefined);
+
+  // Requesting a Corner detail before it's configured is a 404.
+  res = await request('GET', '/catalog/corners/partner_atelier');
+  assert.strictEqual(res.status, 404);
+
+  // byline over 140 chars is rejected — corner-config.js's own rule,
+  // reached over HTTP.
+  res = await request('POST', '/partners/partner_atelier/corner-config', {
+    displayName: 'Atelier du Marais', byline: 'x'.repeat(141), logoUrl: 'https://example.com/logo.png',
+  });
+  assert.strictEqual(res.status, 422);
+  assert.ok(/exceeds 140 characters/.test(res.body.error));
+
+  res = await request('POST', '/partners/partner_atelier/corner-config', {
+    displayName: 'Atelier du Marais', byline: 'Prêt-à-porter parisien depuis 2015.',
+    accentColor: '#C97C7C', logoUrl: 'https://example.com/logo.png',
+  });
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.cornerConfig.displayName, 'Atelier du Marais');
+
+  // Now the Corner appears in the public directory.
+  res = await request('GET', '/catalog/corners');
+  assert.ok(res.body.corners.some((c) => c.partnerId === 'partner_atelier'));
+
+  // Corner detail returns this Partner's products, decorated like an
+  // All Sale card — and includes cornerExclusive Products (All Sale
+  // deliberately excludes them, Corner detail does not, same
+  // distinction DOMAIN-SKETCH.md already establishes).
+  res = await request('POST', '/partners/partner_atelier/products', {
+    brandId: stockBrandId, names: { fr: 'Pièce exclusive Corner' }, gender: 'unisex',
+    categories: ['accessories_leather_goods'], cornerExclusive: true,
+  });
+  const exclusiveId = res.body.product.id;
+
+  res = await request('GET', '/catalog/corners/partner_atelier');
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.cornerConfig.displayName, 'Atelier du Marais');
+  const cornerIds = res.body.products.map((p) => p.productId);
+  assert.ok(cornerIds.includes(catalogProductId));
+  assert.ok(cornerIds.includes(menswearId));
+  assert.ok(cornerIds.includes(exclusiveId)); // cornerExclusive shows here
+
+  // A different Partner's Corner detail never leaks partner_atelier's Products.
+  res = await request('POST', '/partners', { id: 'partner_other_corner', legalName: 'Autre Boutique', countryIso: 'FR', locales: ['fr'], categories: ['clothing'] });
+  await request('POST', '/partners/partner_other_corner/transition', { toStatus: 'under_review' });
+  await request('POST', '/partners/partner_other_corner/transition', { toStatus: 'approved' });
+  await request('POST', '/partners/partner_other_corner/transition', { toStatus: 'active', feedReliabilityTier: 'live' });
+  res = await request('POST', '/partners/partner_other_corner/corner-config', {
+    displayName: 'Autre Boutique', logoUrl: 'https://example.com/other.png',
+  });
+  assert.strictEqual(res.status, 200);
+  res = await request('GET', '/catalog/corners/partner_other_corner');
+  assert.strictEqual(res.body.products.length, 0);
+
   // --- Bulk stock feed over HTTP ---
   res = await request('POST', '/partners/partner_atelier/stock/bulk', {
     updates: [
