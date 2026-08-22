@@ -10,6 +10,36 @@
 
 const DEFAULT_RESERVATION_HOLD_SECONDS = 600;
 
+/* Second of three "Still open" items closed (2026-08-21,
+   STOCK-FEED-CONTRACT.md "Degraded feed mode"): a Partner feeding stock
+   less frequently than near-real-time carries a wider real-world gap
+   between "what the feed says" and "what's actually on the shelf" — a
+   checkout reservation for that Partner's Product needs a longer hold
+   to stay meaningfully protective, not the same 10-minute window a
+   live-feed Partner gets. 30 minutes, not a precise SLA-derived number
+   — a deliberately generous multiple of the default, revisitable once
+   real feed-latency data exists. */
+const DEGRADED_RESERVATION_HOLD_SECONDS = 1800;
+
+/**
+ * Resolves the reservation hold duration for a checkout, based on the
+ * owning Partner's feedReliabilityTier (onboarding.js). Never defaults
+ * upward to the wider window for an unrecognized/missing tier — only
+ * an explicit 'degraded' value gets the extended hold; anything else
+ * (including 'live' or an unexpected value) gets the standard,
+ * shorter one, which is the safer failure direction.
+ *
+ * @param {string} feedReliabilityTier - onboarding.js
+ *   FEED_RELIABILITY_TIERS value ('live' | 'degraded')
+ * @returns {number} hold duration in seconds, to pass as reserveStock()'s
+ *   holdSeconds option
+ */
+function reservationHoldSecondsFor(feedReliabilityTier) {
+  return feedReliabilityTier === 'degraded'
+    ? DEGRADED_RESERVATION_HOLD_SECONDS
+    : DEFAULT_RESERVATION_HOLD_SECONDS;
+}
+
 /**
  * @param {string} productId
  * @returns {object} an empty Stock record for a Product with no data yet.
@@ -155,6 +185,8 @@ function stockAvailabilityLabel(stock) {
 
 module.exports = {
   DEFAULT_RESERVATION_HOLD_SECONDS,
+  DEGRADED_RESERVATION_HOLD_SECONDS,
+  reservationHoldSecondsFor,
   initStock,
   applyStockUpdate,
   sellableQuantity,

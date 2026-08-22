@@ -63,50 +63,6 @@ async function run() {
   assert.strictEqual(res.status, 200);
   assert.strictEqual(res.body.application.status, 'active');
 
-  // Stock feed over HTTP.
-  res = await request('POST', '/stock/prod_bag', { quantityAvailable: 5, observedAt: '2026-08-20T10:00:00.000Z' });
-  assert.strictEqual(res.status, 200);
-  assert.strictEqual(res.body.sellable, 5);
-
-  // A stale update is rejected over HTTP.
-  res = await request('POST', '/stock/prod_bag', { quantityAvailable: 20, observedAt: '2026-08-20T09:00:00.000Z' });
-  assert.strictEqual(res.status, 422);
-  assert.ok(/stale update rejected/.test(res.body.error));
-
-  res = await request('GET', '/stock/prod_bag');
-  assert.strictEqual(res.status, 200);
-  assert.strictEqual(res.body.stock.quantityAvailable, 5);
-
-  // --- Bulk stock feed over HTTP ---
-  res = await request('POST', '/partners/partner_atelier/stock/bulk', {
-    updates: [
-      { productId: 'prod_shoe', quantityAvailable: 12, observedAt: '2026-08-20T10:00:00.000Z' },
-      { productId: 'prod_belt', quantityAvailable: 8, observedAt: '2026-08-20T10:00:00.000Z' },
-      // stale relative to prod_bag's already-applied 10:00 update — this one item should fail
-      { productId: 'prod_bag', quantityAvailable: 99, observedAt: '2026-08-20T09:00:00.000Z' },
-    ],
-  });
-  assert.strictEqual(res.status, 200);
-  assert.strictEqual(res.body.summary.total, 3);
-  assert.strictEqual(res.body.summary.ok, 2);
-  assert.strictEqual(res.body.summary.failed, 1);
-  const shoeResult = res.body.results.find((r) => r.productId === 'prod_shoe');
-  assert.strictEqual(shoeResult.ok, true);
-  assert.strictEqual(shoeResult.sellable, 12);
-  const bagResult = res.body.results.find((r) => r.productId === 'prod_bag');
-  assert.strictEqual(bagResult.ok, false);
-  assert.ok(/stale update rejected/.test(bagResult.error));
-
-  // prod_bag's stock is untouched by its own failed item in the batch —
-  // still 5 from the single-item update earlier, the stale bulk item
-  // never silently overwrote it.
-  res = await request('GET', '/stock/prod_bag');
-  assert.strictEqual(res.body.stock.quantityAvailable, 5);
-
-  // A non-array `updates` is rejected outright, never partially processed.
-  res = await request('POST', '/partners/partner_atelier/stock/bulk', { updates: 'not-an-array' });
-  assert.strictEqual(res.status, 400);
-
   // Brand creation over HTTP — a Product cannot exist without one.
   res = await request('POST', '/partners/partner_atelier/brands', { name: 'Atelier du Marais' });
   assert.strictEqual(res.status, 201);
@@ -156,6 +112,101 @@ async function run() {
   // A non-existent Product returns 404, never a silent empty success.
   res = await request('GET', '/products/does_not_exist');
   assert.strictEqual(res.status, 404);
+
+  // Real Products, owned by partner_atelier, to exercise Stock against —
+  // Stock now requires the Product to actually exist and belong to the
+  // calling Partner (ownership check closed 2026-08-21), so arbitrary
+  // string ids no longer work here.
+  res = await request('POST', '/partners/partner_atelier/brands', { name: 'Atelier du Marais (stock fixtures)' });
+  const stockBrandId = res.body.brand.id;
+
+  res = await request('POST', '/partners/partner_atelier/products', {
+    brandId: stockBrandId, names: { fr: 'Sac (fixture stock)' }, gender: 'unisex',
+    categories: ['accessories_leather_goods'],
+  });
+  const bagId = res.body.product.id;
+
+  res = await request('POST', '/partners/partner_atelier/products', {
+    brandId: stockBrandId, names: { fr: 'Chaussure (fixture stock)' }, gender: 'unisex',
+    categories: ['accessories_leather_goods'],
+  });
+  const shoeId = res.body.product.id;
+
+  res = await request('POST', '/partners/partner_atelier/products', {
+    brandId: stockBrandId, names: { fr: 'Ceinture (fixture stock)' }, gender: 'unisex',
+    categories: ['accessories_leather_goods'],
+  });
+  const beltId = res.body.product.id;
+
+  // Stock feed over HTTP, now Partner-scoped in the route.
+  res = await request('POST', `/partners/partner_atelier/stock/${bagId}`, { quantityAvailable: 5, observedAt: '2026-08-20T10:00:00.000Z' });
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.sellable, 5);
+
+  // A stale update is rejected over HTTP.
+  res = await request('POST', `/partners/partner_atelier/stock/${bagId}`, { quantityAvailable: 20, observedAt: '2026-08-20T09:00:00.000Z' });
+  assert.strictEqual(res.status, 422);
+  assert.ok(/stale update rejected/.test(res.body.error));
+
+  res = await request('GET', `/partners/partner_atelier/stock/${bagId}`);
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.stock.quantityAvailable, 5);
+
+  // A different Partner cannot update or read this Partner's stock —
+  // ownership check closes the gap flagged in STOCK-FEED-CONTRACT.md.
+  res = await request('POST', `/partners/partner_other/stock/${bagId}`, { quantityAvailable: 99, observedAt: '2026-08-20T11:00:00.000Z' });
+  assert.strictEqual(res.status, 403);
+  assert.ok(/does not belong to partner/.test(res.body.error));
+
+  res = await request('GET', `/partners/partner_other/stock/${bagId}`);
+  assert.strictEqual(res.status, 403);
+
+  // The rejected cross-Partner attempt never touched the real stock.
+  res = await request('GET', `/partners/partner_atelier/stock/${bagId}`);
+  assert.strictEqual(res.body.stock.quantityAvailable, 5);
+
+  // A stock update for a Product that doesn't exist at all is a 404,
+  // never silently accepted.
+  res = await request('POST', '/partners/partner_atelier/stock/does_not_exist', { quantityAvailable: 1, observedAt: '2026-08-20T11:00:00.000Z' });
+  assert.strictEqual(res.status, 404);
+
+  // --- Bulk stock feed over HTTP ---
+  res = await request('POST', '/partners/partner_atelier/stock/bulk', {
+    updates: [
+      { productId: shoeId, quantityAvailable: 12, observedAt: '2026-08-20T10:00:00.000Z' },
+      { productId: beltId, quantityAvailable: 8, observedAt: '2026-08-20T10:00:00.000Z' },
+      // stale relative to bagId's already-applied 10:00 update — this one item should fail
+      { productId: bagId, quantityAvailable: 99, observedAt: '2026-08-20T09:00:00.000Z' },
+    ],
+  });
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.summary.total, 3);
+  assert.strictEqual(res.body.summary.ok, 2);
+  assert.strictEqual(res.body.summary.failed, 1);
+  const shoeResult = res.body.results.find((r) => r.productId === shoeId);
+  assert.strictEqual(shoeResult.ok, true);
+  assert.strictEqual(shoeResult.sellable, 12);
+  const bagResult = res.body.results.find((r) => r.productId === bagId);
+  assert.strictEqual(bagResult.ok, false);
+  assert.ok(/stale update rejected/.test(bagResult.error));
+
+  // bagId's stock is untouched by its own failed item in the batch —
+  // still 5 from the single-item update earlier, the stale bulk item
+  // never silently overwrote it.
+  res = await request('GET', `/partners/partner_atelier/stock/${bagId}`);
+  assert.strictEqual(res.body.stock.quantityAvailable, 5);
+
+  // A bulk item for a foreign-owned Product fails only that item, same
+  // per-item discipline as a stale item.
+  res = await request('POST', '/partners/partner_other/stock/bulk', {
+    updates: [{ productId: shoeId, quantityAvailable: 1, observedAt: '2026-08-20T12:00:00.000Z' }],
+  });
+  assert.strictEqual(res.body.summary.failed, 1);
+  assert.ok(/does not belong to partner/.test(res.body.results[0].error));
+
+  // A non-array `updates` is rejected outright, never partially processed.
+  res = await request('POST', '/partners/partner_atelier/stock/bulk', { updates: 'not-an-array' });
+  assert.strictEqual(res.status, 400);
 
   // --- Shipment lifecycle over HTTP ---
   res = await request('POST', '/shipments', {

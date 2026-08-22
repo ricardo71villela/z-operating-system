@@ -94,9 +94,43 @@ async function handleTransition(req, res, partnerId) {
   }
 }
 
-async function handleStockUpdate(req, res, productId) {
+/**
+ * Third of three "Still open" STOCK-FEED-CONTRACT.md items closed
+ * (2026-08-21): nothing previously stopped one Partner from pushing a
+ * stock update for a Product belonging to another Partner — the
+ * single-item route wasn't even Partner-scoped in its URL. Both
+ * single-item and bulk stock routes now live under
+ * /partners/:id/stock/... (matching every other Partner-scoped
+ * endpoint added today) and this shared check runs before any write:
+ * the Product must exist AND belong to the calling Partner, or the
+ * request is rejected — never silently accepted for an unknown or
+ * foreign Product.
+ */
+async function assertProductOwnership(partnerId, productId) {
+  let product;
+  if (usingPostgres) {
+    product = await db.getProduct(pool, productId);
+  } else {
+    product = memory.products.get(productId) || null;
+  }
+
+  if (!product) {
+    const err = new Error(`no product with id ${productId}`);
+    err.statusCode = 404;
+    throw err;
+  }
+  if (product.partnerId !== partnerId) {
+    const err = new Error(`product ${productId} does not belong to partner ${partnerId}`);
+    err.statusCode = 403;
+    throw err;
+  }
+}
+
+async function handleStockUpdate(req, res, partnerId, productId) {
   const body = await readBody(req);
   try {
+    await assertProductOwnership(partnerId, productId);
+
     if (usingPostgres) {
       const updated = await db.applyStockUpdatePg(pool, productId, body.quantityAvailable, body.observedAt);
       return sendJson(res, 200, { stock: updated, sellable: sellableQuantity(updated) });
@@ -107,12 +141,14 @@ async function handleStockUpdate(req, res, productId) {
     memory.stockByProductId.set(productId, updated);
     sendJson(res, 200, { stock: updated, sellable: sellableQuantity(updated) });
   } catch (err) {
-    sendJson(res, 422, { error: err.message });
+    sendJson(res, err.statusCode || 422, { error: err.message });
   }
 }
 
-async function handleGetStock(req, res, productId) {
+async function handleGetStock(req, res, partnerId, productId) {
   try {
+    await assertProductOwnership(partnerId, productId);
+
     if (usingPostgres) {
       const stock = await db.getStockPg(pool, productId);
       return sendJson(res, 200, { stock, sellable: sellableQuantity(stock) });
@@ -121,7 +157,7 @@ async function handleGetStock(req, res, productId) {
     const stock = memory.stockByProductId.get(productId) || initStock(productId);
     sendJson(res, 200, { stock, sellable: sellableQuantity(stock) });
   } catch (err) {
-    sendJson(res, 400, { error: err.message });
+    sendJson(res, err.statusCode || 400, { error: err.message });
   }
 }
 
@@ -161,6 +197,7 @@ async function handleBulkStockUpdate(req, res, partnerId) {
     results = [];
     for (const update of body.updates) {
       try {
+        await assertProductOwnership(partnerId, update.productId);
         const updated = await db.applyStockUpdatePg(pool, update.productId, update.quantityAvailable, update.observedAt);
         results.push({ productId: update.productId, ok: true, stock: updated, sellable: sellableQuantity(updated) });
       } catch (err) {
@@ -168,19 +205,22 @@ async function handleBulkStockUpdate(req, res, partnerId) {
       }
     }
   } else {
-    results = body.updates.map((update) => {
+    results = [];
+    for (const update of body.updates) {
       try {
+        await assertProductOwnership(partnerId, update.productId);
         const current = memory.stockByProductId.get(update.productId) || initStock(update.productId);
         const updated = applyStockUpdate(current, update);
         memory.stockByProductId.set(update.productId, updated);
-        return { productId: update.productId, ok: true, stock: updated, sellable: sellableQuantity(updated) };
+        results.push({ productId: update.productId, ok: true, stock: updated, sellable: sellableQuantity(updated) });
       } catch (err) {
-        // A stale/invalid item never aborts the batch — per-item failure,
-        // exactly matching STOCK-FEED-CONTRACT.md's "rejected, not
-        // silently overwritten" rule applied one item at a time.
-        return { productId: update.productId, ok: false, error: err.message };
+        // A stale/invalid/foreign-owned item never aborts the batch —
+        // per-item failure, exactly matching STOCK-FEED-CONTRACT.md's
+        // "rejected, not silently overwritten" rule applied one item
+        // at a time.
+        results.push({ productId: update.productId, ok: false, error: err.message });
       }
-    });
+    }
   }
 
   const okCount = results.filter((r) => r.ok).length;
@@ -375,11 +415,11 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && parts[0] === 'partners' && parts[2] === 'stock' && parts[3] === 'bulk') {
       return await handleBulkStockUpdate(req, res, parts[1]);
     }
-    if (req.method === 'POST' && parts[0] === 'stock' && parts.length === 2) {
-      return await handleStockUpdate(req, res, parts[1]);
+    if (req.method === 'POST' && parts[0] === 'partners' && parts[2] === 'stock' && parts.length === 4) {
+      return await handleStockUpdate(req, res, parts[1], parts[3]);
     }
-    if (req.method === 'GET' && parts[0] === 'stock' && parts.length === 2) {
-      return await handleGetStock(req, res, parts[1]);
+    if (req.method === 'GET' && parts[0] === 'partners' && parts[2] === 'stock' && parts.length === 4) {
+      return await handleGetStock(req, res, parts[1], parts[3]);
     }
     if (req.method === 'POST' && parts[0] === 'partners' && parts[2] === 'brands') {
       return await handleCreateBrand(req, res, parts[1]);

@@ -57,15 +57,6 @@ inventory reliability (ties into the PQS-per-Category model in
 DOMAIN-SKETCH.md) — never presented to the Client as a full guarantee it
 cannot actually back.
 
-## Still open (honestly, not silently)
-- The reservation-window extension for `degraded`-tier Partners described
-  above is not implemented — `feedReliabilityTier` exists on the Partner
-  record (onboarding.js) but `stock.js`'s reservation hold duration is
-  still a single constant regardless of it.
-- No Partner-ownership check on `productId` — nothing today stops one
-  Partner from pushing a stock update for a Product that belongs to
-  another Partner.
-
 ## Resolved
 - **Stock Postgres persistence** — resolved 2026-08-21: Stock had been
   the one entity in the entire Fashion schema with no real table — both
@@ -82,6 +73,21 @@ cannot actually back.
   environment) — structural review and fidelity to `stock.js`'s own
   shape is the guarantee available here, same limitation already
   disclosed for the identity-bridge migration.
+- **Degraded-tier reservation-window extension** — resolved 2026-08-21:
+  `stock.js` gains `reservationHoldSecondsFor(feedReliabilityTier)` —
+  30 minutes for `degraded`, the existing 10-minute default for `live`
+  or anything unrecognized (never defaults upward to the wider window
+  silently). Ready for the future checkout flow to call — the same
+  "configured, not yet connected" shape as Payment/Stripe and the
+  identity bridge, since no checkout API exists yet to actually call it.
+- **Partner-ownership check on `productId`** — resolved 2026-08-21: the
+  single-item stock routes moved from `/stock/:id` (no Partner context
+  at all) to `/partners/:id/stock/:productId`, matching every other
+  Partner-scoped endpoint. A shared `assertProductOwnership()` check
+  runs before any read or write, on both single-item and bulk routes —
+  the Product must exist and belong to the calling Partner, or the
+  request is rejected (404 if the Product doesn't exist, 403 if it
+  belongs to someone else) rather than silently accepted.
 
 ## Status
 Draft
