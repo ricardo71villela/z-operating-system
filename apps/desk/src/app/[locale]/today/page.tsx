@@ -1,3 +1,4 @@
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { DraftEventActions } from "./draft-event-actions";
 import { ResolveMessageAction } from "./resolve-message-action";
 
@@ -52,7 +53,11 @@ async function getTodayData(): Promise<TodayResponse | null> {
   return res.json();
 }
 
-export default async function TodayPage() {
+export default async function TodayPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations("Today");
+
   const data = await getTodayData();
   const apiUrl = process.env.NEXT_PUBLIC_DESK_API_URL ?? "";
   const tenantId = process.env.NEXT_PUBLIC_DESK_DEV_TENANT_ID ?? "";
@@ -60,11 +65,8 @@ export default async function TodayPage() {
   if (!data) {
     return (
       <main>
-        <h1>Hoje</h1>
-        <p>
-          Backend ainda não configurado (NEXT_PUBLIC_DESK_API_URL /
-          NEXT_PUBLIC_DESK_DEV_TENANT_ID em falta).
-        </p>
+        <h1>{t("title")}</h1>
+        <p>{t("backendMissing")}</p>
       </main>
     );
   }
@@ -73,46 +75,61 @@ export default async function TodayPage() {
 
   return (
     <main>
-      <h1>Hoje</h1>
+      <h1>{t("title")}</h1>
 
       <section>
-        <h2>Agenda de hoje</h2>
-        {confirmedEventsToday.length === 0 && <p>Sem eventos confirmados hoje.</p>}
+        <h2>{t("confirmedAgenda")}</h2>
+        {confirmedEventsToday.length === 0 && <p>{t("noConfirmedEvents")}</p>}
         <ul>
           {confirmedEventsToday.map((event) => (
             <li key={event.id}>
-              {event.title} — {new Date(event.starts_at).toLocaleTimeString("pt-PT")}
-              {event.event_type === "follow_up_block" ? " (bloco de follow-up)" : ""}
+              {event.title} — {new Date(event.starts_at).toLocaleTimeString(locale)}
+              {event.event_type === "follow_up_block" ? ` (${t("followUpBlock")})` : ""}
             </li>
           ))}
         </ul>
       </section>
 
       <section>
-        <h2>Sugestões da IA por confirmar</h2>
-        {draftEvents.length === 0 && <p>Sem sugestões pendentes.</p>}
+        <h2>{t("pendingSuggestions")}</h2>
+        {draftEvents.length === 0 && <p>{t("noPendingSuggestions")}</p>}
         <ul>
           {draftEvents.map((event) => (
             <li key={event.id}>
-              {event.title} — {new Date(event.starts_at).toLocaleString("pt-PT")}
+              {event.title} — {new Date(event.starts_at).toLocaleString(locale)}
               {event.confidence_score !== null &&
-                ` (confiança: ${Math.round(event.confidence_score * 100)}%)`}{" "}
-              <DraftEventActions eventId={event.id} tenantId={tenantId} apiUrl={apiUrl} />
+                ` (${t("confidence")}: ${Math.round(event.confidence_score * 100)}%)`}{" "}
+              <DraftEventActions
+                eventId={event.id}
+                tenantId={tenantId}
+                apiUrl={apiUrl}
+                labels={{
+                  confirm: t("confirm"),
+                  confirming: t("confirming"),
+                  reject: t("reject"),
+                  rejecting: t("rejecting"),
+                }}
+              />
             </li>
           ))}
         </ul>
       </section>
 
       <section>
-        <h2>Mensagens por decidir</h2>
-        {pendingMessages.length === 0 && <p>Nada pendente.</p>}
+        <h2>{t("pendingMessages")}</h2>
+        {pendingMessages.length === 0 && <p>{t("noPendingMessages")}</p>}
         <ul>
           {pendingMessages.map((message) => (
             <li key={message.id}>
               <strong>[{message.state}]</strong>{" "}
               {message.ai_summary || message.body}{" "}
               {message.state !== "resolved" && (
-                <ResolveMessageAction messageId={message.id} tenantId={tenantId} apiUrl={apiUrl} />
+                <ResolveMessageAction
+                  messageId={message.id}
+                  tenantId={tenantId}
+                  apiUrl={apiUrl}
+                  labels={{ resolve: t("resolve"), resolving: t("resolving") }}
+                />
               )}
             </li>
           ))}

@@ -7,6 +7,7 @@ interface Props {
   eventId: string;
   tenantId: string;
   apiUrl: string;
+  labels: { confirm: string; confirming: string; reject: string; rejecting: string };
 }
 
 /**
@@ -15,7 +16,7 @@ interface Props {
  * automatic. Confirming triggers the calendar push (see
  * EventsController.confirm on the backend); rejecting just cancels it.
  */
-export function DraftEventActions({ eventId, tenantId, apiUrl }: Props) {
+export function DraftEventActions({ eventId, tenantId, apiUrl, labels }: Props) {
   const router = useRouter();
   const [pending, setPending] = useState<"confirm" | "reject" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -29,10 +30,10 @@ export function DraftEventActions({ eventId, tenantId, apiUrl }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tenantId }),
       });
-      if (!res.ok) throw new Error(`Falha ao ${action === "confirm" ? "confirmar" : "rejeitar"} (${res.status})`);
+      if (!res.ok) throw new Error(`${res.status}`);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro desconhecido");
+      setError(err instanceof Error ? err.message : "error");
     } finally {
       setPending(null);
     }
@@ -41,10 +42,10 @@ export function DraftEventActions({ eventId, tenantId, apiUrl }: Props) {
   return (
     <span>
       <button onClick={() => act("confirm")} disabled={pending !== null}>
-        {pending === "confirm" ? "A confirmar…" : "Confirmar"}
+        {pending === "confirm" ? labels.confirming : labels.confirm}
       </button>{" "}
       <button onClick={() => act("reject")} disabled={pending !== null}>
-        {pending === "reject" ? "A rejeitar…" : "Rejeitar"}
+        {pending === "reject" ? labels.rejecting : labels.reject}
       </button>
       {error && <span role="alert"> {error}</span>}
     </span>

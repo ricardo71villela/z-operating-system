@@ -1,0 +1,24 @@
+{
+  "Home": {
+    "title": "Z Desk",
+    "subtitle": "Einheitlicher Posteingang und intelligenter Kalender von ZOS"
+  },
+  "Today": {
+    "title": "Heute",
+    "backendMissing": "Backend noch nicht konfiguriert (NEXT_PUBLIC_DESK_API_URL / NEXT_PUBLIC_DESK_DEV_TENANT_ID fehlt).",
+    "confirmedAgenda": "Bestätigter Kalender",
+    "noConfirmedEvents": "Heute keine bestätigten Termine.",
+    "followUpBlock": "Nachfass-Block",
+    "pendingSuggestions": "Zu bestätigende Vorschläge",
+    "noPendingSuggestions": "Keine offenen Vorschläge.",
+    "confidence": "Konfidenz",
+    "confirm": "Bestätigen",
+    "confirming": "Wird bestätigt…",
+    "reject": "Ablehnen",
+    "rejecting": "Wird abgelehnt…",
+    "pendingMessages": "Zu entscheidende Nachrichten",
+    "noPendingMessages": "Nichts offen.",
+    "resolve": "Als erledigt markieren",
+    "resolving": "Wird bearbeitet…"
+  }
+}

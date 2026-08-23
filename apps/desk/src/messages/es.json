@@ -1,0 +1,24 @@
+{
+  "Home": {
+    "title": "Z Desk",
+    "subtitle": "Bandeja de entrada unificada y agenda inteligente de ZOS"
+  },
+  "Today": {
+    "title": "Hoy",
+    "backendMissing": "Backend aún no configurado (falta NEXT_PUBLIC_DESK_API_URL / NEXT_PUBLIC_DESK_DEV_TENANT_ID).",
+    "confirmedAgenda": "Agenda confirmada",
+    "noConfirmedEvents": "Sin eventos confirmados hoy.",
+    "followUpBlock": "bloque de seguimiento",
+    "pendingSuggestions": "Sugerencias por confirmar",
+    "noPendingSuggestions": "Sin sugerencias pendientes.",
+    "confidence": "confianza",
+    "confirm": "Confirmar",
+    "confirming": "Confirmando…",
+    "reject": "Rechazar",
+    "rejecting": "Rechazando…",
+    "pendingMessages": "Mensajes por decidir",
+    "noPendingMessages": "Nada pendiente.",
+    "resolve": "Marcar resuelto",
+    "resolving": "Procesando…"
+  }
+}

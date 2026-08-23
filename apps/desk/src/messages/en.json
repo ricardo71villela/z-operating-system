@@ -1,0 +1,24 @@
+{
+  "Home": {
+    "title": "Z Desk",
+    "subtitle": "ZOS unified inbox and smart agenda"
+  },
+  "Today": {
+    "title": "Today",
+    "backendMissing": "Backend not configured (NEXT_PUBLIC_DESK_API_URL / NEXT_PUBLIC_DESK_DEV_TENANT_ID missing).",
+    "confirmedAgenda": "Confirmed agenda",
+    "noConfirmedEvents": "No confirmed events today.",
+    "followUpBlock": "follow-up block",
+    "pendingSuggestions": "Suggestions to confirm",
+    "noPendingSuggestions": "No pending suggestions.",
+    "confidence": "confidence",
+    "confirm": "Confirm",
+    "confirming": "Confirming…",
+    "reject": "Reject",
+    "rejecting": "Rejecting…",
+    "pendingMessages": "Messages to decide",
+    "noPendingMessages": "Nothing pending.",
+    "resolve": "Mark resolved",
+    "resolving": "Working…"
+  }
+}

@@ -7,16 +7,10 @@ interface Props {
   messageId: string;
   tenantId: string;
   apiUrl: string;
+  labels: { resolve: string; resolving: string };
 }
 
-/**
- * Advances a message's state to 'resolved'. There is deliberately no
- * client-side call to Supabase here — writes go through the backend so
- * the same tenant-scoping/service-role boundary applies as everywhere
- * else (see today/page.tsx comment on why RLS + direct client reads
- * aren't wired in yet for this view).
- */
-export function ResolveMessageAction({ messageId, tenantId, apiUrl }: Props) {
+export function ResolveMessageAction({ messageId, tenantId, apiUrl, labels }: Props) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,10 +24,10 @@ export function ResolveMessageAction({ messageId, tenantId, apiUrl }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tenantId }),
       });
-      if (!res.ok) throw new Error(`Falha ao marcar como resolvida (${res.status})`);
+      if (!res.ok) throw new Error(`${res.status}`);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro desconhecido");
+      setError(err instanceof Error ? err.message : "error");
     } finally {
       setPending(false);
     }
@@ -42,7 +36,7 @@ export function ResolveMessageAction({ messageId, tenantId, apiUrl }: Props) {
   return (
     <span>
       <button onClick={resolve} disabled={pending}>
-        {pending ? "A marcar…" : "Marcar resolvida"}
+        {pending ? labels.resolving : labels.resolve}
       </button>
       {error && <span role="alert"> {error}</span>}
     </span>

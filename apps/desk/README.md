@@ -37,10 +37,17 @@ Decisão de fundação (ver `docs/architecture/ADR-0001`): v1 opera em modo **hu
 
 ## Estrutura do projeto
 
-- `src/` — Next.js (App Router) + next-intl, aplicação web do Z Desk.
+- `src/app/[locale]/` — Next.js (App Router) + next-intl, aplicação web do Z Desk.
 - `backend/` — serviço NestJS: webhooks do WhatsApp, sync de e-mail/calendário, filas (BullMQ), camada de IA (triagem e sugestão).
 - `supabase/migrations/` — schema reprodutível (tenants, threads, messages, events, integrations, pessoal).
 - `docs/architecture/` — decisões e modelo de domínio específicos do Z Desk.
+
+## Idiomas
+
+- 6 idiomas obrigatórios: `fr` (default), `en`, `es`, `pt`, `it`, `de` — mesmo padrão do Z Mobility (`next-intl`, `localePrefix: "always"`)
+- `middleware.ts` na raiz — construído corretamente aqui; verificado que **não existe** no Z Mobility (auditado ao copiar o padrão), pelo que a deteção/redireção de idioma lá pode não funcionar sem visita direta a um URL com prefixo
+- Traduções em `src/messages/{fr,en,es,pt,it,de}.json` — cobrem a homepage e a vista "Hoje"; as restantes vistas (calendário, tarefas, pessoal) continuam só com mockups HTML em português, ainda não implementadas como código React
+- Testado: `next build` gera as 6 rotas (`/fr`, `/en`, `/es`, `/pt`, `/it`, `/de` e as respetivas `/today`) com sucesso
 
 ## Gestão de pessoal (ADR-0004 + ADR-0005)
 
