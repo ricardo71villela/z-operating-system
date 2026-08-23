@@ -54,6 +54,12 @@
   table.map th { padding: 6px 2px; color: var(--gray-400); font-weight: 400; background: var(--white); }
   table.map th.weekend { color: var(--gray-300); }
   table.map td.day-cell { width: 26px; height: 30px; padding: 0; }
+  table.map th.total-col, table.map td.total-col {
+    text-align: right; padding: 8px 12px; font-size: 12px; color: var(--gray-900);
+    background: var(--white); white-space: nowrap; border-left: 2px solid var(--gray-300);
+  }
+  table.map td.total-col .hours { font-weight: 500; color: var(--gold-dark); }
+  table.map td.total-col .label { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gray-400); display: block; }
   .cell-fill { width: 100%; height: 100%; }
   .cell-fill.working { background: var(--gold-pale); }
   .cell-fill.vacation { background: var(--gray-700); }
@@ -89,6 +95,7 @@
         <th>1</th><th>2</th><th class="weekend">3</th><th class="weekend">4</th><th>5</th><th>6</th><th>7</th><th class="weekend">8</th><th class="weekend">9</th><th>10</th>
         <th>11</th><th>12</th><th class="weekend">13</th><th class="weekend">14</th><th>15</th><th>16</th><th>17</th><th class="weekend">18</th><th class="weekend">19</th><th>20</th>
         <th>21</th><th>22</th><th class="weekend">23</th><th class="weekend">24</th><th>25</th><th>26</th><th>27</th><th class="weekend">28</th><th class="weekend">29</th><th>30</th><th>31</th>
+        <th class="total-col">Extra</th>
       </tr>
       <tr>
         <td class="name-col">Ricardo Villela</td>
@@ -124,6 +131,7 @@
         <td class="day-cell"><div class="cell-fill off"></div></td>
         <td class="day-cell"><div class="cell-fill working"></div></td>
         <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="total-col"><span class="hours">4.5h</span><span class="label">aprovadas</span></td>
       </tr>
       <tr>
         <td class="name-col">Ana Costa</td>
@@ -158,6 +166,7 @@
         <td class="day-cell"><div class="cell-fill off"></div></td>
         <td class="day-cell"><div class="cell-fill working"></div></td>
         <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="total-col"><span class="hours">2.0h</span><span class="label">aprovadas</span></td>
       </tr>
       <tr>
         <td class="name-col">Miguel Santos</td>
@@ -192,11 +201,12 @@
         <td class="day-cell"><div class="cell-fill off"></div></td>
         <td class="day-cell"><div class="cell-fill working"></div></td>
         <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="total-col"><span class="hours">—</span><span class="label">sem extra</span></td>
       </tr>
     </table>
 
     <p class="footnote">
-      Mapa derivado — não é armazenado; cruza o horário semanal recorrente de cada pessoa com qualquer ausência aprovada nesse dia. Alimenta a atribuição de missões e a sugestão de reuniões (quando a IA for ligada) com disponibilidade real.
+      Mapa derivado — não é armazenado; cruza o horário semanal recorrente de cada pessoa com qualquer ausência aprovada nesse dia. A coluna "Extra" soma as horas extraordinárias aprovadas do mês. Alimenta a atribuição de missões e a sugestão de reuniões (quando a IA for ligada) com disponibilidade real.
     </p>
   </div>
 </body>

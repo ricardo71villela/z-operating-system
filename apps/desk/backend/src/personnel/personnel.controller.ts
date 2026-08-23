@@ -102,6 +102,99 @@ export class PersonnelController {
   }
 
   /**
+   * Overtime entries (ADR-0006) — additive to the schedule, never
+   * recalculates it. Only 'approved' entries count toward the monthly
+   * total (see monthlyMap and the dedicated total endpoint below); a
+   * 'pending' entry exists but isn't counted until approved.
+   */
+  @Post('overtime')
+  async createOvertime(
+    @Body() body: { tenantId: string; userId: string; date: string; hours: number; note?: string },
+  ) {
+    const { data, error } = await supabaseAdmin
+      .from('desk_overtime_entries')
+      .insert({
+        tenant_id: body.tenantId,
+        user_id: body.userId,
+        date: body.date,
+        hours: body.hours,
+        note: body.note ?? null,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  @Get('overtime')
+  async listOvertime(
+    @Query('tenantId') tenantId: string,
+    @Query('userId') userId?: string,
+    @Query('year') year?: string,
+    @Query('month') month?: string,
+  ) {
+    let query = supabaseAdmin
+      .from('desk_overtime_entries')
+      .select('id, user_id, date, hours, note, status, approved_at')
+      .eq('tenant_id', tenantId)
+      .order('date', { ascending: false });
+
+    if (userId) query = query.eq('user_id', userId);
+    if (year && month) {
+      const y = Number(year);
+      const m = Number(month);
+      const daysInMonth = new Date(y, m, 0).getDate();
+      query = query
+        .gte('date', `${y}-${String(m).padStart(2, '0')}-01`)
+        .lte('date', `${y}-${String(m).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return data;
+  }
+
+  @Post('overtime/:id/approve')
+  async approveOvertime(
+    @Param('id') id: string,
+    @Body('tenantId') tenantId: string,
+    @Body('approvedBy') approvedBy: string,
+  ) {
+    const { error } = await supabaseAdmin
+      .from('desk_overtime_entries')
+      .update({ status: 'approved', approved_at: new Date().toISOString(), approved_by: approvedBy })
+      .eq('id', id)
+      .eq('tenant_id', tenantId);
+    if (error) throw error;
+    return { approved: true };
+  }
+
+  @Delete('overtime/:id')
+  async removeOvertime(@Param('id') id: string, @Query('tenantId') tenantId: string) {
+    const { error } = await supabaseAdmin
+      .from('desk_overtime_entries')
+      .delete()
+      .eq('id', id)
+      .eq('tenant_id', tenantId);
+    if (error) throw error;
+    return { deleted: true };
+  }
+
+  /**
+   * The "contabilização no fim do mês" the person asked for: total
+   * approved overtime hours per person for one month. Summed on request
+   * from desk_overtime_entries, same non-stored-derived-value pattern as
+   * every other view in this controller. monthlyMap below embeds this
+   * same total per person so it shows up alongside the calendar map
+   * without a second round trip.
+   */
+  @Get('overtime/monthly-total')
+  async overtimeMonthlyTotal(@Query('tenantId') tenantId: string, @Query('year') year: string, @Query('month') month: string) {
+    const totals = await computeOvertimeTotals(tenantId, year, month);
+    return totals;
+  }
+
+  /**
    * A punctual deviation from the recurring pattern for one specific date.
    * start/endTime omitted (or explicitly null) means "off that day" —
    * enforced by the DB check constraint (both null or both set).
@@ -268,6 +361,8 @@ export class PersonnelController {
 
     for (const r of [usersRes, schedulesRes, overridesRes, absencesRes]) if (r.error) throw r.error;
 
+    const overtimeTotals = await computeOvertimeTotals(tenantId, year, month);
+
     const days = Array.from({ length: daysInMonth }, (_, i) => {
       const date = `${y}-${String(m).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`;
       const perUser = usersRes.data.map((user) =>
@@ -276,8 +371,45 @@ export class PersonnelController {
       return { date, users: perUser };
     });
 
-    return { view: userId ? 'individual' : 'geral', peopleCount: usersRes.data.length, users: usersRes.data, days };
+    return {
+      view: userId ? 'individual' : 'geral',
+      peopleCount: usersRes.data.length,
+      users: usersRes.data,
+      days,
+      overtimeTotals, // { [userId]: totalHoursApproved } — ver ADR-0006
+    };
   }
+}
+
+/**
+ * Shared by monthlyMap and the standalone overtime/monthly-total endpoint,
+ * so both always report the same number for the same tenant/month.
+ */
+async function computeOvertimeTotals(
+  tenantId: string,
+  year: string,
+  month: string,
+): Promise<Record<string, number>> {
+  const y = Number(year);
+  const m = Number(month);
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const monthStart = `${y}-${String(m).padStart(2, '0')}-01`;
+  const monthEnd = `${y}-${String(m).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
+
+  const { data, error } = await supabaseAdmin
+    .from('desk_overtime_entries')
+    .select('user_id, hours')
+    .eq('tenant_id', tenantId)
+    .eq('status', 'approved')
+    .gte('date', monthStart)
+    .lte('date', monthEnd);
+  if (error) throw error;
+
+  const totals: Record<string, number> = {};
+  for (const entry of data ?? []) {
+    totals[entry.user_id] = (totals[entry.user_id] ?? 0) + Number(entry.hours);
+  }
+  return totals;
 }
 
 interface DayResolution {

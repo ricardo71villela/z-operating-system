@@ -50,8 +50,16 @@ Decisão de fundação (ver `docs/architecture/ADR-0001`): v1 opera em modo **hu
 - `desk_schedule_validations` — uma linha por pessoa por semana; um worker diário cria automaticamente a validação `pending` para a semana que começa daqui a 15 dias; validar (`POST /personnel/schedule-validations/:id/validate`) é sempre ação humana, nunca automática
 - **Precedência ao resolver um dia** (partilhada entre vista semanal e mapa mensal): ausência aprovada > desvio pontual > padrão recorrente
 - `GET /personnel/weekly-view?tenantId=&weekStart=&userId=` — uma semana; sem `userId` devolve o **geral** (todas as pessoas do tenant, tantas quantas existirem em `desk_users` — nunca um número fixo); com `userId`, a vista **individual** dessa pessoa
-- `GET /personnel/monthly-map?tenantId=&year=&month=&userId=` — mesmo par geral/individual, à escala do mês
+- `GET /personnel/monthly-map?tenantId=&year=&month=&userId=` — mesmo par geral/individual, à escala do mês; inclui `overtimeTotals` (horas extraordinárias aprovadas do mês, por pessoa — ADR-0006)
 - O quadro de pessoal e as vistas de horário partilham a mesma consulta a `desk_users` — adicionar ou remover alguém do tenant reflete-se automaticamente em ambos, sem número codificado
+
+### Horas extraordinárias (ADR-0006)
+
+- `desk_overtime_entries` — um lançamento por data, com horas e nota; estado `pending`/`approved`
+- Só horas `approved` contam para o total do mês — um lançamento pendente existe mas não é somado
+- `POST /personnel/overtime`, `GET /personnel/overtime?tenantId=&userId=&year=&month=`, `POST /personnel/overtime/:id/approve`, `DELETE /personnel/overtime/:id`
+- `GET /personnel/overtime/monthly-total` — o mesmo total já embutido em `monthly-map`, disponível também isolado
+- Total nunca armazenado, somado no pedido a partir dos lançamentos aprovados — mesmo padrão do resto da gestão de pessoal
 - Alimenta a atribuição de missões e a sugestão de reuniões com disponibilidade real — ligação feita quando a IA for ligada, não implementada agora
 - Deliberadamente sem hierarquia de aprovação, sem calendário de feriados, sem integração com processamento de salários — é gestão de pessoal operacional, não um módulo de RH
 
