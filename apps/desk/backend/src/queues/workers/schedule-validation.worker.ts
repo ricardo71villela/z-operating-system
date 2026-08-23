@@ -2,7 +2,7 @@ import { Worker, Queue } from 'bullmq';
 import { redisConnection } from '../queues';
 import { supabaseAdmin } from '../../supabase/supabase-admin';
 
-export const SCHEDULE_VALIDATION_QUEUE = 'desk:schedule-validation';
+export const SCHEDULE_VALIDATION_QUEUE = 'desk-schedule-validation';
 export const scheduleValidationQueue = new Queue(SCHEDULE_VALIDATION_QUEUE, { connection: redisConnection });
 
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000; // once a day is enough — this only needs to catch the T-15 boundary

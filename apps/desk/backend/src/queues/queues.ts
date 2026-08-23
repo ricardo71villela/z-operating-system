@@ -10,10 +10,10 @@ export const redisConnection = new IORedis(
   { maxRetriesPerRequest: null },
 );
 
-export const INBOUND_MESSAGE_QUEUE = 'desk:inbound-message';
-export const AI_TRIAGE_QUEUE = 'desk:ai-triage';
-export const CALENDAR_SYNC_QUEUE = 'desk:calendar-sync';
-export const EMAIL_SYNC_QUEUE = 'desk:email-sync';
+export const INBOUND_MESSAGE_QUEUE = 'desk-inbound-message';
+export const AI_TRIAGE_QUEUE = 'desk-ai-triage';
+export const CALENDAR_SYNC_QUEUE = 'desk-calendar-sync';
+export const EMAIL_SYNC_QUEUE = 'desk-email-sync';
 
 export const inboundMessageQueue = new Queue(INBOUND_MESSAGE_QUEUE, {
   connection: redisConnection,

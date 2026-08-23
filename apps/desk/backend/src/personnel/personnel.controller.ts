@@ -368,16 +368,19 @@ export class PersonnelController {
       supabaseAdmin.from('desk_absences').select('user_id, type, start_date, end_date').eq('tenant_id', tenantId).eq('user_id', userId).eq('status', 'approved').lte('start_date', weekEnd).gte('end_date', weekStart),
     ]);
     for (const r of [schedulesRes, overridesRes, absencesRes]) if (r.error) throw r.error;
+    const schedules = schedulesRes.data ?? [];
+    const overrides = overridesRes.data ?? [];
+    const absences = absencesRes.data ?? [];
 
     const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
     const lines = weekDates.map((date) => {
-      const resolution = resolveDay(date, userId, schedulesRes.data, overridesRes.data, absencesRes.data);
+      const resolution = resolveDay(date, userId, schedules, overrides, absences);
       const dow = new Date(date + 'T00:00:00Z').getUTCDay();
       const label = dayNames[dow];
       if (resolution.status === 'absent') return `${label} ${date.slice(8, 10)}: ausência`;
       if (resolution.status === 'working') {
-        const schedule = schedulesRes.data.find((s) => s.day_of_week === dow);
-        const override = overridesRes.data.find((o) => o.date === date);
+        const schedule = schedules.find((s) => s.day_of_week === dow);
+        const override = overrides.find((o) => o.date === date);
         const times = override ?? schedule;
         return `${label} ${date.slice(8, 10)}: ${times?.start_time?.slice(0, 5)}–${times?.end_time?.slice(0, 5)}`;
       }
@@ -434,12 +437,15 @@ export class PersonnelController {
     ]);
 
     for (const r of [usersRes, schedulesRes, overridesRes, absencesRes, validationsRes]) if (r.error) throw r.error;
+    const weeklyUsers = usersRes.data ?? [];
+    const schedules = schedulesRes.data ?? [];
+    const overrides = overridesRes.data ?? [];
+    const absences = absencesRes.data ?? [];
+    const validations = validationsRes.data ?? [];
 
-    const users = usersRes.data.map((user) => {
-      const days = weekDates.map((date) =>
-        resolveDay(date, user.id, schedulesRes.data, overridesRes.data, absencesRes.data),
-      );
-      const validation = validationsRes.data.find((v) => v.user_id === user.id) ?? null;
+    const users = weeklyUsers.map((user) => {
+      const days = weekDates.map((date) => resolveDay(date, user.id, schedules, overrides, absences));
+      const validation = validations.find((v) => v.user_id === user.id) ?? null;
       return { userId: user.id, email: user.email, days, validation };
     });
 
@@ -475,21 +481,25 @@ export class PersonnelController {
     ]);
 
     for (const r of [usersRes, schedulesRes, overridesRes, absencesRes]) if (r.error) throw r.error;
+    const monthlyUsers = usersRes.data ?? [];
+    const monthlySchedules = schedulesRes.data ?? [];
+    const monthlyOverrides = overridesRes.data ?? [];
+    const monthlyAbsences = absencesRes.data ?? [];
 
     const overtimeTotals = await computeOvertimeTotals(tenantId, year, month);
 
     const days = Array.from({ length: daysInMonth }, (_, i) => {
       const date = `${y}-${String(m).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`;
-      const perUser = usersRes.data.map((user) =>
-        resolveDay(date, user.id, schedulesRes.data, overridesRes.data, absencesRes.data),
+      const perUser = monthlyUsers.map((user) =>
+        resolveDay(date, user.id, monthlySchedules, monthlyOverrides, monthlyAbsences),
       );
       return { date, users: perUser };
     });
 
     return {
       view: userId ? 'individual' : 'geral',
-      peopleCount: usersRes.data.length,
-      users: usersRes.data,
+      peopleCount: monthlyUsers.length,
+      users: monthlyUsers,
       days,
       overtimeTotals, // { [userId]: totalHoursApproved } — ver ADR-0006
     };
