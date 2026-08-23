@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8" />
+<title>Z Desk — Horário Individual</title>
+<style>
+  :root {
+    --white: #FFFFFF; --black: #0A0A0A;
+    --gray-50: #F8F8F6; --gray-100: #F0EFE9; --gray-200: #E2E0D8;
+    --gray-300: #C8C6BC; --gray-400: #9E9C94; --gray-500: #6E6C64;
+    --gray-700: #3A3834; --gray-900: #1A1916;
+    --gold: #B8935A; --gold-light: #D4AF7A; --gold-dark: #8B6B3A; --gold-pale: #F5EDD8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--gray-50); color: var(--gray-900);
+    font-family: 'DM Sans', 'Helvetica Neue', Arial, sans-serif; font-weight: 300;
+  }
+  .shell { max-width: 620px; margin: 0 auto; padding: 48px 24px 90px; }
+
+  .breadcrumb { font-size: 11px; color: var(--gray-400); margin-bottom: 6px; }
+  header.page-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid var(--gray-200);
+  }
+  header.page-head .brand {
+    font-family: Georgia, 'Cormorant Garamond', serif; font-weight: 500; font-size: 15px;
+    letter-spacing: 0.2em; text-transform: uppercase; color: var(--gray-500);
+  }
+  header.page-head h1 {
+    font-family: Georgia, 'Cormorant Garamond', serif; font-weight: 400; font-style: italic;
+    font-size: 32px; margin: 4px 0 0; color: var(--black);
+  }
+  .week-label { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gray-400); }
+
+  .status-badge {
+    font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 8px;
+    border-radius: 2px; display: inline-block; margin-bottom: 20px;
+  }
+  .status-badge.pending { background: var(--gray-100); color: var(--gray-500); border: 1px solid var(--gray-300); }
+
+  .day-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 4px; border-bottom: 1px solid var(--gray-100);
+  }
+  .day-row .day-name { font-size: 13px; color: var(--gray-900); width: 90px; }
+  .day-row .day-date { font-size: 11px; color: var(--gray-400); }
+  .day-block { border-radius: 2px; padding: 6px 12px; font-size: 11px; }
+  .day-block.working { background: var(--gold-pale); color: var(--gold-dark); }
+  .day-block.off { background: var(--gray-50); color: var(--gray-300); border: 1px solid var(--gray-200); }
+</style>
+</head>
+<body>
+  <div class="shell">
+    <div class="breadcrumb">Quadro de pessoal &rsaquo; Ana Costa</div>
+    <header class="page-head">
+      <div>
+        <div class="brand">Z Desk</div>
+        <h1>Ana Costa</h1>
+      </div>
+      <div class="week-label">7–13 Set, 2026</div>
+    </header>
+
+    <span class="status-badge pending">Semana por validar</span>
+
+    <div class="day-row">
+      <span class="day-name">Segunda <span class="day-date">7</span></span>
+      <div class="day-block working">09:00–18:00</div>
+    </div>
+    <div class="day-row">
+      <span class="day-name">Terça <span class="day-date">8</span></span>
+      <div class="day-block working">13:00–18:00 <em>(desvio)</em></div>
+    </div>
+    <div class="day-row">
+      <span class="day-name">Quarta <span class="day-date">9</span></span>
+      <div class="day-block working">09:00–18:00</div>
+    </div>
+    <div class="day-row">
+      <span class="day-name">Quinta <span class="day-date">10</span></span>
+      <div class="day-block working">09:00–18:00</div>
+    </div>
+    <div class="day-row">
+      <span class="day-name">Sexta <span class="day-date">11</span></span>
+      <div class="day-block working">09:00–18:00</div>
+    </div>
+    <div class="day-row">
+      <span class="day-name">Sábado <span class="day-date">12</span></span>
+      <div class="day-block off">Folga</div>
+    </div>
+    <div class="day-row">
+      <span class="day-name">Domingo <span class="day-date">13</span></span>
+      <div class="day-block off">Folga</div>
+    </div>
+  </div>
+</body>
+</html>

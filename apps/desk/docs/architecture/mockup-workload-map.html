@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8" />
+<title>Z Desk — Mapa de Carga</title>
+<style>
+  :root {
+    --white: #FFFFFF; --black: #0A0A0A;
+    --gray-50: #F8F8F6; --gray-100: #F0EFE9; --gray-200: #E2E0D8;
+    --gray-300: #C8C6BC; --gray-400: #9E9C94; --gray-500: #6E6C64;
+    --gray-700: #3A3834; --gray-900: #1A1916;
+    --gold: #B8935A; --gold-light: #D4AF7A; --gold-dark: #8B6B3A; --gold-pale: #F5EDD8;
+    --alert: #A85C4A; --alert-pale: #F3E3DF;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--gray-50); color: var(--gray-900);
+    font-family: 'DM Sans', 'Helvetica Neue', Arial, sans-serif; font-weight: 300;
+  }
+  .shell { max-width: 900px; margin: 0 auto; padding: 48px 24px 90px; }
+
+  header.page-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 12px; padding-bottom: 24px; border-bottom: 1px solid var(--gray-200);
+  }
+  header.page-head .brand {
+    font-family: Georgia, 'Cormorant Garamond', serif; font-weight: 500; font-size: 15px;
+    letter-spacing: 0.2em; text-transform: uppercase; color: var(--gray-500);
+  }
+  header.page-head h1 {
+    font-family: Georgia, 'Cormorant Garamond', serif; font-weight: 400; font-style: italic;
+    font-size: 34px; margin: 4px 0 0; color: var(--black);
+  }
+  .subtitle { font-size: 12.5px; color: var(--gray-400); margin: 20px 0 28px; max-width: 480px; line-height: 1.5; }
+
+  .person-row {
+    display: flex; align-items: center; gap: 20px; padding: 18px 20px; margin-bottom: 10px;
+    border-radius: 2px; background: var(--white); border: 1px solid var(--gray-200);
+  }
+  .person-row.flagged { border-color: var(--alert); background: var(--alert-pale); }
+
+  .person-name { width: 140px; font-size: 14px; color: var(--gray-900); flex-shrink: 0; }
+  .metric { text-align: center; width: 110px; flex-shrink: 0; }
+  .metric .value { font-size: 20px; font-weight: 400; color: var(--gray-900); }
+  .person-row.flagged .metric .value { color: var(--alert); }
+  .metric .label { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gray-400); display: block; margin-top: 2px; }
+
+  .avail-bar { flex: 1; }
+  .avail-bar .days { display: flex; gap: 3px; margin-bottom: 4px; }
+  .avail-day { flex: 1; height: 18px; border-radius: 2px; background: var(--gray-100); }
+  .avail-day.working { background: var(--gold-pale); }
+  .avail-day.absent { background: var(--gray-700); }
+  .avail-bar .label { font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gray-400); }
+
+  .flag-tag {
+    font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--white);
+    background: var(--alert); padding: 4px 8px; border-radius: 2px; white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+  <div class="shell">
+    <header class="page-head">
+      <div>
+        <div class="brand">Z Desk</div>
+        <h1>Mapa de Carga</h1>
+      </div>
+    </header>
+    <p class="subtitle">Cruza o quadro de tarefas com a disponibilidade da semana — quem tem mais trabalho em curso e menos dias livres.</p>
+
+    <div class="person-row flagged">
+      <div class="person-name">Miguel Santos</div>
+      <div class="metric"><span class="value">4</span><span class="label">missões abertas</span></div>
+      <div class="metric"><span class="value">3</span><span class="label">em curso</span></div>
+      <div class="avail-bar">
+        <div class="days">
+          <div class="avail-day absent"></div>
+          <div class="avail-day absent"></div>
+          <div class="avail-day absent"></div>
+          <div class="avail-day working"></div>
+          <div class="avail-day working"></div>
+        </div>
+        <span class="label">2 de 5 dias disponíveis</span>
+      </div>
+      <span class="flag-tag">Carga alta</span>
+    </div>
+
+    <div class="person-row">
+      <div class="person-name">Ana Costa</div>
+      <div class="metric"><span class="value">2</span><span class="label">missões abertas</span></div>
+      <div class="metric"><span class="value">1</span><span class="label">em curso</span></div>
+      <div class="avail-bar">
+        <div class="days">
+          <div class="avail-day working"></div>
+          <div class="avail-day working"></div>
+          <div class="avail-day working"></div>
+          <div class="avail-day working"></div>
+          <div class="avail-day working"></div>
+        </div>
+        <span class="label">5 de 5 dias disponíveis</span>
+      </div>
+    </div>
+
+    <div class="person-row">
+      <div class="person-name">Ricardo Villela</div>
+      <div class="metric"><span class="value">1</span><span class="label">missões abertas</span></div>
+      <div class="metric"><span class="value">1</span><span class="label">em curso</span></div>
+      <div class="avail-bar">
+        <div class="days">
+          <div class="avail-day working"></div>
+          <div class="avail-day working"></div>
+          <div class="avail-day working"></div>
+          <div class="avail-day working"></div>
+          <div class="avail-day working"></div>
+        </div>
+        <span class="label">5 de 5 dias disponíveis</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
