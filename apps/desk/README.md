@@ -42,9 +42,12 @@ Decisão de fundação (ver `docs/architecture/ADR-0001`): v1 opera em modo **hu
 - `supabase/migrations/` — schema reprodutível (tenants, threads, messages, events, integrations).
 - `docs/architecture/` — decisões e modelo de domínio específicos do Z Desk.
 
-## Multi-tenant
+## Auth & isolamento multi-tenant
 
-Cada tenant representa uma organização (equipa/empresa cliente). Todas as tabelas de domínio referenciam `tenant_id`; nenhuma query de aplicação deve atravessar tenants.
+- RLS ativado em todas as tabelas de domínio, com políticas escritas (`20260823004000_z_desk_rls_policies.sql`) — `desk_current_user_tenant_id()` mapeia a sessão Supabase auth ao tenant via `desk_users`
+- `desk_integrations` fica deliberadamente sem políticas de cliente — contém `oauth_tokens`; só o backend (service-role key) lhe acede
+- `POST /auth/bootstrap-tenant` — cria o primeiro tenant + utilizador `owner` para uma sessão Supabase auth nova; idempotente
+- Convite de novos membros para um tenant existente ainda não está construído (TODO)
 
 ## Integrações previstas na v1
 
