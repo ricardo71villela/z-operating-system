@@ -42,7 +42,12 @@ Decisão de fundação (ver `docs/architecture/ADR-0001`): v1 opera em modo **hu
 - `supabase/migrations/` — schema reprodutível (tenants, threads, messages, events, integrations).
 - `docs/architecture/` — decisões e modelo de domínio específicos do Z Desk.
 
-## Auth & isolamento multi-tenant
+## Quadro de tarefas (ADR-0003)
+
+- `desk_tasks` — tarefas pessoais (`task_type='personal'`, `assigned_to = created_by`) e missões atribuídas a colegas (`task_type='mission'`, `assigned_to != created_by`)
+- Quadro Kanban de três colunas: `todo`, `in_progress`, `done`
+- `POST /tasks`, `GET /tasks?tenantId=&assignedTo=` (agrupado por coluna), `POST /tasks/:id/move`, `POST /tasks/:id/reassign`, `PATCH /tasks/:id`, `DELETE /tasks/:id`
+- Independente do estado de mensagem (`desk_messages.state`) por decisão explícita — cobrem coisas diferentes: ciclo de vida de uma conversa vs. trabalho atribuível a alguém
 
 - RLS ativado em todas as tabelas de domínio, com políticas escritas (`20260823004000_z_desk_rls_policies.sql`) — `desk_current_user_tenant_id()` mapeia a sessão Supabase auth ao tenant via `desk_users`
 - `desk_integrations` fica deliberadamente sem políticas de cliente — contém `oauth_tokens`; só o backend (service-role key) lhe acede
