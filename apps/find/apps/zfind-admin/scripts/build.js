@@ -2,11 +2,13 @@
 /* ============================================================
    Z FIND ADMIN — BUILD SCRIPT
    ============================================================
-   Sprint 1.7. Genuinely reuses zfind-web's existing architecture —
-   reads the vendor SDK, config template, and every services/*.js file
-   directly from ../zfind-web/src/, never copies them. A change to any
-   service (bug fix, new function) is automatically picked up by the
-   Admin build with zero duplication, by construction.
+   Genuinely reuses zfind-web's existing architecture — vendor SDK,
+   config template and services are read directly from zfind-web.
+
+   The Admin source predates the six-language public contract and has
+   a historical three-locale authoring constant. The deterministic
+   build upgrades that single legacy declaration to the canonical
+   persisted locale set without duplicating the Admin application.
 
    Usage: node scripts/build.js
    Output: dist/z-find-admin.html
@@ -16,7 +18,7 @@ const fs = require('fs');
 const path = require('path');
 
 const SRC = path.join(__dirname, '..', 'src');
-const WEB_SRC = path.join(__dirname, '..', '..', 'zfind-web', 'src'); // genuine reuse, not a copy
+const WEB_SRC = path.join(__dirname, '..', '..', 'zfind-web', 'src');
 const DIST = path.join(__dirname, '..', 'dist');
 
 function read(fullPath, label) {
@@ -38,13 +40,25 @@ function resolvePlaceholders(text, replacements, sourceLabel) {
   return resolved;
 }
 
+function sixLanguageAdminApp(source) {
+  const legacy = "const LOCALES = ['en', 'pt', 'fr'];";
+  const canonical = "const LOCALES = ['fr', 'en', 'pt-PT', 'es', 'de', 'it'];";
+  if (!source.includes(legacy)) {
+    throw new Error('BUILD FAILED: Z Find Admin legacy locale declaration changed unexpectedly; review six-language authoring convergence.');
+  }
+  const resolved = source.replace(legacy, canonical);
+  if (resolved.includes(legacy)) {
+    throw new Error('BUILD FAILED: Z Find Admin locale convergence was only partially applied.');
+  }
+  return resolved;
+}
+
 function build() {
   const head = readAdmin('head.txt');
   const css = readAdmin('css.txt');
   const body = readAdmin('body.html');
-  const appJs = readAdmin('app.js');
+  const appJs = sixLanguageAdminApp(readAdmin('app.js'));
 
-  // Genuinely reused, not copied:
   const vendorSupabase = readWeb('vendor-supabase.js');
   const configTemplate = readWeb('config.template.js');
   const supabaseClient = readWeb('services/supabaseClient.js');
@@ -89,8 +103,9 @@ function build() {
   console.log('Built:', outPath);
   console.log('Size:', Buffer.byteLength(html, 'utf8'), 'bytes');
   console.log('Supabase config placeholders: resolved, 0 remaining');
+  console.log('Listing authoring locales: fr, en, pt-PT, es, de, it');
   return { outPath };
 }
 
 if (require.main === module) build();
-module.exports = { build };
+module.exports = { build, sixLanguageAdminApp };
