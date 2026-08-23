@@ -41,11 +41,21 @@ check(!auth.includes('service_role') && !auth.includes('sb_secret_'), 'no privil
 check(!auth.includes('console.log') && !auth.includes('console.info') && !auth.includes('console.warn') && !auth.includes('console.error'), 'auth code does not log email/token/session data');
 check(!auth.includes('localStorage.setItem') && !auth.includes('sessionStorage.setItem'), 'auth code does not manually persist OTP/email/token material');
 for (const lang of ['pt', 'en', 'fr', 'es', 'de', 'it']) {
-  check(new RegExp(`\\n  ${lang}: \\{`).test(auth), `auth UI contains ${lang.toUpperCase()} copy`);
+  check(new RegExp(`\n  ${lang}: \{`).test(auth), `auth UI contains ${lang.toUpperCase()} copy`);
 }
 
 check(build.includes("path.join(SRC, 'platform', 'auth.js')"), 'build reads the auth source module');
-check(/main,\s*layoutGuards,\s*auth/.test(build), 'auth module is emitted after the legacy AI bridge');
+const mainIndex = build.indexOf('mainWithPreviewState,');
+const layoutIndex = build.indexOf('layoutGuards,');
+const iconRuntimeIndex = build.indexOf('laptopIconRuntimeAuthority,');
+const authIndex = build.indexOf('auth,');
+check(
+  mainIndex >= 0
+  && mainIndex < layoutIndex
+  && layoutIndex < iconRuntimeIndex
+  && iconRuntimeIndex < authIndex,
+  'auth module is emitted after preview, layout and icon runtime authorities'
+);
 check(build.includes('https://cdn.jsdelivr.net'), 'build authorizes the pinned CDN in CSP');
 check(build.includes('https://dcdggqyazdddrfuzwavw.supabase.co'), 'build authorizes the Supabase project in connect-src');
 
