@@ -239,6 +239,26 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf goldens-p2-candidate
+
+          # P2 mobile snapshots inspect the contents of the validated
+          # "Additional details" disclosure. Keep production collapsed by
+          # default; only the ephemeral CI fixture forces that wrapper open.
+          python3 - <<'PY'
+          from pathlib import Path
+          target = Path('app/my-studio.html')
+          text = target.read_text(encoding='utf-8')
+          marker = '</head>'
+          if text.count(marker) != 1:
+              raise SystemExit('P2 fixture expected exactly one </head>')
+          fixture = '''
+          <style id="zstudio-p2-open-details-fixture">
+          @media (max-width:620px){#zsMobileTextDetails{display:block!important}}
+          </style>
+          '''
+          target.write_text(text.replace(marker, fixture + marker, 1), encoding='utf-8')
+          print('P2_OPEN_DETAILS_FIXTURE=PASS')
+          PY
+
           python3 -m http.server 8794 --bind 127.0.0.1 --directory app >/tmp/zstudio-p2-visual-http.log 2>&1 &
           SERVER_PID=$!
           trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
