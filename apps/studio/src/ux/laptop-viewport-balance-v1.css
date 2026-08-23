@@ -1,0 +1,574 @@
+/* ZSTUDIO_LAPTOP_VIEWPORT_BALANCE_V1
+   Laptop composition authority over the approved three-zone workspace.
+
+   CENTER RENDER RECOVERY V1:
+   - the creative column owns three intrinsic rows: canvas / optional nav / export;
+   - no fixed viewport-subtraction max-height values;
+   - canvas size is measured by the preview state runtime;
+   - left/right rails keep the approved horizontal geometry;
+   - the page itself stays fixed while the editing rail scrolls internally.
+*/
+
+@media (min-width: 981px) {
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    min-height: 100vh;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) 34px;
+  }
+
+  header {
+    grid-row: 1;
+  }
+
+  .layout {
+    grid-row: 2;
+    min-height: 0 !important;
+    height: 100%;
+  }
+
+  .controls {
+    height: 100%;
+    min-height: 0;
+    max-height: none !important;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .stage {
+    height: 100%;
+    min-height: 0 !important;
+    padding-top: 12px;
+    padding-bottom: 10px;
+  }
+
+  .site-footer {
+    grid-row: 3;
+    height: 34px;
+    min-height: 34px;
+    padding: 5px 24px;
+    flex-wrap: nowrap;
+    gap: 12px;
+    border-top-color: var(--studio-hairline);
+    background: #090b0c;
+  }
+
+  .site-footer-brand {
+    gap: 7px;
+  }
+
+  .site-footer-brand img {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  .site-footer-brand span,
+  .site-footer-legal a {
+    font-size: .64rem;
+  }
+
+  .site-footer-legal {
+    gap: 6px;
+  }
+
+  .ph-remove,
+  .ph .tick {
+    font-size: 0 !important;
+  }
+
+  .ph-remove::before,
+  .ph-remove::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 9px;
+    height: 1px;
+    border-radius: 999px;
+    background: currentColor;
+    transform-origin: center;
+  }
+
+  .ph-remove::before {
+    transform: translate(-50%, -50%) rotate(45deg);
+  }
+
+  .ph-remove::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+  }
+
+  .ph .tick::before {
+    content: '';
+    width: 8px;
+    height: 4px;
+    border-left: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: translateY(-1px) rotate(-45deg);
+    opacity: 0;
+  }
+
+  .ph.incar .tick::before {
+    opacity: 1;
+  }
+
+  .zs-media-disabled {
+    opacity: .38 !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+}
+
+@media (min-width: 1200px) {
+  .stage {
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    row-gap: 8px;
+    align-content: stretch;
+  }
+
+  .canvas-frame {
+    box-sizing: border-box;
+    min-width: 0;
+    min-height: 0;
+    padding: 10px;
+    overflow: hidden;
+  }
+
+  #preview {
+    display: block;
+    max-width: none !important;
+    max-height: none !important;
+  }
+
+  html:not([data-zstudio-preview-state="ready"]) .slide-nav {
+    display: none !important;
+  }
+
+  .slide-nav {
+    min-height: 0;
+    gap: 9px;
+    color: #a7adb1;
+  }
+
+  .slide-nav button,
+  #btnGridView {
+    border-color: rgba(177,184,189,.24) !important;
+    color: #aeb4b8 !important;
+    background: rgba(255,255,255,.006) !important;
+  }
+
+  .slide-nav button:hover,
+  #btnGridView:hover {
+    border-color: rgba(194,200,204,.40) !important;
+    color: #eef0f0 !important;
+    background: rgba(255,255,255,.026) !important;
+  }
+
+  .actions {
+    min-height: 40px;
+    gap: 8px;
+  }
+
+  .actions .export-primary,
+  .actions .export-more-toggle {
+    min-height: 38px;
+  }
+
+  /* One bright action only. Carousel remains directly available when media is
+     READY, but never competes with the default PNG export for attention. */
+  #btnCarousel:not(.hide) {
+    color: #c7cbce !important;
+    border: 1px solid var(--studio-hairline) !important;
+    background: rgba(255,255,255,.006) !important;
+    box-shadow: none !important;
+  }
+
+  #btnCarousel:not(.hide):hover,
+  #btnCarousel:not(.hide):focus-visible {
+    color: #f1f2ef !important;
+    border-color: var(--studio-hairline-hover) !important;
+    background: rgba(255,255,255,.030) !important;
+    box-shadow: 0 6px 18px rgba(0,0,0,.18) !important;
+  }
+
+  /* The assistant is a rail, not a card. The separator spans the same vertical
+     workspace authority as the left rail. */
+  .caption-box {
+    position: relative;
+    height: 100%;
+    min-height: 0;
+    border-left: 0 !important;
+    padding: 14px 0 10px 18px !important;
+  }
+
+  .caption-box::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: -12px;
+    bottom: -10px;
+    width: 1px;
+    background: var(--studio-hairline);
+    pointer-events: none;
+  }
+
+  .caption-mobile-body {
+    min-height: 0;
+  }
+
+  .caption-box textarea {
+    flex: 0 1 auto;
+    height: clamp(220px, 38vh, 360px);
+    min-height: 220px;
+    max-height: 360px;
+    resize: none;
+  }
+
+  .zs-assistant-empty-state {
+    min-height: 0;
+    margin-top: 4px;
+    padding-top: 24px;
+    padding-bottom: 24px;
+  }
+
+  #btnAICaptionAll {
+    color: #b8bdc1 !important;
+    border: 1px solid var(--studio-hairline) !important;
+    background: rgba(255,255,255,.004) !important;
+  }
+
+  #btnAICaptionAll:hover,
+  #btnAICaptionAll:focus-visible {
+    color: #eef0f0 !important;
+    border-color: var(--studio-hairline-hover) !important;
+    background: rgba(255,255,255,.025) !important;
+  }
+}
+
+/* ZSTUDIO_MOBILE_CENTER_RECOVERY_V1
+   Mobile counterpart to the approved laptop center recovery.
+   Principles:
+   - preserve natural page scrolling on phones;
+   - let the preview fit the real mobile viewport without clipping;
+   - keep Download PNG as the single bright primary export;
+   - keep carousel / additional exports visually secondary;
+   - expose the same SVG icon language and deliberate Z AI empty state;
+   - never alter renderer content semantics, auth, billing or store behavior.
+*/
+
+@media (max-width: 620px) {
+  html,
+  body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    overflow-y: auto;
+  }
+
+  .stage {
+    width: 100%;
+    min-width: 0;
+    padding: 14px 12px 20px;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .stage-glow {
+    top: 29%;
+    width: 92%;
+    height: 44%;
+    opacity: .62;
+    filter: blur(18px);
+  }
+
+  .canvas-frame {
+    box-sizing: border-box;
+    width: auto;
+    height: auto;
+    min-width: 0;
+    max-width: 100%;
+    max-height: none;
+    padding: 8px;
+    overflow: hidden;
+    border-radius: 8px;
+    border-color: rgba(177,184,189,.24);
+    background: #0f1213;
+    box-shadow:
+      0 22px 52px rgba(0,0,0,.52),
+      0 7px 22px rgba(0,0,0,.24),
+      inset 0 1px 0 rgba(255,255,255,.022);
+  }
+
+  #preview {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: none;
+    max-height: none;
+    margin: 0 auto;
+    border-radius: 3px;
+  }
+
+  .slide-nav {
+    min-height: 30px;
+    margin: 0;
+    gap: 8px;
+    color: #a8adb1;
+  }
+
+  .slide-nav:not(.on) {
+    display: none !important;
+  }
+
+  .slide-nav button,
+  #btnGridView {
+    border-color: rgba(177,184,189,.24) !important;
+    color: #adb3b7 !important;
+    background: rgba(255,255,255,.006) !important;
+  }
+
+  .export-row,
+  .actions {
+    width: 100%;
+  }
+
+  .export-row {
+    gap: 8px;
+  }
+
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .actions .export-primary {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 12px;
+    font-size: .68rem;
+    letter-spacing: .105em;
+    border-radius: 5px;
+  }
+
+  .actions #btnCarousel:not(.hide),
+  .actions .export-more-shell {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .actions #btnCarousel:not(.hide) {
+    min-height: 35px;
+    padding: 8px 10px;
+    color: #c3c8cb !important;
+    border: 1px solid rgba(177,184,189,.22) !important;
+    background: rgba(255,255,255,.005) !important;
+    box-shadow: none !important;
+  }
+
+  .actions #btnCarousel:not(.hide):active,
+  .actions #btnCarousel:not(.hide):focus-visible {
+    color: #f1f2ef !important;
+    border-color: rgba(194,200,204,.38) !important;
+    background: rgba(255,255,255,.026) !important;
+  }
+
+  .export-more-toggle {
+    min-height: 35px;
+    border-radius: 5px;
+    color: #b8bdc1;
+    border-color: rgba(177,184,189,.20);
+    background: rgba(255,255,255,.004);
+  }
+
+  .export-secondary-group {
+    gap: 7px;
+  }
+
+  .zs-media-disabled {
+    opacity: .38 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  .zs-iconized {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+  }
+
+  .zs-icon {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: currentColor;
+    opacity: .9;
+  }
+
+  .zs-icon svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  #btnHeaderBulk .zs-icon {
+    width: 13px;
+    height: 13px;
+    flex-basis: 13px;
+  }
+
+  #advancedToggleRow.zs-iconized {
+    justify-content: flex-start;
+    width: max-content;
+    max-width: 100%;
+    gap: 6px;
+  }
+
+  #advancedToggleRow .zs-icon,
+  #draftHint .zs-icon {
+    width: 12px;
+    height: 12px;
+    flex-basis: 12px;
+  }
+
+  .dropzone.zs-dropzone-iconized {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .dropzone > .zs-dropzone-icon {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+    margin-bottom: 8px;
+    color: #aeb4b8;
+    opacity: .82;
+  }
+
+  .caption-box {
+    width: 100%;
+  }
+
+  .zs-assistant-empty-state {
+    display: none;
+    width: 100%;
+    min-height: 0;
+    padding: 24px 18px 22px;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    border: 1px solid rgba(177,184,189,.16);
+    border-radius: 7px;
+    background:
+      radial-gradient(circle at 50% 15%, rgba(255,255,255,.025), transparent 40%),
+      #0b0d0e;
+  }
+
+  .caption-box.open.zs-assistant-empty-active .zs-assistant-empty-state {
+    display: flex;
+  }
+
+  .caption-box.open.zs-assistant-empty-active #caption,
+  .caption-box.open.zs-assistant-empty-active .caption-head {
+    display: none !important;
+  }
+
+  .zs-assistant-empty-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+    border: 1px solid rgba(209,213,216,.20);
+    border-radius: 50%;
+    background: rgba(255,255,255,.012);
+    color: #dedfda;
+  }
+
+  .zs-assistant-empty-icon .zs-icon {
+    width: 18px;
+    height: 18px;
+    flex-basis: 18px;
+  }
+
+  .zs-assistant-empty-kicker {
+    margin-bottom: 8px;
+    font-size: .59rem;
+    font-weight: 500;
+    letter-spacing: .16em;
+    color: #939a9f;
+  }
+
+  .zs-assistant-empty-title {
+    max-width: 250px;
+    margin: 0;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.30rem;
+    line-height: 1.08;
+    font-weight: 500;
+    color: #f0f0ec;
+  }
+
+  .zs-assistant-empty-body {
+    max-width: 280px;
+    margin: 10px 0 0;
+    font-size: .72rem;
+    line-height: 1.58;
+    color: #969da1;
+  }
+
+  .zs-assistant-empty-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 7px;
+    margin-top: 18px;
+  }
+
+  .zs-assistant-empty-actions .btn {
+    width: 100%;
+    min-height: 37px;
+    border-radius: 5px;
+    font-size: .63rem;
+    letter-spacing: .075em;
+  }
+
+  .zs-assistant-primary {
+    color: #f4f4ef;
+    border: 1px solid transparent !important;
+    background:
+      linear-gradient(#121517,#121517) padding-box,
+      linear-gradient(90deg,
+        rgba(255,104,118,.50),
+        rgba(235,184,79,.48),
+        rgba(96,188,153,.46),
+        rgba(88,154,216,.48),
+        rgba(143,111,213,.50)) border-box !important;
+  }
+
+  .zs-assistant-secondary {
+    color: #adb3b7 !important;
+    border-color: rgba(177,184,189,.18) !important;
+    background: rgba(255,255,255,.004) !important;
+  }
+}

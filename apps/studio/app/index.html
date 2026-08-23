@@ -939,6 +939,2252 @@ input[type=range]::-moz-range-thumb {
   }
 }
 
+
+/* ZSTUDIO_LAPTOP_BRAND_HEADER_V1
+   Desktop brand authority:
+   - the product name must be readable at first glance
+   - the Z mark supports the wordmark instead of carrying the brand alone
+   - the tagline is secondary information
+   - mobile keeps the existing compact shell
+*/
+
+@media (min-width: 621px) {
+  header {
+    min-height: 76px;
+    padding: 14px 24px;
+    gap: 20px;
+  }
+
+  .brand {
+    min-width: 0;
+    gap: 15px;
+    align-items: center;
+  }
+
+  #headerLogo {
+    width: 46px !important;
+    height: 46px !important;
+    flex: 0 0 46px;
+    object-fit: contain;
+    opacity: 1;
+  }
+
+  .brand .tag {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0;
+    padding-left: 0;
+    border-left: 0;
+    font-size: 0;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .brand .tag::before {
+    content: 'Z Studio';
+    display: block;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.68rem;
+    line-height: 0.95;
+    font-style: normal;
+    font-weight: 600;
+    letter-spacing: 0.015em;
+    color: #F7F4ED;
+    white-space: nowrap;
+  }
+
+  .brand .tag [data-i18n="headerTagline"] {
+    display: block;
+    margin-top: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.64rem;
+    line-height: 1.2;
+    font-style: normal;
+    font-weight: 400;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--text2);
+    white-space: nowrap;
+  }
+
+  .header-actions {
+    gap: 9px;
+  }
+
+  #btnHeaderBulk {
+    min-height: 38px;
+  }
+}
+
+@media (min-width: 621px) and (max-width: 820px) {
+  .brand .tag::before {
+    font-size: 1.5rem;
+  }
+
+  .brand .tag [data-i18n="headerTagline"] {
+    max-width: 210px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* ZSTUDIO_LAPTOP_WORKSPACE_V1
+   Laptop workspace authority:
+   - the creative preview is the visual protagonist
+   - the form column stops dominating the canvas
+   - caption / AI become a real assistant rail on wide laptops
+   - secondary exports collapse behind one disclosure
+   - mobile keeps the existing stacked shell
+*/
+
+@media (min-width: 981px) {
+  .layout {
+    grid-template-columns: 330px minmax(0, 1fr);
+    align-items:start;
+    min-height:calc(100vh - 77px);
+  }
+
+  .controls {
+    padding:20px 18px 24px;
+    max-height:calc(100vh - 77px);
+    overflow-y:auto;
+    overflow-x:hidden;
+    scrollbar-width:thin;
+  }
+
+  .controls .step {
+    margin-bottom:24px;
+  }
+
+  .controls .step-label {
+    margin-bottom:9px;
+  }
+
+  .stage {
+    min-width:0;
+    min-height:calc(100vh - 77px);
+    padding:24px clamp(18px, 2vw, 32px) 28px;
+    gap:16px;
+  }
+
+  .canvas-frame {
+    padding:12px;
+  }
+
+  #preview {
+    width:auto;
+    height:auto;
+    max-width:min(100%, 760px);
+    max-height:calc(100vh - 215px);
+  }
+
+  .actions {
+    gap:8px;
+  }
+
+  .actions .export-primary {
+    min-height:42px;
+  }
+
+  .export-more-shell {
+    display:block;
+    position:relative;
+  }
+
+  .export-more-toggle {
+    display:flex;
+    min-height:42px;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:10px 14px;
+  }
+
+  .export-more-toggle::after {
+    content:'＋';
+    color:var(--text2);
+    font-size:0.95rem;
+    line-height:1;
+  }
+
+  .export-more-shell.open .export-more-toggle::after {
+    content:'−';
+  }
+
+  .export-secondary-group {
+    display:none;
+    position:absolute;
+    right:0;
+    bottom:calc(100% + 8px);
+    z-index:12;
+    width:310px;
+    grid-template-columns:1fr 1fr;
+    gap:7px;
+    padding:10px;
+    background:rgba(17,19,21,0.98);
+    border:1px solid var(--border);
+    border-radius:5px;
+    box-shadow:0 18px 42px rgba(0,0,0,0.48);
+    backdrop-filter:blur(12px);
+  }
+
+  .export-more-shell.open .export-secondary-group {
+    display:grid;
+  }
+
+  .export-secondary-group .export-secondary {
+    width:100%;
+    min-width:0;
+    min-height:36px;
+    padding:8px 7px;
+    font-size:0.62rem;
+    letter-spacing:0.07em;
+  }
+
+  .export-secondary-group .export-secondary:last-child {
+    grid-column:1 / -1;
+  }
+}
+
+@media (min-width: 1200px) {
+  .layout {
+    grid-template-columns: 345px minmax(0, 1fr);
+  }
+
+  .stage {
+    display:grid;
+    grid-template-columns:minmax(470px, 1fr) minmax(280px, 320px);
+    grid-template-rows:minmax(0, 1fr) auto auto;
+    align-items:start;
+    column-gap:24px;
+    row-gap:14px;
+  }
+
+  .stage-glow {
+    width:min(820px, 72%);
+    height:min(760px, 76%);
+    left:38%;
+    top:44%;
+  }
+
+  .canvas-frame {
+    grid-column:1;
+    grid-row:1;
+    align-self:center;
+    justify-self:center;
+  }
+
+  #preview {
+    max-height:calc(100vh - 210px);
+  }
+
+  .slide-nav {
+    grid-column:1;
+    grid-row:2;
+    justify-self:center;
+  }
+
+  .export-row {
+    display:contents;
+  }
+
+  .actions {
+    grid-column:1;
+    grid-row:3;
+    width:min(100%, 620px);
+    justify-self:center;
+    display:flex;
+    align-items:stretch;
+    justify-content:center;
+    flex-wrap:wrap;
+  }
+
+  .actions .export-primary {
+    width:auto;
+    min-width:210px;
+    flex:0 1 230px;
+  }
+
+  .actions .export-more-shell {
+    flex:0 1 210px;
+    min-width:190px;
+  }
+
+  .actions .export-more-toggle {
+    width:100%;
+  }
+
+  .caption-box {
+    grid-column:2;
+    grid-row:1 / 4;
+    align-self:stretch;
+    width:100%;
+    min-width:0;
+    margin:0;
+    padding:18px;
+    border:1px solid var(--border);
+    border-radius:6px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.008)),
+      rgba(17,19,21,0.78);
+    box-shadow:0 18px 42px rgba(0,0,0,0.22);
+  }
+
+  .caption-mobile-body {
+    display:flex;
+    flex-direction:column;
+    height:100%;
+    min-height:0;
+  }
+
+  .caption-head {
+    display:flex !important;
+    flex-direction:column;
+    align-items:flex-start !important;
+    gap:12px !important;
+  }
+
+  .caption-head > label.f {
+    margin:0;
+    font-size:0.68rem;
+    letter-spacing:0.13em;
+    text-transform:uppercase;
+  }
+
+  .caption-head > div {
+    width:100%;
+    display:grid !important;
+    grid-template-columns:1fr;
+    gap:7px !important;
+  }
+
+  .caption-head > div .btn {
+    width:100%;
+    min-height:36px;
+    padding:8px 10px !important;
+    font-size:0.64rem !important;
+    letter-spacing:0.075em;
+  }
+
+  .caption-box textarea {
+    flex:1;
+    min-height:280px;
+    margin-top:10px;
+    resize:none;
+    background:rgba(9,10,11,0.62);
+  }
+}
+
+@media (min-width: 1500px) {
+  .layout {
+    grid-template-columns: 360px minmax(0, 1fr);
+  }
+
+  .stage {
+    grid-template-columns:minmax(560px, 1fr) 330px;
+    column-gap:30px;
+  }
+
+  #preview {
+    max-height:calc(100vh - 195px);
+  }
+}
+
+/* ZSTUDIO_LAPTOP_PREMIUM_POLISH_V1
+   Visual refinement only. The approved three-zone workspace geometry remains unchanged.
+   Goals: calmer type rhythm, deliberate spacing, neutral empty surfaces, stronger focus states,
+   quieter iconography, and a more finished desktop-product feel without changing behavior.
+*/
+
+@media (min-width: 981px) {
+  body {
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+
+  header {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0)),
+      #0b0d0e;
+    border-bottom-color:#34393d;
+    box-shadow:0 1px 0 rgba(255,255,255,0.018);
+  }
+
+  .controls {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.012), transparent 28%),
+      #0a0c0d;
+    border-right-color:#34393d;
+  }
+
+  .controls::-webkit-scrollbar {
+    width:7px;
+  }
+
+  .controls::-webkit-scrollbar-thumb {
+    background:#33383c;
+    border:2px solid #0a0c0d;
+  }
+
+  .controls .step {
+    padding-bottom:2px;
+  }
+
+  .controls .step-label {
+    color:#c6c9cc;
+    font-size:0.64rem;
+    font-weight:500;
+    letter-spacing:0.18em;
+    line-height:1.2;
+  }
+
+  .controls .step-label::after {
+    background:linear-gradient(90deg, #353a3e, rgba(53,58,62,0));
+  }
+
+  .controls label.f {
+    margin-top:11px;
+    margin-bottom:6px;
+    color:#b7bcc0;
+    font-size:0.72rem;
+    line-height:1.35;
+  }
+
+  .controls .hint {
+    color:#92989d;
+    font-size:0.68rem;
+    line-height:1.52;
+  }
+
+  .controls select,
+  .controls input[type=text],
+  .controls input[type=number],
+  .controls textarea {
+    min-height:39px;
+    padding:9px 11px;
+    border-color:#3b4145;
+    border-radius:5px;
+    background:#121517;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.015);
+  }
+
+  .controls select:hover,
+  .controls input[type=text]:hover,
+  .controls input[type=number]:hover,
+  .controls textarea:hover {
+    border-color:#50575c;
+  }
+
+  .controls select:focus,
+  .controls input:focus,
+  .controls textarea:focus {
+    border-color:#777f85;
+    box-shadow:0 0 0 3px rgba(255,255,255,0.055);
+  }
+
+  .seg {
+    gap:7px;
+  }
+
+  .seg button {
+    min-height:36px;
+    border-color:#3b4145;
+    border-radius:5px;
+    background:#111416;
+  }
+
+  .seg button:hover {
+    border-color:#626a70;
+    color:#f2f2ef;
+    background:#15191b;
+    transform:translateY(-1px);
+  }
+
+  .seg button.active {
+    border-color:#747c82;
+    color:#f7f7f4;
+    background:rgba(255,255,255,0.055);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.035);
+  }
+
+  .chip {
+    border-color:#41474b;
+    background:rgba(255,255,255,0.008);
+  }
+
+  .chip:hover,
+  .chip.active {
+    border-color:#6a7278;
+    color:#f1f2ef;
+    background:rgba(255,255,255,0.045);
+  }
+
+  .dropzone {
+    min-height:116px;
+    padding:24px 18px;
+    border-color:#454b50;
+    border-radius:7px;
+    background:
+      radial-gradient(circle at 50% 24%, rgba(255,255,255,0.035), transparent 42%),
+      linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0.006)),
+      #111416;
+    color:#c4c8cb;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.018);
+  }
+
+  .dropzone:hover,
+  .dropzone.drag {
+    border-color:#7a8287;
+    color:#f2f2ef;
+    background:
+      radial-gradient(circle at 50% 24%, rgba(255,255,255,0.055), transparent 42%),
+      linear-gradient(180deg, rgba(255,255,255,0.026), rgba(255,255,255,0.008)),
+      #131719;
+  }
+
+  #btnFolderPicker,
+  #advancedToggleRow,
+  #draftHint button {
+    transition:border-color .18s ease, color .18s ease, background-color .18s ease, opacity .18s ease;
+  }
+
+  #btnFolderPicker {
+    border-radius:5px;
+    border-color:#42484c;
+    background:#0f1213;
+  }
+
+  #btnFolderPicker:hover {
+    border-color:#697177;
+    background:#141719;
+  }
+
+  #advancedToggleRow:hover {
+    color:#d8dbdd;
+  }
+
+  .btn,
+  .lang-select {
+    border-radius:5px;
+  }
+
+  .btn {
+    font-weight:500;
+  }
+
+  .btn:focus-visible,
+  .lang-select:focus-visible,
+  .dropzone:focus-visible,
+  .step-label[role=button]:focus-visible,
+  .chip:focus-visible,
+  .seg button:focus-visible {
+    outline:2px solid rgba(230,233,235,0.72);
+    outline-offset:2px;
+  }
+
+  .stage {
+    background:
+      radial-gradient(ellipse 72% 62% at 42% 42%, rgba(255,255,255,0.018), transparent 72%);
+  }
+
+  .stage-glow {
+    opacity:0.72;
+    filter:blur(28px);
+  }
+
+  .canvas-frame {
+    border-color:#3e4448;
+    border-radius:9px;
+    background:#101315;
+    box-shadow:
+      0 28px 72px rgba(0,0,0,0.56),
+      0 0 0 1px rgba(255,255,255,0.012),
+      inset 0 1px 0 rgba(255,255,255,0.028);
+    transition:border-color .22s ease, box-shadow .22s ease, transform .22s ease;
+  }
+
+  .canvas-frame:hover {
+    border-color:#50575c;
+    box-shadow:
+      0 32px 80px rgba(0,0,0,0.60),
+      0 0 0 1px rgba(255,255,255,0.018),
+      inset 0 1px 0 rgba(255,255,255,0.035);
+  }
+
+  #preview {
+    border-radius:4px;
+  }
+
+  .slide-nav button {
+    border-color:#3f454a;
+    background:#101315;
+  }
+
+  .slide-nav button:hover {
+    border-color:#70787d;
+    color:#f1f2ef;
+    background:#161a1c;
+  }
+
+  .actions .export-primary {
+    border-radius:5px;
+    background:#f2f1ec;
+    border-color:#f2f1ec;
+    color:#0a0b0c;
+    box-shadow:0 8px 24px rgba(0,0,0,0.20);
+  }
+
+  .actions .export-primary:hover {
+    background:#ffffff;
+    border-color:#ffffff;
+    box-shadow:0 10px 28px rgba(0,0,0,0.28);
+    transform:translateY(-1px);
+  }
+
+  .export-more-toggle {
+    border-color:#454b50;
+    background:#101315;
+    color:#c9cdd0;
+  }
+
+  .export-more-toggle:hover,
+  .export-more-shell.open .export-more-toggle {
+    border-color:#686f75;
+    color:#f2f2ef;
+    background:#15191b;
+  }
+
+  .export-secondary-group {
+    border-color:#454b50;
+    border-radius:7px;
+    background:rgba(15,18,20,0.985);
+    box-shadow:0 22px 54px rgba(0,0,0,0.56);
+  }
+
+  .export-secondary-group .export-secondary {
+    border-radius:4px;
+    background:#111416;
+  }
+
+  .export-secondary-group .export-secondary:hover {
+    border-color:#656d72;
+    color:#f1f2ef;
+    background:#171b1d;
+  }
+
+  .header-actions .btn,
+  .header-actions .lang-select {
+    min-height:38px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .caption-box {
+    padding:20px;
+    border-color:#3d4347;
+    border-radius:9px;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(255,255,255,0.032), transparent 30%),
+      linear-gradient(180deg, rgba(255,255,255,0.022), rgba(255,255,255,0.006)),
+      #101315;
+    box-shadow:
+      0 24px 58px rgba(0,0,0,0.28),
+      inset 0 1px 0 rgba(255,255,255,0.025);
+  }
+
+  .caption-head > label.f {
+    color:#c9cdd0;
+    font-weight:500;
+    letter-spacing:0.15em;
+  }
+
+  .caption-head > div .btn {
+    border-radius:5px;
+    background:
+      linear-gradient(#121517,#121517) padding-box,
+      linear-gradient(90deg,
+        rgba(255,104,118,.56),
+        rgba(235,184,79,.52),
+        rgba(96,188,153,.50),
+        rgba(88,154,216,.52),
+        rgba(143,111,213,.56)) border-box !important;
+    color:#e8eaeb !important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.018);
+  }
+
+  .caption-head > div .btn:hover,
+  .caption-head > div .btn:focus {
+    background:
+      linear-gradient(#171b1d,#171b1d) padding-box,
+      linear-gradient(90deg,
+        rgba(255,104,118,.76),
+        rgba(235,184,79,.72),
+        rgba(96,188,153,.70),
+        rgba(88,154,216,.72),
+        rgba(143,111,213,.76)) border-box !important;
+    color:#ffffff !important;
+  }
+
+  .caption-box textarea {
+    padding:14px;
+    border-color:#3b4145;
+    border-radius:6px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.008), rgba(255,255,255,0)),
+      #0b0d0e;
+    color:#e9ebec;
+    line-height:1.7;
+    caret-color:#f3f3ef;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.012);
+  }
+
+  .caption-box textarea:hover {
+    border-color:#4c5358;
+  }
+
+  .caption-box textarea:focus {
+    border-color:#777f85;
+    box-shadow:0 0 0 3px rgba(255,255,255,0.05);
+  }
+}
+
+/* ZSTUDIO_LAPTOP_PREMIUM_POLISH_V2
+   Second visual-only refinement over the approved laptop workspace.
+   No geometry, behavior, mobile, AI, export, auth, billing or store changes.
+*/
+
+@media (min-width: 981px) {
+  :root {
+    --studio-hairline: rgba(177,184,189,.22);
+    --studio-hairline-hover: rgba(194,200,204,.36);
+    --studio-soft-surface: rgba(255,255,255,.018);
+    --studio-soft-surface-hover: rgba(255,255,255,.038);
+  }
+
+  .controls .step-label {
+    font-size:.66rem;
+    letter-spacing:.165em;
+    color:#d0d3d5;
+  }
+
+  .controls label.f {
+    font-size:.75rem;
+    color:#c1c5c8;
+  }
+
+  .controls .hint {
+    font-size:.70rem;
+    color:#9da3a7;
+    line-height:1.58;
+  }
+
+  .controls select,
+  .controls input[type=text],
+  .controls input[type=number],
+  .controls textarea {
+    font-size:.82rem;
+    border-color:var(--studio-hairline);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.012), rgba(255,255,255,0)),
+      #111416;
+  }
+
+  .controls select:hover,
+  .controls input[type=text]:hover,
+  .controls input[type=number]:hover,
+  .controls textarea:hover {
+    border-color:var(--studio-hairline-hover);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.022), rgba(255,255,255,.002)),
+      #121517;
+  }
+
+  .btn {
+    letter-spacing:.105em;
+    border-color:var(--studio-hairline);
+  }
+
+  .btn-line {
+    color:#c0c4c7;
+    background:rgba(255,255,255,.006);
+  }
+
+  .btn-line:hover {
+    border-color:var(--studio-hairline-hover);
+    color:#f4f4f1;
+    background:var(--studio-soft-surface-hover);
+    box-shadow:0 6px 18px rgba(0,0,0,.20);
+  }
+
+  .chip {
+    min-height:28px;
+    padding:6px 11px;
+    font-size:.69rem;
+    color:#b9bec1;
+    border-color:var(--studio-hairline);
+  }
+
+  .chip:hover,
+  .chip.active {
+    border-color:var(--studio-hairline-hover);
+    background:rgba(255,255,255,.035);
+  }
+
+  .seg button {
+    font-size:.76rem;
+    border-color:var(--studio-hairline);
+  }
+
+  .seg button:hover,
+  .seg button.active {
+    border-color:var(--studio-hairline-hover);
+  }
+
+  .dropzone {
+    border-color:rgba(184,190,194,.30);
+    background:
+      radial-gradient(circle at 50% 20%, rgba(255,255,255,.027), transparent 48%),
+      linear-gradient(180deg, rgba(255,255,255,.014), rgba(255,255,255,.002)),
+      #101315;
+  }
+
+  .dropzone:hover,
+  .dropzone.drag {
+    border-color:rgba(210,215,218,.48);
+    background:
+      radial-gradient(circle at 50% 20%, rgba(255,255,255,.045), transparent 48%),
+      linear-gradient(180deg, rgba(255,255,255,.022), rgba(255,255,255,.004)),
+      #121618;
+  }
+
+  #btnFolderPicker {
+    border-color:var(--studio-hairline);
+    background:rgba(255,255,255,.005);
+  }
+
+  #btnFolderPicker:hover {
+    border-color:var(--studio-hairline-hover);
+    background:rgba(255,255,255,.028);
+  }
+
+  .canvas-frame {
+    border-color:rgba(177,184,189,.24);
+    background:#0f1213;
+    box-shadow:
+      0 34px 86px rgba(0,0,0,.58),
+      0 10px 30px rgba(0,0,0,.24),
+      inset 0 1px 0 rgba(255,255,255,.022);
+  }
+
+  .canvas-frame:hover {
+    border-color:rgba(196,202,206,.34);
+    box-shadow:
+      0 38px 94px rgba(0,0,0,.62),
+      0 12px 34px rgba(0,0,0,.28),
+      inset 0 1px 0 rgba(255,255,255,.03);
+  }
+
+  .actions .export-primary {
+    letter-spacing:.12em;
+  }
+
+  .export-more-toggle {
+    border-color:var(--studio-hairline);
+    background:rgba(255,255,255,.006);
+  }
+
+  .export-more-toggle:hover,
+  .export-more-shell.open .export-more-toggle {
+    border-color:var(--studio-hairline-hover);
+    background:rgba(255,255,255,.028);
+  }
+
+  .header-actions .btn,
+  .header-actions .lang-select {
+    border-color:var(--studio-hairline);
+    background:rgba(255,255,255,.006);
+  }
+
+  .header-actions .btn:hover,
+  .header-actions .lang-select:hover {
+    border-color:var(--studio-hairline-hover);
+    background:rgba(255,255,255,.028);
+  }
+}
+
+@media (min-width: 1200px) {
+  .caption-box {
+    border-color:rgba(177,184,189,.24);
+    background:
+      radial-gradient(circle at 50% -8%, rgba(255,255,255,.026), transparent 32%),
+      linear-gradient(180deg, rgba(255,255,255,.016), rgba(255,255,255,.002)),
+      #0f1213;
+  }
+
+  .caption-head > label.f {
+    font-size:.69rem;
+    letter-spacing:.14em;
+    color:#d0d3d5;
+  }
+
+  .caption-head > div .btn {
+    min-height:37px;
+    font-size:.65rem !important;
+    letter-spacing:.08em;
+    border-color:transparent !important;
+    background:
+      linear-gradient(#111416,#111416) padding-box,
+      linear-gradient(90deg,
+        rgba(255,104,118,.44),
+        rgba(235,184,79,.42),
+        rgba(96,188,153,.40),
+        rgba(88,154,216,.42),
+        rgba(143,111,213,.44)) border-box !important;
+  }
+
+  .caption-head > div .btn:hover,
+  .caption-head > div .btn:focus {
+    background:
+      linear-gradient(#15191b,#15191b) padding-box,
+      linear-gradient(90deg,
+        rgba(255,104,118,.66),
+        rgba(235,184,79,.62),
+        rgba(96,188,153,.60),
+        rgba(88,154,216,.62),
+        rgba(143,111,213,.66)) border-box !important;
+  }
+
+  .caption-box textarea {
+    font-size:.84rem;
+    border-color:rgba(177,184,189,.20);
+    background:
+      radial-gradient(circle at 50% 18%, rgba(255,255,255,.012), transparent 42%),
+      #0a0c0d;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.01),
+      inset 0 0 48px rgba(0,0,0,.12);
+  }
+
+  .caption-box textarea:hover {
+    border-color:rgba(194,200,204,.30);
+  }
+
+  .caption-box textarea:focus {
+    border-color:rgba(216,220,223,.46);
+    box-shadow:0 0 0 3px rgba(255,255,255,.04);
+  }
+}
+
+/* ZSTUDIO_ICON_SYSTEM_V1
+   Laptop-only icon language + deliberate assistant empty state.
+   The approved three-zone geometry remains untouched. */
+
+@media (min-width: 981px) {
+  .zs-iconized {
+    display:inline-flex !important;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+  }
+
+  .zs-icon {
+    width:14px;
+    height:14px;
+    flex:0 0 14px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    color:currentColor;
+    opacity:.9;
+  }
+
+  .zs-icon svg {
+    width:100%;
+    height:100%;
+    display:block;
+    overflow:visible;
+  }
+
+  #btnHeaderBulk .zs-icon {
+    width:15px;
+    height:15px;
+    flex-basis:15px;
+  }
+
+  #advancedToggleRow.zs-iconized {
+    justify-content:flex-start;
+    width:max-content;
+    max-width:100%;
+    gap:6px;
+  }
+
+  #advancedToggleRow .zs-icon {
+    width:12px;
+    height:12px;
+    flex-basis:12px;
+  }
+
+  #draftHint .zs-icon {
+    width:12px;
+    height:12px;
+    flex-basis:12px;
+  }
+
+  .dropzone.zs-dropzone-iconized {
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+  }
+
+  .dropzone > .zs-dropzone-icon {
+    width:22px;
+    height:22px;
+    flex:0 0 22px;
+    margin-bottom:10px;
+    color:#aeb4b8;
+    opacity:.82;
+  }
+
+  .dropzone:hover > .zs-dropzone-icon,
+  .dropzone.drag > .zs-dropzone-icon {
+    color:#e5e7e8;
+    opacity:1;
+  }
+}
+
+@media (min-width: 1200px) {
+  .zs-assistant-empty-state {
+    display:none;
+    flex:1;
+    min-height:280px;
+    margin-top:12px;
+    padding:34px 26px 28px;
+    border:1px solid rgba(177,184,189,.14);
+    border-radius:8px;
+    background:
+      radial-gradient(circle at 50% 18%, rgba(255,255,255,.025), transparent 38%),
+      linear-gradient(180deg, rgba(255,255,255,.012), rgba(255,255,255,.002)),
+      #0b0d0e;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    text-align:center;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.012);
+  }
+
+  .caption-box.zs-assistant-empty-active .zs-assistant-empty-state {
+    display:flex;
+  }
+
+  .caption-box.zs-assistant-empty-active #caption {
+    display:none;
+  }
+
+  .caption-box.zs-assistant-empty-active .caption-head > div {
+    display:none !important;
+  }
+
+  .zs-assistant-empty-icon {
+    width:44px;
+    height:44px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin-bottom:18px;
+    border:1px solid rgba(209,213,216,.20);
+    border-radius:50%;
+    background:
+      radial-gradient(circle at 45% 35%, rgba(255,255,255,.055), transparent 56%),
+      rgba(255,255,255,.012);
+    color:#dedfda;
+    box-shadow:0 12px 34px rgba(0,0,0,.24);
+  }
+
+  .zs-assistant-empty-icon .zs-icon {
+    width:19px;
+    height:19px;
+    flex-basis:19px;
+  }
+
+  .zs-assistant-empty-kicker {
+    margin-bottom:10px;
+    font-size:.61rem;
+    font-weight:500;
+    letter-spacing:.18em;
+    color:#939a9f;
+  }
+
+  .zs-assistant-empty-title {
+    max-width:245px;
+    margin:0;
+    font-family:'Cormorant Garamond',serif;
+    font-size:1.42rem;
+    line-height:1.08;
+    font-weight:500;
+    letter-spacing:.005em;
+    color:#f0f0ec;
+  }
+
+  .zs-assistant-empty-body {
+    max-width:248px;
+    margin:12px 0 0;
+    font-size:.72rem;
+    line-height:1.62;
+    color:#92999e;
+  }
+
+  .zs-assistant-empty-actions {
+    width:100%;
+    max-width:244px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    margin-top:22px;
+  }
+
+  .zs-assistant-empty-actions .btn {
+    width:100%;
+    min-height:39px;
+    border-radius:5px;
+    font-size:.64rem;
+    letter-spacing:.085em;
+  }
+
+  .zs-assistant-primary {
+    color:#f4f4ef;
+    border:1px solid transparent !important;
+    background:
+      linear-gradient(#121517,#121517) padding-box,
+      linear-gradient(90deg,
+        rgba(255,104,118,.50),
+        rgba(235,184,79,.48),
+        rgba(96,188,153,.46),
+        rgba(88,154,216,.48),
+        rgba(143,111,213,.50)) border-box !important;
+  }
+
+  .zs-assistant-primary:hover,
+  .zs-assistant-primary:focus-visible {
+    background:
+      linear-gradient(#171b1d,#171b1d) padding-box,
+      linear-gradient(90deg,
+        rgba(255,104,118,.72),
+        rgba(235,184,79,.68),
+        rgba(96,188,153,.66),
+        rgba(88,154,216,.68),
+        rgba(143,111,213,.72)) border-box !important;
+  }
+
+  .zs-assistant-secondary {
+    border-color:rgba(177,184,189,.18) !important;
+    background:rgba(255,255,255,.004) !important;
+    color:#aeb4b8 !important;
+  }
+
+  .zs-assistant-secondary:hover,
+  .zs-assistant-secondary:focus-visible {
+    border-color:rgba(194,200,204,.34) !important;
+    background:rgba(255,255,255,.025) !important;
+    color:#eef0f0 !important;
+  }
+}
+
+/* ZSTUDIO_SIDE_RAIL_BALANCE_V1
+   Match the left editing rail with an open assistant rail: one structural
+   separator only, no framed box ending above the footer. */
+@media (min-width: 1200px) {
+  .caption-box {
+    border:0 !important;
+    border-left:1px solid var(--studio-hairline) !important;
+    border-radius:0 !important;
+    background:transparent !important;
+    box-shadow:none !important;
+    padding:18px 0 18px 18px !important;
+  }
+
+  .zs-assistant-empty-state {
+    border:0 !important;
+    border-radius:0 !important;
+    background:transparent !important;
+    box-shadow:none !important;
+    padding-left:18px;
+    padding-right:18px;
+  }
+}
+
+/* ZSTUDIO_LAPTOP_COLOR_POLICY_V1
+   Laptop-only transfer of the approved mobile color language.
+   The rainbow remains a one-pixel signature: section continuation lines and
+   selected states only. Text stays neutral/high-contrast; focus also changes
+   luminance so accessibility never depends on hue alone. No geometry changes. */
+@media (min-width: 981px) {
+  .controls .step-label {
+    color:#d7dadd;
+  }
+
+  .controls .step-label::after {
+    background:linear-gradient(
+      90deg,
+      rgba(255,92,113,.70) 0%,
+      rgba(236,190,78,.70) 22%,
+      rgba(95,194,145,.68) 46%,
+      rgba(76,157,225,.70) 72%,
+      rgba(139,104,220,.72) 100%
+    ) !important;
+    opacity:.62;
+  }
+
+  .controls .seg button.active,
+  .controls .chip.active,
+  .export-more-shell.open .export-more-toggle {
+    color:#f3f4f1 !important;
+    border-color:transparent !important;
+    background:
+      linear-gradient(#141719,#141719) padding-box,
+      linear-gradient(
+        90deg,
+        rgba(255,92,113,.72),
+        rgba(236,190,78,.70),
+        rgba(95,194,145,.68),
+        rgba(76,157,225,.70),
+        rgba(139,104,220,.72)
+      ) border-box !important;
+  }
+
+  .controls select:focus-visible,
+  .controls input[type=text]:focus-visible,
+  .controls input[type=number]:focus-visible,
+  .controls textarea:focus-visible,
+  .controls button:focus-visible,
+  .stage button:focus-visible,
+  .header-actions .btn:focus-visible,
+  .header-actions .lang-select:focus-visible,
+  .export-more-toggle:focus-visible {
+    border-color:rgba(242,242,239,.86) !important;
+    box-shadow:0 0 0 3px rgba(76,157,225,.10) !important;
+  }
+}
+
+/* ZSTUDIO_LAPTOP_VIEWPORT_BALANCE_V1
+   Laptop composition authority over the approved three-zone workspace.
+
+   CENTER RENDER RECOVERY V1:
+   - the creative column owns three intrinsic rows: canvas / optional nav / export;
+   - no fixed viewport-subtraction max-height values;
+   - canvas size is measured by the preview state runtime;
+   - left/right rails keep the approved horizontal geometry;
+   - the page itself stays fixed while the editing rail scrolls internally.
+*/
+
+@media (min-width: 981px) {
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    min-height: 100vh;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) 34px;
+  }
+
+  header {
+    grid-row: 1;
+  }
+
+  .layout {
+    grid-row: 2;
+    min-height: 0 !important;
+    height: 100%;
+  }
+
+  .controls {
+    height: 100%;
+    min-height: 0;
+    max-height: none !important;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .stage {
+    height: 100%;
+    min-height: 0 !important;
+    padding-top: 12px;
+    padding-bottom: 10px;
+  }
+
+  .site-footer {
+    grid-row: 3;
+    height: 34px;
+    min-height: 34px;
+    padding: 5px 24px;
+    flex-wrap: nowrap;
+    gap: 12px;
+    border-top-color: var(--studio-hairline);
+    background: #090b0c;
+  }
+
+  .site-footer-brand {
+    gap: 7px;
+  }
+
+  .site-footer-brand img {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  .site-footer-brand span,
+  .site-footer-legal a {
+    font-size: .64rem;
+  }
+
+  .site-footer-legal {
+    gap: 6px;
+  }
+
+  .ph-remove,
+  .ph .tick {
+    font-size: 0 !important;
+  }
+
+  .ph-remove::before,
+  .ph-remove::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 9px;
+    height: 1px;
+    border-radius: 999px;
+    background: currentColor;
+    transform-origin: center;
+  }
+
+  .ph-remove::before {
+    transform: translate(-50%, -50%) rotate(45deg);
+  }
+
+  .ph-remove::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+  }
+
+  .ph .tick::before {
+    content: '';
+    width: 8px;
+    height: 4px;
+    border-left: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: translateY(-1px) rotate(-45deg);
+    opacity: 0;
+  }
+
+  .ph.incar .tick::before {
+    opacity: 1;
+  }
+
+  .zs-media-disabled {
+    opacity: .38 !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+}
+
+@media (min-width: 1200px) {
+  .stage {
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    row-gap: 8px;
+    align-content: stretch;
+  }
+
+  .canvas-frame {
+    box-sizing: border-box;
+    min-width: 0;
+    min-height: 0;
+    padding: 10px;
+    overflow: hidden;
+  }
+
+  #preview {
+    display: block;
+    max-width: none !important;
+    max-height: none !important;
+  }
+
+  html:not([data-zstudio-preview-state="ready"]) .slide-nav {
+    display: none !important;
+  }
+
+  .slide-nav {
+    min-height: 0;
+    gap: 9px;
+    color: #a7adb1;
+  }
+
+  .slide-nav button,
+  #btnGridView {
+    border-color: rgba(177,184,189,.24) !important;
+    color: #aeb4b8 !important;
+    background: rgba(255,255,255,.006) !important;
+  }
+
+  .slide-nav button:hover,
+  #btnGridView:hover {
+    border-color: rgba(194,200,204,.40) !important;
+    color: #eef0f0 !important;
+    background: rgba(255,255,255,.026) !important;
+  }
+
+  .actions {
+    min-height: 40px;
+    gap: 8px;
+  }
+
+  .actions .export-primary,
+  .actions .export-more-toggle {
+    min-height: 38px;
+  }
+
+  /* One bright action only. Carousel remains directly available when media is
+     READY, but never competes with the default PNG export for attention. */
+  #btnCarousel:not(.hide) {
+    color: #c7cbce !important;
+    border: 1px solid var(--studio-hairline) !important;
+    background: rgba(255,255,255,.006) !important;
+    box-shadow: none !important;
+  }
+
+  #btnCarousel:not(.hide):hover,
+  #btnCarousel:not(.hide):focus-visible {
+    color: #f1f2ef !important;
+    border-color: var(--studio-hairline-hover) !important;
+    background: rgba(255,255,255,.030) !important;
+    box-shadow: 0 6px 18px rgba(0,0,0,.18) !important;
+  }
+
+  /* The assistant is a rail, not a card. The separator spans the same vertical
+     workspace authority as the left rail. */
+  .caption-box {
+    position: relative;
+    height: 100%;
+    min-height: 0;
+    border-left: 0 !important;
+    padding: 14px 0 10px 18px !important;
+  }
+
+  .caption-box::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: -12px;
+    bottom: -10px;
+    width: 1px;
+    background: var(--studio-hairline);
+    pointer-events: none;
+  }
+
+  .caption-mobile-body {
+    min-height: 0;
+  }
+
+  .caption-box textarea {
+    flex: 0 1 auto;
+    height: clamp(220px, 38vh, 360px);
+    min-height: 220px;
+    max-height: 360px;
+    resize: none;
+  }
+
+  .zs-assistant-empty-state {
+    min-height: 0;
+    margin-top: 4px;
+    padding-top: 24px;
+    padding-bottom: 24px;
+  }
+
+  #btnAICaptionAll {
+    color: #b8bdc1 !important;
+    border: 1px solid var(--studio-hairline) !important;
+    background: rgba(255,255,255,.004) !important;
+  }
+
+  #btnAICaptionAll:hover,
+  #btnAICaptionAll:focus-visible {
+    color: #eef0f0 !important;
+    border-color: var(--studio-hairline-hover) !important;
+    background: rgba(255,255,255,.025) !important;
+  }
+}
+
+/* ZSTUDIO_MOBILE_CENTER_RECOVERY_V1
+   Mobile counterpart to the approved laptop center recovery.
+   Principles:
+   - preserve natural page scrolling on phones;
+   - let the preview fit the real mobile viewport without clipping;
+   - keep Download PNG as the single bright primary export;
+   - keep carousel / additional exports visually secondary;
+   - expose the same SVG icon language and deliberate Z AI empty state;
+   - never alter renderer content semantics, auth, billing or store behavior.
+*/
+
+@media (max-width: 620px) {
+  html,
+  body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    overflow-y: auto;
+  }
+
+  .stage {
+    width: 100%;
+    min-width: 0;
+    padding: 14px 12px 20px;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .stage-glow {
+    top: 29%;
+    width: 92%;
+    height: 44%;
+    opacity: .62;
+    filter: blur(18px);
+  }
+
+  .canvas-frame {
+    box-sizing: border-box;
+    width: auto;
+    height: auto;
+    min-width: 0;
+    max-width: 100%;
+    max-height: none;
+    padding: 8px;
+    overflow: hidden;
+    border-radius: 8px;
+    border-color: rgba(177,184,189,.24);
+    background: #0f1213;
+    box-shadow:
+      0 22px 52px rgba(0,0,0,.52),
+      0 7px 22px rgba(0,0,0,.24),
+      inset 0 1px 0 rgba(255,255,255,.022);
+  }
+
+  #preview {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: none;
+    max-height: none;
+    margin: 0 auto;
+    border-radius: 3px;
+  }
+
+  .slide-nav {
+    min-height: 30px;
+    margin: 0;
+    gap: 8px;
+    color: #a8adb1;
+  }
+
+  .slide-nav:not(.on) {
+    display: none !important;
+  }
+
+  .slide-nav button,
+  #btnGridView {
+    border-color: rgba(177,184,189,.24) !important;
+    color: #adb3b7 !important;
+    background: rgba(255,255,255,.006) !important;
+  }
+
+  .export-row,
+  .actions {
+    width: 100%;
+  }
+
+  .export-row {
+    gap: 8px;
+  }
+
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .actions .export-primary {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 12px;
+    font-size: .68rem;
+    letter-spacing: .105em;
+    border-radius: 5px;
+  }
+
+  .actions #btnCarousel:not(.hide),
+  .actions .export-more-shell {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .actions #btnCarousel:not(.hide) {
+    min-height: 35px;
+    padding: 8px 10px;
+    color: #c3c8cb !important;
+    border: 1px solid rgba(177,184,189,.22) !important;
+    background: rgba(255,255,255,.005) !important;
+    box-shadow: none !important;
+  }
+
+  .actions #btnCarousel:not(.hide):active,
+  .actions #btnCarousel:not(.hide):focus-visible {
+    color: #f1f2ef !important;
+    border-color: rgba(194,200,204,.38) !important;
+    background: rgba(255,255,255,.026) !important;
+  }
+
+  .export-more-toggle {
+    min-height: 35px;
+    border-radius: 5px;
+    color: #b8bdc1;
+    border-color: rgba(177,184,189,.20);
+    background: rgba(255,255,255,.004);
+  }
+
+  .export-secondary-group {
+    gap: 7px;
+  }
+
+  .zs-media-disabled {
+    opacity: .38 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  .zs-iconized {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+  }
+
+  .zs-icon {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: currentColor;
+    opacity: .9;
+  }
+
+  .zs-icon svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  #btnHeaderBulk .zs-icon {
+    width: 13px;
+    height: 13px;
+    flex-basis: 13px;
+  }
+
+  #advancedToggleRow.zs-iconized {
+    justify-content: flex-start;
+    width: max-content;
+    max-width: 100%;
+    gap: 6px;
+  }
+
+  #advancedToggleRow .zs-icon,
+  #draftHint .zs-icon {
+    width: 12px;
+    height: 12px;
+    flex-basis: 12px;
+  }
+
+  .dropzone.zs-dropzone-iconized {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .dropzone > .zs-dropzone-icon {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+    margin-bottom: 8px;
+    color: #aeb4b8;
+    opacity: .82;
+  }
+
+  .caption-box {
+    width: 100%;
+  }
+
+  .zs-assistant-empty-state {
+    display: none;
+    width: 100%;
+    min-height: 0;
+    padding: 24px 18px 22px;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    border: 1px solid rgba(177,184,189,.16);
+    border-radius: 7px;
+    background:
+      radial-gradient(circle at 50% 15%, rgba(255,255,255,.025), transparent 40%),
+      #0b0d0e;
+  }
+
+  .caption-box.open.zs-assistant-empty-active .zs-assistant-empty-state {
+    display: flex;
+  }
+
+  .caption-box.open.zs-assistant-empty-active #caption,
+  .caption-box.open.zs-assistant-empty-active .caption-head {
+    display: none !important;
+  }
+
+  .zs-assistant-empty-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+    border: 1px solid rgba(209,213,216,.20);
+    border-radius: 50%;
+    background: rgba(255,255,255,.012);
+    color: #dedfda;
+  }
+
+  .zs-assistant-empty-icon .zs-icon {
+    width: 18px;
+    height: 18px;
+    flex-basis: 18px;
+  }
+
+  .zs-assistant-empty-kicker {
+    margin-bottom: 8px;
+    font-size: .59rem;
+    font-weight: 500;
+    letter-spacing: .16em;
+    color: #939a9f;
+  }
+
+  .zs-assistant-empty-title {
+    max-width: 250px;
+    margin: 0;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.30rem;
+    line-height: 1.08;
+    font-weight: 500;
+    color: #f0f0ec;
+  }
+
+  .zs-assistant-empty-body {
+    max-width: 280px;
+    margin: 10px 0 0;
+    font-size: .72rem;
+    line-height: 1.58;
+    color: #969da1;
+  }
+
+  .zs-assistant-empty-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 7px;
+    margin-top: 18px;
+  }
+
+  .zs-assistant-empty-actions .btn {
+    width: 100%;
+    min-height: 37px;
+    border-radius: 5px;
+    font-size: .63rem;
+    letter-spacing: .075em;
+  }
+
+  .zs-assistant-primary {
+    color: #f4f4ef;
+    border: 1px solid transparent !important;
+    background:
+      linear-gradient(#121517,#121517) padding-box,
+      linear-gradient(90deg,
+        rgba(255,104,118,.50),
+        rgba(235,184,79,.48),
+        rgba(96,188,153,.46),
+        rgba(88,154,216,.48),
+        rgba(143,111,213,.50)) border-box !important;
+  }
+
+  .zs-assistant-secondary {
+    color: #adb3b7 !important;
+    border-color: rgba(177,184,189,.18) !important;
+    background: rgba(255,255,255,.004) !important;
+  }
+}
+
+/* ZSTUDIO_MOBILE_HEADER_V1
+   Phone header authority:
+   - first bar restores a readable Z Studio identity with a materially larger mark;
+   - from 361px upward, second bar keeps Bulk Generation + account/language on one calm utility row;
+   - at 360px and below, actions fall back to two rows so touch targets and labels never clip;
+   - Sign In / Account and language share one restrained segmented utility control;
+   - no creation-flow, preview, renderer, auth or billing behavior changes.
+*/
+
+@media (max-width: 620px) {
+  header {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100%;
+    min-width: 0;
+    padding: 0 !important;
+    gap: 0 !important;
+    align-items: stretch !important;
+    background: #0b0d0e;
+    border-bottom: 1px solid #34393d;
+  }
+
+  header .brand {
+    width: 100%;
+    min-width: 0;
+    min-height: 66px;
+    display: flex !important;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 11px 16px 10px;
+    border-bottom: 1px solid rgba(177, 184, 189, .16);
+  }
+
+  header #headerLogo {
+    width: 40px !important;
+    height: 40px !important;
+    flex: 0 0 40px;
+    object-fit: contain;
+    opacity: 1;
+  }
+
+  header .brand .tag {
+    min-width: 0;
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 !important;
+    border: 0 !important;
+    font-size: 0 !important;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  header .brand .tag::before {
+    content: 'Z Studio';
+    display: block;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.62rem;
+    line-height: .96;
+    font-style: normal;
+    font-weight: 600;
+    letter-spacing: .012em;
+    color: #f7f4ed;
+    white-space: nowrap;
+  }
+
+  header .brand .tag [data-i18n="headerTagline"] {
+    display: none !important;
+  }
+
+  /* ZSTUDIO_MOBILE_UTILITY_ROW_V1
+     One deliberate utility row on normal phone widths. On the real 390px
+     contract the action box is slightly inset by the app shell; 8px internal
+     padding + a 158px utility segment leaves ~175px for Bulk Generation. */
+  header .header-actions {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 158px !important;
+    grid-template-rows: 44px !important;
+    align-items: stretch;
+    justify-items: stretch;
+    gap: 7px;
+    padding: 10px 8px 12px;
+    margin: 0 !important;
+  }
+
+  header #btnHeaderBulk {
+    grid-column: 1;
+    grid-row: 1;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 7px !important;
+    padding: 9px 10px !important;
+    border-radius: 3px !important;
+    font-size: .61rem !important;
+    line-height: 1.15;
+    letter-spacing: .07em !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis;
+    flex: none !important;
+  }
+
+  /* ZSTUDIO_MOBILE_UTILITY_SEGMENT_V2
+     Sign In + language remain two accessible controls but read as one object.
+     No native iOS select arrow is used; symmetric padding keeps the language
+     code optically centred and a custom chevron remains independent of text. */
+  header .lang-switch {
+    grid-column: 2;
+    grid-row: 1;
+    width: 158px !important;
+    min-width: 158px !important;
+    max-width: 158px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    justify-self: stretch;
+    position: relative;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 56px !important;
+    align-items: stretch;
+    gap: 0 !important;
+    margin: 0 !important;
+    border: 1px solid #565c61;
+    border-radius: 3px;
+    overflow: hidden;
+    background: #0b0d0e;
+  }
+
+  header .lang-switch::before {
+    content: '';
+    position: absolute;
+    right: 56px;
+    top: 8px;
+    bottom: 8px;
+    width: 1px;
+    background: rgba(177, 184, 189, .38);
+    pointer-events: none;
+  }
+
+  header .lang-switch::after {
+    content: '';
+    position: absolute;
+    right: 9px;
+    top: 50%;
+    width: 5px;
+    height: 5px;
+    border-right: 1px solid #9ba0a4;
+    border-bottom: 1px solid #9ba0a4;
+    transform: translateY(-68%) rotate(45deg);
+    transform-origin: center;
+    opacity: .76;
+    pointer-events: none;
+  }
+
+  header #zstudioAuthButton {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    align-self: center;
+    padding: 9px 8px !important;
+    border: 1px solid transparent !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: #c8cccf !important;
+    font-size: .59rem !important;
+    line-height: 1.15;
+    letter-spacing: .065em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: none !important;
+  }
+
+  header #langSwitch {
+    width: 56px !important;
+    min-width: 56px !important;
+    max-width: 56px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    align-self: center;
+    padding: 0 14px !important;
+    border: 1px solid transparent !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: #f1f2ef !important;
+    font-size: .67rem;
+    line-height: 1;
+    text-align: center !important;
+    text-align-last: center !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    flex: none !important;
+  }
+
+  header .lang-switch:focus-within {
+    outline: 2px solid rgba(242, 242, 239, .86);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(76, 157, 225, .12);
+  }
+
+  header #zstudioAuthButton:focus-visible,
+  header #langSwitch:focus-visible {
+    outline: 0 !important;
+    box-shadow: inset 0 0 0 1px rgba(242, 242, 239, .22) !important;
+    background: rgba(255, 255, 255, .035) !important;
+  }
+
+  /* The mobile information-flow runtime predates this header authority and
+     injects legacy compact-header declarations after page CSS. These selectors
+     intentionally outrank only those legacy declarations so there is one
+     deterministic rendered geometry on real phones. */
+  html[data-zstudio-mobile-flow="v2"] body header .header-actions {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: none !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 158px !important;
+    grid-template-rows: 44px !important;
+    flex: none !important;
+    margin: 0 !important;
+    padding: 10px 8px 12px !important;
+    gap: 7px !important;
+  }
+
+  html[data-zstudio-mobile-flow="v2"] body header #btnHeaderBulk {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    padding: 9px 10px !important;
+    border-radius: 3px !important;
+    font-size: .61rem !important;
+    letter-spacing: .07em !important;
+    overflow: hidden !important;
+  }
+
+  html[data-zstudio-mobile-flow="v2"] body header .lang-switch {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    width: 158px !important;
+    min-width: 158px !important;
+    max-width: 158px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 56px !important;
+    justify-self: stretch !important;
+    gap: 0 !important;
+    border: 1px solid #565c61 !important;
+    border-radius: 3px !important;
+    overflow: hidden !important;
+  }
+
+  html[data-zstudio-mobile-flow="v2"] body header #zstudioAuthButton {
+    width: 100% !important;
+    max-width: none !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    border: 1px solid transparent !important;
+    border-radius: 0 !important;
+  }
+
+  html[data-zstudio-mobile-flow="v2"] body header #langSwitch {
+    width: 56px !important;
+    min-width: 56px !important;
+    max-width: 56px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+    border: 1px solid transparent !important;
+    border-radius: 0 !important;
+    text-align: center !important;
+    text-align-last: center !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+  }
+
+  /* ZSTUDIO_MOBILE_BORDER_AUTHORITY_V1
+     One optical border weight throughout the phone UI. Shape may still vary
+     by semantic component (chips stay pills), but stroke weight does not. */
+  header #btnHeaderBulk,
+  .controls select,
+  .controls input[type="text"],
+  .controls input[type="number"],
+  .controls textarea,
+  .controls .btn,
+  .controls .dropzone,
+  .controls .seg button,
+  .controls .chip,
+  .stage .canvas-frame,
+  .stage .export-more-toggle,
+  .stage .caption-mobile-toggle,
+  .stage .zs-assistant-empty-state,
+  .stage .btn {
+    border-width: 1px !important;
+    border-style: solid !important;
+  }
+
+  /* ZSTUDIO_MOBILE_SECTION_ACCENTS_V1
+     The logo rainbow is an accent, never a text treatment. Section titles stay
+     neutral/high-contrast while their 1px continuation line carries the brand. */
+  .controls .step-label {
+    color: #d7dadd;
+  }
+
+  .controls .step-label::after {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 92, 113, .70) 0%,
+      rgba(236, 190, 78, .70) 22%,
+      rgba(95, 194, 145, .68) 46%,
+      rgba(76, 157, 225, .70) 72%,
+      rgba(139, 104, 220, .72) 100%
+    ) !important;
+    opacity: .62;
+  }
+
+  /* Selection gets the same quiet one-pixel signature. The fill remains dark
+     so white text contrast stays stable and selected state is not color-only. */
+  .controls .seg button.active,
+  .controls .chip.active,
+  .caption-box.open .caption-mobile-toggle {
+    color: #f3f4f1 !important;
+    border: 1px solid transparent !important;
+    background:
+      linear-gradient(#141719, #141719) padding-box,
+      linear-gradient(
+        90deg,
+        rgba(255, 92, 113, .72),
+        rgba(236, 190, 78, .70),
+        rgba(95, 194, 145, .68),
+        rgba(76, 157, 225, .70),
+        rgba(139, 104, 220, .72)
+      ) border-box !important;
+  }
+
+  /* Accessible focus stays brighter than decorative accents and includes a
+     non-rainbow luminance change, so focus is not communicated by hue alone. */
+  .controls select:focus-visible,
+  .controls input:focus-visible,
+  .controls textarea:focus-visible,
+  .controls button:focus-visible,
+  .stage button:focus-visible,
+  header #btnHeaderBulk:focus-visible {
+    outline: 2px solid rgba(242, 242, 239, .86) !important;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(76, 157, 225, .12) !important;
+  }
+}
+
+/* Narrow-phone fallback. Below 360px the compact one-row utility would leave
+   too little room for a translated Bulk label, so we deliberately return to
+   two rows while retaining the same visual language and touch sizes. */
+@media (max-width: 360px) {
+  header .brand {
+    min-height: 62px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  header #headerLogo {
+    width: 36px !important;
+    height: 36px !important;
+    flex-basis: 36px;
+  }
+
+  header .brand .tag::before {
+    font-size: 1.48rem;
+  }
+
+  header .header-actions,
+  html[data-zstudio-mobile-flow="v2"] body header .header-actions {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: 44px 44px !important;
+    gap: 7px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
+  header #btnHeaderBulk,
+  html[data-zstudio-mobile-flow="v2"] body header #btnHeaderBulk {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    font-size: .59rem !important;
+    letter-spacing: .065em !important;
+  }
+
+  header .lang-switch,
+  html[data-zstudio-mobile-flow="v2"] body header .lang-switch {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    width: 218px !important;
+    min-width: 218px !important;
+    max-width: 218px !important;
+    height: 44px !important;
+    justify-self: end !important;
+    grid-template-columns: minmax(0, 1fr) 60px !important;
+  }
+
+  header #zstudioAuthButton {
+    font-size: .59rem !important;
+    letter-spacing: .065em !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+
+  header #langSwitch,
+  html[data-zstudio-mobile-flow="v2"] body header #langSwitch {
+    width: 60px !important;
+    min-width: 60px !important;
+    max-width: 60px !important;
+    padding-left: 17px !important;
+    padding-right: 17px !important;
+  }
+
+  header .lang-switch::before {
+    right: 60px;
+  }
+
+  header .lang-switch::after {
+    right: 9px;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -1257,6 +3503,10 @@ input[type=range]::-moz-range-thumb {
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
+// ZSTUDIO_PUBLIC_COMMERCIAL_RUNTIME_V1
+window.ZSTUDIO_COMMERCIAL_BASE_URL="";
+window.ZStudioCommercialConfig=Object.freeze({"authority":"ZSTUDIO_STORE_PRODUCT_AUTHORITY_V1","enabled":false,"baseUrl":"","appId":"com.zoperatingsystem.zstudio","currency":"EUR","trialDays":3,"plans":{"weekly":{"priceMinor":599,"appleProductId":"com.zoperatingsystem.zstudio.subscription.weekly","googleProductId":"zstudio.access","googleBasePlanId":"weekly"},"monthly":{"priceMinor":1499,"appleProductId":"com.zoperatingsystem.zstudio.subscription.monthly","googleProductId":"zstudio.access","googleBasePlanId":"monthly"},"annual":{"priceMinor":11999,"appleProductId":"com.zoperatingsystem.zstudio.subscription.annual","googleProductId":"zstudio.access","googleBasePlanId":"annual"}}});
+
 // src/data/i18n.js — Traduções.
 //
 // Dois sistemas distintos, por razão histórica que se manteve por ser correta:
@@ -2249,6 +4499,702 @@ async function saveBlob(b, name) {
   saveBlobWeb(b, name);
 }
 
+// ============================================================
+// ZSTUDIO_CONTENT_PERSISTENCE_V1
+// Cloud project persistence + My Creations library.
+//
+// IndexedDB remains the offline/cache safety net. When authenticated, the
+// durable authority becomes the user's private Studio project in Supabase.
+// Opening a cloud project rehydrates the already-proven local draft format,
+// avoiding a second renderer/state model.
+// ============================================================
+const ZSTUDIO_CONTENT_PERSISTENCE_V1 = true;
+const ZSTUDIO_PROJECT_BUCKET = 'zstudio-projects';
+const ZSTUDIO_CLOUD_BINDING_KEY = 'zstudio-cloud-project-v1';
+const ZSTUDIO_CLOUD_OWNER_KEY = 'zstudio-cloud-owner-v1';
+const ZSTUDIO_CLOUD_AUTOSAVE_MS = 2200;
+
+const ZSTUDIO_CLOUD_STRINGS = Object.freeze({
+  pt: {
+    library: 'As minhas criações', newCreation: 'Nova criação', saveCurrent: 'Guardar criação atual',
+    open: 'Abrir', archive: 'Arquivar', current: 'Atual', empty: 'Ainda não tens criações guardadas.',
+    emptyHelp: 'Cria conteúdo no Studio e ele aparecerá aqui automaticamente.',
+    saved: 'Guardado na cloud', saving: 'A guardar…', offline: 'Guardado localmente — cloud indisponível',
+    restored: 'Criação recuperada', conflict: 'Foi encontrada uma versão mais recente. O teu trabalho foi preservado numa cópia recuperada.',
+    archiveConfirm: 'Arquivar esta criação? Ela deixará de aparecer na biblioteca ativa.',
+    close: 'Fechar', localReady: 'Existe um rascunho local que ainda não está associado à tua conta.',
+    otherOwner: 'Este dispositivo contém um rascunho local de outra conta. Ele não será enviado para esta conta.',
+    recoveredSuffix: '— cópia recuperada'
+  },
+  en: {
+    library: 'My Creations', newCreation: 'New creation', saveCurrent: 'Save current creation',
+    open: 'Open', archive: 'Archive', current: 'Current', empty: 'You do not have any saved creations yet.',
+    emptyHelp: 'Create content in Studio and it will appear here automatically.',
+    saved: 'Saved to cloud', saving: 'Saving…', offline: 'Saved locally — cloud unavailable',
+    restored: 'Creation restored', conflict: 'A newer version was found. Your work was preserved as a recovered copy.',
+    archiveConfirm: 'Archive this creation? It will leave your active library.',
+    close: 'Close', localReady: 'A local draft is available but is not linked to your account yet.',
+    otherOwner: 'This device contains a local draft from another account. It will not be uploaded to this account.',
+    recoveredSuffix: '— recovered copy'
+  },
+  fr: {
+    library: 'Mes créations', newCreation: 'Nouvelle création', saveCurrent: 'Enregistrer la création actuelle',
+    open: 'Ouvrir', archive: 'Archiver', current: 'Actuelle', empty: 'Vous n’avez encore aucune création enregistrée.',
+    emptyHelp: 'Créez du contenu dans Studio : il apparaîtra ici automatiquement.',
+    saved: 'Enregistré dans le cloud', saving: 'Enregistrement…', offline: 'Enregistré localement — cloud indisponible',
+    restored: 'Création récupérée', conflict: 'Une version plus récente existe. Votre travail a été conservé dans une copie récupérée.',
+    archiveConfirm: 'Archiver cette création ? Elle quittera la bibliothèque active.',
+    close: 'Fermer', localReady: 'Un brouillon local existe mais n’est pas encore lié à votre compte.',
+    otherOwner: 'Cet appareil contient un brouillon local d’un autre compte. Il ne sera pas envoyé vers ce compte.',
+    recoveredSuffix: '— copie récupérée'
+  },
+  es: {
+    library: 'Mis creaciones', newCreation: 'Nueva creación', saveCurrent: 'Guardar creación actual',
+    open: 'Abrir', archive: 'Archivar', current: 'Actual', empty: 'Todavía no tienes creaciones guardadas.',
+    emptyHelp: 'Crea contenido en Studio y aparecerá aquí automáticamente.',
+    saved: 'Guardado en la nube', saving: 'Guardando…', offline: 'Guardado localmente — nube no disponible',
+    restored: 'Creación recuperada', conflict: 'Existe una versión más reciente. Tu trabajo se conservó como copia recuperada.',
+    archiveConfirm: '¿Archivar esta creación? Dejará de aparecer en la biblioteca activa.',
+    close: 'Cerrar', localReady: 'Hay un borrador local que aún no está asociado a tu cuenta.',
+    otherOwner: 'Este dispositivo contiene un borrador local de otra cuenta. No se subirá a esta cuenta.',
+    recoveredSuffix: '— copia recuperada'
+  },
+  de: {
+    library: 'Meine Kreationen', newCreation: 'Neue Kreation', saveCurrent: 'Aktuelle Kreation speichern',
+    open: 'Öffnen', archive: 'Archivieren', current: 'Aktuell', empty: 'Du hast noch keine gespeicherten Kreationen.',
+    emptyHelp: 'Erstelle Inhalte in Studio; sie erscheinen automatisch hier.',
+    saved: 'In der Cloud gespeichert', saving: 'Wird gespeichert…', offline: 'Lokal gespeichert — Cloud nicht verfügbar',
+    restored: 'Kreation wiederhergestellt', conflict: 'Eine neuere Version wurde gefunden. Deine Arbeit wurde als wiederhergestellte Kopie gesichert.',
+    archiveConfirm: 'Diese Kreation archivieren? Sie wird aus der aktiven Bibliothek entfernt.',
+    close: 'Schließen', localReady: 'Ein lokaler Entwurf ist vorhanden, aber noch nicht mit deinem Konto verknüpft.',
+    otherOwner: 'Dieses Gerät enthält einen lokalen Entwurf eines anderen Kontos. Er wird nicht in dieses Konto hochgeladen.',
+    recoveredSuffix: '— wiederhergestellte Kopie'
+  },
+  it: {
+    library: 'Le mie creazioni', newCreation: 'Nuova creazione', saveCurrent: 'Salva creazione attuale',
+    open: 'Apri', archive: 'Archivia', current: 'Attuale', empty: 'Non hai ancora creazioni salvate.',
+    emptyHelp: 'Crea contenuti in Studio e appariranno qui automaticamente.',
+    saved: 'Salvato nel cloud', saving: 'Salvataggio…', offline: 'Salvato localmente — cloud non disponibile',
+    restored: 'Creazione recuperata', conflict: 'È stata trovata una versione più recente. Il tuo lavoro è stato conservato come copia recuperata.',
+    archiveConfirm: 'Archiviare questa creazione? Non apparirà più nella libreria attiva.',
+    close: 'Chiudi', localReady: 'Esiste una bozza locale non ancora associata al tuo account.',
+    otherOwner: 'Questo dispositivo contiene una bozza locale di un altro account. Non verrà caricata su questo account.',
+    recoveredSuffix: '— copia recuperata'
+  }
+});
+
+let zstudioCloudSession = null;
+let zstudioCloudBinding = null;
+let zstudioCloudAutosaveTimer = null;
+let zstudioCloudFlushPromise = null;
+let zstudioCloudHandledUserId = '';
+let zstudioCloudLibraryUi = null;
+let zstudioCloudLibraryUrls = [];
+let zstudioCloudLastSignature = '';
+let zstudioCloudPatched = false;
+
+function zstudioCloudLang() {
+  const lang = (typeof state === 'object' && state && state.lang) || 'en';
+  return ZSTUDIO_CLOUD_STRINGS[lang] ? lang : 'en';
+}
+function zstudioCloudT(key) {
+  const dict = ZSTUDIO_CLOUD_STRINGS[zstudioCloudLang()] || ZSTUDIO_CLOUD_STRINGS.en;
+  return dict[key] || ZSTUDIO_CLOUD_STRINGS.en[key] || key;
+}
+function zstudioCloudToast(message) {
+  if (typeof toast === 'function') toast(message);
+}
+function zstudioCloudFirst(data) {
+  return Array.isArray(data) ? (data[0] || null) : (data || null);
+}
+function zstudioCloudUuid() {
+  if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
+function zstudioCloudAssetExt(blob) {
+  const type = String(blob?.type || '').toLowerCase();
+  if (type.includes('png')) return 'png';
+  if (type.includes('webp')) return 'webp';
+  if (type.includes('gif')) return 'gif';
+  if (type.includes('mp4')) return 'mp4';
+  if (type.includes('webm')) return 'webm';
+  if (type.includes('quicktime')) return 'mov';
+  return type.startsWith('video/') ? 'bin' : 'jpg';
+}
+function zstudioCloudFingerprint(blob, kind) {
+  if (!blob) return '';
+  return [
+    kind || 'photo', blob.size || 0, blob.type || '', blob.name || '', blob.lastModified || 0
+  ].join(':');
+}
+function zstudioCloudAssetKind(blob) {
+  return String(blob?.type || '').startsWith('video/') ? 'video' : 'photo';
+}
+function zstudioCloudProjectTitle(meta) {
+  const contentTitle = String(meta?.content?.title || '').trim();
+  const brandName = String(meta?.brand?.name || '').trim();
+  return (contentTitle || brandName || 'Untitled creation').slice(0, 160);
+}
+function zstudioCloudSignature(meta, photos, logo) {
+  return JSON.stringify(meta || {}) + '|' + (photos || []).map((b) => zstudioCloudFingerprint(b, zstudioCloudAssetKind(b))).join('|') + '|logo:' + zstudioCloudFingerprint(logo, 'logo');
+}
+
+function zstudioCloudSetStatus(text, tone) {
+  const el = document.getElementById('zstudioCloudSyncStatus');
+  if (!el) return;
+  el.textContent = text || '';
+  el.dataset.tone = tone || 'quiet';
+}
+
+async function zstudioCloudClient() {
+  if (typeof zstudioGetAuthClient !== 'function') throw new Error('AUTH_CLIENT_UNAVAILABLE');
+  return zstudioGetAuthClient();
+}
+
+async function zstudioCloudReadLocalDraft() {
+  const meta = await idbGet('meta').catch(() => null);
+  if (!meta) return null;
+  let photos = [];
+  if (typeof state === 'object' && state && Array.isArray(state.photoFiles) && state.photoFiles.length) {
+    photos = state.photoFiles.slice();
+  } else {
+    photos = (await idbGet('photos').catch(() => null)) || [];
+  }
+  let logo = null;
+  if (typeof state === 'object' && state && state._customLogoFile) logo = state._customLogoFile;
+  if (!logo) logo = await idbGet('logo').catch(() => null);
+  return { meta, photos, logo };
+}
+
+async function zstudioCloudListProjects() {
+  const client = await zstudioCloudClient();
+  const { data, error } = await client.rpc('zstudio_list_projects');
+  if (error) throw error;
+  return Array.isArray(data) ? data : [];
+}
+
+async function zstudioCloudSaveProjectRow(client, local, forceNew) {
+  const uid = zstudioCloudSession?.user?.id || '';
+  if (!uid) throw new Error('AUTH_REQUIRED');
+  const title = zstudioCloudProjectTitle(local.meta);
+  const bindingIsCurrent = !forceNew && zstudioCloudBinding?.ownerId === uid && zstudioCloudBinding?.projectId;
+  const payload = {
+    p_project_id: bindingIsCurrent ? zstudioCloudBinding.projectId : null,
+    p_expected_revision: bindingIsCurrent ? Number(zstudioCloudBinding.revision || 0) : null,
+    p_title: title,
+    p_state: local.meta,
+  };
+
+  let { data, error } = await client.rpc('zstudio_save_project', payload);
+  if (error && bindingIsCurrent && (error.code === '40001' || String(error.message || '').includes('ZSTUDIO_PROJECT_CONFLICT'))) {
+    const recoveredTitle = (title + ' ' + zstudioCloudT('recoveredSuffix')).slice(0, 160);
+    ({ data, error } = await client.rpc('zstudio_save_project', {
+      p_project_id: null,
+      p_expected_revision: null,
+      p_title: recoveredTitle,
+      p_state: local.meta,
+    }));
+    if (!error) zstudioCloudToast(zstudioCloudT('conflict'));
+  }
+  if (error) throw error;
+  const row = zstudioCloudFirst(data);
+  if (!row?.project_id) throw new Error('PROJECT_SAVE_RESPONSE_INVALID');
+  return row;
+}
+
+function zstudioCloudFindReusableAsset(previousAssets, kind, fingerprint, usedPaths) {
+  const candidates = Array.isArray(previousAssets) ? previousAssets : [];
+  return candidates.find((a) =>
+    a && a.kind === kind && a.fingerprint === fingerprint && a.path && !usedPaths.has(a.path)
+  ) || null;
+}
+
+async function zstudioCloudUploadAsset(client, uid, projectId, blob, kind) {
+  if (!blob) return null;
+  if (Number(blob.size || 0) > 52428800) throw new Error('ASSET_TOO_LARGE');
+  const folder = kind === 'logo' ? 'logo' : (kind === 'video' ? 'videos' : 'photos');
+  const path = `${uid}/${projectId}/${folder}/${zstudioCloudUuid()}.${zstudioCloudAssetExt(blob)}`;
+  const { error } = await client.storage.from(ZSTUDIO_PROJECT_BUCKET).upload(path, blob, {
+    contentType: blob.type || 'application/octet-stream',
+    upsert: false,
+  });
+  if (error) throw error;
+  return path;
+}
+
+async function zstudioCloudRegisterAsset(client, projectId, path, kind, position, blob) {
+  const { error } = await client.rpc('zstudio_register_project_asset', {
+    p_project_id: projectId,
+    p_storage_path: path,
+    p_kind: kind,
+    p_position: position,
+    p_mime_type: blob?.type || null,
+    p_byte_size: Number(blob?.size || 0),
+  });
+  if (error) throw error;
+}
+
+async function zstudioCloudSyncAssets(client, uid, projectId, local, previousAssets) {
+  const nextAssets = [];
+  const keepPaths = [];
+  const usedPaths = new Set();
+
+  for (let i = 0; i < local.photos.length; i += 1) {
+    const blob = local.photos[i];
+    const kind = zstudioCloudAssetKind(blob);
+    const fingerprint = zstudioCloudFingerprint(blob, kind);
+    const reusable = zstudioCloudFindReusableAsset(previousAssets, kind, fingerprint, usedPaths);
+    const path = reusable?.path || await zstudioCloudUploadAsset(client, uid, projectId, blob, kind);
+    usedPaths.add(path);
+    keepPaths.push(path);
+    await zstudioCloudRegisterAsset(client, projectId, path, kind, i, blob);
+    nextAssets.push({ path, kind, position: i, fingerprint });
+  }
+
+  if (local.logo) {
+    const fingerprint = zstudioCloudFingerprint(local.logo, 'logo');
+    const reusable = zstudioCloudFindReusableAsset(previousAssets, 'logo', fingerprint, usedPaths);
+    const path = reusable?.path || await zstudioCloudUploadAsset(client, uid, projectId, local.logo, 'logo');
+    usedPaths.add(path);
+    keepPaths.push(path);
+    await zstudioCloudRegisterAsset(client, projectId, path, 'logo', 0, local.logo);
+    nextAssets.push({ path, kind: 'logo', position: 0, fingerprint });
+  }
+
+  const { data: removedData, error: pruneError } = await client.rpc('zstudio_prune_project_assets', {
+    p_project_id: projectId,
+    p_keep_paths: keepPaths,
+  });
+  if (pruneError) throw pruneError;
+
+  let removed = Array.isArray(removedData) ? removedData : [];
+  if (removed.length === 1 && Array.isArray(removed[0])) removed = removed[0];
+  removed = removed.filter((p) => typeof p === 'string' && p.startsWith(uid + '/' + projectId + '/'));
+  if (removed.length) await client.storage.from(ZSTUDIO_PROJECT_BUCKET).remove(removed).catch(() => {});
+
+  const firstVisual = nextAssets.find((a) => a.kind === 'photo' || a.kind === 'video');
+  const { error: coverError } = await client.rpc('zstudio_set_project_cover', {
+    p_project_id: projectId,
+    p_cover_asset_path: firstVisual?.path || null,
+  });
+  if (coverError) throw coverError;
+  return nextAssets;
+}
+
+async function zstudioCloudFlush({ force = false, claim = false } = {}) {
+  if (zstudioCloudFlushPromise) return zstudioCloudFlushPromise;
+  zstudioCloudFlushPromise = (async () => {
+    const session = zstudioCloudSession || (typeof zstudioAuthSession !== 'undefined' ? zstudioAuthSession : null);
+    const uid = session?.user?.id || '';
+    if (!uid) return false;
+    zstudioCloudSession = session;
+
+    const local = await zstudioCloudReadLocalDraft();
+    if (!local) return false;
+
+    const owner = await idbGet(ZSTUDIO_CLOUD_OWNER_KEY).catch(() => null);
+    if (owner && owner !== uid && !claim) {
+      zstudioCloudSetStatus(zstudioCloudT('otherOwner'), 'warn');
+      return false;
+    }
+    if (!owner || claim) await idbSet(ZSTUDIO_CLOUD_OWNER_KEY, uid);
+
+    const signature = zstudioCloudSignature(local.meta, local.photos, local.logo);
+    if (!force && signature === zstudioCloudLastSignature && zstudioCloudBinding?.ownerId === uid) return true;
+
+    zstudioCloudSetStatus(zstudioCloudT('saving'), 'busy');
+    const client = await zstudioCloudClient();
+    await zstudioEnsureStudioAccount(client);
+
+    const row = await zstudioCloudSaveProjectRow(client, local, false);
+    const sameProject = zstudioCloudBinding?.ownerId === uid && zstudioCloudBinding?.projectId === row.project_id;
+    const previousAssets = sameProject ? (zstudioCloudBinding.assets || []) : [];
+    const assets = await zstudioCloudSyncAssets(client, uid, row.project_id, local, previousAssets);
+
+    zstudioCloudBinding = {
+      ownerId: uid,
+      projectId: row.project_id,
+      revision: Number(row.revision || 1),
+      updatedAt: row.updated_at || new Date().toISOString(),
+      assets,
+    };
+    await idbSet(ZSTUDIO_CLOUD_BINDING_KEY, zstudioCloudBinding);
+    await idbSet(ZSTUDIO_CLOUD_OWNER_KEY, uid);
+    zstudioCloudLastSignature = signature;
+    zstudioCloudSetStatus(zstudioCloudT('saved'), 'ok');
+    return true;
+  })().catch((error) => {
+    console.warn('[Z Studio cloud] sync falhou:', error);
+    zstudioCloudSetStatus(zstudioCloudT('offline'), 'warn');
+    return false;
+  }).finally(() => {
+    zstudioCloudFlushPromise = null;
+  });
+  return zstudioCloudFlushPromise;
+}
+
+function zstudioCloudSchedule() {
+  clearTimeout(zstudioCloudAutosaveTimer);
+  zstudioCloudAutosaveTimer = setTimeout(() => zstudioCloudFlush(), ZSTUDIO_CLOUD_AUTOSAVE_MS);
+}
+
+async function zstudioCloudDownloadAsset(client, path) {
+  const { data, error } = await client.storage.from(ZSTUDIO_PROJECT_BUCKET).download(path);
+  if (error) throw error;
+  return data;
+}
+
+async function zstudioCloudOpenProject(projectId, { automatic = false } = {}) {
+  const uid = zstudioCloudSession?.user?.id || '';
+  if (!uid || !projectId) return false;
+  const client = await zstudioCloudClient();
+  const { data, error } = await client.rpc('zstudio_get_project', { p_project_id: projectId });
+  if (error) throw error;
+  const project = zstudioCloudFirst(data);
+  if (!project?.project_id || !project?.state_json) throw new Error('PROJECT_LOAD_RESPONSE_INVALID');
+
+  const manifest = Array.isArray(project.asset_manifest) ? project.asset_manifest : [];
+  const visuals = manifest
+    .filter((a) => a && (a.kind === 'photo' || a.kind === 'video') && a.path)
+    .sort((a, b) => Number(a.position || 0) - Number(b.position || 0));
+  const logoAsset = manifest.find((a) => a?.kind === 'logo' && a.path) || null;
+
+  const photos = [];
+  const bindingAssets = [];
+  for (const asset of visuals) {
+    const blob = await zstudioCloudDownloadAsset(client, asset.path);
+    photos.push(blob);
+    bindingAssets.push({
+      path: asset.path,
+      kind: asset.kind,
+      position: Number(asset.position || 0),
+      fingerprint: zstudioCloudFingerprint(blob, asset.kind),
+    });
+  }
+  let logo = null;
+  if (logoAsset) {
+    logo = await zstudioCloudDownloadAsset(client, logoAsset.path);
+    bindingAssets.push({
+      path: logoAsset.path,
+      kind: 'logo',
+      position: 0,
+      fingerprint: zstudioCloudFingerprint(logo, 'logo'),
+    });
+  }
+
+  await idbSet('meta', project.state_json);
+  if (photos.length) await idbSet('photos', photos); else await idbDelete('photos').catch(() => {});
+  if (logo) await idbSet('logo', logo); else await idbDelete('logo').catch(() => {});
+  zstudioCloudBinding = {
+    ownerId: uid,
+    projectId: project.project_id,
+    revision: Number(project.revision || 1),
+    updatedAt: project.updated_at || new Date().toISOString(),
+    assets: bindingAssets,
+  };
+  await idbSet(ZSTUDIO_CLOUD_BINDING_KEY, zstudioCloudBinding);
+  await idbSet(ZSTUDIO_CLOUD_OWNER_KEY, uid);
+  if (!automatic) zstudioCloudToast(zstudioCloudT('restored'));
+  window.location.reload();
+  return true;
+}
+
+function zstudioCloudRevokeLibraryUrls() {
+  zstudioCloudLibraryUrls.forEach((u) => URL.revokeObjectURL(u));
+  zstudioCloudLibraryUrls = [];
+}
+
+function zstudioCloudInjectStyles() {
+  if (document.getElementById('zstudioCloudStyles')) return;
+  const style = document.createElement('style');
+  style.id = 'zstudioCloudStyles';
+  style.textContent = `
+    .zstudio-cloud-account{width:100%;margin:0 0 8px}
+    .zstudio-cloud-sync{font-size:.67rem;line-height:1.45;color:var(--text3);margin:0 0 10px;min-height:1em}
+    .zstudio-cloud-sync[data-tone="ok"]{color:#a9cbb9}.zstudio-cloud-sync[data-tone="warn"]{color:#d5ad7c}
+    .zstudio-library-overlay{position:fixed;inset:0;z-index:1250;background:rgba(8,9,10,.88);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:24px}
+    .zstudio-library-card{width:min(980px,100%);max-height:min(780px,90vh);overflow:auto;background:#111416;border:1px solid rgba(210,214,216,.18);border-radius:8px;padding:22px;box-shadow:0 28px 90px rgba(0,0,0,.58)}
+    .zstudio-library-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}
+    .zstudio-library-title{font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:500;color:#f2f2ee}
+    .zstudio-library-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+    .zstudio-library-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .zstudio-library-item{position:relative;border:1px solid rgba(210,214,216,.16);border-radius:7px;background:#0d1012;overflow:hidden;min-width:0}
+    .zstudio-library-item.current{border-color:transparent;background:linear-gradient(#0d1012,#0d1012) padding-box,linear-gradient(90deg,rgba(255,92,113,.66),rgba(236,190,78,.62),rgba(95,194,145,.60),rgba(76,157,225,.62),rgba(139,104,220,.66)) border-box}
+    .zstudio-library-cover{aspect-ratio:4/3;background:#171a1c;display:flex;align-items:center;justify-content:center;color:#697076;font-size:.68rem;overflow:hidden}
+    .zstudio-library-cover img{width:100%;height:100%;object-fit:cover;display:block}
+    .zstudio-library-meta{padding:12px}.zstudio-library-name{font-size:.83rem;color:#f0f1ee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.zstudio-library-date{margin-top:5px;font-size:.63rem;color:#777f84}
+    .zstudio-library-item-actions{display:flex;gap:7px;padding:0 12px 12px}.zstudio-library-item-actions .btn{flex:1;min-width:0;min-height:34px;font-size:.61rem}
+    .zstudio-library-badge{position:absolute;top:8px;right:8px;padding:4px 7px;border-radius:999px;background:rgba(12,14,15,.86);border:1px solid rgba(255,255,255,.16);font-size:.56rem;color:#eef0ed;letter-spacing:.08em;text-transform:uppercase}
+    .zstudio-library-empty{padding:42px 16px;text-align:center;border:1px dashed rgba(210,214,216,.16);border-radius:7px;color:#9ba1a5}.zstudio-library-empty strong{display:block;color:#e8eae7;font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-weight:500;margin-bottom:5px}
+    @media(max-width:760px){.zstudio-library-overlay{padding:10px;align-items:flex-end}.zstudio-library-card{max-height:88vh;border-radius:9px 9px 0 0;padding:16px}.zstudio-library-title{font-size:1.5rem}.zstudio-library-grid{grid-template-columns:1fr}.zstudio-library-actions .btn{flex:1}.zstudio-library-head{margin-bottom:14px}}
+  `;
+  document.head.appendChild(style);
+}
+
+function zstudioCloudBuildLibraryUi() {
+  if (zstudioCloudLibraryUi) return zstudioCloudLibraryUi;
+  zstudioCloudInjectStyles();
+  const overlay = document.createElement('div');
+  overlay.className = 'zstudio-library-overlay hide';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  const card = document.createElement('section'); card.className = 'zstudio-library-card';
+  const head = document.createElement('div'); head.className = 'zstudio-library-head';
+  const title = document.createElement('h2'); title.className = 'zstudio-library-title';
+  const close = document.createElement('button'); close.type = 'button'; close.className = 'btn btn-line';
+  close.addEventListener('click', () => { overlay.classList.add('hide'); zstudioCloudRevokeLibraryUrls(); });
+  head.append(title, close);
+  const actions = document.createElement('div'); actions.className = 'zstudio-library-actions';
+  const saveCurrent = document.createElement('button'); saveCurrent.type = 'button'; saveCurrent.className = 'btn btn-line';
+  saveCurrent.addEventListener('click', async () => {
+    const uid = zstudioCloudSession?.user?.id || '';
+    if (!uid) return;
+    await idbSet(ZSTUDIO_CLOUD_OWNER_KEY, uid);
+    const ok = await zstudioCloudFlush({ force: true, claim: true });
+    if (ok) await zstudioCloudRenderLibrary();
+  });
+  const newCreation = document.createElement('button'); newCreation.type = 'button'; newCreation.className = 'btn btn-line';
+  newCreation.addEventListener('click', async () => {
+    await zstudioCloudFlush({ force: true });
+    overlay.classList.add('hide');
+    zstudioCloudRevokeLibraryUrls();
+    if (typeof clearDraft === 'function') await clearDraft();
+  });
+  actions.append(saveCurrent, newCreation);
+  const grid = document.createElement('div'); grid.className = 'zstudio-library-grid';
+  card.append(head, actions, grid); overlay.appendChild(card); document.body.appendChild(overlay);
+  overlay.addEventListener('click', (event) => { if (event.target === overlay) { overlay.classList.add('hide'); zstudioCloudRevokeLibraryUrls(); } });
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !overlay.classList.contains('hide')) { overlay.classList.add('hide'); zstudioCloudRevokeLibraryUrls(); } });
+  zstudioCloudLibraryUi = { overlay, card, title, close, actions, saveCurrent, newCreation, grid };
+  return zstudioCloudLibraryUi;
+}
+
+async function zstudioCloudLoadCover(client, path, coverEl) {
+  if (!path || !coverEl) return;
+  try {
+    const blob = await zstudioCloudDownloadAsset(client, path);
+    const url = URL.createObjectURL(blob); zstudioCloudLibraryUrls.push(url);
+    const img = document.createElement('img'); img.src = url; img.alt = '';
+    coverEl.textContent = ''; coverEl.appendChild(img);
+  } catch (_error) { /* keep neutral placeholder */ }
+}
+
+async function zstudioCloudArchiveProject(projectId) {
+  if (!confirm(zstudioCloudT('archiveConfirm'))) return;
+  const client = await zstudioCloudClient();
+  const { error } = await client.rpc('zstudio_archive_project', { p_project_id: projectId });
+  if (error) throw error;
+  if (zstudioCloudBinding?.projectId === projectId) {
+    zstudioCloudBinding = null;
+    await idbDelete(ZSTUDIO_CLOUD_BINDING_KEY).catch(() => {});
+    zstudioCloudLastSignature = '';
+  }
+  await zstudioCloudRenderLibrary();
+}
+
+async function zstudioCloudRenderLibrary() {
+  const ui = zstudioCloudBuildLibraryUi();
+  ui.title.textContent = zstudioCloudT('library');
+  ui.close.textContent = zstudioCloudT('close');
+  ui.newCreation.textContent = '+ ' + zstudioCloudT('newCreation');
+  ui.saveCurrent.textContent = zstudioCloudT('saveCurrent');
+  const local = await zstudioCloudReadLocalDraft();
+  const owner = await idbGet(ZSTUDIO_CLOUD_OWNER_KEY).catch(() => null);
+  const uid = zstudioCloudSession?.user?.id || '';
+  ui.saveCurrent.classList.toggle('hide', !local || (owner && owner !== uid) || (zstudioCloudBinding?.ownerId === uid && zstudioCloudBinding?.projectId));
+  ui.grid.textContent = '';
+  zstudioCloudRevokeLibraryUrls();
+
+  const client = await zstudioCloudClient();
+  const projects = await zstudioCloudListProjects();
+  if (!projects.length) {
+    const empty = document.createElement('div'); empty.className = 'zstudio-library-empty'; empty.style.gridColumn = '1 / -1';
+    const strong = document.createElement('strong'); strong.textContent = zstudioCloudT('empty');
+    const help = document.createElement('span'); help.textContent = zstudioCloudT('emptyHelp');
+    empty.append(strong, help); ui.grid.appendChild(empty); return;
+  }
+
+  projects.forEach((project) => {
+    const item = document.createElement('article'); item.className = 'zstudio-library-item';
+    if (zstudioCloudBinding?.projectId === project.project_id) item.classList.add('current');
+    const cover = document.createElement('div'); cover.className = 'zstudio-library-cover'; cover.textContent = 'Z Studio';
+    const meta = document.createElement('div'); meta.className = 'zstudio-library-meta';
+    const name = document.createElement('div'); name.className = 'zstudio-library-name'; name.textContent = project.title || 'Untitled creation';
+    const date = document.createElement('div'); date.className = 'zstudio-library-date';
+    try { date.textContent = new Intl.DateTimeFormat(zstudioCloudLang(), { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(project.updated_at)); }
+    catch (_error) { date.textContent = String(project.updated_at || ''); }
+    meta.append(name, date);
+    if (zstudioCloudBinding?.projectId === project.project_id) {
+      const badge = document.createElement('div'); badge.className = 'zstudio-library-badge'; badge.textContent = zstudioCloudT('current'); item.appendChild(badge);
+    }
+    const row = document.createElement('div'); row.className = 'zstudio-library-item-actions';
+    const open = document.createElement('button'); open.type = 'button'; open.className = 'btn btn-line'; open.textContent = zstudioCloudT('open');
+    open.addEventListener('click', () => zstudioCloudOpenProject(project.project_id).catch((e) => { console.warn(e); zstudioCloudSetStatus(zstudioCloudT('offline'), 'warn'); }));
+    const archive = document.createElement('button'); archive.type = 'button'; archive.className = 'btn btn-line'; archive.textContent = zstudioCloudT('archive');
+    archive.addEventListener('click', () => zstudioCloudArchiveProject(project.project_id).catch((e) => console.warn(e)));
+    row.append(open, archive); item.append(cover, meta, row); ui.grid.appendChild(item);
+    if (project.cover_asset_path) zstudioCloudLoadCover(client, project.cover_asset_path, cover);
+  });
+}
+
+async function zstudioCloudOpenLibrary() {
+  if (!zstudioCloudSession?.user?.id) {
+    if (typeof zstudioOpenAuth === 'function') zstudioOpenAuth();
+    return;
+  }
+  const ui = zstudioCloudBuildLibraryUi();
+  ui.overlay.classList.remove('hide');
+  try { await zstudioCloudRenderLibrary(); }
+  catch (error) { console.warn('[Z Studio cloud] library falhou:', error); zstudioCloudSetStatus(zstudioCloudT('offline'), 'warn'); }
+}
+
+function zstudioCloudInstallAccountEntry() {
+  if (typeof zstudioBuildAuthUi !== 'function') return;
+  const authUi = zstudioBuildAuthUi();
+  if (!authUi?.signedStep || document.getElementById('zstudioMyCreationsButton')) return;
+  const status = document.createElement('div'); status.id = 'zstudioCloudSyncStatus'; status.className = 'zstudio-cloud-sync'; status.setAttribute('aria-live', 'polite');
+  const button = document.createElement('button'); button.id = 'zstudioMyCreationsButton'; button.type = 'button'; button.className = 'btn btn-line zstudio-cloud-account';
+  button.addEventListener('click', zstudioCloudOpenLibrary);
+  authUi.signedStep.insertBefore(status, authUi.signOut);
+  authUi.signedStep.insertBefore(button, authUi.signOut);
+  const refresh = () => { button.textContent = zstudioCloudT('library'); };
+  refresh(); document.getElementById('langSwitch')?.addEventListener('change', refresh);
+}
+
+async function zstudioCloudHandleSession(session) {
+  zstudioCloudSession = session || null;
+  if (!session?.user?.id) {
+    zstudioCloudHandledUserId = '';
+    zstudioCloudSetStatus('', 'quiet');
+    return;
+  }
+  const uid = session.user.id;
+  if (zstudioCloudHandledUserId === uid) return;
+  zstudioCloudHandledUserId = uid;
+  try {
+    const client = await zstudioCloudClient();
+    await zstudioEnsureStudioAccount(client);
+    zstudioCloudBinding = await idbGet(ZSTUDIO_CLOUD_BINDING_KEY).catch(() => null);
+    const owner = await idbGet(ZSTUDIO_CLOUD_OWNER_KEY).catch(() => null);
+    const local = await zstudioCloudReadLocalDraft();
+
+    if (zstudioCloudBinding?.ownerId !== uid) zstudioCloudBinding = null;
+    if (local && owner === uid) {
+      zstudioCloudSetStatus(zstudioCloudT('saved'), 'ok');
+      if (!zstudioCloudBinding) zstudioCloudSchedule();
+      return;
+    }
+    if (local && owner && owner !== uid) {
+      zstudioCloudSetStatus(zstudioCloudT('otherOwner'), 'warn');
+      return;
+    }
+
+    const projects = await zstudioCloudListProjects();
+    if (local && !owner) {
+      if (!projects.length) {
+        await idbSet(ZSTUDIO_CLOUD_OWNER_KEY, uid);
+        zstudioCloudSchedule();
+      } else {
+        zstudioCloudSetStatus(zstudioCloudT('localReady'), 'warn');
+      }
+      return;
+    }
+    if (!local && projects.length) {
+      await zstudioCloudOpenProject(projects[0].project_id, { automatic: true });
+      return;
+    }
+    zstudioCloudSetStatus(zstudioCloudT('saved'), 'ok');
+  } catch (error) {
+    console.warn('[Z Studio cloud] bootstrap falhou:', error);
+    zstudioCloudSetStatus(zstudioCloudT('offline'), 'warn');
+  }
+}
+
+function zstudioCloudPatchLifecycle() {
+  if (zstudioCloudPatched) return;
+  zstudioCloudPatched = true;
+
+  if (typeof scheduleSaveDraft === 'function') {
+    const originalScheduleSaveDraft = scheduleSaveDraft;
+    scheduleSaveDraft = function zstudioCloudAwareScheduleSaveDraft() {
+      originalScheduleSaveDraft();
+      zstudioCloudSchedule();
+    };
+  }
+
+  if (typeof saveBlob === 'function') {
+    const originalSaveBlob = saveBlob;
+    saveBlob = async function zstudioCloudAwareSaveBlob(blob, name) {
+      const result = await originalSaveBlob(blob, name);
+      zstudioCloudSchedule();
+      return result;
+    };
+  }
+
+  if (typeof clearDraft === 'function') {
+    const originalClearDraft = clearDraft;
+    clearDraft = async function zstudioCloudAwareClearDraft() {
+      const uid = zstudioCloudSession?.user?.id || '';
+      if (uid && await idbGet('meta').catch(() => null)) {
+        await idbSet(ZSTUDIO_CLOUD_OWNER_KEY, uid);
+        await zstudioCloudFlush({ force: true, claim: true });
+      }
+      await originalClearDraft();
+      const remaining = await idbGet('meta').catch(() => null);
+      if (!remaining) {
+        zstudioCloudBinding = null;
+        zstudioCloudLastSignature = '';
+        await idbDelete(ZSTUDIO_CLOUD_BINDING_KEY).catch(() => {});
+        if (uid) await idbSet(ZSTUDIO_CLOUD_OWNER_KEY, uid);
+      }
+    };
+  }
+
+  if (typeof zstudioSignOut === 'function') {
+    const originalSignOut = zstudioSignOut;
+    zstudioSignOut = async function zstudioCloudAwareSignOut() {
+      await zstudioCloudFlush({ force: true });
+      return originalSignOut();
+    };
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'hidden' || !zstudioCloudSession?.user?.id) return;
+    Promise.resolve(typeof saveDraft === 'function' ? saveDraft() : null)
+      .then(() => zstudioCloudFlush({ force: true }))
+      .catch(() => {});
+  });
+}
+
+async function zstudioCloudBootstrap() {
+  zstudioCloudInjectStyles();
+  zstudioCloudInstallAccountEntry();
+  zstudioCloudPatchLifecycle();
+  try {
+    const client = await zstudioCloudClient();
+    client.auth.onAuthStateChange((_event, session) => {
+      queueMicrotask(() => zstudioCloudHandleSession(session));
+    });
+    const { data, error } = await client.auth.getSession();
+    if (error) throw error;
+    await zstudioCloudHandleSession(data?.session || null);
+  } catch (error) {
+    console.warn('[Z Studio cloud] auth bootstrap indisponível:', error);
+  }
+}
+
+window.ZStudioCloudPersistence = Object.freeze({
+  authority: 'ZSTUDIO_CONTENT_PERSISTENCE_V1',
+  flush: (options) => zstudioCloudFlush(options),
+  openLibrary: zstudioCloudOpenLibrary,
+  openProject: zstudioCloudOpenProject,
+  listProjects: zstudioCloudListProjects,
+});
+
+setTimeout(zstudioCloudBootstrap, 0);
 
 
 // src/main.js — estado, rendering (canvas), UI, exportações, IndexedDB.
@@ -5939,6 +8885,326 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+
+// Z Studio — preview state machine v1
+// Laptop preview authority injected immediately before loadAll().
+// It separates EMPTY / LOADING / READY / ERROR rendering, makes restored
+// draft media deterministic, gates media exports until a decoded image exists,
+// and fits the canvas to the real creative-column space instead of viewport
+// subtraction constants.
+
+const ZSTUDIO_PREVIEW_STATES = Object.freeze({
+  EMPTY: 'empty',
+  LOADING: 'loading',
+  READY: 'ready',
+  ERROR: 'error'
+});
+
+const ZSTUDIO_PREVIEW_COPY = Object.freeze({
+  pt: Object.freeze({ loading: 'A recuperar o seu conteúdo…', error: 'Não foi possível abrir esta imagem.' }),
+  en: Object.freeze({ loading: 'Restoring your content…', error: 'This image could not be opened.' }),
+  fr: Object.freeze({ loading: 'Récupération de votre contenu…', error: 'Impossible d’ouvrir cette image.' }),
+  es: Object.freeze({ loading: 'Recuperando tu contenido…', error: 'No se pudo abrir esta imagen.' }),
+  de: Object.freeze({ loading: 'Inhalt wird wiederhergestellt…', error: 'Dieses Bild konnte nicht geöffnet werden.' }),
+  it: Object.freeze({ loading: 'Ripristino dei contenuti…', error: 'Impossibile aprire questa immagine.' })
+});
+
+let zstudioPreviewState = ZSTUDIO_PREVIEW_STATES.EMPTY;
+let zstudioPreviewReason = 'boot';
+let zstudioPreviewFitQueued = false;
+let zstudioPreviewResizeObserver = null;
+
+function getStudioPreviewState() {
+  return zstudioPreviewState;
+}
+
+function isStudioPreviewReady() {
+  return zstudioPreviewState === ZSTUDIO_PREVIEW_STATES.READY && !!state.img;
+}
+
+function resolveStudioPreviewState() {
+  if (state.img) return ZSTUDIO_PREVIEW_STATES.READY;
+  if (zstudioPreviewState === ZSTUDIO_PREVIEW_STATES.ERROR) return ZSTUDIO_PREVIEW_STATES.ERROR;
+  if (zstudioPreviewState === ZSTUDIO_PREVIEW_STATES.LOADING) return ZSTUDIO_PREVIEW_STATES.LOADING;
+  if ((state.photos && state.photos.length) || state.photo) return ZSTUDIO_PREVIEW_STATES.LOADING;
+  return ZSTUDIO_PREVIEW_STATES.EMPTY;
+}
+
+function studioPreviewExportTargets() {
+  return [
+    ...document.querySelectorAll('[data-i18n="downloadPngBtn"]'),
+    ...document.querySelectorAll('#btnCarousel'),
+    ...document.querySelectorAll('[data-i18n="allFormatsBtn"]'),
+    ...document.querySelectorAll('[data-i18n="shareBtn"]'),
+    ...document.querySelectorAll('[data-i18n="videoBtn"]'),
+    ...document.querySelectorAll('[data-i18n="pdfBtn"]'),
+    ...document.querySelectorAll('.export-more-toggle')
+  ];
+}
+
+function syncStudioPreviewAvailability() {
+  const mode = resolveStudioPreviewState();
+  const ready = mode === ZSTUDIO_PREVIEW_STATES.READY && !!state.img;
+  const root = document.documentElement;
+  const stage = document.querySelector('.stage');
+  const preview = document.getElementById('preview');
+  const slideNav = document.querySelector('.slide-nav');
+
+  root.setAttribute('data-zstudio-preview-state', mode);
+  if (stage) stage.setAttribute('data-preview-state', mode);
+  if (preview) {
+    preview.setAttribute('aria-busy', mode === ZSTUDIO_PREVIEW_STATES.LOADING ? 'true' : 'false');
+    preview.setAttribute('data-preview-ready', ready ? 'true' : 'false');
+  }
+
+  studioPreviewExportTargets().forEach(el => {
+    if ('disabled' in el) el.disabled = !ready;
+    el.setAttribute('aria-disabled', ready ? 'false' : 'true');
+    el.classList.toggle('zs-media-disabled', !ready);
+  });
+
+  if (!ready && slideNav) slideNav.classList.remove('on');
+  queueStudioPreviewFit();
+}
+
+function setStudioPreviewState(next, reason) {
+  if (!Object.values(ZSTUDIO_PREVIEW_STATES).includes(next)) {
+    throw new Error('Unknown Z Studio preview state: ' + next);
+  }
+  zstudioPreviewState = next;
+  zstudioPreviewReason = String(reason || 'unspecified');
+  syncStudioPreviewAvailability();
+}
+
+function studioPreviewCopy(key) {
+  const lang = state && state.lang;
+  const dict = ZSTUDIO_PREVIEW_COPY[lang] || ZSTUDIO_PREVIEW_COPY.en;
+  return dict[key] || '';
+}
+
+function renderStudioPreviewStateCanvas(ctx, W, H, mode) {
+  const P = pal();
+  fillBg(ctx, W, H, P);
+
+  if (mode === ZSTUDIO_PREVIEW_STATES.EMPTY) {
+    drawPlaceholderArt(ctx, W, H, P);
+    return;
+  }
+
+  const cx = W / 2;
+  const cy = H * 0.46;
+  const radius = Math.max(22, Math.min(W, H) * 0.032);
+  ctx.save();
+  ctx.strokeStyle = P.gold;
+  ctx.globalAlpha = mode === ZSTUDIO_PREVIEW_STATES.ERROR ? 0.52 : 0.32;
+  ctx.lineWidth = Math.max(1.5, W * 0.0016);
+  ctx.beginPath();
+  ctx.arc(cx, cy - radius * 0.45, radius, 0, Math.PI * 2);
+  ctx.stroke();
+  if (mode === ZSTUDIO_PREVIEW_STATES.LOADING) {
+    ctx.beginPath();
+    ctx.globalAlpha = 0.78;
+    ctx.arc(cx, cy - radius * 0.45, radius, -Math.PI / 2, Math.PI * 0.15);
+    ctx.stroke();
+  }
+  ctx.textAlign = 'center';
+  ctx.fillStyle = P.gold;
+  ctx.globalAlpha = 0.72;
+  ctx.font = `400 ${Math.round(W * 0.021)}px "DM Sans", sans-serif`;
+  ctx.fillText(
+    studioPreviewCopy(mode === ZSTUDIO_PREVIEW_STATES.ERROR ? 'error' : 'loading'),
+    cx,
+    cy + radius * 1.45
+  );
+  ctx.restore();
+}
+
+function studioPreviewCenterColumnWidth(stage, caption, style) {
+  const paddingLeft = parseFloat(style.paddingLeft) || 0;
+  const paddingRight = parseFloat(style.paddingRight) || 0;
+  const columnGap = parseFloat(style.columnGap) || 0;
+  const captionVisible = caption && caption.offsetParent !== null;
+  const captionWidth = captionVisible ? caption.getBoundingClientRect().width : 0;
+  return Math.max(280, stage.clientWidth - paddingLeft - paddingRight - captionWidth - (captionVisible ? columnGap : 0));
+}
+
+function fitStudioPreviewToWorkspace() {
+  if (!window.matchMedia || !window.matchMedia('(min-width:981px)').matches) return;
+  const stage = document.querySelector('.stage');
+  const frame = document.querySelector('.canvas-frame');
+  const preview = document.getElementById('preview');
+  const actions = document.querySelector('.actions');
+  const nav = document.querySelector('.slide-nav');
+  const caption = document.querySelector('.caption-box');
+  if (!stage || !frame || !preview || !actions) return;
+
+  const style = getComputedStyle(stage);
+  const paddingTop = parseFloat(style.paddingTop) || 0;
+  const paddingBottom = parseFloat(style.paddingBottom) || 0;
+  const rowGap = parseFloat(style.rowGap || style.gap) || 0;
+  const navVisible = nav && nav.classList.contains('on') && getComputedStyle(nav).display !== 'none';
+  const navHeight = navVisible ? nav.getBoundingClientRect().height : 0;
+  const actionsHeight = actions.getBoundingClientRect().height || 42;
+  const gapCount = navVisible ? 2 : 1;
+  const centerWidth = studioPreviewCenterColumnWidth(stage, caption, style);
+  const centerHeight = Math.max(
+    260,
+    stage.clientHeight - paddingTop - paddingBottom - navHeight - actionsHeight - rowGap * gapCount
+  );
+
+  const frameChrome = 24;
+  const maxCanvasWidth = Math.max(240, centerWidth - frameChrome - 10);
+  const maxCanvasHeight = Math.max(240, centerHeight - frameChrome - 8);
+  const intrinsicWidth = Math.max(1, Number(preview.width) || 1080);
+  const intrinsicHeight = Math.max(1, Number(preview.height) || 1350);
+  let scale = Math.min(maxCanvasWidth / intrinsicWidth, maxCanvasHeight / intrinsicHeight);
+
+  const mode = resolveStudioPreviewState();
+  if (mode !== ZSTUDIO_PREVIEW_STATES.READY) scale *= 0.84;
+  scale = Math.max(0.12, scale);
+
+  const renderWidth = Math.max(180, Math.floor(intrinsicWidth * scale));
+  const renderHeight = Math.max(180, Math.floor(intrinsicHeight * scale));
+  preview.style.width = renderWidth + 'px';
+  preview.style.height = renderHeight + 'px';
+  preview.style.maxWidth = 'none';
+  preview.style.maxHeight = 'none';
+  frame.style.width = Math.min(centerWidth, renderWidth + frameChrome) + 'px';
+  frame.style.height = Math.min(centerHeight, renderHeight + frameChrome) + 'px';
+  frame.style.maxWidth = '100%';
+  frame.style.maxHeight = '100%';
+
+  document.documentElement.setAttribute('data-zstudio-preview-fit', 'runtime-v1');
+}
+
+function queueStudioPreviewFit() {
+  if (zstudioPreviewFitQueued) return;
+  zstudioPreviewFitQueued = true;
+  requestAnimationFrame(() => {
+    zstudioPreviewFitQueued = false;
+    fitStudioPreviewToWorkspace();
+  });
+}
+
+async function hydrateStudioActivePhoto(reason) {
+  if (!state.photo && state.photos && state.photos.length) state.photo = state.photos[0];
+  if (!state.photo) {
+    state.img = null;
+    setStudioPreviewState(ZSTUDIO_PREVIEW_STATES.EMPTY, reason || 'no-media');
+    return null;
+  }
+
+  setStudioPreviewState(ZSTUDIO_PREVIEW_STATES.LOADING, reason || 'hydrate');
+  try {
+    const decoded = await loadImg(state.photo);
+    if (!decoded) throw new Error('Decoded image is empty');
+    state.img = decoded;
+    setStudioPreviewState(ZSTUDIO_PREVIEW_STATES.READY, reason || 'hydrated');
+    return decoded;
+  } catch (error) {
+    state.img = null;
+    setStudioPreviewState(ZSTUDIO_PREVIEW_STATES.ERROR, reason || 'decode-failed');
+    console.warn('Z Studio preview image decode failed:', error);
+    return null;
+  }
+}
+
+const zstudioBaseDrawListing = drawListing;
+drawListing = async function zstudioStateAwareDrawListing(ctx, W, H) {
+  const mode = resolveStudioPreviewState();
+  if (mode !== ZSTUDIO_PREVIEW_STATES.READY || !state.img) {
+    renderStudioPreviewStateCanvas(ctx, W, H, mode);
+    return;
+  }
+  return zstudioBaseDrawListing(ctx, W, H);
+};
+
+const zstudioBaseLoadDraftIfAny = loadDraftIfAny;
+loadDraftIfAny = async function zstudioStateAwareLoadDraftIfAny() {
+  setStudioPreviewState(ZSTUDIO_PREVIEW_STATES.LOADING, 'draft-start');
+  await zstudioBaseLoadDraftIfAny();
+  if (state.photo || (state.photos && state.photos.length)) {
+    await hydrateStudioActivePhoto('draft-restored');
+    if (state.img) buildSlides(0);
+  } else {
+    setStudioPreviewState(ZSTUDIO_PREVIEW_STATES.EMPTY, 'draft-empty');
+  }
+};
+
+const zstudioBaseBuildSlides = buildSlides;
+buildSlides = function zstudioStateAwareBuildSlides() {
+  const result = zstudioBaseBuildSlides.apply(this, arguments);
+  if (state.img) setStudioPreviewState(ZSTUDIO_PREVIEW_STATES.READY, 'slides-ready');
+  else if (!(state.photos && state.photos.length) && !state.photo) {
+    setStudioPreviewState(ZSTUDIO_PREVIEW_STATES.EMPTY, 'slides-empty');
+  }
+  queueStudioPreviewFit();
+  return result;
+};
+
+if (typeof pickPhoto === 'function') {
+  const zstudioBasePickPhoto = pickPhoto;
+  pickPhoto = function zstudioStateAwarePickPhoto() {
+    setStudioPreviewState(ZSTUDIO_PREVIEW_STATES.LOADING, 'photo-switch');
+    const result = zstudioBasePickPhoto.apply(this, arguments);
+    draw();
+    return result;
+  };
+}
+
+if (typeof clearDraft === 'function') {
+  const zstudioBaseClearDraft = clearDraft;
+  clearDraft = async function zstudioStateAwareClearDraft() {
+    const result = await zstudioBaseClearDraft.apply(this, arguments);
+    state.img = null;
+    setStudioPreviewState(ZSTUDIO_PREVIEW_STATES.EMPTY, 'draft-cleared');
+    draw();
+    return result;
+  };
+}
+
+if (typeof setFormat === 'function') {
+  const zstudioBaseSetFormat = setFormat;
+  setFormat = function zstudioStateAwareSetFormat() {
+    const result = zstudioBaseSetFormat.apply(this, arguments);
+    queueStudioPreviewFit();
+    return result;
+  };
+}
+
+function installStudioPreviewFitObservers() {
+  if (!window.matchMedia || !window.matchMedia('(min-width:981px)').matches) return;
+  const stage = document.querySelector('.stage');
+  if (stage && typeof ResizeObserver === 'function' && !zstudioPreviewResizeObserver) {
+    zstudioPreviewResizeObserver = new ResizeObserver(queueStudioPreviewFit);
+    zstudioPreviewResizeObserver.observe(stage);
+  }
+  window.addEventListener('resize', queueStudioPreviewFit, { passive: true });
+  queueStudioPreviewFit();
+}
+
+window.ZStudioPreviewRuntime = Object.freeze({
+  authority: 'ZSTUDIO_PREVIEW_STATE_MACHINE_V1',
+  states: ZSTUDIO_PREVIEW_STATES,
+  getState: getStudioPreviewState,
+  isReady: isStudioPreviewReady,
+  hydrateActivePhoto: hydrateStudioActivePhoto,
+  fit: fitStudioPreviewToWorkspace,
+  syncAvailability: syncStudioPreviewAvailability,
+  getReason: () => zstudioPreviewReason
+});
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', installStudioPreviewFitObservers, { once: true });
+} else {
+  installStudioPreviewFitObservers();
+}
+
+setStudioPreviewState(
+  state.img ? ZSTUDIO_PREVIEW_STATES.READY : ZSTUDIO_PREVIEW_STATES.EMPTY,
+  'runtime-installed'
+);
+
 loadAll();
 
 
@@ -6122,6 +9388,836 @@ function drawGridTextBand(ctx, W, H, P, gridH, FS, story, locLine) {
     ctx.fillText(footerLine(), 56 * FS, layout.footerY);
   });
 }
+
+// ZSTUDIO_ASSISTANT_EMPTY_STATE_V2
+// Laptop-only UX authority. Auto-composed captions are not treated as authored
+// content. The rail stays in its deliberate assistant state until the person
+// explicitly writes or asks Z AI to generate a caption.
+
+const ZSTUDIO_ASSISTANT_COPY = Object.freeze({
+  pt: {
+    kicker: 'ASSISTENTE Z AI',
+    title: 'Crie a legenda do seu conteúdo',
+    body: 'A Z AI pode escrever a primeira versão, adaptá-la ao seu conteúdo e prepará-la para tradução.',
+    generate: 'Gerar com Z AI',
+    write: 'Escrever manualmente'
+  },
+  en: {
+    kicker: 'Z AI ASSISTANT',
+    title: 'Create a caption for your content',
+    body: 'Z AI can write the first version, adapt it to your content and prepare it for translation.',
+    generate: 'Generate with Z AI',
+    write: 'Write manually'
+  },
+  fr: {
+    kicker: 'ASSISTANT Z AI',
+    title: 'Créez la légende de votre contenu',
+    body: 'Z AI peut rédiger une première version, l’adapter à votre contenu et la préparer à la traduction.',
+    generate: 'Générer avec Z AI',
+    write: 'Écrire manuellement'
+  },
+  es: {
+    kicker: 'ASISTENTE Z AI',
+    title: 'Crea el texto de tu contenido',
+    body: 'Z AI puede redactar una primera versión, adaptarla a tu contenido y prepararla para traducir.',
+    generate: 'Generar con Z AI',
+    write: 'Escribir manualmente'
+  },
+  de: {
+    kicker: 'Z AI ASSISTENT',
+    title: 'Erstelle den Text für deinen Inhalt',
+    body: 'Z AI kann eine erste Version schreiben, an deinen Inhalt anpassen und für Übersetzungen vorbereiten.',
+    generate: 'Mit Z AI erstellen',
+    write: 'Manuell schreiben'
+  },
+  it: {
+    kicker: 'ASSISTENTE Z AI',
+    title: 'Crea la didascalia del tuo contenuto',
+    body: 'Z AI può scrivere una prima versione, adattarla al contenuto e prepararla per la traduzione.',
+    generate: 'Genera con Z AI',
+    write: 'Scrivi manualmente'
+  }
+});
+
+const ZSTUDIO_ICON_PATHS = Object.freeze({
+  sparkles: '<path d="M12 3l1.15 3.1L16 7.25l-2.85 1.15L12 11.5l-1.15-3.1L8 7.25l2.85-1.15L12 3Z"/><path d="M18.2 12.8l.75 2.05L21 15.6l-2.05.75-.75 2.05-.75-2.05-2.05-.75 2.05-.75.75-2.05Z"/><path d="M5.4 12.2l.55 1.5 1.5.55-1.5.55-.55 1.5-.55-1.5-1.5-.55 1.5-.55.55-1.5Z"/>',
+  globe: '<circle cx="12" cy="12" r="8.5"/><path d="M3.8 12h16.4M12 3.5c2.1 2.2 3.2 5 3.2 8.5S14.1 18.3 12 20.5M12 3.5c-2.1 2.2-3.2 5-3.2 8.5s1.1 6.3 3.2 8.5"/>',
+  folder: '<path d="M3.5 6.8h6l1.6 1.8h9.4v8.8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V6.8Z"/><path d="M3.5 9h17"/>',
+  trash: '<path d="M5.5 7.5h13M9 7.5V5.2h6v2.3M7.2 7.5l.7 11h8.2l.7-11M10.2 10.5v5.2M13.8 10.5v5.2"/>',
+  settings: '<circle cx="12" cy="12" r="3"/><path d="M12 3.8v2M12 18.2v2M3.8 12h2M18.2 12h2M6.2 6.2l1.4 1.4M16.4 16.4l1.4 1.4M17.8 6.2l-1.4 1.4M7.6 16.4l-1.4 1.4"/>',
+  bulk: '<path d="M6 7.2 12 4l6 3.2-6 3.2-6-3.2Z"/><path d="m6 11.2 6 3.2 6-3.2M6 15.2l6 3.2 6-3.2"/>',
+  download: '<path d="M12 4.5v10M8.5 11l3.5 3.5 3.5-3.5M5 18.5h14"/>',
+  share: '<circle cx="17.5" cy="6.5" r="2"/><circle cx="6.5" cy="12" r="2"/><circle cx="17.5" cy="17.5" r="2"/><path d="m8.3 11 7.4-3.6M8.3 13l7.4 3.6"/>',
+  video: '<rect x="4" y="5.5" width="12" height="13" rx="2"/><path d="m16 10 4-2.2v8.4L16 14"/>',
+  file: '<path d="M7 3.8h7l3 3v13.4H7V3.8Z"/><path d="M14 3.8v3h3M9.5 11h5M9.5 14h5"/>',
+  copy: '<rect x="8" y="8" width="10" height="10" rx="1.5"/><path d="M6 15H5.5A1.5 1.5 0 0 1 4 13.5v-8A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5V6"/>',
+  camera: '<path d="M4 8h3l1.4-2h7.2L17 8h3v10H4V8Z"/><circle cx="12" cy="13" r="3.2"/>',
+  pencil: '<path d="m5 18.5 1-4 9.2-9.2 3.5 3.5-9.2 9.2-4 .5Z"/><path d="m13.8 6.7 3.5 3.5"/>'
+});
+
+function createStudioIcon(name, extraClass) {
+  const span = document.createElement('span');
+  span.className = 'zs-icon' + (extraClass ? ' ' + extraClass : '');
+  span.setAttribute('aria-hidden', 'true');
+  span.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">' + (ZSTUDIO_ICON_PATHS[name] || ZSTUDIO_ICON_PATHS.sparkles) + '</svg>';
+  return span;
+}
+
+function stripStudioIconPrefix(text) {
+  return String(text || '')
+    .replace(/^\s*(?:✨|🌐|📁|📂|🗑️?|⚙️?|📦|📤|🎬|📄|📋|⬇️?|↓)\s*/u, '')
+    .trim();
+}
+
+const ZSTUDIO_ICON_TARGETS = Object.freeze([
+  ['#btnAICaption', 'sparkles'],
+  ['#btnAICaptionAll', 'globe'],
+  ['#btnFolderPicker', 'folder'],
+  ['#draftHint button[data-i18n="clearDraftBtn"]', 'trash'],
+  ['#advancedToggleRow', 'settings'],
+  ['#btnHeaderBulk', 'bulk'],
+  ['[data-i18n="downloadPngBtn"]', 'download'],
+  ['[data-i18n="allFormatsBtn"]', 'download'],
+  ['[data-i18n="shareBtn"]', 'share'],
+  ['[data-i18n="videoBtn"]', 'video'],
+  ['[data-i18n="pdfBtn"]', 'file'],
+  ['[data-i18n="copyCaptionBtn"]', 'copy']
+]);
+
+let zstudioApplyingIcons = false;
+function decorateStudioIconTarget(el, iconName) {
+  if (!el) return;
+  if (el.querySelector('.zs-icon') && el.dataset.zsIconName === iconName) return;
+  const label = stripStudioIconPrefix(el.textContent);
+  el.textContent = '';
+  el.dataset.zsIconName = iconName;
+  el.classList.add('zs-iconized');
+  el.appendChild(createStudioIcon(iconName));
+  el.appendChild(document.createTextNode(label));
+}
+
+function decorateStudioDropzone() {
+  const el = document.querySelector('.dropzone');
+  if (!el) return;
+  if (!el.querySelector(':scope > .zs-icon')) {
+    const textNode = Array.from(el.childNodes).find(node => node.nodeType === Node.TEXT_NODE && String(node.nodeValue || '').trim());
+    if (textNode) textNode.nodeValue = String(textNode.nodeValue || '').replace(/^\s*📷\s*/u, '');
+    el.classList.add('zs-dropzone-iconized');
+    el.prepend(createStudioIcon('camera', 'zs-dropzone-icon'));
+  }
+}
+
+function applyStudioIconSystem() {
+  if (!window.matchMedia || !window.matchMedia('(min-width:981px)').matches || zstudioApplyingIcons) return;
+  zstudioApplyingIcons = true;
+  try {
+    ZSTUDIO_ICON_TARGETS.forEach(([selector, icon]) => {
+      document.querySelectorAll(selector).forEach(el => decorateStudioIconTarget(el, icon));
+    });
+    decorateStudioDropzone();
+    document.documentElement.setAttribute('data-zstudio-icon-system', 'v2');
+  } finally {
+    zstudioApplyingIcons = false;
+  }
+}
+
+let zstudioAssistantAuthored = false;
+let zstudioAssistantManualMode = false;
+let zstudioAssistantAiRequested = false;
+
+function zstudioAssistantStrings() {
+  return ZSTUDIO_ASSISTANT_COPY[state && state.lang] || ZSTUDIO_ASSISTANT_COPY.en;
+}
+
+function renderStudioAssistantCopy() {
+  const copy = zstudioAssistantStrings();
+  document.querySelectorAll('[data-zs-assistant-copy]').forEach(el => {
+    const key = el.getAttribute('data-zs-assistant-copy');
+    if (copy[key] && el.textContent !== copy[key]) el.textContent = copy[key];
+  });
+}
+
+function ensureStudioAssistantEmptyState() {
+  const body = document.getElementById('captionMobileBody');
+  const caption = document.getElementById('caption');
+  if (!body || !caption) return null;
+  let empty = document.getElementById('zsAssistantEmptyState');
+  if (empty) return empty;
+
+  empty = document.createElement('section');
+  empty.id = 'zsAssistantEmptyState';
+  empty.className = 'zs-assistant-empty-state';
+  empty.setAttribute('aria-live', 'polite');
+
+  const iconWrap = document.createElement('div');
+  iconWrap.className = 'zs-assistant-empty-icon';
+  iconWrap.appendChild(createStudioIcon('sparkles'));
+
+  const kicker = document.createElement('div');
+  kicker.className = 'zs-assistant-empty-kicker';
+  kicker.setAttribute('data-zs-assistant-copy', 'kicker');
+
+  const title = document.createElement('h3');
+  title.className = 'zs-assistant-empty-title';
+  title.setAttribute('data-zs-assistant-copy', 'title');
+
+  const bodyText = document.createElement('p');
+  bodyText.className = 'zs-assistant-empty-body';
+  bodyText.setAttribute('data-zs-assistant-copy', 'body');
+
+  const actions = document.createElement('div');
+  actions.className = 'zs-assistant-empty-actions';
+
+  const generate = document.createElement('button');
+  generate.type = 'button';
+  generate.id = 'zsAssistantGenerate';
+  generate.className = 'btn zs-assistant-primary zs-iconized';
+  generate.appendChild(createStudioIcon('sparkles'));
+  const generateText = document.createElement('span');
+  generateText.setAttribute('data-zs-assistant-copy', 'generate');
+  generate.appendChild(generateText);
+  generate.addEventListener('click', async () => {
+    zstudioAssistantAiRequested = true;
+    zstudioAssistantManualMode = false;
+    try {
+      if (typeof aiCaption === 'function') await aiCaption();
+      const captionValue = String(caption.value || '').trim();
+      if (captionValue) zstudioAssistantAuthored = true;
+    } finally {
+      zstudioAssistantAiRequested = false;
+      queueStudioUxRefresh();
+    }
+  });
+
+  const write = document.createElement('button');
+  write.type = 'button';
+  write.id = 'zsAssistantWrite';
+  write.className = 'btn btn-line zs-assistant-secondary zs-iconized';
+  write.appendChild(createStudioIcon('pencil'));
+  const writeText = document.createElement('span');
+  writeText.setAttribute('data-zs-assistant-copy', 'write');
+  write.appendChild(writeText);
+  write.addEventListener('click', () => {
+    caption.value = '';
+    zstudioAssistantAuthored = true;
+    zstudioAssistantManualMode = true;
+    syncStudioAssistantEmptyState();
+    requestAnimationFrame(() => caption.focus());
+  });
+
+  actions.append(generate, write);
+  empty.append(iconWrap, kicker, title, bodyText, actions);
+  caption.before(empty);
+  renderStudioAssistantCopy();
+  return empty;
+}
+
+function syncStudioAssistantEmptyState() {
+  if (!window.matchMedia || !window.matchMedia('(min-width:1200px)').matches) return;
+  const caption = document.getElementById('caption');
+  const box = caption && caption.closest('.caption-box');
+  const empty = ensureStudioAssistantEmptyState();
+  if (!caption || !box || !empty) return;
+
+  const showEmpty = !zstudioAssistantAuthored && !zstudioAssistantManualMode;
+  box.classList.toggle('zs-assistant-empty-active', showEmpty);
+  empty.setAttribute('aria-hidden', showEmpty ? 'false' : 'true');
+  document.documentElement.setAttribute('data-zstudio-assistant-state', showEmpty ? 'empty' : 'editor');
+}
+
+function observeStudioCaptionAuthoring() {
+  const caption = document.getElementById('caption');
+  if (!caption || caption.dataset.zsAuthoringObserved === 'true') return;
+  caption.dataset.zsAuthoringObserved = 'true';
+
+  caption.addEventListener('input', () => {
+    zstudioAssistantAuthored = true;
+    zstudioAssistantManualMode = true;
+    syncStudioAssistantEmptyState();
+  });
+  caption.addEventListener('blur', () => {
+    if (!String(caption.value || '').trim()) {
+      zstudioAssistantAuthored = false;
+      zstudioAssistantManualMode = false;
+    }
+    syncStudioAssistantEmptyState();
+  });
+
+  const aiButton = document.getElementById('btnAICaption');
+  if (aiButton && aiButton.dataset.zsAiObserved !== 'true') {
+    aiButton.dataset.zsAiObserved = 'true';
+    aiButton.addEventListener('click', () => { zstudioAssistantAiRequested = true; }, true);
+  }
+}
+
+function installStudioUxHooks() {
+  if (typeof applyUIStrings === 'function' && !applyUIStrings.__zstudioUxWrapped) {
+    const originalApplyUIStrings = applyUIStrings;
+    const wrappedApplyUIStrings = function(...args) {
+      const result = originalApplyUIStrings.apply(this, args);
+      queueStudioUxRefresh();
+      return result;
+    };
+    wrappedApplyUIStrings.__zstudioUxWrapped = true;
+    applyUIStrings = wrappedApplyUIStrings;
+  }
+
+  if (typeof aiCaption === 'function' && !aiCaption.__zstudioUxWrapped) {
+    const originalAiCaption = aiCaption;
+    const wrappedAiCaption = async function(...args) {
+      zstudioAssistantAiRequested = true;
+      try {
+        const result = await originalAiCaption.apply(this, args);
+        const caption = document.getElementById('caption');
+        if (caption && String(caption.value || '').trim()) zstudioAssistantAuthored = true;
+        return result;
+      } finally {
+        zstudioAssistantAiRequested = false;
+        queueStudioUxRefresh();
+      }
+    };
+    wrappedAiCaption.__zstudioUxWrapped = true;
+    aiCaption = wrappedAiCaption;
+  }
+
+  if (typeof aiCaptionAllLangs === 'function' && !aiCaptionAllLangs.__zstudioUxWrapped) {
+    const originalAiCaptionAll = aiCaptionAllLangs;
+    const wrappedAiCaptionAll = async function(...args) {
+      try { return await originalAiCaptionAll.apply(this, args); }
+      finally { queueStudioUxRefresh(); }
+    };
+    wrappedAiCaptionAll.__zstudioUxWrapped = true;
+    aiCaptionAllLangs = wrappedAiCaptionAll;
+  }
+}
+
+let zstudioUxRefreshQueued = false;
+function queueStudioUxRefresh() {
+  if (zstudioUxRefreshQueued) return;
+  zstudioUxRefreshQueued = true;
+  queueMicrotask(() => {
+    zstudioUxRefreshQueued = false;
+    applyStudioIconSystem();
+    renderStudioAssistantCopy();
+    syncStudioAssistantEmptyState();
+  });
+}
+
+let zstudioUxObserver = null;
+function startStudioAssistantAndIcons() {
+  if (!window.matchMedia || !window.matchMedia('(min-width:981px)').matches) return;
+  installStudioUxHooks();
+  ensureStudioAssistantEmptyState();
+  observeStudioCaptionAuthoring();
+  applyStudioIconSystem();
+  syncStudioAssistantEmptyState();
+
+  const langSwitch = document.getElementById('langSwitch');
+  if (langSwitch && langSwitch.dataset.zsUxObserved !== 'true') {
+    langSwitch.dataset.zsUxObserved = 'true';
+    langSwitch.addEventListener('change', queueStudioUxRefresh);
+  }
+
+  if (!zstudioUxObserver && document.body) {
+    zstudioUxObserver = new MutationObserver(() => queueStudioUxRefresh());
+    zstudioUxObserver.observe(document.body, { childList: true, characterData: true, subtree: true });
+  }
+
+  requestAnimationFrame(() => {
+    applyStudioIconSystem();
+    syncStudioAssistantEmptyState();
+  });
+  setTimeout(() => {
+    applyStudioIconSystem();
+    syncStudioAssistantEmptyState();
+  }, 80);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startStudioAssistantAndIcons, { once:true });
+} else {
+  startStudioAssistantAndIcons();
+}
+window.addEventListener('load', startStudioAssistantAndIcons, { once:true });
+
+
+// ZSTUDIO_LAPTOP_ICON_RUNTIME_AUTHORITY_V2
+// Keeps the laptop SVG icon layer authoritative after every UI-language refresh.
+// The existing icon renderer in layout-guards.js remains the single icon source;
+// this module guarantees deterministic re-application after i18n/runtime updates.
+//
+// ZSTUDIO_LAPTOP_CENTER_BALANCE_RUNTIME_V1
+// The no-photo canvas placeholder is also refined here because it is rendered
+// inside the canvas, not by CSS. This keeps the approved post renderer intact
+// while giving the laptop empty state a calmer, optically centred composition.
+
+(function installStudioLaptopRuntimeAuthority() {
+  if (typeof window === 'undefined') return;
+
+  function refreshStudioLaptopIcons() {
+    if (!window.matchMedia || !window.matchMedia('(min-width:981px)').matches) return;
+    if (typeof applyStudioIconSystem === 'function') applyStudioIconSystem();
+  }
+
+  function installBalancedPlaceholderArt() {
+    if (typeof drawPlaceholderArt !== 'function' || drawPlaceholderArt.__zstudioCenterBalanceV1) return;
+
+    const balancedPlaceholder = function balancedStudioPlaceholderArt(ctx, W, H, P) {
+      const t = I18N[state.lang] || I18N.pt;
+      ctx.save();
+      ctx.globalAlpha = 0.035;
+      ctx.strokeStyle = P.gold;
+      ctx.lineWidth = 1.15;
+      const step = Math.max(30, Math.round(W / 20));
+      for (let x = -H; x < W + H; x += step) {
+        ctx.beginPath();
+        ctx.moveTo(x, H);
+        ctx.lineTo(x + H, 0);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      const cx = W / 2;
+      const cy = H * 0.37;
+      const s = Math.max(46, Math.min(W, H) * 0.064);
+
+      ctx.save();
+      ctx.globalAlpha = 0.36;
+      ctx.strokeStyle = P.gold;
+      ctx.lineWidth = Math.max(1.8, Math.min(W, H) * 0.0018);
+      ctx.strokeRect(cx - s, cy - s * 0.55, s * 2, s * 1.3);
+      ctx.strokeRect(cx - s * 0.32, cy - s * 0.92, s * 0.64, s * 0.38);
+      ctx.beginPath();
+      ctx.arc(cx, cy + s * 0.1, s * 0.5, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(cx, cy + s * 0.1, s * 0.24, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      const firstLineY = cy + s * 1.72;
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.fillStyle = P.gold;
+      ctx.globalAlpha = 0.78;
+      ctx.font = `400 ${Math.max(18, Math.round(W * 0.024))}px "DM Sans", sans-serif`;
+      ctx.fillText(t.emptyHint1, cx, firstLineY);
+      ctx.globalAlpha = 0.52;
+      ctx.font = `300 ${Math.max(13, Math.round(W * 0.0155))}px "DM Sans", sans-serif`;
+      ctx.fillText(t.emptyHint2, cx, firstLineY + Math.max(28, Math.round(W * 0.031)));
+      ctx.restore();
+    };
+
+    balancedPlaceholder.__zstudioCenterBalanceV1 = true;
+    drawPlaceholderArt = balancedPlaceholder;
+  }
+
+  function refreshStudioLaptopRuntime() {
+    installBalancedPlaceholderArt();
+    refreshStudioLaptopIcons();
+  }
+
+  if (typeof applyUIStrings === 'function' && !applyUIStrings.__zstudioIconRuntimeV2) {
+    const baseApplyUIStrings = applyUIStrings;
+    const wrappedApplyUIStrings = function wrappedStudioApplyUIStrings() {
+      const result = baseApplyUIStrings.apply(this, arguments);
+      queueMicrotask(refreshStudioLaptopRuntime);
+      if (typeof requestAnimationFrame === 'function') requestAnimationFrame(refreshStudioLaptopRuntime);
+      return result;
+    };
+    wrappedApplyUIStrings.__zstudioIconRuntimeV2 = true;
+    applyUIStrings = wrappedApplyUIStrings;
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', refreshStudioLaptopRuntime, { once: true });
+  } else {
+    refreshStudioLaptopRuntime();
+  }
+
+  window.addEventListener('load', refreshStudioLaptopRuntime, { once: true });
+  queueMicrotask(refreshStudioLaptopRuntime);
+  setTimeout(refreshStudioLaptopRuntime, 80);
+  setTimeout(refreshStudioLaptopRuntime, 450);
+})();
+
+// ZSTUDIO_MOBILE_RUNTIME_AUTHORITY_V1
+// Responsive counterpart to the laptop UX authority. It intentionally reuses
+// the existing icon/assistant sources and preview state machine rather than
+// creating parallel product logic. Mobile keeps natural document scrolling.
+(function installStudioMobileRuntimeAuthority() {
+  if (typeof window === 'undefined' || !window.matchMedia) return;
+
+  const mobileQuery = window.matchMedia('(max-width:620px)');
+  let mobileFitObserver = null;
+  let mobileStateObserver = null;
+  let applyingMobileIcons = false;
+  let syncingMobileFlow = false;
+
+  const mobileFlowCopy = Object.freeze({
+    pt: Object.freeze({ uploadLabel: 'Adicione fotos ou vídeos do seu telemóvel', uploadTitle: 'Escolher fotos ou vídeos', uploadSub: 'Fototeca · Câmara · Ficheiros', details: 'Detalhes adicionais', previewAction: 'Adicionar foto ou vídeo' }),
+    en: Object.freeze({ uploadLabel: 'Add photos or videos from your phone', uploadTitle: 'Choose photos or videos', uploadSub: 'Photo Library · Camera · Files', details: 'Additional details', previewAction: 'Add photo or video' }),
+    fr: Object.freeze({ uploadLabel: 'Ajoutez des photos ou vidéos depuis votre téléphone', uploadTitle: 'Choisir des photos ou vidéos', uploadSub: 'Photothèque · Appareil photo · Fichiers', details: 'Détails supplémentaires', previewAction: 'Ajouter une photo ou vidéo' }),
+    es: Object.freeze({ uploadLabel: 'Añade fotos o vídeos desde tu teléfono', uploadTitle: 'Elegir fotos o vídeos', uploadSub: 'Fotos · Cámara · Archivos', details: 'Detalles adicionales', previewAction: 'Añadir foto o vídeo' }),
+    de: Object.freeze({ uploadLabel: 'Fotos oder Videos vom Smartphone hinzufügen', uploadTitle: 'Fotos oder Videos auswählen', uploadSub: 'Fotomediathek · Kamera · Dateien', details: 'Weitere Details', previewAction: 'Foto oder Video hinzufügen' }),
+    it: Object.freeze({ uploadLabel: 'Aggiungi foto o video dal telefono', uploadTitle: 'Scegli foto o video', uploadSub: 'Libreria foto · Fotocamera · File', details: 'Dettagli aggiuntivi', previewAction: 'Aggiungi foto o video' })
+  });
+
+  function isStudioMobileViewport() {
+    return mobileQuery.matches;
+  }
+
+  function getMobileFlowCopy() {
+    const lang = (typeof state === 'object' && state && state.lang) || 'en';
+    return mobileFlowCopy[lang] || mobileFlowCopy.en;
+  }
+
+  function installMobileFlowStyles() {
+    if (document.getElementById('zstudioMobileInformationFlowV2Styles')) return;
+    const style = document.createElement('style');
+    style.id = 'zstudioMobileInformationFlowV2Styles';
+    style.textContent = `
+      .zs-mobile-text-details-toggle{display:none}
+      .zs-mobile-text-details{display:contents}
+      @media (max-width:620px){
+        header{min-height:60px;padding:10px 12px!important;gap:8px!important;flex-wrap:nowrap!important}
+        header .brand{display:flex!important;align-items:center!important;gap:8px!important;min-width:104px;flex:0 0 auto}
+        #headerLogo{width:25px!important;height:25px!important;flex:0 0 25px!important}
+        header .brand .tag{display:block!important;border:0!important;padding:0!important;font-size:0!important;line-height:1!important;min-width:0!important}
+        header .brand .tag::before{content:'Z Studio';display:block;font-family:'Cormorant Garamond',serif;font-style:normal;font-weight:600;font-size:1.12rem;line-height:1;letter-spacing:.012em;color:#f5f3ed;white-space:nowrap}
+        header .brand .tag [data-i18n="headerTagline"]{display:none!important}
+        .header-actions{margin-left:auto!important;display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:5px!important;min-width:0!important;flex:1 1 auto!important}
+        #btnHeaderBulk{width:36px!important;min-width:36px!important;height:36px!important;min-height:36px!important;padding:0!important;font-size:0!important;letter-spacing:0!important;display:inline-flex!important;align-items:center!important;justify-content:center!important}
+        #btnHeaderBulk .zs-icon{width:14px!important;height:14px!important;flex-basis:14px!important;margin:0!important}
+        #zstudioAuthButton{min-width:0!important;max-width:78px!important;height:36px!important;padding:7px 9px!important;font-size:.61rem!important;letter-spacing:.055em!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+        .lang-select{width:48px!important;min-width:48px!important;height:36px!important;padding:4px 3px 4px 6px!important}
+
+        .layout{grid-template-columns:1fr!important}
+        .controls{order:0!important;padding:18px 24px 26px!important;border-bottom:1px solid var(--border)!important}
+        .stage{order:1!important}
+        html[data-zstudio-preview-state="ready"] .stage{order:-1!important}
+        html:not([data-zstudio-preview-state="ready"]) .stage .export-row,
+        html:not([data-zstudio-preview-state="ready"]) .stage .caption-box{display:none!important}
+        html:not([data-zstudio-preview-state="ready"]) .stage{padding-top:8px!important;padding-bottom:18px!important}
+        html:not([data-zstudio-preview-state="ready"]) .canvas-frame{cursor:pointer}
+
+        #brandStep{margin-bottom:18px!important}
+        #mediaStep{margin-bottom:24px!important}
+        #textStep{margin-bottom:10px!important}
+        #btnFolderPicker,#btnFolderPicker + .hint{display:none!important}
+        #mediaStep>label.f{font-size:.78rem!important;line-height:1.45!important;margin-bottom:8px!important}
+        #mediaStep .dropzone{min-height:132px!important;padding:20px 16px!important}
+        .zs-mobile-upload-title{font-size:.85rem;line-height:1.35;color:var(--text);margin-top:1px}
+        .zs-mobile-upload-sub{font-size:.68rem;line-height:1.4;color:var(--text3);margin-top:5px}
+
+        .zs-mobile-text-details-toggle{display:flex;width:100%;min-height:38px;margin-top:15px;padding:9px 11px;align-items:center;justify-content:space-between;gap:8px;background:rgba(255,255,255,.004);border:1px solid var(--border);border-radius:4px;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:.67rem;letter-spacing:.075em;text-transform:uppercase}
+        .zs-mobile-text-details-toggle::after{content:'＋';font-size:.92rem;line-height:1;color:var(--text2)}
+        .zs-mobile-text-details-toggle[aria-expanded="true"]::after{content:'−'}
+        .zs-mobile-text-details{display:none}
+        .zs-mobile-text-details.open{display:block}
+        .zs-mobile-text-details>label.f:first-child{margin-top:13px!important}
+
+        .zs-assistant-empty-state{padding:18px 16px 17px!important}
+        .zs-assistant-empty-icon{width:36px!important;height:36px!important;margin-bottom:10px!important}
+        .zs-assistant-empty-kicker{margin-bottom:6px!important}
+        .zs-assistant-empty-title{font-size:1.18rem!important;max-width:235px!important}
+        .zs-assistant-empty-body{margin-top:7px!important;line-height:1.48!important;max-width:270px!important}
+        .zs-assistant-empty-actions{margin-top:13px!important;gap:6px!important}
+        .zs-assistant-empty-actions .btn{min-height:35px!important}
+
+        #brandStep .step-label.zs-iconized,#advancedOptions>.step-label.zs-iconized{justify-content:flex-start!important}
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function ensureMobileTextDetails() {
+    const textStep = document.getElementById('textStep');
+    const category = document.getElementById('fCategory');
+    if (!textStep || !category) return null;
+
+    let wrapper = document.getElementById('zsMobileTextDetails');
+    let toggle = document.getElementById('zsMobileTextDetailsToggle');
+    if (!wrapper) {
+      const categoryLabel = textStep.querySelector('label[for="fCategory"]');
+      if (!categoryLabel) return null;
+      wrapper = document.createElement('div');
+      wrapper.id = 'zsMobileTextDetails';
+      wrapper.className = 'zs-mobile-text-details';
+      textStep.insertBefore(wrapper, categoryLabel);
+
+      const nodes = [];
+      let node = categoryLabel;
+      while (node) {
+        const next = node.nextSibling;
+        nodes.push(node);
+        node = next;
+      }
+      nodes.forEach(item => wrapper.appendChild(item));
+    }
+
+    if (!toggle) {
+      toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.id = 'zsMobileTextDetailsToggle';
+      toggle.className = 'zs-mobile-text-details-toggle';
+      toggle.setAttribute('aria-controls', 'zsMobileTextDetails');
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.addEventListener('click', () => {
+        const open = !wrapper.classList.contains('open');
+        wrapper.classList.toggle('open', open);
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      textStep.insertBefore(toggle, wrapper);
+    }
+
+    const label = getMobileFlowCopy().details;
+    if (toggle.textContent !== label) toggle.textContent = label;
+    return { wrapper, toggle };
+  }
+
+  function renderMobileUploadCopy() {
+    const copy = getMobileFlowCopy();
+    const uploadLabel = document.querySelector('#mediaStep > label.f');
+    if (uploadLabel && uploadLabel.textContent !== copy.uploadLabel) uploadLabel.textContent = copy.uploadLabel;
+
+    const dropzone = document.getElementById('dropZone');
+    if (!dropzone) return;
+    let title = dropzone.querySelector(':scope > .zs-mobile-upload-title');
+    let sub = dropzone.querySelector(':scope > .zs-mobile-upload-sub');
+    if (!title || !sub) {
+      const icon = dropzone.querySelector(':scope > .zs-icon');
+      Array.from(dropzone.childNodes).forEach(node => {
+        if (node !== icon && node !== title && node !== sub) node.remove();
+      });
+      if (!title) {
+        title = document.createElement('div');
+        title.className = 'zs-mobile-upload-title';
+        dropzone.appendChild(title);
+      }
+      if (!sub) {
+        sub = document.createElement('div');
+        sub.className = 'zs-mobile-upload-sub';
+        dropzone.appendChild(sub);
+      }
+    }
+    if (title.textContent !== copy.uploadTitle) title.textContent = copy.uploadTitle;
+    if (sub.textContent !== copy.uploadSub) sub.textContent = copy.uploadSub;
+    if (dropzone.getAttribute('aria-label') !== copy.uploadTitle) dropzone.setAttribute('aria-label', copy.uploadTitle);
+  }
+
+  function syncMobileHeaderIdentity() {
+    const bulk = document.getElementById('btnHeaderBulk');
+    if (bulk && !bulk.getAttribute('aria-label')) bulk.setAttribute('aria-label', stripStudioIconPrefix(bulk.textContent) || 'Bulk generation');
+  }
+
+  function syncMobilePreviewAction() {
+    const frame = document.querySelector('.canvas-frame');
+    const upload = document.getElementById('uploadInput');
+    if (!frame || !upload) return;
+    const ready = typeof resolveStudioPreviewState === 'function' && resolveStudioPreviewState() === 'ready';
+    const copy = getMobileFlowCopy();
+    if (!ready) {
+      if (frame.getAttribute('role') !== 'button') frame.setAttribute('role', 'button');
+      if (frame.getAttribute('tabindex') !== '0') frame.setAttribute('tabindex', '0');
+      if (frame.getAttribute('aria-label') !== copy.previewAction) frame.setAttribute('aria-label', copy.previewAction);
+      if (frame.dataset.zsMobileEmptyAction !== 'true') frame.dataset.zsMobileEmptyAction = 'true';
+      if (frame.dataset.zsMobileEmptyActionObserved !== 'true') {
+        frame.dataset.zsMobileEmptyActionObserved = 'true';
+        frame.addEventListener('click', () => {
+          if (typeof resolveStudioPreviewState === 'function' && resolveStudioPreviewState() !== 'ready') upload.click();
+        });
+        frame.addEventListener('keydown', event => {
+          if ((event.key === 'Enter' || event.key === ' ') && typeof resolveStudioPreviewState === 'function' && resolveStudioPreviewState() !== 'ready') {
+            event.preventDefault();
+            upload.click();
+          }
+        });
+      }
+    } else {
+      frame.removeAttribute('role');
+      frame.removeAttribute('tabindex');
+      frame.removeAttribute('aria-label');
+      delete frame.dataset.zsMobileEmptyAction;
+    }
+  }
+
+  function syncStudioMobileInformationFlow() {
+    if (!isStudioMobileViewport() || syncingMobileFlow) return;
+    syncingMobileFlow = true;
+    try {
+      installMobileFlowStyles();
+      ensureMobileTextDetails();
+      renderMobileUploadCopy();
+      syncMobileHeaderIdentity();
+      syncMobilePreviewAction();
+      if (document.documentElement.getAttribute('data-zstudio-mobile-flow') !== 'v2') document.documentElement.setAttribute('data-zstudio-mobile-flow', 'v2');
+    } finally {
+      syncingMobileFlow = false;
+    }
+  }
+
+  function fitStudioMobilePreview() {
+    if (!isStudioMobileViewport()) return false;
+    const stage = document.querySelector('.stage');
+    const frame = document.querySelector('.canvas-frame');
+    const preview = document.getElementById('preview');
+    if (!stage || !frame || !preview) return false;
+
+    const stageStyle = getComputedStyle(stage);
+    const frameStyle = getComputedStyle(frame);
+    const stagePaddingX = (parseFloat(stageStyle.paddingLeft) || 0) + (parseFloat(stageStyle.paddingRight) || 0);
+    const frameChromeX = (parseFloat(frameStyle.paddingLeft) || 0) + (parseFloat(frameStyle.paddingRight) || 0) + (parseFloat(frameStyle.borderLeftWidth) || 0) + (parseFloat(frameStyle.borderRightWidth) || 0);
+    const frameChromeY = (parseFloat(frameStyle.paddingTop) || 0) + (parseFloat(frameStyle.paddingBottom) || 0) + (parseFloat(frameStyle.borderTopWidth) || 0) + (parseFloat(frameStyle.borderBottomWidth) || 0);
+
+    const viewportWidth = Math.max(280, window.innerWidth || document.documentElement.clientWidth || 390);
+    const viewportHeight = Math.max(520, window.innerHeight || document.documentElement.clientHeight || 844);
+    const stageWidth = Math.max(280, stage.clientWidth || viewportWidth);
+    const maxFrameWidth = Math.max(240, Math.min(stageWidth - stagePaddingX, viewportWidth - 24));
+    const maxCanvasWidth = Math.max(220, maxFrameWidth - frameChromeX);
+    const mode = typeof resolveStudioPreviewState === 'function' ? resolveStudioPreviewState() : 'ready';
+    const heightBudget = mode === 'ready' ? Math.min(viewportHeight * 0.58, 520) : Math.min(viewportHeight * 0.36, 330);
+    const maxCanvasHeight = Math.max(220, heightBudget - frameChromeY);
+
+    const intrinsicWidth = Math.max(1, Number(preview.width) || 1080);
+    const intrinsicHeight = Math.max(1, Number(preview.height) || 1350);
+    const scale = Math.max(0.10, Math.min(maxCanvasWidth / intrinsicWidth, maxCanvasHeight / intrinsicHeight));
+    const renderWidth = Math.max(150, Math.floor(intrinsicWidth * scale));
+    const renderHeight = Math.max(150, Math.floor(intrinsicHeight * scale));
+
+    preview.style.width = renderWidth + 'px';
+    preview.style.height = renderHeight + 'px';
+    preview.style.maxWidth = 'none';
+    preview.style.maxHeight = 'none';
+    frame.style.width = Math.min(maxFrameWidth, renderWidth + frameChromeX) + 'px';
+    frame.style.height = (renderHeight + frameChromeY) + 'px';
+    frame.style.maxWidth = '100%';
+    frame.style.maxHeight = 'none';
+
+    document.documentElement.setAttribute('data-zstudio-preview-fit', 'mobile-runtime-v1');
+    return true;
+  }
+
+  if (typeof fitStudioPreviewToWorkspace === 'function' && !fitStudioPreviewToWorkspace.__zstudioMobileWrapped) {
+    const baseFitStudioPreviewToWorkspace = fitStudioPreviewToWorkspace;
+    const responsiveFit = function responsiveStudioPreviewFit() {
+      if (isStudioMobileViewport()) return fitStudioMobilePreview();
+      return baseFitStudioPreviewToWorkspace.apply(this, arguments);
+    };
+    responsiveFit.__zstudioMobileWrapped = true;
+    fitStudioPreviewToWorkspace = responsiveFit;
+  }
+
+  function applyStudioMobileIcons() {
+    if (!isStudioMobileViewport() || applyingMobileIcons) return;
+    if (typeof decorateStudioIconTarget !== 'function' || typeof decorateStudioDropzone !== 'function') return;
+    if (typeof ZSTUDIO_ICON_TARGETS === 'undefined') return;
+    applyingMobileIcons = true;
+    try {
+      ZSTUDIO_ICON_TARGETS.forEach(([selector, icon]) => {
+        document.querySelectorAll(selector).forEach(el => decorateStudioIconTarget(el, icon));
+      });
+      document.querySelectorAll('#brandStep .step-label, #advancedOptions > .step-label').forEach(el => decorateStudioIconTarget(el, 'settings'));
+      decorateStudioDropzone();
+    } finally {
+      applyingMobileIcons = false;
+    }
+  }
+
+  if (typeof applyStudioIconSystem === 'function' && !applyStudioIconSystem.__zstudioMobileWrapped) {
+    const baseApplyStudioIconSystem = applyStudioIconSystem;
+    const responsiveIconSystem = function responsiveStudioIconSystem() {
+      const result = baseApplyStudioIconSystem.apply(this, arguments);
+      applyStudioMobileIcons();
+      return result;
+    };
+    responsiveIconSystem.__zstudioMobileWrapped = true;
+    applyStudioIconSystem = responsiveIconSystem;
+  }
+
+  function syncStudioMobileAssistantEmptyState() {
+    if (!isStudioMobileViewport() || typeof ensureStudioAssistantEmptyState !== 'function') return;
+    const caption = document.getElementById('caption');
+    const box = caption && caption.closest('.caption-box');
+    const empty = ensureStudioAssistantEmptyState();
+    if (!caption || !box || !empty) return;
+    const authored = typeof zstudioAssistantAuthored !== 'undefined' && zstudioAssistantAuthored;
+    const manual = typeof zstudioAssistantManualMode !== 'undefined' && zstudioAssistantManualMode;
+    const showEmpty = !authored && !manual;
+    box.classList.toggle('zs-assistant-empty-active', showEmpty);
+    empty.setAttribute('aria-hidden', showEmpty ? 'false' : 'true');
+    document.documentElement.setAttribute('data-zstudio-assistant-state', showEmpty ? 'empty' : 'editor');
+  }
+
+  if (typeof syncStudioAssistantEmptyState === 'function' && !syncStudioAssistantEmptyState.__zstudioMobileWrapped) {
+    const baseSyncStudioAssistantEmptyState = syncStudioAssistantEmptyState;
+    const responsiveAssistantSync = function responsiveStudioAssistantSync() {
+      const result = baseSyncStudioAssistantEmptyState.apply(this, arguments);
+      syncStudioMobileAssistantEmptyState();
+      return result;
+    };
+    responsiveAssistantSync.__zstudioMobileWrapped = true;
+    syncStudioAssistantEmptyState = responsiveAssistantSync;
+  }
+
+  function refreshStudioMobileRuntime() {
+    if (!isStudioMobileViewport()) return;
+    syncStudioMobileInformationFlow();
+    applyStudioMobileIcons();
+    renderMobileUploadCopy();
+    syncStudioMobileAssistantEmptyState();
+    syncMobilePreviewAction();
+    if (typeof queueStudioPreviewFit === 'function') queueStudioPreviewFit();
+    else fitStudioMobilePreview();
+  }
+
+  function startStudioMobileRuntime() {
+    if (!isStudioMobileViewport()) return;
+    if (typeof installStudioUxHooks === 'function') installStudioUxHooks();
+    if (typeof ensureStudioAssistantEmptyState === 'function') ensureStudioAssistantEmptyState();
+    if (typeof observeStudioCaptionAuthoring === 'function') observeStudioCaptionAuthoring();
+
+    const langSwitch = document.getElementById('langSwitch');
+    if (langSwitch && langSwitch.dataset.zsMobileUxObserved !== 'true') {
+      langSwitch.dataset.zsMobileUxObserved = 'true';
+      langSwitch.addEventListener('change', () => queueMicrotask(refreshStudioMobileRuntime));
+    }
+
+    const stage = document.querySelector('.stage');
+    if (stage && typeof ResizeObserver === 'function' && !mobileFitObserver) {
+      mobileFitObserver = new ResizeObserver(() => {
+        if (typeof queueStudioPreviewFit === 'function') queueStudioPreviewFit();
+      });
+      mobileFitObserver.observe(stage);
+    }
+
+    if (document.documentElement && typeof MutationObserver === 'function' && !mobileStateObserver) {
+      mobileStateObserver = new MutationObserver(() => queueMicrotask(refreshStudioMobileRuntime));
+      mobileStateObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-zstudio-preview-state'] });
+    }
+
+    refreshStudioMobileRuntime();
+    requestAnimationFrame(refreshStudioMobileRuntime);
+    setTimeout(refreshStudioMobileRuntime, 80);
+    setTimeout(refreshStudioMobileRuntime, 450);
+  }
+
+  window.addEventListener('resize', refreshStudioMobileRuntime, { passive: true });
+  window.addEventListener('orientationchange', refreshStudioMobileRuntime, { passive: true });
+  mobileQuery.addEventListener?.('change', () => { if (isStudioMobileViewport()) startStudioMobileRuntime(); });
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startStudioMobileRuntime, { once: true });
+  else startStudioMobileRuntime();
+  window.addEventListener('load', startStudioMobileRuntime, { once: true });
+
+  window.ZStudioMobileRuntime = Object.freeze({
+    authority: 'ZSTUDIO_MOBILE_RUNTIME_AUTHORITY_V1',
+    flowAuthority: 'ZSTUDIO_MOBILE_INFORMATION_FLOW_V2',
+    fit: fitStudioMobilePreview,
+    refresh: refreshStudioMobileRuntime,
+    isMobile: isStudioMobileViewport
+  });
+})();
 
 
 // Z Studio — passwordless Supabase Auth + authenticated AI bridge v1
@@ -6584,6 +10680,201 @@ function zstudioAuthBootstrap() {
 // The built script is normally emitted after the DOM. Keep a fallback for tests/embeds.
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', zstudioAuthBootstrap, { once: true });
 else zstudioAuthBootstrap();
+
+
+// Z Studio — Apple StoreKit lifecycle bridge v1.
+// Runs in every build but activates only inside the native iOS Capacitor shell.
+(function installZStudioApple(global) {
+  'use strict';
+  const PLANS = new Set(['weekly','monthly','annual']);
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const TX_RE = /^\d{1,40}$/;
+  const APP_TX_RE = /^[^\s\u0000-\u001f\u007f]{1,256}$/;
+  let commercialBaseUrl = '';
+  let listenerInstalled = false;
+  let restorePromise = null;
+
+  function error(code, details) { const e = new Error(code); e.code = code; if (details) Object.assign(e, details); return e; }
+  function normalizeBaseUrl(value) {
+    const raw = String(value || '').trim(); if (!raw) return '';
+    let url; try { url = new URL(raw); } catch { throw error('APPLE_RUNTIME_URL_INVALID'); }
+    if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash || (url.pathname && url.pathname !== '/')) throw error('APPLE_RUNTIME_URL_INVALID');
+    return url.origin;
+  }
+  function configure(options) { commercialBaseUrl = normalizeBaseUrl(options?.baseUrl || ''); return Object.freeze({configured:!!commercialBaseUrl,baseUrl:commercialBaseUrl}); }
+  function plugins() { return global.Capacitor?.Plugins || null; }
+  function store() { return plugins()?.ZStudioStoreKit || null; }
+  function http() { return plugins()?.CapacitorHttp || null; }
+  function isAvailable() { return global.Capacitor?.isNativePlatform?.() === true && global.Capacitor?.getPlatform?.() === 'ios' && !!store(); }
+
+  async function accessToken(interactive) {
+    const token = await global.ZStudioAuth?.getAccessToken?.({interactive:!!interactive});
+    if (!token) throw error('AUTH_REQUIRED');
+    return token;
+  }
+  function parseHttpData(value) {
+    if (value && typeof value === 'object') return value;
+    if (typeof value === 'string' && value.trim()) { try { return JSON.parse(value); } catch {} }
+    return null;
+  }
+  async function post(path, data, {interactive=false}={}) {
+    if (!commercialBaseUrl) throw error('APPLE_RUNTIME_UNCONFIGURED');
+    const token = await accessToken(interactive);
+    const nativeHttp = http();
+    let status, payload;
+    try {
+      if (nativeHttp?.request) {
+        const response = await nativeHttp.request({
+          url:commercialBaseUrl+path, method:'POST',
+          headers:{Authorization:'Bearer '+token,Accept:'application/json','Content-Type':'application/json'},
+          data, responseType:'json', connectTimeout:10000, readTimeout:15000,
+        });
+        status = Number(response?.status || 0); payload = parseHttpData(response?.data);
+      } else {
+        const response = await fetch(commercialBaseUrl+path,{method:'POST',headers:{Authorization:'Bearer '+token,Accept:'application/json','Content-Type':'application/json'},body:JSON.stringify(data)});
+        status = response.status; payload = await response.json().catch(()=>null);
+      }
+    } catch (cause) { throw error('APPLE_RUNTIME_UNAVAILABLE',{retryable:true,cause}); }
+    if (status < 200 || status >= 300) throw error(payload?.code || 'APPLE_RUNTIME_REQUEST_FAILED',{httpStatus:status,retryable:status===408||status===425||status===429||status>=500});
+    if (!payload || typeof payload !== 'object') throw error('APPLE_RUNTIME_RESPONSE_INVALID');
+    return payload;
+  }
+
+  function catalog() { return global.ZStudioCommercialConfig?.plans || {}; }
+  function productId(planCode) {
+    if (!PLANS.has(planCode)) throw error('APPLE_PLAN_INVALID');
+    const value = String(catalog()?.[planCode]?.appleProductId || '').trim();
+    if (!value) throw error('APPLE_PRODUCT_UNCONFIGURED');
+    return value;
+  }
+  async function loadProducts() {
+    if (!isAvailable()) throw error('APPLE_NATIVE_UNAVAILABLE');
+    return store().loadProducts({productIds:[...PLANS].map(productId)});
+  }
+  async function appTransactionId() {
+    if (!isAvailable()) throw error('APPLE_NATIVE_UNAVAILABLE');
+    const value = await store().appTransaction();
+    const id = String(value?.appTransactionId || '').trim();
+    if (value?.verification !== 'verified' || !APP_TX_RE.test(id)) throw error('APPLE_APP_TRANSACTION_INVALID');
+    return id;
+  }
+  function validatePrepared(value, planCode, expectedProduct) {
+    const intentId = String(value?.purchase_intent_id || '').toLowerCase();
+    const personId = String(value?.app_account_token || '').toLowerCase();
+    const jws = String(value?.introductory_offer_eligibility_jws || '');
+    const expiresAt = Date.parse(String(value?.expires_at || ''));
+    if (value?.ok !== true || !UUID_RE.test(intentId) || !UUID_RE.test(personId) || value.plan_code !== planCode || value.product_id !== expectedProduct) throw error('APPLE_PREFLIGHT_INVALID');
+    if (typeof value.trial_eligible !== 'boolean' || jws.split('.').length !== 3 || !Number.isFinite(expiresAt) || expiresAt <= Date.now()) throw error('APPLE_PREFLIGHT_INVALID');
+    return Object.freeze({intentId,personId,planCode,productId:expectedProduct,trialEligible:value.trial_eligible,eligibilityJws:jws,expiresAt});
+  }
+  async function prepare(planCode) {
+    const expectedProduct = productId(planCode);
+    const transactionId = await appTransactionId();
+    return validatePrepared(await post('/api/apple/prepare',{plan_code:planCode,app_transaction_id:transactionId},{interactive:true}),planCode,expectedProduct);
+  }
+  function validateTransaction(tx) {
+    if (!tx || tx.verification !== 'verified' || !TX_RE.test(String(tx.transactionId||'')) || !TX_RE.test(String(tx.originalTransactionId||''))) throw error('APPLE_DEVICE_EVIDENCE_INVALID');
+    const jws = String(tx.jwsRepresentation || ''); if (jws.split('.').length !== 3 || jws.length > 65536) throw error('APPLE_DEVICE_EVIDENCE_INVALID');
+    return tx;
+  }
+  async function reconcileTransaction(tx, {intentId=null,interactive=false}={}) {
+    const value = validateTransaction(tx);
+    const data = {jwsRepresentation:value.jwsRepresentation};
+    if (intentId) data.purchase_intent_id = intentId;
+    const result = await post('/api/apple/reconcile',data,{interactive});
+    const finishId = String(result?.finish_transaction_id || '');
+    if (result?.ok !== true || !TX_RE.test(finishId)) throw error('APPLE_RECONCILE_INVALID');
+    await store().finishTransaction({transactionId:finishId});
+    return result;
+  }
+  async function startPurchase(planCode) {
+    if (!isAvailable()) throw error('APPLE_NATIVE_UNAVAILABLE');
+    const prepared = await prepare(planCode);
+    const result = await store().purchase({
+      productId:prepared.productId,
+      appAccountToken:prepared.personId,
+      introductoryOfferEligibilityJws:prepared.eligibilityJws,
+    });
+    if (result?.status !== 'verified') return result;
+    return reconcileTransaction(result.transaction,{intentId:prepared.intentId,interactive:false});
+  }
+  async function restoreCurrentPurchases({sync=false,interactive=false}={}) {
+    if (restorePromise) return restorePromise;
+    restorePromise = (async()=>{
+      if (!commercialBaseUrl || !isAvailable()) return Object.freeze({result:'skipped'});
+      const token = await global.ZStudioAuth?.getAccessToken?.({interactive:!!interactive});
+      if (!token) return Object.freeze({result:'signed_out'});
+      if (sync) await store().syncPurchases();
+      const unfinished = await store().unfinishedTransactions();
+      const current = await store().currentEntitlements();
+      const byId = new Map();
+      for (const tx of [...(unfinished?.transactions||[]),...(current?.transactions||[])]) byId.set(String(tx.transactionId||''),tx);
+      const results=[];
+      for (const tx of byId.values()) { try { results.push(await reconcileTransaction(tx,{interactive:false})); } catch (cause) { results.push({error:cause?.code||'APPLE_RESTORE_FAILED'}); } }
+      return Object.freeze({result:'restored',count:byId.size,results});
+    })().finally(()=>{restorePromise=null;});
+    return restorePromise;
+  }
+  async function installListener() {
+    if (listenerInstalled || !isAvailable()) return;
+    listenerInstalled = true;
+    try { await store().addListener('transactionUpdated',(tx)=>{ reconcileTransaction(tx,{interactive:false}).catch(()=>{}); }); }
+    catch { listenerInstalled=false; }
+  }
+  async function onNativeResume() {
+    if (!isAvailable()) return Object.freeze({result:'not_ios'});
+    if (global.ZSTUDIO_COMMERCIAL_BASE_URL !== undefined) { try { configure({baseUrl:global.ZSTUDIO_COMMERCIAL_BASE_URL}); } catch { commercialBaseUrl=''; } }
+    await installListener();
+    try { return await restoreCurrentPurchases(); } catch { return Object.freeze({result:'error'}); }
+  }
+
+  global.ZStudioApple = Object.freeze({configure,isAvailable,loadProducts,startPurchase,restoreCurrentPurchases,reconcileTransaction,onNativeResume});
+  if (global.ZSTUDIO_COMMERCIAL_BASE_URL) { try { configure({baseUrl:global.ZSTUDIO_COMMERCIAL_BASE_URL}); } catch {} }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',()=>{onNativeResume();},{once:true}); else onNativeResume();
+})(window);
+
+
+// Z Studio — unified subscription UI v1.
+// Provider choice is platform-only. Trial eligibility is always server-side.
+(function installZStudioBilling(global) {
+  'use strict';
+  const PLAN_CODES = ['weekly', 'monthly', 'annual'];
+  const PLAN_SET = new Set(PLAN_CODES);
+  let overlay = null;
+  let statusEl = null;
+  let priceEls = new Map();
+  let busy = false;
+  const STRINGS = Object.freeze({
+    pt: { plans:'Planos', title:'Z Studio', sub:'Escolha o seu plano. O teste gratuito de 3 dias é aplicado apenas se for elegível.', weekly:'Semanal', monthly:'Mensal', annual:'Anual', subscribe:'Subscrever', restore:'Restaurar compras', manage:'Gerir subscrição', close:'Fechar', working:'A processar…', restored:'Compras restauradas.', done:'Subscrição atualizada.', unavailable:'Subscrições temporariamente indisponíveis.', auth:'Inicie sessão para gerir a subscrição.', trial:'3 dias grátis se elegível' },
+    en: { plans:'Plans', title:'Z Studio', sub:'Choose your plan. The 3-day free trial is applied only when eligible.', weekly:'Weekly', monthly:'Monthly', annual:'Annual', subscribe:'Subscribe', restore:'Restore purchases', manage:'Manage subscription', close:'Close', working:'Processing…', restored:'Purchases restored.', done:'Subscription updated.', unavailable:'Subscriptions are temporarily unavailable.', auth:'Sign in to manage your subscription.', trial:'3 days free if eligible' },
+    fr: { plans:'Forfaits', title:'Z Studio', sub:'Choisissez votre forfait. L’essai gratuit de 3 jours est appliqué uniquement si vous êtes éligible.', weekly:'Hebdomadaire', monthly:'Mensuel', annual:'Annuel', subscribe:'S’abonner', restore:'Restaurer les achats', manage:'Gérer l’abonnement', close:'Fermer', working:'Traitement…', restored:'Achats restaurés.', done:'Abonnement mis à jour.', unavailable:'Les abonnements sont temporairement indisponibles.', auth:'Connectez-vous pour gérer votre abonnement.', trial:'3 jours gratuits si éligible' },
+    es: { plans:'Planes', title:'Z Studio', sub:'Elige tu plan. La prueba gratuita de 3 días solo se aplica si eres elegible.', weekly:'Semanal', monthly:'Mensual', annual:'Anual', subscribe:'Suscribirse', restore:'Restaurar compras', manage:'Gestionar suscripción', close:'Cerrar', working:'Procesando…', restored:'Compras restauradas.', done:'Suscripción actualizada.', unavailable:'Las suscripciones no están disponibles temporalmente.', auth:'Inicia sesión para gestionar tu suscripción.', trial:'3 días gratis si eres elegible' },
+    de: { plans:'Tarife', title:'Z Studio', sub:'Wähle deinen Tarif. Die 3-tägige kostenlose Testphase gilt nur bei Berechtigung.', weekly:'Wöchentlich', monthly:'Monatlich', annual:'Jährlich', subscribe:'Abonnieren', restore:'Käufe wiederherstellen', manage:'Abo verwalten', close:'Schließen', working:'Wird verarbeitet…', restored:'Käufe wiederhergestellt.', done:'Abo aktualisiert.', unavailable:'Abonnements sind vorübergehend nicht verfügbar.', auth:'Melde dich an, um dein Abo zu verwalten.', trial:'3 Tage gratis bei Berechtigung' },
+    it: { plans:'Piani', title:'Z Studio', sub:'Scegli il tuo piano. La prova gratuita di 3 giorni si applica solo se idoneo.', weekly:'Settimanale', monthly:'Mensile', annual:'Annuale', subscribe:'Abbonati', restore:'Ripristina acquisti', manage:'Gestisci abbonamento', close:'Chiudi', working:'Elaborazione…', restored:'Acquisti ripristinati.', done:'Abbonamento aggiornato.', unavailable:'Gli abbonamenti non sono temporaneamente disponibili.', auth:'Accedi per gestire il tuo abbonamento.', trial:'3 giorni gratis se idoneo' },
+  });
+  function lang() { const value = String((typeof state === 'object' && state?.lang) || document.documentElement.lang || 'pt').toLowerCase().slice(0,2); return STRINGS[value] ? value : 'en'; }
+  function t(key) { return STRINGS[lang()][key] || STRINGS.en[key] || key; }
+  function config() { return global.ZStudioCommercialConfig || null; }
+  function baseUrl() { return String(config()?.baseUrl || global.ZSTUDIO_COMMERCIAL_BASE_URL || '').replace(/\/+$/, ''); }
+  function enabled() { return config()?.enabled === true && /^https:\/\//.test(baseUrl()); }
+  function platform() { if (global.Capacitor?.isNativePlatform?.() === true) return global.Capacitor?.getPlatform?.() || 'native'; return 'web'; }
+  function targetPrice(planCode) { const minor = Number(config()?.plans?.[planCode]?.priceMinor); const currency = String(config()?.currency || 'EUR'); if (!Number.isInteger(minor) || minor <= 0) return ''; try { return new Intl.NumberFormat(lang(), {style:'currency',currency}).format(minor / 100); } catch { return `${(minor/100).toFixed(2)} ${currency}`; } }
+  function setStatus(message, isError=false) { if (!statusEl) return; statusEl.textContent = message || ''; statusEl.style.color = isError ? '#D98980' : 'var(--text2, #B0B4B8)'; }
+  function create(tag, props={}) { const el = document.createElement(tag); Object.entries(props).forEach(([key,value]) => { if (key === 'text') el.textContent = value; else if (key === 'className') el.className = value; else el.setAttribute(key, value); }); return el; }
+  function injectStyle() { if (document.getElementById('zstudioBillingStyle')) return; const style = create('style',{id:'zstudioBillingStyle'}); style.textContent = `.zsb-trigger{margin-left:8px;padding:7px 12px;border:1px solid var(--border,#454A4F);background:transparent;color:var(--text,#F2F2EF);font:500 .74rem 'DM Sans',sans-serif;letter-spacing:.06em;border-radius:3px;cursor:pointer}.zsb-overlay{position:fixed;inset:0;z-index:1400;background:rgba(5,6,7,.86);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px}.zsb-card{width:min(820px,100%);max-height:min(760px,92vh);overflow:auto;background:var(--surface,#111315);border:1px solid var(--border,#454A4F);border-radius:8px;padding:24px;box-shadow:0 32px 90px rgba(0,0,0,.6)}.zsb-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.zsb-title{font:500 1.75rem 'Cormorant Garamond',serif}.zsb-sub{margin:6px 0 20px;color:var(--text2,#B0B4B8);font-size:.78rem;line-height:1.55;max-width:620px}.zsb-close{border:0;background:transparent;color:var(--text2,#B0B4B8);font-size:1.3rem;cursor:pointer}.zsb-plans{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.zsb-plan{border:1px solid var(--border,#454A4F);border-radius:6px;padding:18px;background:var(--surface-2,#181A1D)}.zsb-plan-name{font-size:.78rem;text-transform:uppercase;letter-spacing:.14em;color:var(--text2,#B0B4B8)}.zsb-price{font:500 1.65rem 'Cormorant Garamond',serif;margin:8px 0}.zsb-trial{min-height:32px;color:var(--text2,#B0B4B8);font-size:.7rem;line-height:1.4}.zsb-buy{width:100%;margin-top:14px;padding:10px;border:1px solid var(--text,#F2F2EF);background:var(--text,#F2F2EF);color:#0A0A0A;border-radius:3px;cursor:pointer;font:500 .75rem 'DM Sans',sans-serif}.zsb-buy:disabled{opacity:.5;cursor:not-allowed}.zsb-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.zsb-action{padding:8px 12px;border:1px solid var(--border,#454A4F);background:transparent;color:var(--text,#F2F2EF);border-radius:3px;cursor:pointer;font-size:.72rem}.zsb-status{min-height:1.3em;margin-top:14px;font-size:.72rem}@media(max-width:720px){.zsb-plans{grid-template-columns:1fr}.zsb-card{padding:18px}.zsb-trigger{padding:7px 9px}}`; document.head.appendChild(style); }
+  async function accessToken() { const token = await global.ZStudioAuth?.getAccessToken?.({interactive:true}); if (!token) throw Object.assign(new Error('AUTH_REQUIRED'),{code:'AUTH_REQUIRED'}); return token; }
+  async function webPost(path, data) { const token = await accessToken(); let response; try { response = await fetch(baseUrl()+path,{method:'POST',headers:{Authorization:'Bearer '+token,Accept:'application/json','Content-Type':'application/json'},body:JSON.stringify(data)}); } catch (cause) { throw Object.assign(new Error('WEB_COMMERCIAL_UNAVAILABLE'),{code:'WEB_COMMERCIAL_UNAVAILABLE',cause}); } const payload = await response.json().catch(()=>null); if (!response.ok) throw Object.assign(new Error(payload?.code || 'WEB_COMMERCIAL_FAILED'),{code:payload?.code || 'WEB_COMMERCIAL_FAILED',httpStatus:response.status}); return payload; }
+  async function waitFor(name, maxMs=2500) { const start = Date.now(); while (Date.now() - start < maxMs) { if (global[name]) return global[name]; await new Promise((resolve)=>setTimeout(resolve,100)); } return global[name] || null; }
+  function checkoutUrl(value) { const raw = String(value || ''); let url; try { url = new URL(raw); } catch { throw new Error('WEB_CHECKOUT_URL_INVALID'); } if (url.protocol !== 'https:' || url.hostname !== 'checkout.stripe.com') throw new Error('WEB_CHECKOUT_URL_INVALID'); return url.href; }
+  async function startPlan(planCode) { if (!PLAN_SET.has(planCode)) throw new Error('PLAN_INVALID'); if (busy) return; busy = true; setStatus(t('working')); document.querySelectorAll('.zsb-buy').forEach((b)=>{b.disabled=true;}); try { const p = platform(); if (p === 'ios') { const bridge = await waitFor('ZStudioApple'); if (!bridge?.isAvailable?.()) throw new Error('APPLE_NATIVE_UNAVAILABLE'); await bridge.startPurchase(planCode); setStatus(t('done')); } else if (p === 'android') { const bridge = await waitFor('ZStudioGooglePlay'); if (!bridge?.isAvailable?.()) throw new Error('GOOGLE_PLAY_NATIVE_UNAVAILABLE'); await bridge.startPurchase(planCode); setStatus(t('done')); } else { const result = await webPost('/api/web/checkout',{plan_code:planCode}); global.location.assign(checkoutUrl(result?.checkout_url)); } } catch (cause) { setStatus(cause?.code === 'AUTH_REQUIRED' ? t('auth') : t('unavailable'), true); throw cause; } finally { busy = false; document.querySelectorAll('.zsb-buy').forEach((b)=>{b.disabled=false;}); } }
+  async function restore() { if (busy) return; busy=true; setStatus(t('working')); try { const p=platform(); if (p==='ios') { const bridge=await waitFor('ZStudioApple'); if (!bridge?.isAvailable?.()) throw new Error('APPLE_NATIVE_UNAVAILABLE'); await bridge.restoreCurrentPurchases({sync:true,interactive:true}); } else if (p==='android') { const bridge=await waitFor('ZStudioGooglePlay'); if (!bridge?.isAvailable?.()) throw new Error('GOOGLE_PLAY_NATIVE_UNAVAILABLE'); await accessToken(); await bridge.restoreCurrentPurchases(); } else return; setStatus(t('restored')); } catch (cause) { setStatus(cause?.code==='AUTH_REQUIRED'?t('auth'):t('unavailable'),true); throw cause; } finally { busy=false; } }
+  async function manage() { if (busy) return; busy=true; setStatus(t('working')); try { if (platform()!=='web') return; const result=await webPost('/api/web/portal',{}); const raw=String(result?.portal_url||''); const url=new URL(raw); if (url.protocol!=='https:' || !/(^|\.)stripe\.com$/.test(url.hostname)) throw new Error('WEB_PORTAL_URL_INVALID'); global.location.assign(url.href); } catch (cause) { setStatus(cause?.code==='AUTH_REQUIRED'?t('auth'):t('unavailable'),true); throw cause; } finally { busy=false; } }
+  async function refreshNativePrices() { try { const p=platform(); if (p==='ios') { const bridge=await waitFor('ZStudioApple',800); if (!bridge?.isAvailable?.()) return; const products=await bridge.loadProducts(); const map=new Map((products?.products||[]).map((x)=>[x.productId,x.displayPrice])); for (const plan of PLAN_CODES) { const id=config()?.plans?.[plan]?.appleProductId; if (map.get(id) && priceEls.get(plan)) priceEls.get(plan).textContent=map.get(id); } } else if (p==='android') { const bridge=await waitFor('ZStudioGooglePlay',800); if (!bridge?.isAvailable?.()) return; const result=await bridge.loadProducts(); const offers=result?.products?.[0]?.offers||[]; for (const plan of PLAN_CODES) { const offer=offers.find((x)=>x.basePlanId===plan && x.offerId==null) || offers.find((x)=>x.basePlanId===plan); const phases=offer?.pricingPhases||[]; const paid=[...phases].reverse().find((x)=>Number(x.priceAmountMicros)>0) || phases[phases.length-1]; if (paid?.formattedPrice && priceEls.get(plan)) priceEls.get(plan).textContent=paid.formattedPrice; } } } catch {} }
+  function open() { if (!enabled()) return false; if (overlay) { overlay.hidden=false; refreshNativePrices(); return true; } injectStyle(); priceEls=new Map(); overlay=create('div',{className:'zsb-overlay'}); const card=create('div',{className:'zsb-card'}); const head=create('div',{className:'zsb-head'}); const titleWrap=create('div'); titleWrap.append(create('div',{className:'zsb-title',text:t('title')}),create('div',{className:'zsb-sub',text:t('sub')})); const close=create('button',{className:'zsb-close','aria-label':t('close'),text:'×'}); close.type='button'; close.addEventListener('click',()=>{overlay.hidden=true;}); head.append(titleWrap,close); card.appendChild(head); const grid=create('div',{className:'zsb-plans'}); for (const plan of PLAN_CODES) { const box=create('div',{className:'zsb-plan'}); const name=create('div',{className:'zsb-plan-name',text:t(plan)}); const price=create('div',{className:'zsb-price',text:targetPrice(plan)}); priceEls.set(plan,price); const trial=create('div',{className:'zsb-trial',text:t('trial')}); const button=create('button',{className:'zsb-buy',text:t('subscribe')}); button.type='button'; button.dataset.plan=plan; button.addEventListener('click',()=>{startPlan(plan).catch(()=>{});}); box.append(name,price,trial,button); grid.appendChild(box); } card.appendChild(grid); const actions=create('div',{className:'zsb-actions'}); if (platform()==='ios' || platform()==='android') { const restoreBtn=create('button',{className:'zsb-action',text:t('restore')}); restoreBtn.type='button'; restoreBtn.addEventListener('click',()=>{restore().catch(()=>{});}); actions.appendChild(restoreBtn); } if (platform()==='web') { const manageBtn=create('button',{className:'zsb-action',text:t('manage')}); manageBtn.type='button'; manageBtn.addEventListener('click',()=>{manage().catch(()=>{});}); actions.appendChild(manageBtn); } card.appendChild(actions); statusEl=create('div',{className:'zsb-status'}); card.appendChild(statusEl); overlay.appendChild(card); overlay.addEventListener('click',(e)=>{if(e.target===overlay) overlay.hidden=true;}); document.body.appendChild(overlay); refreshNativePrices(); return true; }
+  function mount() { if (!enabled() || document.querySelector('[data-zstudio-billing-trigger]')) return false; injectStyle(); const button=create('button',{className:'zsb-trigger','data-zstudio-billing-trigger':'v1',text:t('plans')}); button.type='button'; button.addEventListener('click',open); const header=document.querySelector('header'); if (header) header.appendChild(button); else { button.style.position='fixed'; button.style.right='16px'; button.style.bottom='16px'; button.style.zIndex='1300'; document.body.appendChild(button); } return true; }
+  global.ZStudioBilling=Object.freeze({enabled,platform,open,mount,startPlan,restore,manage});
+  if (document.readyState==='loading') document.addEventListener('DOMContentLoaded',mount,{once:true}); else mount();
+})(window);
 
 </script>
 </body>

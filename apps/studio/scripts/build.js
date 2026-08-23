@@ -21,6 +21,10 @@ const WEB_LEGACY_OUTPUT = path.join(ROOT, 'app', 'my-studio.html');
 const STORE_CATALOG = path.join(ROOT, 'commercial', 'store-products.v1.json');
 const LAPTOP_BRAND_HEADER_CSS = path.join(SRC, 'ux', 'laptop-brand-header.css');
 const LAPTOP_PREMIUM_POLISH_CSS = path.join(SRC, 'ux', 'laptop-premium-polish-v2.css');
+const LAPTOP_VIEWPORT_BALANCE_CSS = path.join(SRC, 'ux', 'laptop-viewport-balance-v1.css');
+const MOBILE_HEADER_CSS = path.join(SRC, 'ux', 'mobile-header-v1.css');
+const LAPTOP_ICON_RUNTIME_AUTHORITY_JS = path.join(SRC, 'ux', 'laptop-icon-runtime-authority-v2.js');
+const PREVIEW_STATE_MACHINE_JS = path.join(SRC, 'ux', 'preview-state-machine-v1.js');
 
 const PLACEHOLDER = '__MYSTUDIO_SCRIPT_PLACEHOLDER__';
 const LEGACY_BRAND = 'My Studio';
@@ -31,6 +35,10 @@ const SUPABASE_ORIGIN = 'https://dcdggqyazdddrfuzwavw.supabase.co';
 const SUPABASE_CDN_ORIGIN = 'https://cdn.jsdelivr.net';
 const LAPTOP_BRAND_HEADER_MARKER = 'ZSTUDIO_LAPTOP_BRAND_HEADER_V1';
 const LAPTOP_PREMIUM_POLISH_MARKER = 'ZSTUDIO_LAPTOP_PREMIUM_POLISH_V2';
+const LAPTOP_VIEWPORT_BALANCE_MARKER = 'ZSTUDIO_LAPTOP_VIEWPORT_BALANCE_V1';
+const MOBILE_HEADER_MARKER = 'ZSTUDIO_MOBILE_HEADER_V1';
+const LAPTOP_ICON_RUNTIME_AUTHORITY_MARKER = 'ZSTUDIO_LAPTOP_ICON_RUNTIME_AUTHORITY_V2';
+const PREVIEW_STATE_MACHINE_MARKER = 'ZSTUDIO_PREVIEW_STATE_MACHINE_V1';
 
 function applyCommercialIdentity(text) {
   return String(text)
@@ -106,6 +114,8 @@ function injectLaptopBrandHeaderCss(template) {
   const modules = [
     [LAPTOP_BRAND_HEADER_CSS, LAPTOP_BRAND_HEADER_MARKER, 'marca laptop'],
     [LAPTOP_PREMIUM_POLISH_CSS, LAPTOP_PREMIUM_POLISH_MARKER, 'polish premium laptop'],
+    [LAPTOP_VIEWPORT_BALANCE_CSS, LAPTOP_VIEWPORT_BALANCE_MARKER, 'equilíbrio viewport laptop'],
+    [MOBILE_HEADER_CSS, MOBILE_HEADER_MARKER, 'cabeçalho mobile'],
   ];
   const cssParts = [];
 
@@ -132,6 +142,31 @@ function injectLaptopBrandHeaderCss(template) {
     if (markerCount !== 1) {
       throw new Error('Autoridade ' + marker + ' não foi injetada exatamente uma vez.');
     }
+  }
+  return output;
+}
+
+function injectPreviewStateMachine(main, runtime) {
+  if (!String(runtime).includes(PREVIEW_STATE_MACHINE_MARKER)) {
+    throw new Error('Preview runtime sem autoridade ' + PREVIEW_STATE_MACHINE_MARKER + '.');
+  }
+  if (String(main).includes(PREVIEW_STATE_MACHINE_MARKER)) {
+    throw new Error('main.js já contém a autoridade ' + PREVIEW_STATE_MACHINE_MARKER + '; recusa duplicação.');
+  }
+
+  const bootSentinel = '\nloadAll();';
+  const occurrences = String(main).split(bootSentinel).length - 1;
+  if (occurrences !== 1) {
+    throw new Error('main.js deve conter exatamente um boot loadAll() para injeção da preview state machine.');
+  }
+
+  const output = String(main).replace(
+    bootSentinel,
+    '\n\n' + String(runtime).trim() + '\n\nloadAll();'
+  );
+  const markerCount = output.split(PREVIEW_STATE_MACHINE_MARKER).length - 1;
+  if (markerCount !== 1) {
+    throw new Error('Preview state machine não foi injetada exatamente uma vez.');
   }
   return output;
 }
@@ -182,13 +217,19 @@ function assemble() {
   const storage = fs.readFileSync(path.join(SRC, 'storage', 'indexeddb.js'), 'utf-8');
   const platformStorage = fs.readFileSync(path.join(SRC, 'platform', 'storage.js'), 'utf-8');
   const main = fs.readFileSync(path.join(SRC, 'main.js'), 'utf-8');
+  const previewStateMachine = fs.readFileSync(PREVIEW_STATE_MACHINE_JS, 'utf-8');
+  const mainWithPreviewState = injectPreviewStateMachine(main, previewStateMachine);
   const layoutGuards = fs.readFileSync(path.join(SRC, 'render', 'layout-guards.js'), 'utf-8');
+  const laptopIconRuntimeAuthority = fs.readFileSync(LAPTOP_ICON_RUNTIME_AUTHORITY_JS, 'utf-8');
   const auth = fs.readFileSync(path.join(SRC, 'platform', 'auth.js'), 'utf-8');
   const appleBilling = fs.readFileSync(path.join(SRC, 'platform', 'apple-billing.js'), 'utf-8');
   const billingUi = fs.readFileSync(path.join(SRC, 'platform', 'billing-ui.js'), 'utf-8');
 
   if (!template.includes(PLACEHOLDER)) {
     throw new Error('src/template.html não tem o placeholder ' + PLACEHOLDER + ' — a montagem não sabe onde inserir o script.');
+  }
+  if (!laptopIconRuntimeAuthority.includes(LAPTOP_ICON_RUNTIME_AUTHORITY_MARKER)) {
+    throw new Error('Runtime de iconografia laptop sem autoridade ' + LAPTOP_ICON_RUNTIME_AUTHORITY_MARKER + '.');
   }
 
   const commercialBaseUrl = normalizeCommercialBaseUrl(process.env.ZSTUDIO_COMMERCIAL_BASE_URL);
@@ -206,8 +247,9 @@ function assemble() {
     stateModule,
     storage,
     platformStorage,
-    main,
+    mainWithPreviewState,
     layoutGuards,
+    laptopIconRuntimeAuthority,
     auth,
     appleBilling,
     billingUi,
@@ -218,7 +260,14 @@ function assemble() {
   const withCommercialCsp = applyCommercialRuntimeCsp(withAuth, commercialBaseUrl);
   const html = applyCommercialIdentity(withCommercialCsp.replace(PLACEHOLDER, script));
   assertCommercialIdentity(html, 'artefacto web Z Studio');
-  for (const marker of [LAPTOP_BRAND_HEADER_MARKER, LAPTOP_PREMIUM_POLISH_MARKER]) {
+  for (const marker of [
+    LAPTOP_BRAND_HEADER_MARKER,
+    LAPTOP_PREMIUM_POLISH_MARKER,
+    LAPTOP_VIEWPORT_BALANCE_MARKER,
+    MOBILE_HEADER_MARKER,
+    LAPTOP_ICON_RUNTIME_AUTHORITY_MARKER,
+    PREVIEW_STATE_MACHINE_MARKER,
+  ]) {
     const markerCount = html.split(marker).length - 1;
     if (markerCount !== 1) {
       throw new Error('Artefacto web não contém exatamente uma autoridade ' + marker + '.');
@@ -231,6 +280,10 @@ function assemble() {
   console.log('✅ Montados app/index.html e app/my-studio.html com identidade Z Studio (' + html.length + ' caracteres)');
   console.log('LAPTOP_BRAND_HEADER=' + LAPTOP_BRAND_HEADER_MARKER);
   console.log('LAPTOP_PREMIUM_POLISH=' + LAPTOP_PREMIUM_POLISH_MARKER);
+  console.log('LAPTOP_VIEWPORT_BALANCE=' + LAPTOP_VIEWPORT_BALANCE_MARKER);
+  console.log('MOBILE_HEADER=' + MOBILE_HEADER_MARKER);
+  console.log('LAPTOP_ICON_RUNTIME=' + LAPTOP_ICON_RUNTIME_AUTHORITY_MARKER);
+  console.log('PREVIEW_STATE_MACHINE=' + PREVIEW_STATE_MACHINE_MARKER);
   console.log('COMMERCIAL_RUNTIME=' + (commercialConfig.enabled ? commercialConfig.baseUrl : 'DISABLED'));
   return html;
 }

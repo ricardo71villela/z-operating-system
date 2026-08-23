@@ -6,8 +6,10 @@
   "scripts": {
     "pretest": "echo 'A instalar o Electron na primeira vez pode demorar um pouco...'",
     "test": "electron --no-sandbox --disable-gpu --ozone-platform=headless run-tests.js",
+    "test:content-persistence": "node run-content-persistence-contract.js",
     "test:mobile": "electron --no-sandbox --disable-gpu --ozone-platform=headless run-mobile-check.js",
     "test:layout": "electron --no-sandbox --disable-gpu --ozone-platform=headless run-layout-regression.js",
+    "test:preview-state": "electron --no-sandbox --disable-gpu --ozone-platform=headless run-preview-state-regression.js",
     "test:renderer-layer2": "electron --no-sandbox --disable-gpu --ozone-platform=headless run-editorial-mosaic-regression.js && electron --no-sandbox --disable-gpu --ozone-platform=headless run-p2-hierarchy-regression.js"
   },
   "devDependencies": {
