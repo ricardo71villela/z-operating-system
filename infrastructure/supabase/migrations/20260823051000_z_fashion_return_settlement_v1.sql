@@ -52,6 +52,11 @@ where r.id = resolved.return_id
 -- resolves to one immutable purchase line and cannot cumulatively reserve
 -- more return quantity than was purchased. Rejected requests no longer
 -- consume the returnable quantity and may be resubmitted legitimately.
+--
+-- The matching Order line is row-locked before the cumulative SUM. This
+-- serializes competing partial Return inserts for the same purchased line:
+-- two concurrent requests can never both validate against the same stale
+-- quantity snapshot and collectively over-return the purchase.
 create or replace function fashion.check_return_eligibility() returns trigger as $$
 declare
   v_delivered_at timestamptz;
@@ -98,17 +103,19 @@ begin
     where oi.id = new.order_item_id
       and oi.order_id = new.order_id
       and oi.partner_id = new.partner_id
-      and oi.product_id = new.product_id;
+      and oi.product_id = new.product_id
+    for update;
 
     if v_order_item_id is null then
       raise exception 'fashion.returns: order_item_id does not match order/partner/product';
     end if;
   else
+    -- Resolve cardinality first. We only take a row lock after proving the
+    -- historical tuple maps to exactly one immutable Order line.
     select
       (array_agg(oi.id order by oi.id))[1],
-      count(*),
-      max(oi.quantity)
-    into v_order_item_id, v_candidate_count, v_purchased_quantity
+      count(*)
+    into v_order_item_id, v_candidate_count
     from fashion.order_items oi
     where oi.order_id = new.order_id
       and oi.partner_id = new.partner_id
@@ -117,6 +124,12 @@ begin
     if v_candidate_count <> 1 then
       raise exception 'fashion.returns: expected exactly one immutable Order line, found %', v_candidate_count;
     end if;
+
+    select oi.quantity
+      into v_purchased_quantity
+    from fashion.order_items oi
+    where oi.id = v_order_item_id
+    for update;
 
     new.order_item_id := v_order_item_id;
   end if;
@@ -142,7 +155,7 @@ end;
 $$ language plpgsql;
 
 comment on function fashion.check_return_eligibility() is
-'Validates delivery window, product eligibility and exact immutable Order-line quantity for every new Return.';
+'Validates delivery window, product eligibility and exact immutable Order-line quantity for every new Return, serialized per Order line against concurrent over-return.';
 
 -- One financial authority: a Return reaches `refunded` only here. The
 -- existing transition trigger still independently enforces
