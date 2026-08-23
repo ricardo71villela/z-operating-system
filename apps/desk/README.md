@@ -1,4 +1,16 @@
-# Z Desk
+# Z Desk — LEGACY CLAUDE FOUNDATION — NOT ZOS AUTHORITY
+
+> **ARCHIVED PROVENANCE ONLY — DO NOT MERGE THIS BRANCH.**
+>
+> This branch (`feature/z-desk-foundation`) is the historical Claude-developed Z Desk foundation created from an old `main` authority. Its original pre-notice tip is preserved at `archive/zdesk-claude-foundation-20260823`.
+>
+> The canonical Z Desk integration authority is `feature/zdesk-zos-convergence-v1`, tracked by Issue #60 and `apps/desk/docs/ZOS-INTEGRATION-AUDIT-2026-08-23.md` on that branch.
+>
+> In particular, do not carry `desk_tenants` / `desk_users`, caller-trusted `tenantId` / `createdBy`, Desk-local migration authority, or the old root workspace/lockfile changes directly into ZOS. They must be converged with canonical `zos.persons`, `zos.organisations`, `zos.memberships`, integrated migrations and session-derived authorization first.
+
+---
+
+# Historical Z Desk source description
 
 Z Desk é a agenda unificada da ZOS: caixa de entrada única (e-mail + WhatsApp) fundida com um motor de calendário, notas sempre ligadas à conversa que as originou, e um método de organização nativo ao fluxo de comunicação — não um to-do genérico colado por cima da inbox. Produto B2B — dirigido a equipas e profissionais que gerem comunicação e agenda através de múltiplos canais.
 
@@ -39,92 +51,31 @@ Decisão de fundação (ver `docs/architecture/ADR-0001`): v1 opera em modo **hu
 
 - `src/app/[locale]/` — Next.js (App Router) + next-intl, aplicação web do Z Desk.
 - `backend/` — serviço NestJS: webhooks do WhatsApp, sync de e-mail/calendário, filas (BullMQ), camada de IA (triagem e sugestão).
-- `supabase/migrations/` — schema reprodutível (tenants, threads, messages, events, integrations, pessoal).
+- `supabase/migrations/` — schema reprodutível histórico do protótipo (não é a autoridade integrada ZOS).
 - `docs/architecture/` — decisões e modelo de domínio específicos do Z Desk.
 
 ## Idiomas
 
-- 6 idiomas obrigatórios: `fr` (default), `en`, `es`, `pt`, `it`, `de` — mesmo padrão do Z Mobility (`next-intl`, `localePrefix: "always"`)
-- `middleware.ts` na raiz — construído corretamente aqui; verificado que **não existe** no Z Mobility (auditado ao copiar o padrão), pelo que a deteção/redireção de idioma lá pode não funcionar sem visita direta a um URL com prefixo
-- **Todas as vistas têm código React real e traduzido nas 6 línguas** — Home, Hoje, Calendário, Gestão de tarefas, Pessoal (mensal/semanal/carga, com separadores) — os mockups HTML em `docs/architecture/` continuam a existir como referência visual, mas deixaram de ser a única forma de ver estas vistas
-- Testado: `next build` gera **32 páginas** (5 rotas × 6 idiomas + not-found) com sucesso
+- 6 idiomas: `fr` (default), `en`, `es`, `pt`, `it`, `de`.
+- As vistas históricas incluem Home, Hoje, Calendário, Gestão de tarefas e Pessoal.
 
-## Gestão de pessoal (ADR-0004 + ADR-0005)
+## Auth & isolamento multi-tenant — histórico, não autoridade atual
 
-- `desk_work_schedules` — horário semanal recorrente por pessoa (dia + hora início/fim) — o *default*
-- `desk_schedule_overrides` — desvio pontual a uma data específica, substitui o padrão só nesse dia
-- `desk_absences` — férias/baixa/falta/outro (ver ADR-0007), com intervalo de datas e estado (`requested`/`approved`)
-- `desk_schedule_validations` — uma linha por pessoa por semana; um worker diário cria automaticamente a validação `pending` para a semana que começa daqui a 15 dias; validar (`POST /personnel/schedule-validations/:id/validate`) é sempre ação humana, nunca automática
-- **Precedência ao resolver um dia** (partilhada entre vista semanal e mapa mensal): ausência aprovada > desvio pontual > padrão recorrente
-- `GET /personnel/weekly-view?tenantId=&weekStart=&userId=` — uma semana; sem `userId` devolve o **geral** (todas as pessoas do tenant, tantas quantas existirem em `desk_users` — nunca um número fixo); com `userId`, a vista **individual** dessa pessoa
-- `GET /personnel/monthly-map?tenantId=&year=&month=&userId=` — mesmo par geral/individual, à escala do mês; inclui `overtimeTotals` (horas extraordinárias aprovadas do mês, por pessoa — ADR-0006)
-- O quadro de pessoal e as vistas de horário partilham a mesma consulta a `desk_users` — adicionar ou remover alguém do tenant reflete-se automaticamente em ambos, sem número codificado
-- Deliberadamente sem hierarquia de aprovação, sem calendário de feriados, sem integração com processamento de salários — é gestão de pessoal operacional, não um módulo de RH
+Esta branch contém `desk_tenants`, `desk_users` e RLS próprios. Estes elementos são **fonte histórica** e precisam de convergência para as autoridades canónicas ZOS antes de integração.
 
-### Horas extraordinárias (ADR-0006)
+## Integrações históricas
 
-- `desk_overtime_entries` — um lançamento por data, com horas e nota; estado `pending`/`approved`
-- Só horas `approved` contam para o total do mês — um lançamento pendente existe mas não é somado
-- `POST /personnel/overtime`, `GET /personnel/overtime?tenantId=&userId=&year=&month=`, `POST /personnel/overtime/:id/approve`, `DELETE /personnel/overtime/:id`
-- `GET /personnel/overtime/monthly-total` — o mesmo total já embutido em `monthly-map`, disponível também isolado
-- Total nunca armazenado, somado no pedido a partir dos lançamentos aprovados — mesmo padrão do resto da gestão de pessoal
+- E-mail: Gmail API + Microsoft Graph API.
+- WhatsApp: Meta WhatsApp Business Cloud API.
+- Calendário: Google Calendar API + Microsoft Graph Calendar API.
+- OAuth/token, autorização por organização e calendar callbacks exigem hardening conforme Issue #60.
 
-### Exportação de horários por WhatsApp + faltas (ADR-0007)
-
-- `desk_users.whatsapp_number` — número pessoal da pessoa, distinto do número de negócio do tenant
-- `desk_users.preferred_language` (`fr`/`en`/`es`/`pt`/`it`/`de`, default `fr`) — **idioma da pessoa, independente do mercado/tenant**: alguém num tenant de mercado português pode preferir inglês, e a mensagem respeita isso, não o mercado
-- A mensagem de horário exportada usa `getScheduleMessageStrings(preferred_language)` (`backend/src/whatsapp/schedule-message-translations.ts`) — dias da semana, cabeçalho e rótulos de ausência/folga nas 6 línguas; deliberadamente não partilhado com `src/messages/*.json` do frontend porque são deployables separados (NestJS vs Next.js)
-- Exportação **automática**: ao validar uma semana (`POST /personnel/schedule-validations/:id/validate`), o horário resultante é enviado por WhatsApp de seguida, best-effort — sem número associado ou sem integração ativa, a validação não falha, o envio é só ignorado
-- Reenvio manual: `POST /personnel/schedules/:userId/export-whatsapp`
-- Reaproveita a integração WhatsApp já ligada ao tenant como remetente — não cria uma segunda ligação
-- `desk_absences.type` estende-se com `falta_justificada` e `falta_injustificada` — distintas de férias/baixa, mesma lógica de contagem para disponibilidade
-
-## Quadro de gestão de tarefas (ADR-0003)
-
-- `desk_tasks` — tarefas pessoais (`task_type='personal'`, `assigned_to = created_by`) e missões atribuídas a colegas (`task_type='mission'`, `assigned_to != created_by`)
-- Quadro Kanban de três colunas: `todo`, `in_progress`, `done`
-- `POST /tasks`, `GET /tasks?tenantId=&assignedTo=` (agrupado por coluna), `POST /tasks/:id/move`, `POST /tasks/:id/reassign`, `PATCH /tasks/:id`, `DELETE /tasks/:id`
-- Independente do estado de mensagem (`desk_messages.state`) por decisão explícita — cobrem coisas diferentes: ciclo de vida de uma conversa vs. trabalho atribuível a alguém
-
-### Mapa de carga cruzado (tarefas + pessoal)
-
-- `GET /personnel/workload-map?tenantId=&weekStart=` — cruza `desk_tasks` (missões abertas/em curso por pessoa) com a disponibilidade da semana (mesma resolução de `weekly-view`)
-- Devolve contagens em bruto por pessoa (`tasksOpen`, `tasksInProgress`, `missionsOpen`, `availableDaysThisWeek`, `absentDaysThisWeek`) — **não** um sinalizador "sobrecarregado" pré-calculado; onde fica o limiar (ex.: "2+ missões em curso e ≤2 dias disponíveis") é decisão de produto/UI, não lógica fixa no backend
-- Primeira vista do Z Desk que combina duas áreas construídas em separado (ADR-0003 + ADR-0004/0005) sem exigir schema novo
-
-## Auth & isolamento multi-tenant
-
-- RLS ativado em todas as tabelas de domínio, com políticas escritas (`20260823004000_z_desk_rls_policies.sql`) — `desk_current_user_tenant_id()` mapeia a sessão Supabase auth ao tenant via `desk_users`
-- `desk_integrations` fica deliberadamente sem políticas de cliente — contém `oauth_tokens`; só o backend (service-role key) lhe acede
-- `POST /auth/bootstrap-tenant` — cria o primeiro tenant + utilizador `owner` para uma sessão Supabase auth nova; idempotente
-- Convite de novos membros para um tenant existente ainda não está construído (TODO)
-
-## Integrações previstas na v1
-
-- E-mail: Gmail API + Microsoft Graph API (OAuth2, polling a cada 5 min — push/webhooks fica para depois)
-- WhatsApp: Meta WhatsApp Business Cloud API (webhook para receber, Cloud API para enviar — ver ADR-0007)
-- Calendário: Google Calendar API + Microsoft Graph Calendar API (pull a cada 5 min + push no momento da confirmação humana de um evento)
-
-### Onboarding de integrações
-
-- `POST /integrations/whatsapp/connect` — liga um número (token gerado manualmente no Meta Business Manager; Embedded Signup fica para depois)
-- `GET /integrations/email/{gmail,microsoft}/authorize` → `callback` — OAuth completo, cria/atualiza a linha em `desk_integrations`
-- `GET /integrations/calendar/{google,microsoft}/authorize` → `callback` — OAuth iniciado; troca de código por token ainda por implementar (`TODO` explícito no controller)
-
-### Fluxo de eventos
-
-- IA sugere (`desk_events.status='draft'`) — nunca confirma sozinha (ADR-0001)
-- `POST /events/:id/confirm` — ação humana; dispara push para o(s) calendário(s) externo(s) ligado(s)
-- `POST /events/:id/reject` — cancela a sugestão
-- Eventos vindos de fora (`source='external_sync'`) entram já confirmados — não há nada para o humano decidir num evento que já existe no calendário real
-
-## Local setup
+## Local setup histórico
 
 ```bash
 npm install
-cp .env.example .env.local   # se aplicável
-npm run dev            # frontend (apps/desk)
-npm run dev --prefix backend  # backend NestJS
+npm run dev
+npm run dev --prefix backend
 ```
 
-Credenciais de service-role do Supabase e segredos OAuth (Google/Microsoft/Meta) são exigidos apenas no backend — nunca expostos ao browser.
+Credenciais privilegiadas e segredos OAuth nunca devem ser expostos ao browser.
