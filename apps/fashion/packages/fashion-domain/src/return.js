@@ -1,20 +1,13 @@
 /* ============================================================
    Z FASHION — RETURN (bounded context: fashion-domain)
    ============================================================
-   Owns: the Return request lifecycle for one Product within a
-   delivered Shipment. Closes the other half of the "onde estamos"
-   gap (2026-08-21, ponto 2): the 14-day return policy and the
-   Cosmetics hygiene-seal exception were both already real rules
-   (isReturnEligible(), product.js) with nowhere for a Client to
-   actually invoke them — no Return entity existed at all.
+   Owns the Return request lifecycle for an explicit quantity of one
+   Product within a delivered Partner Shipment.
 
-   Deliberately reuses isReturnEligible() rather than re-deriving the
-   Cosmetics exception — this module owns *when* a return window is
-   open and *what state* a request is in, never *whether a Category is
-   returnable at all*, which stays product.js's one source of truth.
-
-   Same ALLOWED_TRANSITIONS + transition() + history pattern as
-   onboarding.js/shipment.js.
+   Return quantity is explicit because an Order line can contain more
+   than one unit. Refund settlement itself is orchestrated separately
+   (return-settlement.js) so a Return cannot become financially refunded
+   without the Order aggregate being updated in the same business action.
    ============================================================ */
 
 const { isReturnEligible } = require('./product');
@@ -31,14 +24,6 @@ const ALLOWED_TRANSITIONS = Object.freeze({
   refunded: [],
 });
 
-/**
- * @param {string} deliveredAt - the Shipment's deliveredAt (shipment.js), ISO string
- * @param {Date} [now]
- * @returns {boolean} whether the 14-day window is still open, counted
- *   from delivery — never from purchase/checkout, which is the wrong
- *   anchor (a Client can't return what they haven't received yet, and
- *   shouldn't lose window time to a Partner's own dispatch delay)
- */
 function isWithinReturnWindow(deliveredAt, now = new Date()) {
   if (!deliveredAt) return false;
   const deadline = new Date(deliveredAt);
@@ -47,27 +32,29 @@ function isWithinReturnWindow(deliveredAt, now = new Date()) {
 }
 
 /**
- * Opens a Return request. Throws — never silently creates an
- * unreturnable Return — when the Category is never returnable
- * (isReturnEligible(), e.g. an opened Cosmetics seal) or the 14-day
- * window from delivery has already closed.
+ * Opens a Return request.
  *
- * @param {object} args
- * @param {string} args.orderId
- * @param {string} args.partnerId
- * @param {string} args.productId
- * @param {object} args.product - product.js shape, for isReturnEligible()
- * @param {string} args.deliveredAt - the owning Shipment's deliveredAt
- * @param {boolean} [args.sealBroken] - Cosmetics only, see
- *   isReturnEligible() — defaults false (unopened)
- * @param {string} [args.reason]
- * @param {Date} [args.now]
+ * Quantity is never inferred from the purchased line: returning one of
+ * two units must be distinguishable from returning both.
  */
-function requestReturn({ orderId, partnerId, productId, product, deliveredAt, sealBroken = false, reason, now = new Date() }) {
+function requestReturn({
+  orderId,
+  partnerId,
+  productId,
+  product,
+  deliveredAt,
+  quantity = 1,
+  sealBroken = false,
+  reason,
+  now = new Date(),
+}) {
   if (!orderId) throw new Error('requestReturn: orderId is required');
   if (!partnerId) throw new Error('requestReturn: partnerId is required');
   if (!productId) throw new Error('requestReturn: productId is required');
   if (!product) throw new Error('requestReturn: product is required (to check isReturnEligible)');
+  if (!Number.isInteger(quantity) || quantity <= 0) {
+    throw new Error('requestReturn: quantity must be a positive integer');
+  }
 
   if (!isReturnEligible(product, { sealBroken })) {
     throw new Error(
@@ -86,18 +73,15 @@ function requestReturn({ orderId, partnerId, productId, product, deliveredAt, se
     orderId,
     partnerId,
     productId,
+    quantity,
     status: 'requested',
     reason: reason || null,
-    history: [{ status: 'requested', at: now.toISOString() }],
+    refundedMinorUnits: 0,
+    refundedAt: null,
+    history: Object.freeze([{ status: 'requested', at: now.toISOString() }]),
   });
 }
 
-/**
- * @param {object} returnRequest - requestReturn() shape
- * @param {string} toStatus
- * @param {object} [context]
- * @param {Date} [context.now]
- */
 function transition(returnRequest, toStatus, { now = new Date() } = {}) {
   const allowed = ALLOWED_TRANSITIONS[returnRequest.status] || [];
 
@@ -111,7 +95,10 @@ function transition(returnRequest, toStatus, { now = new Date() } = {}) {
   return Object.freeze({
     ...returnRequest,
     status: toStatus,
-    history: [...returnRequest.history, { status: toStatus, at: now.toISOString() }],
+    history: Object.freeze([
+      ...returnRequest.history,
+      { status: toStatus, at: now.toISOString() },
+    ]),
   });
 }
 
