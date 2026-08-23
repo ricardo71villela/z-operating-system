@@ -1,0 +1,69 @@
+name: One-shot Z Studio P2 gastronomy golden approval PR
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/maintenance-zstudio-p2-gastronomia-golden-pr.yml'
+      - 'apps/studio/goldens-p2/p2-ui-gastronomia-mobile.png'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  approve:
+    if: github.head_ref == 'chore/zos-five-app-convergence-v1'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout convergence head
+        uses: actions/checkout@v4
+        with:
+          ref: chore/zos-five-app-convergence-v1
+          fetch-depth: 0
+
+      - name: Promote exact validated P2 gastronomy candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          target='apps/studio/goldens-p2/p2-ui-gastronomia-mobile.png'
+          approved='406bcf794bf4add0ee8ad2c7e65da3bc060f623e11e083f9c303c0010f2e2bbd'
+          current="$(sha256sum "$target" | awk '{print $1}')"
+          echo "CURRENT_P2_GASTRONOMY_SHA256=$current"
+          echo "APPROVED_P2_GASTRONOMY_SHA256=$approved"
+          if [ "$current" = "$approved" ]; then
+            echo 'P2_GASTRONOMY_GOLDEN_ALREADY_APPROVED=PASS'
+            exit 0
+          fi
+
+          curl --fail --location --retry 3 \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/9484989058/zip" \
+            --output /tmp/zstudio-p2-run207.zip
+          rm -rf /tmp/zstudio-p2-run207
+          mkdir -p /tmp/zstudio-p2-run207
+          unzip -q /tmp/zstudio-p2-run207.zip -d /tmp/zstudio-p2-run207
+          candidate="$(find /tmp/zstudio-p2-run207 -type f -name 'p2-ui-gastronomia-mobile.png' -print -quit)"
+          test -n "$candidate"
+          actual="$(sha256sum "$candidate" | awk '{print $1}')"
+          echo "ARTIFACT_P2_GASTRONOMY_SHA256=$actual"
+          test "$actual" = "$approved"
+          cp "$candidate" "$target"
+          test "$(sha256sum "$target" | awk '{print $1}')" = "$approved"
+
+          git diff --check
+          changed="$(git diff --name-only | sort)"
+          test "$changed" = "$target"
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$target"
+          staged="$(git diff --cached --name-only | sort)"
+          test "$staged" = "$target"
+          git commit -m 'test(studio): approve validated P2 gastronomy visual baseline'
+          git push origin HEAD:chore/zos-five-app-convergence-v1
+          echo 'P2_GASTRONOMY_GOLDEN_APPROVAL=PASS'
