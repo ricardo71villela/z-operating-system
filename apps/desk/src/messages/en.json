@@ -20,5 +20,45 @@
     "noPendingMessages": "Nothing pending.",
     "resolve": "Mark resolved",
     "resolving": "Working…"
+  },
+  "Calendar": {
+    "title": "Calendar",
+    "weekOf": "Week of",
+    "confirmed": "Confirmed",
+    "suggested": "AI suggested",
+    "external": "Synced (Google/Outlook)",
+    "noEvents": "No events",
+    "confidence": "confidence"
+  },
+  "Tasks": {
+    "title": "Task management",
+    "personal": "Personal",
+    "mission": "Mission",
+    "todo": "To do",
+    "inProgress": "In progress",
+    "done": "Done",
+    "assignedTo": "Assigned to",
+    "noTasks": "No tasks"
+  },
+  "Personnel": {
+    "title": "Personnel",
+    "monthlyTab": "Monthly",
+    "weeklyTab": "Weekly",
+    "workloadTab": "Workload",
+    "working": "Working",
+    "vacation": "Vacation",
+    "sick": "Sick leave",
+    "faltaJustificada": "Excused absence",
+    "faltaInjustificada": "Unexcused absence",
+    "off": "Off schedule",
+    "extra": "Overtime",
+    "approved": "approved",
+    "noExtra": "none",
+    "pendingValidation": "Pending validation",
+    "validated": "Validated",
+    "openMissions": "open missions",
+    "inProgressCount": "in progress",
+    "availableDays": "available days",
+    "highLoad": "High load"
   }
 }

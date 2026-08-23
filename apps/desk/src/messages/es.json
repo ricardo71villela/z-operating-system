@@ -20,5 +20,45 @@
     "noPendingMessages": "Nada pendiente.",
     "resolve": "Marcar resuelto",
     "resolving": "Procesando…"
+  },
+  "Calendar": {
+    "title": "Calendario",
+    "weekOf": "Semana del",
+    "confirmed": "Confirmado",
+    "suggested": "Sugerido por la IA",
+    "external": "Sincronizado (Google/Outlook)",
+    "noEvents": "Sin eventos",
+    "confidence": "confianza"
+  },
+  "Tasks": {
+    "title": "Gestión de tareas",
+    "personal": "Personal",
+    "mission": "Misión",
+    "todo": "Por hacer",
+    "inProgress": "En curso",
+    "done": "Completada",
+    "assignedTo": "Asignada a",
+    "noTasks": "Sin tareas"
+  },
+  "Personnel": {
+    "title": "Personal",
+    "monthlyTab": "Mensual",
+    "weeklyTab": "Semanal",
+    "workloadTab": "Carga de trabajo",
+    "working": "Trabajando",
+    "vacation": "Vacaciones",
+    "sick": "Baja médica",
+    "faltaJustificada": "Falta justificada",
+    "faltaInjustificada": "Falta injustificada",
+    "off": "Fuera de horario",
+    "extra": "Horas extra",
+    "approved": "aprobadas",
+    "noExtra": "sin extra",
+    "pendingValidation": "Por validar",
+    "validated": "Validado",
+    "openMissions": "misiones abiertas",
+    "inProgressCount": "en curso",
+    "availableDays": "días disponibles",
+    "highLoad": "Carga alta"
   }
 }

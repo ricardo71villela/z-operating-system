@@ -20,5 +20,45 @@
     "noPendingMessages": "Nichts offen.",
     "resolve": "Als erledigt markieren",
     "resolving": "Wird bearbeitet…"
+  },
+  "Calendar": {
+    "title": "Kalender",
+    "weekOf": "Woche vom",
+    "confirmed": "Bestätigt",
+    "suggested": "KI-Vorschlag",
+    "external": "Synchronisiert (Google/Outlook)",
+    "noEvents": "Keine Termine",
+    "confidence": "Konfidenz"
+  },
+  "Tasks": {
+    "title": "Aufgabenverwaltung",
+    "personal": "Persönlich",
+    "mission": "Auftrag",
+    "todo": "Zu erledigen",
+    "inProgress": "In Bearbeitung",
+    "done": "Erledigt",
+    "assignedTo": "Zugewiesen an",
+    "noTasks": "Keine Aufgaben"
+  },
+  "Personnel": {
+    "title": "Personal",
+    "monthlyTab": "Monatlich",
+    "weeklyTab": "Wöchentlich",
+    "workloadTab": "Auslastung",
+    "working": "Im Dienst",
+    "vacation": "Urlaub",
+    "sick": "Krankheit",
+    "faltaJustificada": "Entschuldigtes Fehlen",
+    "faltaInjustificada": "Unentschuldigtes Fehlen",
+    "off": "Außerhalb der Arbeitszeit",
+    "extra": "Überstunden",
+    "approved": "genehmigt",
+    "noExtra": "keine",
+    "pendingValidation": "Zu bestätigen",
+    "validated": "Bestätigt",
+    "openMissions": "offene Aufträge",
+    "inProgressCount": "in Bearbeitung",
+    "availableDays": "verfügbare Tage",
+    "highLoad": "Hohe Auslastung"
   }
 }

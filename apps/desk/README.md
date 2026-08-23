@@ -46,8 +46,8 @@ Decisão de fundação (ver `docs/architecture/ADR-0001`): v1 opera em modo **hu
 
 - 6 idiomas obrigatórios: `fr` (default), `en`, `es`, `pt`, `it`, `de` — mesmo padrão do Z Mobility (`next-intl`, `localePrefix: "always"`)
 - `middleware.ts` na raiz — construído corretamente aqui; verificado que **não existe** no Z Mobility (auditado ao copiar o padrão), pelo que a deteção/redireção de idioma lá pode não funcionar sem visita direta a um URL com prefixo
-- Traduções em `src/messages/{fr,en,es,pt,it,de}.json` — cobrem a homepage e a vista "Hoje"; as restantes vistas (calendário, tarefas, pessoal) continuam só com mockups HTML em português, ainda não implementadas como código React
-- Testado: `next build` gera as 6 rotas (`/fr`, `/en`, `/es`, `/pt`, `/it`, `/de` e as respetivas `/today`) com sucesso
+- **Todas as vistas têm código React real e traduzido nas 6 línguas** — Home, Hoje, Calendário, Gestão de tarefas, Pessoal (mensal/semanal/carga, com separadores) — os mockups HTML em `docs/architecture/` continuam a existir como referência visual, mas deixaram de ser a única forma de ver estas vistas
+- Testado: `next build` gera **32 páginas** (5 rotas × 6 idiomas + not-found) com sucesso
 
 ## Gestão de pessoal (ADR-0004 + ADR-0005)
 
