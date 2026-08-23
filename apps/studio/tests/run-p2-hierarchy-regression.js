@@ -200,7 +200,8 @@ const CONTRACT = String.raw`
   async function renderCase(
     format,
     template,
-    setup
+    setup,
+    options = {}
   ) {
     state.lang = 'en';
     state.format = format;
@@ -211,6 +212,21 @@ const CONTRACT = String.raw`
     state.photo = null;
     state.photos = [];
     state.carPhotos = [];
+
+    if (options.media !== false) {
+      const source = document.createElement('canvas');
+      source.width = 1600;
+      source.height = 1000;
+      const sourceCtx = source.getContext('2d');
+      sourceCtx.fillStyle = '#6b655c';
+      sourceCtx.fillRect(0, 0, source.width, source.height);
+      sourceCtx.fillStyle = '#b8935a';
+      sourceCtx.fillRect(0, 0, 480, source.height);
+      state.img = source;
+      state.photo = 'p2-contract-media';
+      state.photos = ['p2-contract-media'];
+      state.carPhotos = ['p2-contract-media'];
+    }
 
     state.title =
       'Architectural Residence With Exceptional Natural Light';
@@ -394,7 +410,8 @@ const CONTRACT = String.raw`
           state.badge = '';
           state.showSpecs =
             false;
-        }
+        },
+        { media:false }
       );
 
     const t =
@@ -425,11 +442,11 @@ const CONTRACT = String.raw`
     check(
       'P2 empty ' +
       format +
-      ' primary alpha 0.82',
+      ' primary alpha 0.78',
       !!primary &&
       Math.abs(
         primary.alpha -
-        0.82
+        0.78
       ) < 0.001,
       primary
     );
@@ -437,11 +454,11 @@ const CONTRACT = String.raw`
     check(
       'P2 empty ' +
       format +
-      ' secondary alpha 0.60',
+      ' secondary alpha 0.52',
       !!secondary &&
       Math.abs(
         secondary.alpha -
-        0.60
+        0.52
       ) < 0.001,
       secondary
     );
@@ -637,6 +654,13 @@ const CONTRACT = String.raw`
   // P2.4 NON-FINANCE CATEGORY EXTRAS — MOBILE
   // ========================================================
 
+  function openMobileDetailsForContract() {
+    const wrapper = document.getElementById('zsMobileTextDetails');
+    const toggle = document.getElementById('zsMobileTextDetailsToggle');
+    if (wrapper) wrapper.classList.add('open');
+    if (toggle) toggle.setAttribute('aria-expanded', 'true');
+  }
+
   function setupCategory(
     category
   ) {
@@ -666,6 +690,7 @@ const CONTRACT = String.raw`
       ];
 
     renderCategoryExtras();
+    openMobileDetailsForContract();
 
     return document.getElementById(
       'categoryExtras'
@@ -808,6 +833,7 @@ const CONTRACT = String.raw`
       7.9;
 
     renderCategoryExtras();
+    openMobileDetailsForContract();
 
     const root =
       document.getElementById(
@@ -940,6 +966,7 @@ const CONTRACT = String.raw`
     'carros';
 
   renderCategoryExtras();
+  openMobileDetailsForContract();
 
   {
     const root =
