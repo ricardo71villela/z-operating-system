@@ -1,15 +1,25 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
-import { inboundMessageQueue } from '../queues/queues';
+import { Body, Controller, ForbiddenException, Get, Headers, Post, Query, Req } from '@nestjs/common';
+import type { Request } from 'express';
+import { createHmac, timingSafeEqual } from 'node:crypto';
+import { parseWhatsappMessage } from './parse-whatsapp-payload';
 
-/**
- * Meta WhatsApp Business Cloud API webhook.
- * GET  — verification handshake required by Meta on setup.
- * POST — incoming message/status events, enqueued for async processing.
- *
- * Tenant/thread resolution and AI triage happen in the queue worker
- * (see queues/workers/inbound-message.worker.ts), not here — webhook
- * handlers must return fast, well within Meta's response window.
- */
+function verifyWebhookSignature(rawBody: Buffer | undefined, signatureHeader: string | undefined): void {
+  const secret = process.env.WHATSAPP_APP_SECRET;
+  if (!secret) throw new Error('WHATSAPP_APP_SECRET is required before WhatsApp webhook activation.');
+  if (!rawBody || !signatureHeader?.startsWith('sha256=')) {
+    throw new ForbiddenException('Missing WhatsApp webhook signature.');
+  }
+
+  const suppliedHex = signatureHeader.slice('sha256='.length).toLowerCase();
+  if (!/^[a-f0-9]{64}$/.test(suppliedHex)) throw new ForbiddenException('Invalid WhatsApp webhook signature.');
+
+  const expected = createHmac('sha256', secret).update(rawBody).digest();
+  const supplied = Buffer.from(suppliedHex, 'hex');
+  if (expected.length !== supplied.length || !timingSafeEqual(expected, supplied)) {
+    throw new ForbiddenException('Invalid WhatsApp webhook signature.');
+  }
+}
+
 @Controller('webhooks/whatsapp')
 export class WhatsappWebhookController {
   @Get()
@@ -18,19 +28,37 @@ export class WhatsappWebhookController {
     @Query('hub.verify_token') token: string,
     @Query('hub.challenge') challenge: string,
   ) {
-    if (mode === 'subscribe' && token === process.env.WHATSAPP_VERIFY_TOKEN) {
-      return challenge;
+    const expectedToken = process.env.WHATSAPP_VERIFY_TOKEN;
+    if (!expectedToken || mode !== 'subscribe' || token !== expectedToken) {
+      throw new ForbiddenException('WhatsApp webhook verification failed.');
     }
-    return 'forbidden';
+    return challenge;
   }
 
   @Post()
-  async receive(@Body() payload: unknown) {
-    await inboundMessageQueue.add('whatsapp', {
-      channel: 'whatsapp',
-      payload,
-      receivedAt: new Date().toISOString(),
-    });
-    return { received: true };
+  async receive(
+    @Req() req: Request & { rawBody?: Buffer },
+    @Headers('x-hub-signature-256') signature: string | undefined,
+    @Body() payload: unknown,
+  ) {
+    verifyWebhookSignature(req.rawBody, signature);
+
+    const parsed = parseWhatsappMessage(payload);
+    if (!parsed) return { accepted: true, queued: false };
+
+    // Queue import is deliberately lazy: mounting the signed webhook does not
+    // open Redis while D3 background workers remain disabled.
+    const { inboundMessageQueue } = await import('../queues/queues');
+    await inboundMessageQueue.add(
+      'whatsapp-inbound',
+      { channel: 'whatsapp', payload, receivedAt: new Date().toISOString() },
+      {
+        jobId: `whatsapp-${parsed.externalMessageId}`,
+        removeOnComplete: 1000,
+        removeOnFail: 5000,
+      },
+    );
+
+    return { accepted: true, queued: true };
   }
 }
