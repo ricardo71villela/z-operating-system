@@ -1,9 +1,9 @@
 name: One-shot Z Studio test authority repair
 
 on:
-  pull_request:
+  push:
     branches:
-      - chore/zos-five-app-convergence-v1
+      - fix/zstudio-empty-states-icons-v1
     paths:
       - '.github/workflows/maintenance-studio-test-authority.yml'
 
@@ -45,6 +45,17 @@ jobs:
                   raise SystemExit(f'expected exactly one run-tests.js match, got {count}: {old[:80]}')
               text = text.replace(old, new, 1)
           tests.write_text(text)
+
+          workflow = Path('.github/workflows/zstudio-release-authority.yml')
+          release = workflow.read_text()
+          start_marker = '      - name: Run functional tests with exact transitional assertions allowance\n'
+          end_marker = '      - name: Run renderer layout regression contract\n'
+          if release.count(start_marker) != 1 or release.count(end_marker) != 1:
+              raise SystemExit('release authority transitional block markers are not unique')
+          start = release.index(start_marker)
+          end = release.index(end_marker, start)
+          release = release[:start] + '      - name: Run functional tests\n        run: npm test\n' + release[end:]
+          workflow.write_text(release)
           print('STUDIO_TEST_AUTHORITY_REPAIR=PASS')
           PY
 
@@ -59,6 +70,7 @@ jobs:
           git diff --check
           actual="$(git diff --name-only | sort)"
           expected="$(printf '%s\n' \
+            '.github/workflows/zstudio-release-authority.yml' \
             'apps/studio/app/index.html' \
             'apps/studio/app/my-studio.html' \
             'apps/studio/native/www/index.html' \
@@ -69,16 +81,18 @@ jobs:
           printf '%s\n' "$expected"
           test "$actual" = "$expected"
 
-      - name: Commit exact repair
+      - name: Remove one-shot workflow and commit exact repair
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/maintenance-studio-test-authority.yml
           git add \
+            .github/workflows/zstudio-release-authority.yml \
             apps/studio/app/index.html \
             apps/studio/app/my-studio.html \
             apps/studio/native/www/index.html \
             apps/studio/tests/run-tests.js
           git diff --cached --check
-          git commit -m 'test(studio): reconcile historical test authority'
+          git commit -m 'test(studio): reconcile test and generated authorities'
           git push origin HEAD:fix/zstudio-empty-states-icons-v1
