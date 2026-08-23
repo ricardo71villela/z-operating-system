@@ -90,6 +90,10 @@ public final class ZStudioStoreKitPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func appTransaction(_ call: CAPPluginCall) {
         Task {
+            guard #available(iOS 16.0, *) else {
+                call.reject("App Store app transaction requires iOS 16.0 or newer.", "APPLE_APP_TRANSACTION_UNAVAILABLE")
+                return
+            }
             do {
                 let result = try await AppTransaction.shared
                 guard case .verified(let appTransaction) = result else {
