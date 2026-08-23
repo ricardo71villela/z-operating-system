@@ -191,9 +191,21 @@ export class PersonnelController {
    * precedence rule (absence > override > recurring schedule), plus that
    * week's validation status per person. This is what the "vista semanal"
    * renders — nothing here is stored, all derived per request.
+   *
+   * userId is optional: omitted → "geral" (every person in the tenant,
+   * however many that is — never a fixed count); provided → the
+   * individual view for that one person. Both read from the same
+   * desk_users query, so the roster (however many people are on the
+   * personnel board) and the schedule views are always in sync — adding
+   * or removing a person changes both automatically, nothing to keep in
+   * step manually.
    */
   @Get('weekly-view')
-  async weeklyView(@Query('tenantId') tenantId: string, @Query('weekStart') weekStart: string) {
+  async weeklyView(
+    @Query('tenantId') tenantId: string,
+    @Query('weekStart') weekStart: string,
+    @Query('userId') userId?: string,
+  ) {
     const start = new Date(weekStart + 'T00:00:00Z');
     const weekDates = Array.from({ length: 7 }, (_, i) => {
       const d = new Date(start);
@@ -202,8 +214,11 @@ export class PersonnelController {
     });
     const weekEnd = weekDates[6];
 
+    let usersQuery = supabaseAdmin.from('desk_users').select('id, email').eq('tenant_id', tenantId);
+    if (userId) usersQuery = usersQuery.eq('id', userId);
+
     const [usersRes, schedulesRes, overridesRes, absencesRes, validationsRes] = await Promise.all([
-      supabaseAdmin.from('desk_users').select('id, email').eq('tenant_id', tenantId),
+      usersQuery,
       supabaseAdmin.from('desk_work_schedules').select('user_id, day_of_week, start_time, end_time').eq('tenant_id', tenantId),
       supabaseAdmin.from('desk_schedule_overrides').select('user_id, date, start_time, end_time').eq('tenant_id', tenantId).gte('date', weekStart).lte('date', weekEnd),
       supabaseAdmin.from('desk_absences').select('user_id, type, start_date, end_date').eq('tenant_id', tenantId).eq('status', 'approved').lte('start_date', weekEnd).gte('end_date', weekStart),
@@ -220,24 +235,32 @@ export class PersonnelController {
       return { userId: user.id, email: user.email, days, validation };
     });
 
-    return { weekStart, weekDates, users };
+    return { weekStart, weekDates, view: userId ? 'individual' : 'geral', peopleCount: users.length, users };
   }
 
   /**
    * Same precedence rule as weeklyView, extended across a whole month.
-   * Extended from ADR-0004's version to also consult overrides — see
-   * ADR-0005.
+   * Same userId filter logic as weeklyView — omitted = geral (todo o
+   * quadro de pessoal, sem número fixo), provided = individual.
    */
   @Get('monthly-map')
-  async monthlyMap(@Query('tenantId') tenantId: string, @Query('year') year: string, @Query('month') month: string) {
+  async monthlyMap(
+    @Query('tenantId') tenantId: string,
+    @Query('year') year: string,
+    @Query('month') month: string,
+    @Query('userId') userId?: string,
+  ) {
     const y = Number(year);
     const m = Number(month);
     const daysInMonth = new Date(y, m, 0).getDate();
     const monthStart = `${y}-${String(m).padStart(2, '0')}-01`;
     const monthEnd = `${y}-${String(m).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
 
+    let usersQuery = supabaseAdmin.from('desk_users').select('id, email').eq('tenant_id', tenantId);
+    if (userId) usersQuery = usersQuery.eq('id', userId);
+
     const [usersRes, schedulesRes, overridesRes, absencesRes] = await Promise.all([
-      supabaseAdmin.from('desk_users').select('id, email').eq('tenant_id', tenantId),
+      usersQuery,
       supabaseAdmin.from('desk_work_schedules').select('user_id, day_of_week, start_time, end_time').eq('tenant_id', tenantId),
       supabaseAdmin.from('desk_schedule_overrides').select('user_id, date, start_time, end_time').eq('tenant_id', tenantId).gte('date', monthStart).lte('date', monthEnd),
       supabaseAdmin.from('desk_absences').select('user_id, type, start_date, end_date').eq('tenant_id', tenantId).eq('status', 'approved').lte('start_date', monthEnd).gte('end_date', monthStart),
@@ -253,7 +276,7 @@ export class PersonnelController {
       return { date, users: perUser };
     });
 
-    return { users: usersRes.data, days };
+    return { view: userId ? 'individual' : 'geral', peopleCount: usersRes.data.length, users: usersRes.data, days };
   }
 }
 
