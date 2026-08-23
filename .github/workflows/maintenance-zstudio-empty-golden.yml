@@ -1,0 +1,68 @@
+name: One-shot Z Studio empty-state golden approval
+
+on:
+  push:
+    branches:
+      - chore/zos-five-app-convergence-v1
+    paths:
+      - '.github/workflows/maintenance-zstudio-empty-golden.yml'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  approve:
+    if: github.event.head_commit.message == 'chore(studio): activate empty-state golden approval'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chore/zos-five-app-convergence-v1
+          fetch-depth: 0
+
+      - name: Download exact validated visual artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/9484579507/zip" \
+            --output /tmp/zstudio-current-visual-candidates.zip
+          rm -rf /tmp/zstudio-current-visual-candidates
+          mkdir -p /tmp/zstudio-current-visual-candidates
+          unzip -q /tmp/zstudio-current-visual-candidates.zip -d /tmp/zstudio-current-visual-candidates
+          candidate="$(find /tmp/zstudio-current-visual-candidates -type f -name 'estado-vazio.png' -print -quit)"
+          test -n "$candidate"
+          echo "34d4d53249de29545e4fff4711d70a16c67345ef1e606d262654469bcfce4ebf  $candidate" | sha256sum -c -
+          cp "$candidate" apps/studio/goldens/estado-vazio.png
+          echo 'VALIDATED_EMPTY_STATE_GOLDEN=PASS'
+
+      - name: Verify exact visual baseline boundary
+        run: |
+          set -euo pipefail
+          git diff --check
+          actual="$(git diff --name-only | sort)"
+          expected='apps/studio/goldens/estado-vazio.png'
+          echo '===== ACTUAL ====='
+          printf '%s\n' "$actual"
+          echo '===== EXPECTED ====='
+          printf '%s\n' "$expected"
+          test "$actual" = "$expected"
+
+      - name: Remove one-shot workflow and commit approved baseline
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/maintenance-zstudio-empty-golden.yml
+          git add apps/studio/goldens/estado-vazio.png
+          git diff --cached --check
+          staged="$(git diff --cached --name-only | sort)"
+          expected="$(printf '%s\n' '.github/workflows/maintenance-zstudio-empty-golden.yml' 'apps/studio/goldens/estado-vazio.png' | sort)"
+          test "$staged" = "$expected"
+          git commit -m 'test(studio): approve validated empty-state visual baseline'
+          git push origin HEAD:chore/zos-five-app-convergence-v1
