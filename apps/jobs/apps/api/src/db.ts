@@ -7,11 +7,12 @@
 
 import { store as inMemoryStore, NotFoundError } from './store';
 import { PgStore } from './pgStore';
+import { ExplicitRequirementsPgStore } from './explicitRequirementsPgStore';
 
 export const usingPostgres = !!process.env.DATABASE_URL;
 
 export const store: typeof inMemoryStore | PgStore = usingPostgres
-  ? new PgStore(process.env.DATABASE_URL as string)
+  ? new ExplicitRequirementsPgStore(process.env.DATABASE_URL as string)
   : inMemoryStore;
 
 export { NotFoundError };
