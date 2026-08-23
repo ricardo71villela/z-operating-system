@@ -57,9 +57,27 @@ const seoGenerator = require(path.join(WEB_ROOT, 'src/services/seo-page-generato
 
 const expectedLocales = ['fr', 'en', 'pt', 'es', 'de', 'it'];
 assert.deepEqual(publicLocales.PUBLIC_LOCALES, expectedLocales, 'Public locale authority must remain 6/6');
+assert.deepEqual(publicLocales.TRANSLATED_PUBLIC_LOCALES, expectedLocales, 'Translated public locale authority must remain 6/6');
+assert.deepEqual(publicLocales.LEGACY_TRANSLATED_LOCALES, expectedLocales, 'Compatibility locale export must follow the complete 6/6 authority');
 assert.equal(publicLocales.DEFAULT_PUBLIC_LOCALE, 'fr', 'French must remain the public default locale');
-assert.deepEqual(publicLocales.LEGACY_TRANSLATED_LOCALES, ['fr', 'en', 'pt'], 'Legacy listing locale boundary changed unexpectedly');
-assert.deepEqual(seoGenerator.LOCALES, ['en', 'pt', 'fr'], 'Listings/zones must not invent ES/DE/IT translations');
+assert.deepEqual(seoGenerator.LOCALES, expectedLocales, 'Generic SEO presentation must remain 6/6');
+
+// Editorial listings are allowed to expose only genuinely authored
+// locales, even though the structural SEO renderer supports all six.
+const editorialRows = [
+  { locale:'fr', title:'Titre FR', description:'Description FR' },
+  { locale:'en', title:'Title EN', description:'Description EN' }
+];
+assert.deepEqual(
+  seoDeployment.genuineEditorialLocales(editorialRows),
+  ['fr', 'en'],
+  'Listing indexing must remain limited to genuine localized editorial content'
+);
+assert.equal(
+  seoDeployment.contentForPublicLocale(editorialRows, 'es'),
+  null,
+  'Missing Spanish content must never fall back to English'
+);
 
 const markets = marketRegistry.listMarkets();
 assert.equal(markets.length, 24, 'Market registry must contain exactly 24 launch markets');
@@ -99,7 +117,9 @@ assert.ok(robots.includes(`Sitemap: ${baseUrl}/sitemap.xml`), 'robots.txt sitema
 console.log('Z_FIND_RELEASE_SURFACE_AUTHORITY=PASS');
 console.log(`Z_FIND_MARKETS=${markets.length}`);
 console.log(`Z_FIND_PUBLIC_LOCALES=${expectedLocales.length}`);
+console.log(`Z_FIND_TRANSLATED_PUBLIC_LOCALES=${expectedLocales.length}`);
 console.log(`Z_FIND_MARKET_SEO_PAGES=${entries.length}`);
+console.log('Z_FIND_EDITORIAL_LOCALE_FALLBACK=FORBIDDEN');
 console.log('Z_FIND_MINIMUM_SITEMAP_URLS=145');
 console.log('Z_FIND_ADMIN_NOINDEX=PASS');
 console.log('Z_FIND_PARTNER_NOINDEX=PASS');
