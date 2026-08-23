@@ -41,7 +41,9 @@
   .legend-swatch.working { background: var(--gold-pale); border: 1px solid var(--gold-light); }
   .legend-swatch.vacation { background: var(--gray-700); }
   .legend-swatch.sick { background: var(--gray-400); }
+  .legend-swatch.falta { background: #A85C4A; }
   .legend-swatch.off { background: var(--gray-50); border: 1px solid var(--gray-200); }
+  .cell-fill.falta { background: #A85C4A; }
 
   table.map { width: 100%; border-collapse: collapse; }
   table.map th, table.map td {
@@ -86,6 +88,7 @@
       <span class="legend-item"><span class="legend-swatch working"></span>A trabalhar</span>
       <span class="legend-item"><span class="legend-swatch vacation"></span>Férias</span>
       <span class="legend-item"><span class="legend-swatch sick"></span>Baixa</span>
+      <span class="legend-item"><span class="legend-swatch falta"></span>Falta</span>
       <span class="legend-item"><span class="legend-swatch off"></span>Fora de horário</span>
     </div>
 
@@ -170,7 +173,7 @@
       </tr>
       <tr>
         <td class="name-col">Miguel Santos</td>
-        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill falta"></div></td>
         <td class="day-cell"><div class="cell-fill working"></div></td>
         <td class="day-cell"><div class="cell-fill off"></div></td>
         <td class="day-cell"><div class="cell-fill off"></div></td>

@@ -39,19 +39,20 @@ Decisão de fundação (ver `docs/architecture/ADR-0001`): v1 opera em modo **hu
 
 - `src/` — Next.js (App Router) + next-intl, aplicação web do Z Desk.
 - `backend/` — serviço NestJS: webhooks do WhatsApp, sync de e-mail/calendário, filas (BullMQ), camada de IA (triagem e sugestão).
-- `supabase/migrations/` — schema reprodutível (tenants, threads, messages, events, integrations).
+- `supabase/migrations/` — schema reprodutível (tenants, threads, messages, events, integrations, pessoal).
 - `docs/architecture/` — decisões e modelo de domínio específicos do Z Desk.
 
 ## Gestão de pessoal (ADR-0004 + ADR-0005)
 
 - `desk_work_schedules` — horário semanal recorrente por pessoa (dia + hora início/fim) — o *default*
 - `desk_schedule_overrides` — desvio pontual a uma data específica, substitui o padrão só nesse dia
-- `desk_absences` — férias/baixa/outro, com intervalo de datas e estado (`requested`/`approved`)
+- `desk_absences` — férias/baixa/falta/outro (ver ADR-0007), com intervalo de datas e estado (`requested`/`approved`)
 - `desk_schedule_validations` — uma linha por pessoa por semana; um worker diário cria automaticamente a validação `pending` para a semana que começa daqui a 15 dias; validar (`POST /personnel/schedule-validations/:id/validate`) é sempre ação humana, nunca automática
 - **Precedência ao resolver um dia** (partilhada entre vista semanal e mapa mensal): ausência aprovada > desvio pontual > padrão recorrente
 - `GET /personnel/weekly-view?tenantId=&weekStart=&userId=` — uma semana; sem `userId` devolve o **geral** (todas as pessoas do tenant, tantas quantas existirem em `desk_users` — nunca um número fixo); com `userId`, a vista **individual** dessa pessoa
 - `GET /personnel/monthly-map?tenantId=&year=&month=&userId=` — mesmo par geral/individual, à escala do mês; inclui `overtimeTotals` (horas extraordinárias aprovadas do mês, por pessoa — ADR-0006)
 - O quadro de pessoal e as vistas de horário partilham a mesma consulta a `desk_users` — adicionar ou remover alguém do tenant reflete-se automaticamente em ambos, sem número codificado
+- Deliberadamente sem hierarquia de aprovação, sem calendário de feriados, sem integração com processamento de salários — é gestão de pessoal operacional, não um módulo de RH
 
 ### Horas extraordinárias (ADR-0006)
 
@@ -60,8 +61,14 @@ Decisão de fundação (ver `docs/architecture/ADR-0001`): v1 opera em modo **hu
 - `POST /personnel/overtime`, `GET /personnel/overtime?tenantId=&userId=&year=&month=`, `POST /personnel/overtime/:id/approve`, `DELETE /personnel/overtime/:id`
 - `GET /personnel/overtime/monthly-total` — o mesmo total já embutido em `monthly-map`, disponível também isolado
 - Total nunca armazenado, somado no pedido a partir dos lançamentos aprovados — mesmo padrão do resto da gestão de pessoal
-- Alimenta a atribuição de missões e a sugestão de reuniões com disponibilidade real — ligação feita quando a IA for ligada, não implementada agora
-- Deliberadamente sem hierarquia de aprovação, sem calendário de feriados, sem integração com processamento de salários — é gestão de pessoal operacional, não um módulo de RH
+
+### Exportação de horários por WhatsApp + faltas (ADR-0007)
+
+- `desk_users.whatsapp_number` — número pessoal da pessoa, distinto do número de negócio do tenant
+- Exportação **automática**: ao validar uma semana (`POST /personnel/schedule-validations/:id/validate`), o horário resultante é enviado por WhatsApp de seguida, best-effort — sem número associado ou sem integração ativa, a validação não falha, o envio é só ignorado
+- Reenvio manual: `POST /personnel/schedules/:userId/export-whatsapp`
+- Reaproveita a integração WhatsApp já ligada ao tenant como remetente — não cria uma segunda ligação
+- `desk_absences.type` estende-se com `falta_justificada` e `falta_injustificada` — distintas de férias/baixa, mesma lógica de contagem para disponibilidade
 
 ## Quadro de gestão de tarefas (ADR-0003)
 
@@ -69,6 +76,8 @@ Decisão de fundação (ver `docs/architecture/ADR-0001`): v1 opera em modo **hu
 - Quadro Kanban de três colunas: `todo`, `in_progress`, `done`
 - `POST /tasks`, `GET /tasks?tenantId=&assignedTo=` (agrupado por coluna), `POST /tasks/:id/move`, `POST /tasks/:id/reassign`, `PATCH /tasks/:id`, `DELETE /tasks/:id`
 - Independente do estado de mensagem (`desk_messages.state`) por decisão explícita — cobrem coisas diferentes: ciclo de vida de uma conversa vs. trabalho atribuível a alguém
+
+## Auth & isolamento multi-tenant
 
 - RLS ativado em todas as tabelas de domínio, com políticas escritas (`20260823004000_z_desk_rls_policies.sql`) — `desk_current_user_tenant_id()` mapeia a sessão Supabase auth ao tenant via `desk_users`
 - `desk_integrations` fica deliberadamente sem políticas de cliente — contém `oauth_tokens`; só o backend (service-role key) lhe acede
@@ -78,7 +87,7 @@ Decisão de fundação (ver `docs/architecture/ADR-0001`): v1 opera em modo **hu
 ## Integrações previstas na v1
 
 - E-mail: Gmail API + Microsoft Graph API (OAuth2, polling a cada 5 min — push/webhooks fica para depois)
-- WhatsApp: Meta WhatsApp Business Cloud API (webhook)
+- WhatsApp: Meta WhatsApp Business Cloud API (webhook para receber, Cloud API para enviar — ver ADR-0007)
 - Calendário: Google Calendar API + Microsoft Graph Calendar API (pull a cada 5 min + push no momento da confirmação humana de um evento)
 
 ### Onboarding de integrações

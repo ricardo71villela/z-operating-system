@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
 import { supabaseAdmin } from '../supabase/supabase-admin';
+import { sendWhatsappTextMessage } from '../whatsapp/whatsapp-sender.client';
 
 /**
  * Personnel management (ADR-0004 + ADR-0005): recurring weekly schedules,
@@ -61,7 +62,7 @@ export class PersonnelController {
     body: {
       tenantId: string;
       userId: string;
-      type: 'vacation' | 'sick' | 'other';
+      type: 'vacation' | 'sick' | 'other' | 'falta_justificada' | 'falta_injustificada';
       startDate: string;
       endDate: string;
       note?: string;
@@ -276,7 +277,121 @@ export class PersonnelController {
       .eq('tenant_id', body.tenantId);
     if (error) throw error;
 
+    // ADR-0007: automatic, best-effort — a failed/skipped send never
+    // un-does the validation itself.
+    try {
+      await this.exportScheduleWhatsapp(body.tenantId, validation.user_id, id, true);
+    } catch (err) {
+      console.warn(`Falha ao exportar horário por WhatsApp (validação ${id}):`, err);
+    }
+
     return { validated: true };
+  }
+
+  /**
+   * Manual re-send — same underlying logic as the automatic export
+   * triggered by validateWeek, callable on demand without waiting for a
+   * new validation cycle.
+   */
+  @Post('schedules/:userId/export-whatsapp')
+  async exportWhatsapp(
+    @Param('userId') userId: string,
+    @Body('tenantId') tenantId: string,
+    @Body('weekStart') weekStart: string,
+  ) {
+    const { data: validation } = await supabaseAdmin
+      .from('desk_schedule_validations')
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .eq('user_id', userId)
+      .eq('week_start_date', weekStart)
+      .maybeSingle();
+
+    await this.exportScheduleWhatsapp(tenantId, userId, validation?.id ?? null, false, weekStart);
+    return { sent: true };
+  }
+
+  /**
+   * Builds the week's schedule as plain text and sends it via the
+   * tenant's connected WhatsApp Business number to the person's own
+   * whatsapp_number. Silently no-ops (throws, caught by caller in the
+   * automatic path) if either is missing — see ADR-0007: infrastructure
+   * gaps never block the human validation action itself.
+   */
+  private async exportScheduleWhatsapp(
+    tenantId: string,
+    userId: string,
+    validationId: string | null,
+    resolveWeekFromValidation: boolean,
+    explicitWeekStart?: string,
+  ) {
+    let weekStart = explicitWeekStart ?? null;
+    if (resolveWeekFromValidation && validationId) {
+      const { data } = await supabaseAdmin
+        .from('desk_schedule_validations')
+        .select('week_start_date')
+        .eq('id', validationId)
+        .single();
+      weekStart = data?.week_start_date ?? null;
+    }
+    if (!weekStart) throw new Error('Sem semana para exportar.');
+
+    const { data: user, error: userError } = await supabaseAdmin
+      .from('desk_users')
+      .select('id, tenant_id, whatsapp_number')
+      .eq('id', userId)
+      .single();
+    if (userError) throw userError;
+    if (!user.whatsapp_number) throw new Error(`Utilizador ${userId} sem whatsapp_number associado.`);
+
+    const { data: integration, error: integrationError } = await supabaseAdmin
+      .from('desk_integrations')
+      .select('external_account_id, oauth_tokens')
+      .eq('tenant_id', tenantId)
+      .eq('provider', 'whatsapp')
+      .eq('status', 'active')
+      .maybeSingle();
+    if (integrationError) throw integrationError;
+    if (!integration?.oauth_tokens?.accessToken) throw new Error('Sem integração WhatsApp ativa para o tenant.');
+
+    const start = new Date(weekStart + 'T00:00:00Z');
+    const weekDates = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(start);
+      d.setUTCDate(d.getUTCDate() + i);
+      return d.toISOString().slice(0, 10);
+    });
+    const weekEnd = weekDates[6];
+
+    const [schedulesRes, overridesRes, absencesRes] = await Promise.all([
+      supabaseAdmin.from('desk_work_schedules').select('user_id, day_of_week, start_time, end_time').eq('tenant_id', tenantId).eq('user_id', userId),
+      supabaseAdmin.from('desk_schedule_overrides').select('user_id, date, start_time, end_time').eq('tenant_id', tenantId).eq('user_id', userId).gte('date', weekStart).lte('date', weekEnd),
+      supabaseAdmin.from('desk_absences').select('user_id, type, start_date, end_date').eq('tenant_id', tenantId).eq('user_id', userId).eq('status', 'approved').lte('start_date', weekEnd).gte('end_date', weekStart),
+    ]);
+    for (const r of [schedulesRes, overridesRes, absencesRes]) if (r.error) throw r.error;
+
+    const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    const lines = weekDates.map((date) => {
+      const resolution = resolveDay(date, userId, schedulesRes.data, overridesRes.data, absencesRes.data);
+      const dow = new Date(date + 'T00:00:00Z').getUTCDay();
+      const label = dayNames[dow];
+      if (resolution.status === 'absent') return `${label} ${date.slice(8, 10)}: ausência`;
+      if (resolution.status === 'working') {
+        const schedule = schedulesRes.data.find((s) => s.day_of_week === dow);
+        const override = overridesRes.data.find((o) => o.date === date);
+        const times = override ?? schedule;
+        return `${label} ${date.slice(8, 10)}: ${times?.start_time?.slice(0, 5)}–${times?.end_time?.slice(0, 5)}`;
+      }
+      return `${label} ${date.slice(8, 10)}: folga`;
+    });
+
+    const message = `📅 O seu horário — semana de ${weekStart}\n\n${lines.join('\n')}`;
+
+    await sendWhatsappTextMessage(
+      integration.external_account_id,
+      integration.oauth_tokens.accessToken,
+      user.whatsapp_number,
+      message,
+    );
   }
 
   /**
@@ -416,7 +531,7 @@ interface DayResolution {
   userId: string;
   date: string;
   status: 'working' | 'off' | 'absent';
-  absenceType?: 'vacation' | 'sick' | 'other';
+  absenceType?: 'vacation' | 'sick' | 'other' | 'falta_justificada' | 'falta_injustificada';
   source: 'absence' | 'override' | 'schedule' | 'none';
 }
 
@@ -425,7 +540,7 @@ function resolveDay(
   userId: string,
   schedules: { user_id: string; day_of_week: number; start_time: string; end_time: string }[],
   overrides: { user_id: string; date: string; start_time: string | null; end_time: string | null }[],
-  absences: { user_id: string; type: 'vacation' | 'sick' | 'other'; start_date: string; end_date: string }[],
+  absences: { user_id: string; type: 'vacation' | 'sick' | 'other' | 'falta_justificada' | 'falta_injustificada'; start_date: string; end_date: string }[],
 ): DayResolution {
   const absence = absences.find((a) => a.user_id === userId && a.start_date <= date && a.end_date >= date);
   if (absence) return { userId, date, status: 'absent', absenceType: absence.type, source: 'absence' };
