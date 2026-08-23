@@ -1,6 +1,6 @@
 import { Body, Controller, ForbiddenException, Get, Headers, Post, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { parseWhatsappMessage } from './parse-whatsapp-payload';
 
 function verifyWebhookSignature(rawBody: Buffer | undefined, signatureHeader: string | undefined): void {
@@ -18,6 +18,10 @@ function verifyWebhookSignature(rawBody: Buffer | undefined, signatureHeader: st
   if (expected.length !== supplied.length || !timingSafeEqual(expected, supplied)) {
     throw new ForbiddenException('Invalid WhatsApp webhook signature.');
   }
+}
+
+function inboundJobId(externalMessageId: string): string {
+  return `whatsapp-${createHash('sha256').update(externalMessageId, 'utf8').digest('hex')}`;
 }
 
 @Controller('webhooks/whatsapp')
@@ -53,7 +57,7 @@ export class WhatsappWebhookController {
       'whatsapp-inbound',
       { channel: 'whatsapp', payload, receivedAt: new Date().toISOString() },
       {
-        jobId: `whatsapp-${parsed.externalMessageId}`,
+        jobId: inboundJobId(parsed.externalMessageId),
         removeOnComplete: 1000,
         removeOnFail: 5000,
       },
