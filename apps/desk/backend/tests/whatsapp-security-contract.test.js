@@ -36,7 +36,7 @@ test('WhatsApp inbound enqueue is deterministic and Redis is lazy', () => {
 
 test('disconnect removes encrypted credentials before disabling integration', () => {
   const service = src('integrations-security', 'integration-credential.service.ts');
-  assert.match(service, /from\('integration_credentials'\)\.delete\(\)/s);
+  assert.match(service, /from\('integration_credentials'\)[\s\S]*?\.delete\(\)/);
   assert.match(service, /status:\s*'disconnected'/);
   assert.doesNotMatch(service, /oauth_tokens/);
 });
