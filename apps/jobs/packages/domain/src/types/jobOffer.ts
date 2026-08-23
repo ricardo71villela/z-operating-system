@@ -1,5 +1,5 @@
 // packages/domain/src/types/jobOffer.ts
-// Tipos de domínio para Job Offer. Espelham as migrations 0005/0007.
+// Tipos de domínio para Job Offer. Espelham a autoridade PostgreSQL Jobs.
 
 export type JobOfferStatus =
   | 'draft'
@@ -44,6 +44,15 @@ export interface JobOfferDraft {
   organizationId: string;
   title: string;
   description: string;
+
+  // These fields have existed in jobs.job_offers since the shared ZOS
+  // database baseline. They are optional at the application boundary for
+  // backward compatibility with older drafts, but when present they are the
+  // explicit authority for matching before generic description prose.
+  responsibilities?: string | null;
+  requiredQualifications?: string | null;
+  preferredQualifications?: string | null;
+
   contractType: ContractType;
   salaryMin: number;
   salaryMax?: number | null;
