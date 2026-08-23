@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+:root {
+  --white: #FFFFFF;
+  --black: #0A0A0A;
+  --gray-50: #F8F8F6;
+  --gray-100: #F0EFE9;
+  --gray-200: #E2E0D8;
+  --gray-300: #C8C6BC;
+  --gray-400: #9E9C94;
+  --gray-500: #6E6C64;
+  --gray-700: #3A3834;
+  --gray-900: #1A1916;
+  --gold: #B8935A;
+  --gold-light: #D4AF7A;
+  --gold-dark: #8B6B3A;
+  --gold-pale: #F5EDD8;
+}
+
+body {
+  background: var(--gray-50);
+  color: var(--gray-900);
+  font-family: 'DM Sans', 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 300;
+}
