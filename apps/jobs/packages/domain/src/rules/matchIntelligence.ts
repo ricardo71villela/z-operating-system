@@ -7,6 +7,8 @@ export type MatchFitBand =
   | 'weak'
   | 'insufficient_evidence';
 
+export type MatchFactorRole = 'strength' | 'tradeoff' | 'conflict' | 'unknown';
+
 export interface MatchIntelligence {
   score: number;
   confidence: number;
@@ -27,6 +29,13 @@ const PREFERENCE_CODES = new Set<MatchFactor['code']>([
 
 function byWeight(a: MatchFactor, b: MatchFactor) {
   return b.weight - a.weight || a.code.localeCompare(b.code);
+}
+
+export function classifyMatchFactor(factor: MatchFactor): MatchFactorRole {
+  if (factor.level === 'match') return 'strength';
+  if (factor.level === 'partial') return 'tradeoff';
+  if (factor.level === 'unknown') return 'unknown';
+  return PREFERENCE_CODES.has(factor.code) ? 'conflict' : 'tradeoff';
 }
 
 export function computeMatchConfidence(factors: MatchFactor[]): number {
@@ -55,12 +64,10 @@ export function buildMatchIntelligence(result: MatchResult): MatchIntelligence {
     score: result.score,
     confidence,
     fitBand: classifyMatchFit(result.score, confidence),
-    strengths: result.factors.filter((factor) => factor.level === 'match').sort(byWeight),
-    tradeoffs: result.factors.filter((factor) => factor.level === 'partial').sort(byWeight),
-    conflicts: result.factors
-      .filter((factor) => factor.level === 'mismatch' && PREFERENCE_CODES.has(factor.code))
-      .sort(byWeight),
-    unknowns: result.factors.filter((factor) => factor.level === 'unknown').sort(byWeight),
+    strengths: result.factors.filter((factor) => classifyMatchFactor(factor) === 'strength').sort(byWeight),
+    tradeoffs: result.factors.filter((factor) => classifyMatchFactor(factor) === 'tradeoff').sort(byWeight),
+    conflicts: result.factors.filter((factor) => classifyMatchFactor(factor) === 'conflict').sort(byWeight),
+    unknowns: result.factors.filter((factor) => classifyMatchFactor(factor) === 'unknown').sort(byWeight),
     advisoryOnly: true,
   };
 }
