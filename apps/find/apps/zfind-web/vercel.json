@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "ignoreCommand": "BASE=\"${VERCEL_GIT_PREVIOUS_SHA:-HEAD^}\"; git cat-file -e \"$BASE^{commit}\" 2>/dev/null || exit 1; git diff --quiet \"$BASE\" HEAD -- ':(top)apps/find/apps/zfind-web/**' ':(top)apps/find/package.json' ':(top)package-lock.json'",
   "cleanUrls": true,
   "trailingSlash": false,
   "build": {
