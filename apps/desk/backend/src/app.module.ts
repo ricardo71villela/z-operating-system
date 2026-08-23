@@ -3,6 +3,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
 import { DeskAuthGuard } from './auth/desk-auth.guard';
 import { DeskAuthContextService } from './auth/desk-auth-context.service';
+import { CalendarModule } from './calendar/calendar.module';
+import { EmailModule } from './email/email.module';
 import { EventsModule } from './events/events.module';
 import { MessagesModule } from './messages/messages.module';
 import { PersonnelModule } from './personnel/personnel.module';
@@ -10,16 +12,24 @@ import { TasksModule } from './tasks/tasks.module';
 import { TodayModule } from './today/today.module';
 
 /**
- * D1 activation boundary.
+ * D3A activation boundary.
  *
- * Core workspace routes are mounted behind canonical ZOS authorization.
- * Provider connect/OAuth/webhook modules remain source-present but unmounted
- * until D3 credential storage, one-time OAuth state and webhook verification
- * are complete. External calendar push / schedule WhatsApp export also remain
- * disabled unless explicitly enabled by server-only environment flags.
+ * Core workspace routes plus hardened Google/Microsoft email/calendar OAuth
+ * are mounted behind canonical ZOS authority. WhatsApp connect/webhook and
+ * background provider sync remain unmounted/disabled until D3B proves signed
+ * webhook verification, encrypted credential reads/refresh and idempotency.
  */
 @Module({
-  imports: [AuthModule, TodayModule, EventsModule, MessagesModule, TasksModule, PersonnelModule],
+  imports: [
+    AuthModule,
+    TodayModule,
+    EventsModule,
+    MessagesModule,
+    TasksModule,
+    PersonnelModule,
+    EmailModule,
+    CalendarModule,
+  ],
   providers: [
     DeskAuthContextService,
     { provide: APP_GUARD, useClass: DeskAuthGuard },

@@ -1,19 +1,24 @@
 /**
- * Thin wrapper around Microsoft Graph (OAuth2 + /me/messages delta query).
- * Scope needed: Mail.Read offline_access.
+ * Thin wrapper around Microsoft Graph OAuth2 + mail delta query.
+ * Callers may request an explicit scope set while reusing the same Microsoft
+ * OAuth client for Mail or Calendar.
  */
 
 const MS_AUTH_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize';
 const MS_TOKEN_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
 const GRAPH_API_BASE = 'https://graph.microsoft.com/v1.0';
 
-export function getMicrosoftAuthUrl(redirectUri: string, state: string): string {
+export function getMicrosoftAuthUrl(
+  redirectUri: string,
+  state: string,
+  scope = 'offline_access Mail.Read User.Read',
+): string {
   const params = new URLSearchParams({
     client_id: process.env.MICROSOFT_OAUTH_CLIENT_ID ?? '',
     redirect_uri: redirectUri,
     response_type: 'code',
     response_mode: 'query',
-    scope: 'offline_access Mail.Read User.Read',
+    scope,
     state,
   });
   return `${MS_AUTH_URL}?${params.toString()}`;
@@ -45,6 +50,7 @@ export async function exchangeMicrosoftCode(code: string, redirectUri: string): 
   const meRes = await fetch(`${GRAPH_API_BASE}/me`, {
     headers: { Authorization: `Bearer ${json.access_token}` },
   });
+  if (!meRes.ok) throw new Error(`Falha ao resolver conta Microsoft: ${meRes.status}`);
   const me = await meRes.json();
 
   return {
@@ -65,12 +71,6 @@ export interface GraphMessage {
   receivedAt: string;
 }
 
-/**
- * Uses Graph's delta query for incremental sync: `deltaLink` from the
- * previous call is stored in desk_integrations.sync_state and replayed
- * here. On first sync (no deltaLink) starts a fresh delta chain instead
- * of pulling full mailbox history.
- */
 export async function listRecentGraphMessages(
   accessToken: string,
   deltaLink?: string,

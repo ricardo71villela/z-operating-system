@@ -1,21 +1,25 @@
 /**
  * Thin wrapper around Gmail API v1 (OAuth2 + messages.list/get).
- * Scopes needed: https://www.googleapis.com/auth/gmail.readonly (v1 only
- * reads; sending from Z Desk is a later decision, not part of this sync).
+ * Default scope is read-only mail; callers such as Calendar may request an
+ * explicit scope set while reusing the same Google OAuth client.
  */
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GMAIL_API_BASE = 'https://gmail.googleapis.com/gmail/v1';
 
-export function getGmailAuthUrl(redirectUri: string, state: string): string {
+export function getGmailAuthUrl(
+  redirectUri: string,
+  state: string,
+  scope = 'https://www.googleapis.com/auth/gmail.readonly email',
+): string {
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_OAUTH_CLIENT_ID ?? '',
     redirect_uri: redirectUri,
     response_type: 'code',
     access_type: 'offline',
-    prompt: 'consent', // force refresh_token on every connect, not just the first
-    scope: 'https://www.googleapis.com/auth/gmail.readonly email',
+    prompt: 'consent',
+    scope,
     state,
   });
   return `${GOOGLE_AUTH_URL}?${params.toString()}`;
@@ -24,7 +28,7 @@ export function getGmailAuthUrl(redirectUri: string, state: string): string {
 export interface GoogleTokens {
   accessToken: string;
   refreshToken: string;
-  expiresAt: string; // ISO 8601
+  expiresAt: string;
   email: string;
 }
 
@@ -41,14 +45,13 @@ export async function exchangeGmailCode(code: string, redirectUri: string): Prom
     }),
   });
 
-  if (!res.ok) throw new Error(`Falha ao trocar código Gmail por tokens: ${res.status}`);
+  if (!res.ok) throw new Error(`Falha ao trocar código Google por tokens: ${res.status}`);
   const json = await res.json();
 
-  // Google's token response doesn't include the account email directly —
-  // a follow-up call to the userinfo endpoint resolves it.
   const userinfoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
     headers: { Authorization: `Bearer ${json.access_token}` },
   });
+  if (!userinfoRes.ok) throw new Error(`Falha ao resolver conta Google: ${userinfoRes.status}`);
   const userinfo = await userinfoRes.json();
 
   return {
@@ -64,11 +67,6 @@ export interface GmailMessageSummary {
   threadId: string;
 }
 
-/**
- * Lists message ids newer than `historyId` (Gmail's incremental-sync
- * cursor). On first sync (historyId undefined) falls back to a bounded
- * `messages.list` query instead of pulling full mailbox history.
- */
 export async function listRecentGmailMessages(
   accessToken: string,
   historyId?: string,

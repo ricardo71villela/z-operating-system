@@ -9,6 +9,7 @@ on:
       - "apps/desk/**"
       - "infrastructure/supabase/migrations/**"
       - "infrastructure/supabase/tests/z_desk_zos_convergence_v1.sql"
+      - "infrastructure/supabase/tests/z_desk_integration_security_v1.sql"
       - ".github/workflows/desk-postgres.yml"
   pull_request:
     branches:
@@ -17,6 +18,7 @@ on:
       - "apps/desk/**"
       - "infrastructure/supabase/migrations/**"
       - "infrastructure/supabase/tests/z_desk_zos_convergence_v1.sql"
+      - "infrastructure/supabase/tests/z_desk_integration_security_v1.sql"
       - ".github/workflows/desk-postgres.yml"
 
 permissions:
@@ -24,7 +26,7 @@ permissions:
 
 jobs:
   postgres:
-    name: Full ZOS migrations + Desk RLS/source/build
+    name: Full ZOS migrations + Desk RLS/integrations/source/build
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
@@ -112,6 +114,11 @@ jobs:
         env:
           PGPASSWORD: zdesk_dev_pw
         run: psql -h localhost -U postgres -d zos_ci -v ON_ERROR_STOP=1 -f infrastructure/supabase/tests/z_desk_zos_convergence_v1.sql
+
+      - name: Verify Z Desk integration security authority
+        env:
+          PGPASSWORD: zdesk_dev_pw
+        run: psql -h localhost -U postgres -d zos_ci -v ON_ERROR_STOP=1 -f infrastructure/supabase/tests/z_desk_integration_security_v1.sql
 
       - name: Verify Z Desk source security contracts
         run: node --test apps/desk/backend/tests/*.test.js
