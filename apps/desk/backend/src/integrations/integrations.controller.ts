@@ -1,78 +1,70 @@
-import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
-import { supabaseAdmin } from '../supabase/supabase-admin';
+import { Body, Controller, Delete, Get, Param, Post, Req } from '@nestjs/common';
+import type { Request } from 'express';
+import { RequireDeskAuth } from '../auth/desk-auth.decorators';
+import type { DeskAuthContext } from '../auth/desk-auth-context';
+import { deskAdmin } from '../supabase/supabase-admin';
+import { IntegrationCredentialService } from '../integrations-security/integration-credential.service';
 
-/**
- * Onboarding for channel integrations. This is what the tenant-resolution
- * service (see ../tenant-resolution) reads at message-ingestion time —
- * without a row created here, an inbound WhatsApp message has nowhere to
- * resolve to and is dropped (see inbound-message.worker.ts).
- *
- * AUTH TODO: tenantId is accepted directly in the request for now because
- * desk_users ↔ Supabase auth session wiring doesn't exist yet. Once it
- * does, tenantId must come from the authenticated session, never from the
- * request body/query — a tenant must not be able to attach an integration
- * to another tenant's id.
- *
- * WhatsApp onboarding here assumes the admin already created a Meta app +
- * WhatsApp Business Account and generated a system-user access token
- * through Meta's own setup (Business Manager). Meta's "Embedded Signup"
- * flow (in-product, no manual token copy) is a real improvement but a
- * separate, larger piece of work — not attempted in this foundation.
- */
+type DeskRequest = Request & { deskContext?: DeskAuthContext };
+
 @Controller('integrations')
 export class IntegrationsController {
+  constructor(private readonly credentials: IntegrationCredentialService) {}
+
   @Post('whatsapp/connect')
+  @RequireDeskAuth()
   async connectWhatsapp(
+    @Req() req: DeskRequest,
     @Body()
     body: {
-      tenantId: string;
       phoneNumberId: string;
       accessToken: string;
       displayPhoneNumber?: string;
     },
   ) {
-    const { tenantId, phoneNumberId, accessToken, displayPhoneNumber } = body;
+    const context = req.deskContext!;
+    const phoneNumberId = String(body.phoneNumberId ?? '').trim();
+    const accessToken = String(body.accessToken ?? '').trim();
+    if (!phoneNumberId || !accessToken) throw new Error('phoneNumberId and accessToken are required.');
 
-    const { data, error } = await supabaseAdmin
-      .from('desk_integrations')
-      .upsert(
-        {
-          tenant_id: tenantId,
-          provider: 'whatsapp',
-          external_account_id: phoneNumberId,
-          oauth_tokens: { accessToken, displayPhoneNumber },
-          status: 'active',
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'provider,external_account_id' },
-      )
+    const integrationId = await this.credentials.connect(
+      context.workspaceId,
+      context.workspaceMemberId,
+      'whatsapp',
+      phoneNumberId,
+      {
+        accessToken,
+        expiresAt: null,
+        metadata: { displayPhoneNumber: body.displayPhoneNumber ?? null },
+      },
+    );
+
+    const { data, error } = await deskAdmin
+      .from('integrations')
       .select('id, provider, external_account_id, status, created_at')
+      .eq('id', integrationId)
+      .eq('workspace_id', context.workspaceId)
       .single();
-
     if (error) throw error;
     return data;
   }
 
   @Get()
-  async list(@Query('tenantId') tenantId: string) {
-    const { data, error } = await supabaseAdmin
-      .from('desk_integrations')
-      .select('id, provider, external_account_id, status, created_at')
-      .eq('tenant_id', tenantId);
-
+  @RequireDeskAuth()
+  async list(@Req() req: DeskRequest) {
+    const { data, error } = await deskAdmin
+      .from('integrations')
+      .select('id, provider, external_account_id, status, created_at, updated_at')
+      .eq('workspace_id', req.deskContext!.workspaceId)
+      .order('created_at', { ascending: true });
     if (error) throw error;
-    return data;
+    return data ?? [];
   }
 
   @Delete(':id')
-  async disconnect(@Param('id') id: string, @Query('tenantId') tenantId: string) {
-    const { error } = await supabaseAdmin
-      .from('desk_integrations')
-      .update({ status: 'disconnected', updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .eq('tenant_id', tenantId);
-
-    if (error) throw error;
+  @RequireDeskAuth()
+  async disconnect(@Req() req: DeskRequest, @Param('id') id: string) {
+    await this.credentials.disconnect(req.deskContext!.workspaceId, id);
     return { disconnected: true };
   }
 }
