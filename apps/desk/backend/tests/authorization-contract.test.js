@@ -25,10 +25,16 @@ test('guard overwrites caller authority ids', () => {
   assert.match(guard, /query\.workspaceId = deskContext\.workspaceId/);
 });
 
-test('D3A mounts hardened Google/Microsoft OAuth while legacy provider routes remain unmounted', () => {
+test('D3B mounts only hardened provider boundaries', () => {
   const app = src('app.module.ts');
   assert.match(app, /EmailModule/);
   assert.match(app, /CalendarModule/);
-  assert.doesNotMatch(app, /WhatsappModule/);
-  assert.doesNotMatch(app, /IntegrationsModule/);
+  assert.match(app, /WhatsappModule/);
+  assert.match(app, /IntegrationsModule/);
+
+  const main = src('main.ts');
+  assert.match(main, /rawBody:\s*true/);
+  assert.match(main, /DESK_ENABLE_WORKERS === 'true'/);
+  assert.match(main, /remain disabled until they are migrated to canonical workspace authority/);
+  assert.doesNotMatch(main, /startWorkersIfEnabled/);
 });
