@@ -3,10 +3,13 @@ import { deskAdmin, supabaseAdmin } from '../supabase/supabase-admin';
 import type { DeskOAuthProvider } from './oauth-state.service';
 import { encryptCredentialPayload } from './integration-crypto';
 
+export type DeskIntegrationProvider = DeskOAuthProvider | 'whatsapp';
+
 export interface ProviderCredentialPayload {
   accessToken: string;
   refreshToken?: string | null;
-  expiresAt: string;
+  expiresAt?: string | null;
+  metadata?: Record<string, unknown>;
 }
 
 @Injectable()
@@ -14,7 +17,7 @@ export class IntegrationCredentialService {
   async connect(
     workspaceId: string,
     workspaceMemberId: string,
-    provider: DeskOAuthProvider,
+    provider: DeskIntegrationProvider,
     externalAccountId: string,
     credentials: ProviderCredentialPayload,
   ): Promise<string> {
@@ -43,5 +46,29 @@ export class IntegrationCredentialService {
     if (credentialError) throw credentialError;
 
     return integrationId;
+  }
+
+  async disconnect(workspaceId: string, integrationId: string): Promise<void> {
+    const { data: integration, error } = await deskAdmin
+      .from('integrations')
+      .select('id')
+      .eq('id', integrationId)
+      .eq('workspace_id', workspaceId)
+      .maybeSingle();
+    if (error) throw error;
+    if (!integration) return;
+
+    const { error: credentialError } = await deskAdmin
+      .from('integration_credentials')
+      .delete()
+      .eq('integration_id', integrationId);
+    if (credentialError) throw credentialError;
+
+    const { error: integrationError } = await deskAdmin
+      .from('integrations')
+      .update({ status: 'disconnected', updated_at: new Date().toISOString() })
+      .eq('id', integrationId)
+      .eq('workspace_id', workspaceId);
+    if (integrationError) throw integrationError;
   }
 }
