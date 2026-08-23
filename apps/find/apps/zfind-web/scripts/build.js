@@ -95,6 +95,7 @@ function build() {
   const geography = read('geography.js');
   const i18n = read('i18n.js');
   const i18nPhase4 = read('i18n-phase4.js');
+  const sixLanguageMenu = read('six-language-menu.js');
   const viewmodels = read('viewmodels.js');
   const app = read('app.js');
   const internationalWelcomeService = read('services/international-welcome.js');
@@ -144,6 +145,7 @@ function build() {
     + geography + '\n'
     + i18n + '\n'
     + i18nPhase4 + '\n'
+    + sixLanguageMenu + '\n'
     + viewmodels + '\n'
     + app
     + '\n' + internationalWelcomeService
@@ -152,47 +154,23 @@ function build() {
 
   fs.mkdirSync(DIST, { recursive: true });
 
-  const heroAsset = path.join(
-    PUBLIC,
-    'brand',
-    'zfind-atlantic-hero.webp'
-  );
-
+  const heroAsset = path.join(PUBLIC, 'brand', 'zfind-atlantic-hero.webp');
   if (!fs.existsSync(heroAsset)) {
-    throw new Error(
-      'BUILD FAILED: approved hero asset missing: public/brand/zfind-atlantic-hero.webp'
-    );
+    throw new Error('BUILD FAILED: approved hero asset missing: public/brand/zfind-atlantic-hero.webp');
   }
 
   const distBrand = path.join(DIST, 'brand');
   fs.mkdirSync(distBrand, { recursive: true });
-  fs.copyFileSync(
-    heroAsset,
-    path.join(distBrand, 'zfind-atlantic-hero.webp')
-  );
+  fs.copyFileSync(heroAsset, path.join(distBrand, 'zfind-atlantic-hero.webp'));
 
-  const marketMapSource = path.join(
-    PUBLIC,
-    'brand',
-    'markets'
-  );
-  const marketMapDest = path.join(
-    distBrand,
-    'markets'
-  );
-  copyDirectoryRecursive(
-    marketMapSource,
-    marketMapDest
-  );
+  const marketMapSource = path.join(PUBLIC, 'brand', 'markets');
+  const marketMapDest = path.join(distBrand, 'markets');
+  copyDirectoryRecursive(marketMapSource, marketMapDest);
 
   const outPath = path.join(DIST, 'z-find-prototype.html');
   fs.writeFileSync(outPath, html);
 
-  const report = {
-    outPath,
-    sizeBytes: Buffer.byteLength(html, 'utf8'),
-  };
-
+  const report = { outPath, sizeBytes: Buffer.byteLength(html, 'utf8') };
   console.log('Built:', report.outPath);
   console.log('Size:', report.sizeBytes, 'bytes');
   console.log('Logo path placeholder: resolved, 0 remaining');
@@ -215,8 +193,5 @@ function build() {
   return report;
 }
 
-if (require.main === module) {
-  build();
-}
-
+if (require.main === module) build();
 module.exports = { build };
