@@ -13,6 +13,7 @@ export const redisConnection = new IORedis(
 export const INBOUND_MESSAGE_QUEUE = 'desk:inbound-message';
 export const AI_TRIAGE_QUEUE = 'desk:ai-triage';
 export const CALENDAR_SYNC_QUEUE = 'desk:calendar-sync';
+export const EMAIL_SYNC_QUEUE = 'desk:email-sync';
 
 export const inboundMessageQueue = new Queue(INBOUND_MESSAGE_QUEUE, {
   connection: redisConnection,
@@ -23,5 +24,9 @@ export const aiTriageQueue = new Queue(AI_TRIAGE_QUEUE, {
 });
 
 export const calendarSyncQueue = new Queue(CALENDAR_SYNC_QUEUE, {
+  connection: redisConnection,
+});
+
+export const emailSyncQueue = new Queue(EMAIL_SYNC_QUEUE, {
   connection: redisConnection,
 });

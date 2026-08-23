@@ -48,9 +48,22 @@ Cada tenant representa uma organização (equipa/empresa cliente). Todas as tabe
 
 ## Integrações previstas na v1
 
-- E-mail: Gmail API + Microsoft Graph API (OAuth2)
+- E-mail: Gmail API + Microsoft Graph API (OAuth2, polling a cada 5 min — push/webhooks fica para depois)
 - WhatsApp: Meta WhatsApp Business Cloud API (webhook)
-- Calendário: Google Calendar API + Microsoft Graph Calendar API (sync bidirecional)
+- Calendário: Google Calendar API + Microsoft Graph Calendar API (pull a cada 5 min + push no momento da confirmação humana de um evento)
+
+### Onboarding de integrações
+
+- `POST /integrations/whatsapp/connect` — liga um número (token gerado manualmente no Meta Business Manager; Embedded Signup fica para depois)
+- `GET /integrations/email/{gmail,microsoft}/authorize` → `callback` — OAuth completo, cria/atualiza a linha em `desk_integrations`
+- `GET /integrations/calendar/{google,microsoft}/authorize` → `callback` — OAuth iniciado; troca de código por token ainda por implementar (`TODO` explícito no controller)
+
+### Fluxo de eventos
+
+- IA sugere (`desk_events.status='draft'`) — nunca confirma sozinha (ADR-0001)
+- `POST /events/:id/confirm` — ação humana; dispara push para o(s) calendário(s) externo(s) ligado(s)
+- `POST /events/:id/reject` — cancela a sugestão
+- Eventos vindos de fora (`source='external_sync'`) entram já confirmados — não há nada para o humano decidir num evento que já existe no calendário real
 
 ## Local setup
 
