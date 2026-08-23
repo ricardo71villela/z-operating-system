@@ -520,6 +520,9 @@ export function createServer() {
             match: computeMatchScore(candidateProfile, {
               title: offer.title,
               description: offer.description,
+              responsibilities: offer.responsibilities ?? null,
+              requiredQualifications: offer.requiredQualifications ?? null,
+              preferredQualifications: offer.preferredQualifications ?? null,
               contractType: offer.contractType,
               workRegime: offer.workRegime,
               salaryMin: offer.salaryMin,
