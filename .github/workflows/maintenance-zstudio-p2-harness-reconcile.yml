@@ -65,13 +65,15 @@ jobs:
           """    renderCategoryExtras();\n    openMobileDetailsForContract();\n\n    return document.getElementById(""",
           'CATEGORY_DETAILS_OPEN')
 
-          finance = """    renderCategoryExtras();\n\n    const root =\n      document.getElementById("""
-          finance_new = """    renderCategoryExtras();\n    openMobileDetailsForContract();\n\n    const root =\n      document.getElementById("""
-          count = s.count(finance)
-          print(f'FINANCE_DETAILS_OPEN_MATCHES={count}')
-          if count != 2:
-              raise SystemExit(f'FINANCE_DETAILS_OPEN: expected exactly 2 matches, got {count}')
-          s = s.replace(finance, finance_new, 2)
+          replace_once(
+          """    renderCategoryExtras();\n\n    const root =\n      document.getElementById(""",
+          """    renderCategoryExtras();\n    openMobileDetailsForContract();\n\n    const root =\n      document.getElementById(""",
+          'FINANCE_LOOP_DETAILS_OPEN')
+
+          replace_once(
+          """  renderCategoryExtras();\n\n  {\n    const root =""",
+          """  renderCategoryExtras();\n  openMobileDetailsForContract();\n\n  {\n    const root =""",
+          'FINANCE_FALLBACK_DETAILS_OPEN')
 
           p.write_text(s, encoding='utf-8')
           PY
