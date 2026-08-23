@@ -1,16 +1,23 @@
 import type { JobOfferDraft, JobOfferStatus } from '../../../packages/domain/src/types/jobOffer';
+import { computeProfileCompleteness } from '../../../packages/domain/src/rules/candidateProfile';
+import { buildCandidateIntelligence } from '../../../packages/domain/src/rules/candidateIntelligence';
+import { buildEmployerIntelligence } from '../../../packages/domain/src/rules/employerIntelligence';
 import { PgStore } from './pgStore';
 import type { JobOfferRecord } from './store';
 
 /**
- * Thin forward-compatible adapter over PgStore for columns that already
- * exist in jobs.job_offers but were historically omitted by the application
- * mapper. Keeping this as a subclass avoids copying the large PgStore and
- * makes the boundary explicit until these fields become part of its base
- * mapper in a later cleanup.
+ * Thin forward-compatible adapter over PgStore for product capabilities that
+ * already have authoritative PostgreSQL/domain primitives but were historically
+ * omitted by the application mapper.
  *
- * No schema authority lives here. PostgreSQL remains authoritative for the
- * columns; this class only makes them cross the application boundary.
+ * Current responsibilities:
+ * - make the existing explicit Job Offer qualification columns cross the API
+ *   boundary without duplicating PgStore;
+ * - compose already-approved Candidate/Employer Intelligence into existing API
+ *   responses, without creating a second persistence or scoring authority.
+ *
+ * No schema authority lives here. PostgreSQL remains authoritative for stored
+ * data; domain modules remain authoritative for intelligence calculations.
  */
 export class ExplicitRequirementsPgStore extends PgStore {
   private async enrichOffers(offers: JobOfferRecord[]): Promise<JobOfferRecord[]> {
@@ -86,5 +93,50 @@ export class ExplicitRequirementsPgStore extends PgStore {
     institutionOrgId: string,
   ): Promise<JobOfferRecord[]> {
     return this.enrichOffers(await super.listReservedOffersForInstitution(institutionOrgId));
+  }
+
+  /**
+   * The existing GET /candidates/:id/profile-bundle route spreads the Store
+   * result into its JSON response. Adding candidateIntelligence here therefore
+   * makes the approved domain capability immediately consumable without a new
+   * HTTP route or a duplicated client-side calculation.
+   */
+  override async getCandidateProfileBundle(userId: string) {
+    const bundle = await super.getCandidateProfileBundle(userId);
+    const matchingProfile = await this.getCandidateMatchingProfile(userId);
+
+    if (!matchingProfile) {
+      return { ...bundle, candidateIntelligence: null };
+    }
+
+    const completeness = computeProfileCompleteness({
+      hasProfessionalTitle: !!bundle.profile?.professionalTitle,
+      hasSummary: !!bundle.profile?.summary,
+      experienceCount: bundle.experiences.length,
+      educationCount: bundle.education.length,
+      skillCount: bundle.skills.length,
+      languageCount: bundle.languages.length,
+      hasResumeDocument: bundle.documents.some((document) => document.docType === 'cv'),
+      hasVisibilitySet: !!bundle.profile?.visibility,
+    });
+
+    return {
+      ...bundle,
+      candidateIntelligence: buildCandidateIntelligence(completeness, matchingProfile),
+    };
+  }
+
+  /**
+   * GET /organizations/:id/responsibility already returns the metrics object
+   * produced here. Attaching intelligence to those aggregate metrics exposes
+   * the approved Employer Intelligence signals without changing the route,
+   * without paid-placement influence and without exposing candidate records.
+   */
+  override async computeEmployerMetrics(orgId: string) {
+    const metrics = await super.computeEmployerMetrics(orgId);
+    return {
+      ...metrics,
+      intelligence: buildEmployerIntelligence(metrics),
+    };
   }
 }
