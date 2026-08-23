@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
 import { supabaseAdmin } from '../supabase/supabase-admin';
 import { sendWhatsappTextMessage } from '../whatsapp/whatsapp-sender.client';
+import { getScheduleMessageStrings } from '../whatsapp/schedule-message-translations';
 
 /**
  * Personnel management (ADR-0004 + ADR-0005): recurring weekly schedules,
@@ -338,7 +339,7 @@ export class PersonnelController {
 
     const { data: user, error: userError } = await supabaseAdmin
       .from('desk_users')
-      .select('id, tenant_id, whatsapp_number')
+      .select('id, tenant_id, whatsapp_number, preferred_language')
       .eq('id', userId)
       .single();
     if (userError) throw userError;
@@ -372,22 +373,22 @@ export class PersonnelController {
     const overrides = overridesRes.data ?? [];
     const absences = absencesRes.data ?? [];
 
-    const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    const strings = getScheduleMessageStrings(user.preferred_language);
     const lines = weekDates.map((date) => {
       const resolution = resolveDay(date, userId, schedules, overrides, absences);
       const dow = new Date(date + 'T00:00:00Z').getUTCDay();
-      const label = dayNames[dow];
-      if (resolution.status === 'absent') return `${label} ${date.slice(8, 10)}: ausência`;
+      const label = strings.dayNames[dow];
+      if (resolution.status === 'absent') return `${label} ${date.slice(8, 10)}: ${strings.absent}`;
       if (resolution.status === 'working') {
         const schedule = schedules.find((s) => s.day_of_week === dow);
         const override = overrides.find((o) => o.date === date);
         const times = override ?? schedule;
         return `${label} ${date.slice(8, 10)}: ${times?.start_time?.slice(0, 5)}–${times?.end_time?.slice(0, 5)}`;
       }
-      return `${label} ${date.slice(8, 10)}: folga`;
+      return `${label} ${date.slice(8, 10)}: ${strings.off}`;
     });
 
-    const message = `📅 O seu horário — semana de ${weekStart}\n\n${lines.join('\n')}`;
+    const message = `${strings.header(weekStart)}\n\n${lines.join('\n')}`;
 
     await sendWhatsappTextMessage(
       integration.external_account_id,

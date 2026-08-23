@@ -7,7 +7,7 @@ interface Props {
   messageId: string;
   tenantId: string;
   apiUrl: string;
-  labels: { resolve: string; resolving: string };
+  labels: { resolve: string; resolving: string; error: string };
 }
 
 export function ResolveMessageAction({ messageId, tenantId, apiUrl, labels }: Props) {
@@ -24,10 +24,10 @@ export function ResolveMessageAction({ messageId, tenantId, apiUrl, labels }: Pr
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tenantId }),
       });
-      if (!res.ok) throw new Error(`${res.status}`);
+      if (!res.ok) throw new Error(labels.error);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "error");
+      setError(err instanceof Error ? err.message : labels.error);
     } finally {
       setPending(false);
     }

@@ -19,7 +19,8 @@
     "pendingMessages": "Mensajes por decidir",
     "noPendingMessages": "Nada pendiente.",
     "resolve": "Marcar resuelto",
-    "resolving": "Procesando…"
+    "resolving": "Procesando…",
+    "genericError": "error"
   },
   "Calendar": {
     "title": "Calendario",

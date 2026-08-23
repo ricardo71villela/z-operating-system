@@ -19,7 +19,8 @@
     "pendingMessages": "Zu entscheidende Nachrichten",
     "noPendingMessages": "Nichts offen.",
     "resolve": "Als erledigt markieren",
-    "resolving": "Wird bearbeitet…"
+    "resolving": "Wird bearbeitet…",
+    "genericError": "Fehler"
   },
   "Calendar": {
     "title": "Kalender",

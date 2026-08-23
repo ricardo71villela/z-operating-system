@@ -19,7 +19,8 @@
     "pendingMessages": "Messages à traiter",
     "noPendingMessages": "Rien en attente.",
     "resolve": "Marquer résolu",
-    "resolving": "En cours…"
+    "resolving": "En cours…",
+    "genericError": "erreur"
   },
   "Calendar": {
     "title": "Calendrier",

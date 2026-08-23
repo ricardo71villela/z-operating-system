@@ -19,7 +19,8 @@
     "pendingMessages": "Messaggi da decidere",
     "noPendingMessages": "Niente in sospeso.",
     "resolve": "Segna risolto",
-    "resolving": "In corso…"
+    "resolving": "In corso…",
+    "genericError": "errore"
   },
   "Calendar": {
     "title": "Calendario",

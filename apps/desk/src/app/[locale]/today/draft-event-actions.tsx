@@ -7,7 +7,7 @@ interface Props {
   eventId: string;
   tenantId: string;
   apiUrl: string;
-  labels: { confirm: string; confirming: string; reject: string; rejecting: string };
+  labels: { confirm: string; confirming: string; reject: string; rejecting: string; error: string };
 }
 
 /**
@@ -30,10 +30,10 @@ export function DraftEventActions({ eventId, tenantId, apiUrl, labels }: Props) 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tenantId }),
       });
-      if (!res.ok) throw new Error(`${res.status}`);
+      if (!res.ok) throw new Error(labels.error);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "error");
+      setError(err instanceof Error ? err.message : labels.error);
     } finally {
       setPending(null);
     }

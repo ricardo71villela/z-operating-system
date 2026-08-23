@@ -72,6 +72,8 @@ Decisão de fundação (ver `docs/architecture/ADR-0001`): v1 opera em modo **hu
 ### Exportação de horários por WhatsApp + faltas (ADR-0007)
 
 - `desk_users.whatsapp_number` — número pessoal da pessoa, distinto do número de negócio do tenant
+- `desk_users.preferred_language` (`fr`/`en`/`es`/`pt`/`it`/`de`, default `fr`) — **idioma da pessoa, independente do mercado/tenant**: alguém num tenant de mercado português pode preferir inglês, e a mensagem respeita isso, não o mercado
+- A mensagem de horário exportada usa `getScheduleMessageStrings(preferred_language)` (`backend/src/whatsapp/schedule-message-translations.ts`) — dias da semana, cabeçalho e rótulos de ausência/folga nas 6 línguas; deliberadamente não partilhado com `src/messages/*.json` do frontend porque são deployables separados (NestJS vs Next.js)
 - Exportação **automática**: ao validar uma semana (`POST /personnel/schedule-validations/:id/validate`), o horário resultante é enviado por WhatsApp de seguida, best-effort — sem número associado ou sem integração ativa, a validação não falha, o envio é só ignorado
 - Reenvio manual: `POST /personnel/schedules/:userId/export-whatsapp`
 - Reaproveita a integração WhatsApp já ligada ao tenant como remetente — não cria uma segunda ligação

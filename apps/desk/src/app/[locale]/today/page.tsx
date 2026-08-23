@@ -108,6 +108,7 @@ export default async function TodayPage({ params }: { params: Promise<{ locale: 
                   confirming: t("confirming"),
                   reject: t("reject"),
                   rejecting: t("rejecting"),
+                  error: t("genericError"),
                 }}
               />
             </li>
@@ -128,7 +129,7 @@ export default async function TodayPage({ params }: { params: Promise<{ locale: 
                   messageId={message.id}
                   tenantId={tenantId}
                   apiUrl={apiUrl}
-                  labels={{ resolve: t("resolve"), resolving: t("resolving") }}
+                  labels={{ resolve: t("resolve"), resolving: t("resolving"), error: t("genericError") }}
                 />
               )}
             </li>
