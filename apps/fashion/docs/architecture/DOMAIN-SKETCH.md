@@ -32,9 +32,35 @@ schema — a checkpoint to catch the next inconsistency before it becomes code.
   Modeling Category as a single field would force an arbitrary primary choice
   on products that genuinely span two — the same class of mistake already
   caught twice this conversation (Category-on-Partner, then Brand-on-Partner).
+- **Gender** — Female, Male, Unisex. Lives on the **Product**, single-valued
+  (never multi, unlike Category): a garment/accessory targets one Gender or
+  is explicitly marketed Unisex, it does not simultaneously target two
+  Genders the way a running shoe genuinely spans two Categories. Owned by
+  `product.js` itself, not `partner.js` — unlike Category and Age Segment, a
+  Partner never declares which Genders it operates in (no compliance-gate
+  question the way minor-safe data raises one for Age Segment); Gender is
+  purely a Product classification, same shape as Brand. **Always explicit,
+  never defaulted or inferred** from Category or Age Segment — the same
+  never-inferred discipline already applied throughout this document.
+- **Style Group** — an optional grouping identifier (`styleId`) shared by
+  every size variant of "the same style." A Product row is still one size
+  (see Product, above) — this does not change that shape, it adds a way to
+  say "these Products are the same style, different sizes" on top of it.
+  Closes a genuine gap flagged twice during the customer-side audit
+  (2026-08-21): the Product Page size-selector had nothing to group
+  sibling sizes under before this. Every Product sharing a `styleId` must
+  agree on Partner/Brand/Gender/Categories/French name — only `size` (and,
+  by extension, stock/availability) may differ; enforced in both
+  `style-group.js`'s `validateStyleGroups()` and, independently, a
+  cross-row database trigger (`fashion.check_style_group_consistency()`).
+  A Product with no `styleId` is standalone, never bucketed under a
+  fabricated group.
 - **Product** — the unit that actually carries Category (multi-valued),
   Brand (single reference), Age Segment (multi-valued, genuine-eligibility
-  discipline), and belongs to exactly one Partner (the stock owner). **"Size"
+  discipline), Names/Descriptions (`names{lang}` — see MARKETS-AND-I18N.md;
+  a non-empty `fr` key is always required, other locale keys optional, same
+  France-first-not-France-only discipline applied everywhere else), and
+  belongs to exactly one Partner (the stock owner). **"Size"
   is not a universal Product field** — the same single-field mistake already
   caught for Category and Brand, just one layer deeper: Clothing/Footwear/
   Sportswear carry a genuine size (resolved via a canonical size-grid, per
@@ -55,15 +81,22 @@ schema — a checkpoint to catch the next inconsistency before it becomes code.
   *and* in All Sale by default (see "Resolved" below) — Corner and All Sale
   are two lenses on the same underlying Product set, not two places a
   Partner uploads to separately.
-- **Age Segment** — Children, Youth, Adults. Lives on the **Product**, same
-  discipline as Category: **never inferred from size or appearance alone**.
-  A children's-sized version of an adult product is not automatically
-  eligible for the Children segment — genuine Children/Youth eligibility
-  depends on the applicable safety certification and material compliance
-  for that Category (EU toy-safety-adjacent standards for younger children's
-  clothing hardware — drawstrings, small parts; EU Cosmetic Regulation
-  Annex III age-based restrictions for Cosmetics aimed at under-3s in
-  particular) — not on "it comes in a small size" or "it looks childlike."
+- **Age Segment** — Baby, Children, Youth, Adults. Lives on the **Product**,
+  same discipline as Category: **never inferred from size or appearance
+  alone**. Baby is a distinct segment from Children, not a synonym for "very
+  small child" — it carries its own safety-certification regime and its own
+  size conventions (age-in-months rather than a shared grid; pre-walking
+  Footwear is barely a real product line, unlike Children's), so collapsing
+  it into Children would repeat the same single-field mistake this section
+  keeps correcting, just at the segment boundary this time. A children's-sized
+  version of an adult product is not automatically eligible for the Children
+  segment — genuine Baby/Children/Youth eligibility depends on the applicable
+  safety certification and material compliance for that Category (EU
+  toy-safety-adjacent standards for younger children's clothing hardware —
+  drawstrings, small parts — apply with extra weight to Baby; EU Cosmetic
+  Regulation Annex III age-based restrictions for Cosmetics aimed at
+  under-3s in particular, which is precisely the Baby segment's core age
+  range) — not on "it comes in a small size" or "it looks childlike."
   This is the same resemblance-vs-genuine-purpose principle just corrected
   for Sportswear, applied to the segment with real regulatory stakes
   (`160-legal-and-compliance`), not just a curation-quality stake.
@@ -84,10 +117,11 @@ Partner 1───* Product *───1 Brand
 Corner (1:1 with Partner)
 
 Product *───* Category    (multi-valued tag, genuine purpose not resemblance)
+Product 1───1 Gender      (single-valued: female / male / unisex, always explicit)
 Product *───* Age Segment (same discipline, real safety/cert stakes)
 Product *───* Campaign    (zero or more active at once)
 
-All Sale = view(Product) filtered by Segment × Category × Brand × Partner
+All Sale = view(Product) filtered by Segment × Gender × Category × Brand × Partner
 Corner   = view(Product) filtered by Partner = this Partner
 ```
 

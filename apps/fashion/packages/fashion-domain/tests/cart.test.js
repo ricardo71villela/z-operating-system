@@ -8,10 +8,18 @@ function stockOf(productId, quantity) {
   return applyStockUpdate(initStock(productId), { quantityAvailable: quantity, observedAt: '2026-08-20T10:00:00.000Z' });
 }
 
+// emptyCart requires a Client — a Cart is never anonymous (guest
+// checkout is explicitly out of scope for this pass).
+assert.throws(() => emptyCart(), /clientUserId is required/);
+assert.throws(() => emptyCart(''), /clientUserId is required/);
+
 // A cart spanning two different Partners.
-let cart = emptyCart();
+let cart = emptyCart('client_ines');
+assert.strictEqual(cart.clientUserId, 'client_ines');
 cart = addItem(cart, { productId: 'prod_shoe', partnerId: 'partner_a', quantity: 1, unitPriceMinorUnits: 8900 });
 cart = addItem(cart, { productId: 'prod_bag', partnerId: 'partner_b', quantity: 2, unitPriceMinorUnits: 15000 });
+// clientUserId survives every addItem() call, not just the first one.
+assert.strictEqual(cart.clientUserId, 'client_ines');
 assert.strictEqual(cartTotal(cart), 8900 + 15000 * 2);
 
 const splits = partnerSplits(cart);

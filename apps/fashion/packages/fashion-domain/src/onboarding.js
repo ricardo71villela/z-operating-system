@@ -67,11 +67,11 @@ function transition(application, toStatus, context = {}) {
       throw new Error('transition: activating a Partner requires the Partner record, to verify compliance gates');
     }
     if (
-      (partner.ageSegments.includes('children') || partner.ageSegments.includes('youth')) &&
+      (partner.ageSegments.includes('baby') || partner.ageSegments.includes('children') || partner.ageSegments.includes('youth')) &&
       !partner.minorSafeDataAcknowledged
     ) {
       throw new Error(
-        'transition: cannot activate a Partner declaring children/youth ' +
+        'transition: cannot activate a Partner declaring baby/children/youth ' +
         'eligibility without the minor-safe data acknowledgment — same gate ' +
         'as createPartner(), re-checked here because a Partner record could ' +
         'in principle be constructed elsewhere without going through it.'

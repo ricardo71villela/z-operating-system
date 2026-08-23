@@ -46,7 +46,7 @@ same-Corner recommendations point back into.
 
 ### All Sale
 Cross-Partner discovery view (`allSale()` in corner.js), filterable by
-Segment × Category × Brand × Partner. Recommendations here work in the
+Segment × Gender × Category × Brand × Partner. Recommendations here work in the
 opposite direction from the Product Page by design: **complementary and
 similar products across Partners**, functioning as a Destaques-adjacent
 discovery opportunity rather than a single-Partner retention tool. "Similar"
@@ -63,7 +63,7 @@ made elsewhere in this document set rather than assumed:
    otherwise. Time-boxed legal events (Soldes) and high-urgency retail
    events (Black Friday) are more relevant to a visiting Client than
    evergreen editorial, so they win the hero slot whenever active.
-2. **Segment entry** — Children / Youth / Adults, three primary tiles,
+2. **Segment entry** — Baby / Children / Youth / Adults, four primary tiles,
    mirrors the structural navigation.
 3. **Category strip** — Clothing, Footwear, Sportswear, Accessories &
    Leather Goods, Cosmetics (incl. Perfumes).

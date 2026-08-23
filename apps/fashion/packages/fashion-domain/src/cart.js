@@ -21,8 +21,20 @@
 
 const { reserveStock, releaseReservation, sellableQuantity } = require('./stock');
 
-function emptyCart() {
-  return Object.freeze({ items: [] });
+/**
+ * @param {string} clientUserId - the authenticated Client this Cart
+ *   belongs to. Required, not optional: closes a gap found during the
+ *   customer-side audit (2026-08-21, "Conta do Cliente") — until now
+ *   fashion.carts/fashion.orders carried no Client identity at all, so
+ *   an Order could not actually be attributed to anyone. Guest
+ *   checkout (a Cart with no Client yet) is explicitly out of scope
+ *   for this pass, not silently supported — see ACCOUNT-AND-IDENTITY.md.
+ */
+function emptyCart(clientUserId) {
+  if (!clientUserId) {
+    throw new Error('emptyCart: clientUserId is required — a Cart must belong to a Client (guest carts are out of scope, see ACCOUNT-AND-IDENTITY.md)');
+  }
+  return Object.freeze({ clientUserId, items: [] });
 }
 
 /**
@@ -38,7 +50,7 @@ function addItem(cart, item) {
   if (typeof item.unitPriceMinorUnits !== 'number' || item.unitPriceMinorUnits < 0) {
     throw new Error('addItem: unitPriceMinorUnits must be a non-negative number');
   }
-  return Object.freeze({ items: [...cart.items, Object.freeze({ ...item })] });
+  return Object.freeze({ clientUserId: cart.clientUserId, items: [...cart.items, Object.freeze({ ...item })] });
 }
 
 function cartTotal(cart) {

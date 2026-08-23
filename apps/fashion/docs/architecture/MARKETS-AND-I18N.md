@@ -12,6 +12,21 @@ layer.
 
 `apps/find/packages/geography` already implements, tested and approved:
 `Country → Region (optional) → City → Zone (optional)`, with `names{lang}`
+so a Client can browse in any of the 6 public locales while shopping in
+any Market — the two axes stay independent. **Market scoping implemented
+2026-08-21** (`market.js`): confirmed by direct inspection that
+`allSale()`/`corner()` filtered by every axis except Market until then — a
+Client in any Market would have seen every Partner's catalog mixed
+together, contradicting "France-first" in practice even though the intent
+was always documented here. `productsVisibleInMarket()` scopes by the
+Partner's own `countryIso` (already validated against `@zos/geography` in
+partner.js) — deliberately not a separate hardcoded "22 markets" allowlist,
+since that number was Z Find's legal-guide production scope, not a
+technical restriction on which countries a Z Fashion Partner can register
+in. `corner.js`'s `allSaleInMarket()` and `search.js`'s `searchInMarket()`
+compose this with the existing Segment/Gender/Category/Size/Brand/Partner
+filters and text search respectively, so Market scoping is never a step a
+caller can forget.
 multilingual place names and currency resolved once per Country and never
 duplicated per place. It explicitly owns *only* place identity and
 currency — not market intelligence, not editorial content — which is exactly
@@ -40,11 +55,26 @@ Concretely, for the Phase 0/1 work already sequenced in
   today, extensible tomorrow.
 - **Product catalog** (Phase 1, item 5) stores `names{lang}` and
   `descriptions{lang}` per the Geography convention, sized fields, not
-  free-text blobs that only work in one language.
+  free-text blobs that only work in one language. **Implemented
+  2026-08-21** (`product.js` `names`/`descriptions`, mirrored in SQL as
+  `fashion.products.names`/`descriptions` jsonb columns) — flagged during
+  the customer-side audit when it became clear Search had nothing to
+  search over and the Product Page had no title without it; this had been
+  promised in this document since the earliest design pass but was not
+  actually implemented until then.
   This includes clothing/footwear/sportswear sizing, which is not just
-  translation — size charts differ by country (FR 38 ≠ IT 44 ≠ US 8 for the
-  same garment) and must resolve through a canonical size-grid concept, not
-  a lookup table per Partner. Sizing is itself Category-conditional (see
+  translation — size charts differ by country (FR 38 ≈ IT 42 ≈ DE 36 ≈
+  UK 10 ≈ US 8 for the same garment, women's) and must resolve through a
+  canonical size-grid concept, not a lookup table per Partner. **Implemented
+  2026-08-21** (`size-grid.js`) — Gender-scoped for Footwear (a women's and
+  a men's EU39 are genuinely different foot lengths, not the same number
+  relabeled), Alpha-canonical for men's/unisex Clothing (numeric FR/IT/DE
+  tables are not invented for a distinction the market itself barely makes
+  there), never interpolated or guessed for a size outside the sourced
+  reference tables. Explicitly labeled as reference/approximate — every
+  cross-checked source for these tables carries the same disclaimer
+  (brand cut varies), and Product Page copy must say so too, never present
+  this as exact. Sizing is itself Category-conditional (see
   DOMAIN-SKETCH.md): Cosmetics uses format/volume, not a size grid; most
   Accessories & Leather Goods carry no size dimension at all.
 - **Campaign calendar** (Phase 3): Black Friday and Soldes are not the same

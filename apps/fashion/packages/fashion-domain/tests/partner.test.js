@@ -62,6 +62,24 @@ const kidsPartner = createPartner({
 });
 assert.strictEqual(isAgeSegmentEligible(kidsPartner, 'children'), true);
 
+// Baby eligibility carries the exact same minor-safe gate as
+// children/youth — never a weaker check just because "baby" is a smaller
+// word than "children" in the array.
+assert.throws(
+  () => createPartner({
+    id: 'p5b', legalName: 'Baby Corner', countryIso: 'FR',
+    locales: ['fr'], categories: ['clothing'], ageSegments: ['baby'],
+  }),
+  /has not acknowledged the minor-safe data policy/
+);
+const babyPartner = createPartner({
+  id: 'p5c', legalName: 'Baby Corner', countryIso: 'FR',
+  locales: ['fr'], categories: ['clothing'], ageSegments: ['baby'],
+  minorSafeDataAcknowledged: true,
+});
+assert.strictEqual(isAgeSegmentEligible(babyPartner, 'baby'), true);
+assert.strictEqual(isAgeSegmentEligible(babyPartner, 'children'), false);
+
 // countryIso is required — no silent default, since a Partner is never
 // "geography-less" (mirrors Geography's own zero-null-default discipline).
 assert.throws(
@@ -71,7 +89,7 @@ assert.throws(
   /countryIso is required/
 );
 
-// countryIso must resolve through the shared Geography fixture — an
+// countryIso must resolve through the shared @zos/geography module — an
 // invented country id is rejected, proving the Geography reuse decision
 // (MARKETS-AND-I18N.md) is actually enforced, not just documented.
 assert.throws(
@@ -79,7 +97,7 @@ assert.throws(
     id: 'p7', legalName: 'X', countryIso: 'ZZ', locales: ['fr'],
     categories: ['clothing'],
   }),
-  /is not a recognized Country in the shared Geography fixture/
+  /is not a recognized Country in @zos\/geography/
 );
 
 console.log('partner.js: all invariant checks passed.');

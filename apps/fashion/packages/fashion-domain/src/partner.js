@@ -10,13 +10,15 @@
    This module has zero knowledge of Product, Corner, Campaign, or
    any other Fashion context beyond validating the Partner shape
    itself. It is consumed by them; it never consumes them — same
-   discipline the shared Geography fixture establishes for this codebase.
+   discipline apps/find/packages/geography/geography.js already
+   established for this codebase.
 
    Country/locale resolution is NOT reimplemented here. This module
-   validates countryIso against packages/geography/geography.js — an
-   offline fixture mirroring the real Geography database's country_iso
-   convention. Canonical runtime Geography remains the shared Supabase
-   zos.geography_* authority. Callers never invent geography logic here.
+   validates countryIso against the shared @zos/geography package
+   (packages/geography/geography.js) — an offline fixture mirroring the
+   real Geography database's country_iso convention (see
+   ZOS-ALIGNMENT.md's Database validation note). Callers never invent
+   geography logic here.
    ============================================================ */
 
 const { getCountryByIsoCode } = require('../../../../../packages/geography/geography');
@@ -29,7 +31,7 @@ const CATEGORIES = Object.freeze([
   'cosmetics', // includes perfumes/fragrances — see DOMAIN-SKETCH.md
 ]);
 
-const AGE_SEGMENTS = Object.freeze(['children', 'youth', 'adults']);
+const AGE_SEGMENTS = Object.freeze(['baby', 'children', 'youth', 'adults']);
 
 /**
  * Creates a Partner record. Throws on any violation of the invariants
@@ -80,8 +82,8 @@ function createPartner(input) {
   } else if (!getCountryByIsoCode(input.countryIso)) {
     errors.push(
       `countryIso "${input.countryIso}" is not a recognized Country in ` +
-      'the shared Geography fixture — Partners never reference a country ad hoc, only ' +
-      'one already registered in the shared Geography model.'
+      '@zos/geography — Partners never reference a country ad hoc, only ' +
+      'one already registered in the shared Geography module.'
     );
   }
   if (!Array.isArray(input.locales) || input.locales.length === 0) {
@@ -103,11 +105,11 @@ function createPartner(input) {
     errors.push(`unknown ageSegments: ${invalidSegments.join(', ')}`);
   }
   if (
-    (ageSegments.includes('children') || ageSegments.includes('youth')) &&
+    (ageSegments.includes('baby') || ageSegments.includes('children') || ageSegments.includes('youth')) &&
     !input.minorSafeDataAcknowledged
   ) {
     errors.push(
-      'Partner declares children/youth eligibility but has not ' +
+      'Partner declares baby/children/youth eligibility but has not ' +
       'acknowledged the minor-safe data policy ' +
       '(160-legal-and-compliance/Z-FASHION-MINOR-SAFE-DATA.md) — this is ' +
       'a compliance gate, not a formality, and must not be bypassable by ' +

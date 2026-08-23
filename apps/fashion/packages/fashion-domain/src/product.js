@@ -3,20 +3,54 @@
    ============================================================
    Owns: the Product entity — the unit that actually carries
    Category (multi-valued), Brand (single reference), Age Segment
-   (multi-valued), and a Category-conditional size/format attribute.
-   Belongs to exactly one Partner (the stock owner). See
-   DOMAIN-SKETCH.md for the full rationale behind every invariant
-   enforced below — this file makes those invariants impossible to
-   bypass at runtime, not just documented.
+   (multi-valued), Gender (single value), display Names/Descriptions
+   (multilingual, `names{lang}` convention), and a Category-conditional
+   size/format attribute. Belongs to exactly one Partner (the stock
+   owner). See DOMAIN-SKETCH.md for the full rationale behind every
+   invariant enforced below — this file makes those invariants
+   impossible to bypass at runtime, not just documented.
+
+   `names`/`descriptions` close a gap that had been promised in
+   MARKETS-AND-I18N.md ("Product catalog stores names{lang} and
+   descriptions{lang}") since the earliest design pass but never
+   actually implemented here — flagged during the customer-side audit
+   (2026-08-21) when it became clear Search has nothing to search over
+   and the Product Page has no title field without it. Same shape as
+   `@zos/geography`'s `names{lang}` convention already established by
+   Z Find (apps/find/apps/zfind-web/src/geography.js) — a plain object
+   keyed by locale code, never a new i18n mechanism invented here.
 
    Depends on partner.js only for the shared CATEGORIES/AGE_SEGMENTS
    vocabulary, never for Partner-instance data — Product validates
    itself against the taxonomy, not against a specific Partner's
    declared eligibility (that cross-check is a Corner/catalog-
-   ingestion concern, not this module's).
+   ingestion concern, not this module's). GENDER is owned by this
+   module itself, not partner.js — unlike Category and Age Segment, a
+   Partner never declares which Genders it operates in (there is no
+   "eligibility" question here the way minor-safe data or size-grid
+   compliance raise one for Age Segment); Gender is purely a Product
+   classification, same shape as Brand.
    ============================================================ */
 
 const { CATEGORIES, AGE_SEGMENTS } = require('./partner');
+
+/* France-first, not France-only (MARKETS-AND-I18N.md): every Product
+   must carry a `fr` name from day one — the launch market — even
+   though the platform is designed for 6 public locales
+   (fr/en/it/es/de/pt) from the start. Other locale keys are populated
+   as translation work catches up, never blocking Product creation the
+   way requiring all 6 upfront would. */
+const REQUIRED_NAME_LOCALE = 'fr';
+
+/* Single-valued, never multi — a Product is marketed to one Gender or
+   explicitly marketed as Unisex; unlike Category (where genuine dual-
+   purpose is common — a running shoe really is Footwear+Sportswear at
+   once), a garment/accessory does not simultaneously target two
+   distinct Genders the way it can span two Categories. 'unisex' is an
+   explicit value, never a default or an omission — the same
+   never-inferred discipline already applied to Category and Age
+   Segment. */
+const GENDERS = Object.freeze(['female', 'male', 'unisex']);
 
 /* Categories that carry a genuine size dimension at all. Cosmetics
    uses `format`, not `size` — a different concept, not a point on the
@@ -42,8 +76,23 @@ const SIZED_CATEGORIES = Object.freeze(['clothing', 'footwear', 'sportswear']);
  *                                           never assigned by resemblance
  * @param {boolean} [input.technicalPurpose] - required truthy iff
  *                                           categories includes 'sportswear'
+ * @param {Object.<string,string>} input.names - multilingual display name,
+ *                                           `names{lang}` convention — must
+ *                                           include a non-empty 'fr' key
+ *                                           (REQUIRED_NAME_LOCALE), other
+ *                                           locale keys optional and added
+ *                                           as translation work catches up
+ * @param {Object.<string,string>} [input.descriptions] - same shape as
+ *                                           names, entirely optional —
+ *                                           a Product can list without
+ *                                           a long-form description
+ * @param {string} input.gender           - one of GENDERS ('female',
+ *                                           'male', 'unisex') — always
+ *                                           explicit, never defaulted or
+ *                                           inferred from Category/Age
+ *                                           Segment
  * @param {string[]} input.ageSegments    - multi-valued; if it includes
- *                                           'children' or 'youth',
+ *                                           'baby', 'children' or 'youth',
  *                                           input.safetyCertifications must
  *                                           be a non-empty array — never
  *                                           inferred from size/appearance
@@ -55,6 +104,18 @@ const SIZED_CATEGORIES = Object.freeze(['clothing', 'footwear', 'sportswear']);
  * @param {object} [input.format]         - Cosmetics-only: { volumeMl,
  *                                           shade } — a different concept
  *                                           from size, not interchangeable
+ * @param {string} [input.styleId] - optional grouping identifier shared by
+ *                                           every size variant of "the same
+ *                                           style" (a Product row is one
+ *                                           size, per DOMAIN-SKETCH.md; a
+ *                                           style-group.js function, not
+ *                                           this constructor, enforces that
+ *                                           every Product sharing a styleId
+ *                                           agrees on Partner/Brand/Gender/
+ *                                           Categories/name — this
+ *                                           constructor only accepts the
+ *                                           value as given, cross-row
+ *                                           consistency needs the whole set)
  * @param {boolean} [input.cornerExclusive] - defaults false; opt-out of
  *                                           All Sale, never opt-in
  *                                           (DOMAIN-SKETCH.md "Resolved")
@@ -67,9 +128,6 @@ function createProduct(input) {
   }
   if (!input.id) errors.push('id is required');
   if (!input.partnerId) errors.push('partnerId is required');
-  if (!input.title || !input.title.trim()) {
-    errors.push('title is required — every discoverable Product must carry a stable human-readable title.');
-  }
   if (!input.brandId) {
     errors.push(
       'brandId is required — even a Partner\'s own house label is a Brand, ' +
@@ -93,15 +151,36 @@ function createProduct(input) {
     }
   }
 
+  if (
+    !input.names || typeof input.names !== 'object' ||
+    !input.names[REQUIRED_NAME_LOCALE] || !input.names[REQUIRED_NAME_LOCALE].trim()
+  ) {
+    errors.push(
+      `names is required and must include a non-empty "${REQUIRED_NAME_LOCALE}" key ` +
+      '(France-first launch — see MARKETS-AND-I18N.md) — other locale keys are optional.'
+    );
+  }
+
+  if (input.styleId !== undefined && input.styleId !== null && (typeof input.styleId !== 'string' || !input.styleId.trim())) {
+    errors.push('styleId, when provided, must be a non-empty string');
+  }
+
+  if (!input.gender || !GENDERS.includes(input.gender)) {
+    errors.push(
+      `gender is required and must be one of ${GENDERS.join(', ')} — ` +
+      'always explicit, never defaulted or inferred from Category/Age Segment.'
+    );
+  }
+
   const ageSegments = input.ageSegments || ['adults'];
   const invalidSegments = ageSegments.filter((s) => !AGE_SEGMENTS.includes(s));
   if (invalidSegments.length > 0) errors.push(`unknown ageSegments: ${invalidSegments.join(', ')}`);
 
-  const needsCertification = ageSegments.includes('children') || ageSegments.includes('youth');
+  const needsCertification = ageSegments.includes('baby') || ageSegments.includes('children') || ageSegments.includes('youth');
   if (needsCertification && (!Array.isArray(input.safetyCertifications) || input.safetyCertifications.length === 0)) {
     errors.push(
-      'ageSegments includes children/youth but safetyCertifications is ' +
-      'empty — Children/Youth eligibility is never inferred from size or ' +
+      'ageSegments includes baby/children/youth but safetyCertifications is ' +
+      'empty — Baby/Children/Youth eligibility is never inferred from size or ' +
       'appearance alone (see DOMAIN-SKETCH.md Age Segment).'
     );
   }
@@ -128,14 +207,16 @@ function createProduct(input) {
     id: input.id,
     partnerId: input.partnerId,
     brandId: input.brandId,
-    title: input.title.trim(),
-    shortDescription: input.shortDescription ? input.shortDescription.trim() : '',
+    names: { ...input.names },
+    descriptions: input.descriptions ? { ...input.descriptions } : {},
     categories: [...categories],
     technicalPurpose: !!input.technicalPurpose,
+    gender: input.gender,
     ageSegments: [...ageSegments],
     safetyCertifications: [...(input.safetyCertifications || [])],
     size: input.size ? { ...input.size } : null,
     format: input.format ? { ...input.format } : null,
+    styleId: input.styleId || null,
     // Opt-out, not opt-in — a published Product is in All Sale by default.
     cornerExclusive: !!input.cornerExclusive,
     campaignIds: [...(input.campaignIds || [])],
@@ -157,9 +238,26 @@ function isReturnEligible(product, { sealBroken = false } = {}) {
   return true;
 }
 
+/**
+ * Resolves a Product's display name for a given locale, falling back to
+ * REQUIRED_NAME_LOCALE ('fr') when the requested locale has no translation
+ * yet — never an empty string or the raw locale code, since `names.fr` is
+ * guaranteed non-empty by createProduct()'s own validation.
+ *
+ * @param {object} product - createProduct() shape
+ * @param {string} [locale] - one of the 6 public locales; defaults to
+ *   REQUIRED_NAME_LOCALE
+ */
+function productName(product, locale = REQUIRED_NAME_LOCALE) {
+  return product.names[locale] || product.names[REQUIRED_NAME_LOCALE];
+}
+
 module.exports = {
   SIZED_CATEGORIES,
+  GENDERS,
+  REQUIRED_NAME_LOCALE,
   createProduct,
   isInAllSale,
   isReturnEligible,
+  productName,
 };

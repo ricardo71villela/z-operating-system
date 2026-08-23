@@ -23,6 +23,15 @@ Two complementary mechanisms, not one:
    A stale update (older than what's already applied) is **rejected, not
    silently overwritten** — protects against an out-of-order delivery
    undoing a fresher in-store sale the Partner already reported.
+   **Bulk ingestion implemented 2026-08-21** (partner-side audit, ponto 3):
+   the only endpoint that existed before this accepted one Product at a
+   time — a Partner with 200 SKUs needed 200 separate requests for a
+   routine update. `POST /partners/:id/stock/bulk` now processes an array
+   of updates, each independently through the exact same
+   `applyStockUpdate()` the single-item endpoint uses — one stale item in
+   a 200-item batch fails only that item, never the other 199 (per-item
+   results, not all-or-nothing; all-or-nothing belongs to checkout
+   reservations across Partners, a different concern from feed ingestion).
 2. **The platform reserves stock at checkout**, not just at order
    confirmation. A reservation holds units for a short window (default 10
    minutes); if checkout doesn't complete, the reservation expires and the
@@ -47,6 +56,38 @@ their Corner may carry a lower Partner Quality Score weighting for
 inventory reliability (ties into the PQS-per-Category model in
 DOMAIN-SKETCH.md) — never presented to the Client as a full guarantee it
 cannot actually back.
+
+## Resolved
+- **Stock Postgres persistence** — resolved 2026-08-21: Stock had been
+  the one entity in the entire Fashion schema with no real table — both
+  the single-item and bulk endpoints stayed in-memory in every mode.
+  `fashion.stock`/`fashion.stock_reservations` now mirror `stock.js`
+  exactly (`fashion.apply_stock_update()`, `fashion.reserve_stock()`,
+  `fashion.release_stock_reservation()`, `fashion.confirm_stock_reservation()`),
+  with the same staleness-rejection rule and row-level locking
+  (`select ... for update`) `attempt_checkout()` already uses elsewhere
+  in this schema for concurrency safety. `fashion-partner`'s stock
+  endpoints (single-item and bulk) now use this table when Postgres is
+  configured, same dual-mode discipline as every other endpoint. Not
+  verified against a real Postgres instance (none available in this
+  environment) — structural review and fidelity to `stock.js`'s own
+  shape is the guarantee available here, same limitation already
+  disclosed for the identity-bridge migration.
+- **Degraded-tier reservation-window extension** — resolved 2026-08-21:
+  `stock.js` gains `reservationHoldSecondsFor(feedReliabilityTier)` —
+  30 minutes for `degraded`, the existing 10-minute default for `live`
+  or anything unrecognized (never defaults upward to the wider window
+  silently). Ready for the future checkout flow to call — the same
+  "configured, not yet connected" shape as Payment/Stripe and the
+  identity bridge, since no checkout API exists yet to actually call it.
+- **Partner-ownership check on `productId`** — resolved 2026-08-21: the
+  single-item stock routes moved from `/stock/:id` (no Partner context
+  at all) to `/partners/:id/stock/:productId`, matching every other
+  Partner-scoped endpoint. A shared `assertProductOwnership()` check
+  runs before any read or write, on both single-item and bulk routes —
+  the Product must exist and belong to the calling Partner, or the
+  request is rejected (404 if the Product doesn't exist, 403 if it
+  belongs to someone else) rather than silently accepted.
 
 ## Status
 Draft

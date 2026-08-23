@@ -4,6 +4,7 @@ const assert = require('assert');
 const {
   initStock, applyStockUpdate, sellableQuantity, reserveStock,
   releaseReservation, confirmReservation, isExpired,
+  reservationHoldSecondsFor, DEFAULT_RESERVATION_HOLD_SECONDS, DEGRADED_RESERVATION_HOLD_SECONDS,
 } = require('../src/stock');
 
 let stock = initStock('prod_running_shoe');
@@ -60,5 +61,15 @@ assert.strictEqual(stock.quantityReserved, 0);
 const held = reserveStock(stock, 1, { now, holdSeconds: 600 }).reservation;
 assert.strictEqual(isExpired(held, now), false);
 assert.strictEqual(isExpired(held, new Date('2026-08-20T12:20:00.000Z')), true);
+
+// --- reservationHoldSecondsFor: degraded-tier gets the wider window ---
+assert.strictEqual(reservationHoldSecondsFor('live'), DEFAULT_RESERVATION_HOLD_SECONDS);
+assert.strictEqual(reservationHoldSecondsFor('degraded'), DEGRADED_RESERVATION_HOLD_SECONDS);
+assert.ok(DEGRADED_RESERVATION_HOLD_SECONDS > DEFAULT_RESERVATION_HOLD_SECONDS);
+// Never defaults upward to the wider window for an unrecognized or
+// missing tier — the safer failure direction is the shorter hold.
+assert.strictEqual(reservationHoldSecondsFor(undefined), DEFAULT_RESERVATION_HOLD_SECONDS);
+assert.strictEqual(reservationHoldSecondsFor(null), DEFAULT_RESERVATION_HOLD_SECONDS);
+assert.strictEqual(reservationHoldSecondsFor('unexpected_value'), DEFAULT_RESERVATION_HOLD_SECONDS);
 
 console.log('stock.js: all invariant checks passed.');

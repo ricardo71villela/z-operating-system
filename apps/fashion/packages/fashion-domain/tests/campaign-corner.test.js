@@ -3,7 +3,8 @@
 const assert = require('assert');
 const { createCampaign, isActiveOn } = require('../src/campaign');
 const { createProduct } = require('../src/product');
-const { corner, allSale } = require('../src/corner');
+const { createPartner } = require('../src/partner');
+const { corner, allSale, allSaleInMarket } = require('../src/corner');
 
 // Real Soldes d'hiver 2026 window — must match exactly, or reject.
 const soldesHiver2026 = createCampaign({
@@ -35,20 +36,17 @@ assert.strictEqual(blackFriday2026.countryIso, null);
 
 // Corner and All Sale over a small fixture catalog.
 const shoe = createProduct({
-  title: 'Test Product',
   id: 'prod_shoe', partnerId: 'partner_a', brandId: 'brand_nike',
-  categories: ['footwear', 'sportswear'], technicalPurpose: true,
+  names: { fr: 'Produit test' }, gender: 'female', categories: ['footwear', 'sportswear'], technicalPurpose: true,
   size: { system: 'EU', value: 42 },
 });
 const perfume = createProduct({
-  title: 'Test Product',
   id: 'prod_perfume', partnerId: 'partner_a', brandId: 'brand_house_label',
-  categories: ['cosmetics'], format: { volumeMl: 50 },
+  names: { fr: 'Produit test' }, gender: 'unisex', categories: ['cosmetics'], format: { volumeMl: 50 },
 });
 const exclusiveBag = createProduct({
-  title: 'Test Product',
   id: 'prod_bag', partnerId: 'partner_b', brandId: 'brand_longchamp',
-  categories: ['accessories_leather_goods'], cornerExclusive: true,
+  names: { fr: 'Produit test' }, gender: 'unisex', categories: ['accessories_leather_goods'], cornerExclusive: true,
 });
 const catalog = [shoe, perfume, exclusiveBag];
 
@@ -70,11 +68,58 @@ assert.deepStrictEqual(
   ['prod_shoe']
 );
 
+// All Sale filtered by gender: exact match only — the female shoe shows
+// under 'female', not under 'unisex' (perfume), and vice versa. Unisex
+// is its own explicit bucket, never a silent match-all.
+assert.deepStrictEqual(
+  allSale(catalog, { gender: 'female' }).map((p) => p.id),
+  ['prod_shoe']
+);
+assert.deepStrictEqual(
+  allSale(catalog, { gender: 'unisex' }).map((p) => p.id),
+  ['prod_perfume']
+);
+assert.deepStrictEqual(
+  allSale(catalog, { gender: 'male' }).map((p) => p.id),
+  []
+);
+
+// All Sale filtered by size: value-only match (no cross-system
+// translation yet — see the comment in corner.js). The shoe is EU 42;
+// filtering for that exact value returns it, any other value excludes
+// it, and a Product without a `size` at all (the perfume) never matches.
+assert.deepStrictEqual(
+  allSale(catalog, { sizeValue: 42 }).map((p) => p.id),
+  ['prod_shoe']
+);
+assert.deepStrictEqual(
+  allSale(catalog, { sizeValue: 40 }).map((p) => p.id),
+  []
+);
+
 // Corner B still shows the exclusive bag — Corner is not filtered by
 // All Sale eligibility, only by Partner.
 assert.deepStrictEqual(
   corner(catalog, 'partner_b').map((p) => p.id),
   ['prod_bag']
+);
+
+// All Sale scoped to a Market: partner_a is FR, so an FR-market view sees
+// the shoe (assuming filters otherwise match), a PT-market view sees
+// nothing from this catalog at all — even though every other allSale()
+// filter would otherwise match.
+const partnerAFrance = createPartner({
+  id: 'partner_a', legalName: 'Partner A', countryIso: 'FR', locales: ['fr'], categories: ['footwear'],
+});
+const partnersById = { partner_a: partnerAFrance };
+
+assert.deepStrictEqual(
+  allSaleInMarket(catalog, partnersById, 'FR', { gender: 'female' }).map((p) => p.id),
+  ['prod_shoe']
+);
+assert.deepStrictEqual(
+  allSaleInMarket(catalog, partnersById, 'PT', { gender: 'female' }).map((p) => p.id),
+  []
 );
 
 console.log('campaign.js + corner.js: all invariant checks passed.');
