@@ -25,10 +25,10 @@ test('guard overwrites caller authority ids', () => {
   assert.match(guard, /query\.workspaceId = deskContext\.workspaceId/);
 });
 
-test('unsafe provider routes are not mounted during D1', () => {
+test('D3A mounts hardened Google/Microsoft OAuth while legacy provider routes remain unmounted', () => {
   const app = src('app.module.ts');
+  assert.match(app, /EmailModule/);
+  assert.match(app, /CalendarModule/);
   assert.doesNotMatch(app, /WhatsappModule/);
   assert.doesNotMatch(app, /IntegrationsModule/);
-  assert.doesNotMatch(app, /EmailModule/);
-  assert.doesNotMatch(app, /CalendarModule/);
 });
