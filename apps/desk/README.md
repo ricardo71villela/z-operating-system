@@ -42,11 +42,15 @@ Decisão de fundação (ver `docs/architecture/ADR-0001`): v1 opera em modo **hu
 - `supabase/migrations/` — schema reprodutível (tenants, threads, messages, events, integrations).
 - `docs/architecture/` — decisões e modelo de domínio específicos do Z Desk.
 
-## Gestão de pessoal (ADR-0004)
+## Gestão de pessoal (ADR-0004 + ADR-0005)
 
-- `desk_work_schedules` — horário semanal recorrente por pessoa (dia + hora início/fim)
+- `desk_work_schedules` — horário semanal recorrente por pessoa (dia + hora início/fim) — o *default*
+- `desk_schedule_overrides` — desvio pontual a uma data específica, substitui o padrão só nesse dia
 - `desk_absences` — férias/baixa/outro, com intervalo de datas e estado (`requested`/`approved`)
-- `GET /personnel/monthly-map?tenantId=&year=&month=` — mapa mensal derivado (não armazenado): cruza horário recorrente com ausências aprovadas, dia a dia, por pessoa
+- `desk_schedule_validations` — uma linha por pessoa por semana; um worker diário cria automaticamente a validação `pending` para a semana que começa daqui a 15 dias; validar (`POST /personnel/schedule-validations/:id/validate`) é sempre ação humana, nunca automática
+- **Precedência ao resolver um dia** (partilhada entre vista semanal e mapa mensal): ausência aprovada > desvio pontual > padrão recorrente
+- `GET /personnel/weekly-view?tenantId=&weekStart=` — uma semana, por pessoa, com cada dia já resolvido + estado de validação
+- `GET /personnel/monthly-map?tenantId=&year=&month=` — mês inteiro, mesma resolução, nada armazenado, tudo derivado no pedido
 - Alimenta a atribuição de missões e a sugestão de reuniões com disponibilidade real — ligação feita quando a IA for ligada, não implementada agora
 - Deliberadamente sem hierarquia de aprovação, sem calendário de feriados, sem integração com processamento de salários — é gestão de pessoal operacional, não um módulo de RH
 

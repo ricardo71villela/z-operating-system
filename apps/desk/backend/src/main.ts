@@ -8,11 +8,13 @@ import './queues/workers/inbound-message.worker';
 import './queues/workers/ai-triage.worker';
 import { emailSyncWorker, scheduleEmailSyncPolling } from './queues/workers/email-sync.worker';
 import { calendarSyncWorker, scheduleCalendarSyncPolling } from './queues/workers/calendar-sync.worker';
+import { scheduleValidationWorker, scheduleWeeklyValidationTick } from './queues/workers/schedule-validation.worker';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   scheduleEmailSyncPolling();
   scheduleCalendarSyncPolling();
+  scheduleWeeklyValidationTick();
   await app.listen(process.env.PORT ?? 3001);
 }
 
