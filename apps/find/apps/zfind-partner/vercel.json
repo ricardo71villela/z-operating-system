@@ -1,7 +1,21 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "ignoreCommand": "BASE=\"${VERCEL_GIT_PREVIOUS_SHA:-HEAD^}\"; git cat-file -e \"$BASE^{commit}\" 2>/dev/null || exit 1; git diff --quiet \"$BASE\" HEAD -- ':(top)apps/find/apps/zfind-partner/**' ':(top)apps/find/apps/zfind-web/src/**' ':(top)apps/find/package.json' ':(top)package-lock.json'",
   "buildCommand": "cd ../.. && node apps/zfind-partner/scripts/build.js && mkdir -p apps/zfind-partner/vercel-output && cp apps/zfind-partner/dist/z-find-partner.html apps/zfind-partner/vercel-output/index.html",
   "outputDirectory": "vercel-output",
+  "installCommand": "cd ../../../.. && npm ci --workspace=apps/find",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "no-referrer" }
+      ]
+    }
   ]
 }
