@@ -2,38 +2,14 @@
 /* ============================================================
    Z FIND — SEO STATIC PAGE GENERATION
    ============================================================
-   Generates real, static, indexable HTML pages for every published
-   Property, Development, and Zone — one file per locale. Fetches data
-   through the EXISTING services (search.js, developments.js) rather
-   than writing new queries — reuse, not duplication.
+   Generates static, indexable Market, Property, Development and Zone
+   pages plus robots.txt and sitemap.xml.
 
-   RUNS AS: a separate, explicit command — `npm run build:seo-pages` —
-   never bundled into the everyday `npm run build:zfind`. Reason,
-   found the hard way while building this: making it a mandatory step
-   of the main build would fail the ENTIRE site build for everyone,
-   every day, until SITE_BASE_URL exists (which depends on the
-   not-yet-done Vercel/domain phase) — that's the wrong trade-off. The
-   main site build must keep working today; SEO page generation runs
-   on its own, whenever it's actually meaningful to run it.
-
-   AUTOMATIC REGENERATION: this script is the engine. The trigger that
-   makes it run automatically "the moment something is published in
-   the Admin" is NOT implemented here — that requires a Supabase
-   Database Webhook -> Vercel Deploy Hook, which depends on
-   infrastructure not yet set up (the agreed Vercel/domain/DNS phase).
-   The extension point is marked in services/admin.js's
-   setListingStatus (search "SEO REGENERATION TRIGGER POINT"). Until
-   that phase, this runs as part of `npm run build:zfind`.
-
-   HONESTY NOTE: this script could not be executed against live
-   Supabase data from the sandbox this was built in (network egress to
-   *.supabase.co is blocked there, documented extensively earlier in
-   this project). It is syntax-verified and its data-shape assumptions
-   are cross-checked against the exact same services already proven
-   working in the browser (Sprint 1.2/1.3) — but a live run, with real
-   data, has not been observed here. Run it for real once this reaches
-   an environment with Supabase network access, and verify its output
-   before trusting it in production.
+   Six-language rule:
+   - Market and Zone presentation is genuinely translated 6/6.
+   - Property/Development editorial pages are generated ONLY when an
+     exact localized listing_content row exists. English is never
+     republished under an ES/DE/IT/PT/FR URL as a fake translation.
    ============================================================ */
 
 const fs = require('fs');
@@ -43,13 +19,19 @@ const DIST_SEO_DIR = path.join(__dirname, '..', 'dist', 'seo');
 const marketRegistry = require('../src/services/market-registry.js');
 const seoGenerator = require('../src/services/seo-page-generator.js');
 
+const PERSISTED_LOCALE_BY_PUBLIC = Object.freeze({
+  fr: 'fr',
+  en: 'en',
+  pt: 'pt-PT',
+  es: 'es',
+  de: 'de',
+  it: 'it'
+});
+
 function normalizeBaseUrl(baseUrl) {
   if (!baseUrl || typeof baseUrl !== 'string' || !/^https?:\/\//.test(baseUrl)) {
-    throw new Error(
-      'SEO deployment requires a real SITE_BASE_URL using http/https.'
-    );
+    throw new Error('SEO deployment requires a real SITE_BASE_URL using http/https.');
   }
-
   return baseUrl.replace(/\/+$/, '');
 }
 
@@ -64,49 +46,41 @@ function xmlEscape(value) {
 
 function buildRobotsTxt(baseUrl) {
   const base = normalizeBaseUrl(baseUrl);
-
-  return [
-    'User-agent: *',
-    'Allow: /',
-    '',
-    `Sitemap: ${base}/sitemap.xml`,
-    '',
-  ].join('\n');
+  return ['User-agent: *', 'Allow: /', '', `Sitemap: ${base}/sitemap.xml`, ''].join('\n');
 }
 
 function buildSitemapXml(baseUrl, urls) {
   const base = normalizeBaseUrl(baseUrl);
-
-  const canonicalUrls = Array.from(
-    new Set([
-      `${base}/`,
-      ...Array.from(urls || []),
-    ])
-  ).sort();
-
-  const body = canonicalUrls
-    .map(url => `  <url><loc>${xmlEscape(url)}</loc></url>`)
-    .join('\n');
-
-  return [
-    '<?xml version="1.0" encoding="UTF-8"?>',
-    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-    body,
-    '</urlset>',
-    '',
-  ].join('\n');
+  const canonicalUrls = Array.from(new Set([`${base}/`, ...Array.from(urls || [])])).sort();
+  const body = canonicalUrls.map(url => `  <url><loc>${xmlEscape(url)}</loc></url>`).join('\n');
+  return ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">', body, '</urlset>', ''].join('\n');
 }
 
 function writeIndexingArtifacts(baseUrl, urls) {
-  fs.writeFileSync(
-    path.join(DIST_SEO_DIR, 'robots.txt'),
-    buildRobotsTxt(baseUrl)
-  );
+  fs.writeFileSync(path.join(DIST_SEO_DIR, 'robots.txt'), buildRobotsTxt(baseUrl));
+  fs.writeFileSync(path.join(DIST_SEO_DIR, 'sitemap.xml'), buildSitemapXml(baseUrl, urls));
+}
 
-  fs.writeFileSync(
-    path.join(DIST_SEO_DIR, 'sitemap.xml'),
-    buildSitemapXml(baseUrl, urls)
-  );
+function contentForPublicLocale(contentRows, publicLocale) {
+  const rows = Array.isArray(contentRows) ? contentRows : [];
+  const persisted = PERSISTED_LOCALE_BY_PUBLIC[publicLocale];
+  if (!persisted) return null;
+
+  // pt was used by the earliest prototype; pt-PT is the canonical
+  // persisted identity. Read the legacy spelling only for continuity,
+  // never as a fallback from another language.
+  const accepted = publicLocale === 'pt'
+    ? ['pt-PT', 'pt']
+    : [persisted];
+
+  return rows.find(row => accepted.includes(row.locale)) || null;
+}
+
+function genuineEditorialLocales(contentRows) {
+  return seoGenerator.LOCALES.filter(locale => {
+    const content = contentForPublicLocale(contentRows, locale);
+    return !!(content && String(content.title || '').trim() && String(content.description || '').trim());
+  });
 }
 
 function buildMarketSeoEntries(baseUrl) {
@@ -115,21 +89,13 @@ function buildMarketSeoEntries(baseUrl) {
 
   for (const market of marketRegistry.listMarkets()) {
     const pathByLocale = Object.fromEntries(
-      marketRegistry.MARKET_LOCALES.map(locale => [
-        locale,
-        marketRegistry.marketPath(market.key, locale)
-      ])
+      marketRegistry.MARKET_LOCALES.map(locale => [locale, marketRegistry.marketPath(market.key, locale)])
     );
 
     for (const locale of marketRegistry.MARKET_LOCALES) {
-      const copy = marketRegistry.marketPresentation(
-        market.key,
-        locale
-      );
-
+      const copy = marketRegistry.marketPresentation(market.key, locale);
       const publicPath = pathByLocale[locale];
       const canonicalUrl = base + publicPath;
-
       const html = seoGenerator.buildMarketPage({
         baseUrl: base,
         locale,
@@ -153,8 +119,7 @@ function buildMarketSeoEntries(baseUrl) {
         seoDescription: copy.seoDescription,
         interactiveSpaPath: `/#/${locale}/market/${market.key}`,
         legalSpaPath: `/#/${locale}/${market.legalRoute}`,
-        touristRentalSpaPath:
-          `/#/${locale}/${market.touristRentalRoute}`
+        touristRentalSpaPath: `/#/${locale}/${market.touristRentalRoute}`
       });
 
       entries.push({
@@ -162,8 +127,7 @@ function buildMarketSeoEntries(baseUrl) {
         locale,
         publicPath,
         canonicalUrl,
-        outRelativePath:
-          publicPath.replace(/^\/+/, '') + '.html',
+        outRelativePath: publicPath.replace(/^\/+/, '') + '.html',
         html
       });
     }
@@ -178,52 +142,31 @@ async function main() {
   const siteBaseUrl = process.env.SITE_BASE_URL;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error(
-      'BUILD FAILED: SUPABASE_URL and SUPABASE_ANON_KEY are required for SEO generation.'
-    );
+    throw new Error('BUILD FAILED: SUPABASE_URL and SUPABASE_ANON_KEY are required for SEO generation.');
   }
-
   if (!siteBaseUrl) {
-    throw new Error(
-      'BUILD FAILED: SITE_BASE_URL is required to generate SEO pages — refusing to generate guessed canonical URLs.'
-    );
+    throw new Error('BUILD FAILED: SITE_BASE_URL is required to generate SEO pages — refusing to generate guessed canonical URLs.');
   }
 
   const baseUrl = normalizeBaseUrl(siteBaseUrl);
+  fs.rmSync(DIST_SEO_DIR, { recursive: true, force: true });
+  fs.mkdirSync(DIST_SEO_DIR, { recursive: true });
 
-  // Never carry stale pages from a previous publication state into
-  // a new deploy. A successful generation always starts from zero.
-  fs.rmSync(DIST_SEO_DIR, {
-    recursive: true,
-    force: true,
-  });
-
-  fs.mkdirSync(
-    DIST_SEO_DIR,
-    {
-      recursive: true,
-    }
-  );
-
-  // Reuse the exact same UMD services already proven in the browser —
-  // no new query logic here.
   const supabaseClientModule = require('../src/services/supabaseClient.js');
   global.window = global.window || {};
   window.ZFindServices = window.ZFindServices || {};
   window.ZFindServices.supabaseClient = supabaseClientModule;
-  // config.js sets up the real client the same way the browser build does
   const { createClient } = require('@supabase/supabase-js');
   const client = createClient(supabaseUrl, supabaseAnonKey);
-  supabaseClientModule.getSupabaseClient = () => client; // same override pattern test files already use throughout this project
+  supabaseClientModule.getSupabaseClient = () => client;
 
   const searchService = require('../src/services/search.js');
   const developmentsService = require('../src/services/developments.js');
-  const generator = seoGenerator;
   const zoneImages = require('../src/services/zone-images.js');
 
   const [propertiesResult, developmentsResult] = await Promise.all([
     searchService.search({}),
-    developmentsService.listPublished(),
+    developmentsService.listPublished()
   ]);
 
   if (propertiesResult.error && propertiesResult.error.type !== 'empty_result') {
@@ -235,31 +178,13 @@ async function main() {
 
   const properties = propertiesResult.data || [];
   const developments = developmentsResult.data || [];
-
   let written = 0;
   const sitemapUrls = new Set();
 
-  // Market pages are deterministic, DB-independent and complete 6/6.
-  // They are generated from the product Market Registry, not inferred
-  // from whichever listings happen to be published today.
-  const marketEntries = buildMarketSeoEntries(baseUrl);
-
-  for (const entry of marketEntries) {
-    const outPath = path.join(
-      DIST_SEO_DIR,
-      entry.outRelativePath
-    );
-
-    fs.mkdirSync(
-      path.dirname(outPath),
-      { recursive:true }
-    );
-
-    fs.writeFileSync(
-      outPath,
-      entry.html
-    );
-
+  for (const entry of buildMarketSeoEntries(baseUrl)) {
+    const outPath = path.join(DIST_SEO_DIR, entry.outRelativePath);
+    fs.mkdirSync(path.dirname(outPath), { recursive: true });
+    fs.writeFileSync(outPath, entry.html);
     sitemapUrls.add(entry.canonicalUrl);
     written++;
   }
@@ -269,36 +194,43 @@ async function main() {
       const rep = (row.representations || [])[0];
       const listing = rep && (rep.listings || [])[0];
       if (!listing) continue;
+
+      const contentRows = listing.listing_content || [];
+      const availableLocales = genuineEditorialLocales(contentRows);
+      if (!availableLocales.length) continue;
+
       const zone = row.zones_lite || {};
       const mediaRows = kind === 'development'
         ? (row.development_media || (listing.listing_media || []))
         : (listing.listing_media || []);
-      const cover = mediaRows.slice().sort((a, b) => (b.is_cover - a.is_cover))[0];
-      // Long expiry (30 days) — see supabaseClient.js's resolveMediaUrl
-      // doc comment for exactly why static pages can't use the
-      // default 1-hour signed URL.
+      const cover = mediaRows.slice().sort((a,b) => (b.is_cover - a.is_cover))[0];
       const imageUrl = cover && cover.media_assets
         ? await supabaseClientModule.resolveMediaUrl(cover.media_assets.original_storage_path, undefined, 60 * 60 * 24 * 30)
         : null;
 
-      for (const locale of generator.LOCALES) {
-        const contentRows = listing.listing_content || [];
-        const content = contentRows.find(c => c.locale === locale) || contentRows.find(c => c.locale === 'en') || { title: row.name || '', description: '' };
-        const html = generator.buildListingPage({
-          kind, baseUrl, locale, id: row.id,
-          title: content.title, description: content.description,
-          priceValue: listing.price_current, currencyIso: listing.currency_iso, priceIsFrom: !!listing.price_is_from,
-          zoneLabel: zone.name || null, cityLabel: zone.city || null, countryIsoCode: zone.country_iso || null,
-          imageUrl, imageAlt: content.title,
+      for (const locale of availableLocales) {
+        const content = contentForPublicLocale(contentRows, locale);
+        const html = seoGenerator.buildListingPage({
+          kind,
+          baseUrl,
+          locale,
+          availableLocales,
+          id: row.id,
+          title: content.title,
+          description: content.description,
+          priceValue: listing.price_current,
+          currencyIso: listing.currency_iso,
+          priceIsFrom: !!listing.price_is_from,
+          zoneLabel: zone.name || null,
+          cityLabel: zone.city || null,
+          countryIsoCode: zone.country_iso || null,
+          imageUrl,
+          imageAlt: content.title
         });
         const outPath = path.join(DIST_SEO_DIR, locale, kind, `${row.id}.html`);
         fs.mkdirSync(path.dirname(outPath), { recursive: true });
         fs.writeFileSync(outPath, html);
-
-        sitemapUrls.add(
-          `${baseUrl}/${locale}/${kind}/${row.id}`
-        );
-
+        sitemapUrls.add(`${baseUrl}/${locale}/${kind}/${row.id}`);
         written++;
       }
     }
@@ -307,8 +239,6 @@ async function main() {
   await writeListingPages(properties, 'property');
   await writeListingPages(developments, 'development');
 
-  // Zone pages: aggregate from the SAME already-fetched data — no
-  // extra query for stats.
   const zonesById = {};
   properties.concat(developments).forEach(row => {
     const zone = row.zones_lite;
@@ -319,40 +249,48 @@ async function main() {
     if (!zonesById[row.zone_lite_id]) zonesById[row.zone_lite_id] = { zone, prices: [], samples: [] };
     zonesById[row.zone_lite_id].prices.push(listing.price_current);
     if (zonesById[row.zone_lite_id].samples.length < 5) {
-      const contentRows = listing.listing_content || [];
-      const enContent = contentRows.find(c => c.locale === 'en') || { title: row.name || '' };
-      zonesById[row.zone_lite_id].samples.push({ kind: row.subtype ? 'property' : 'development', id: row.id, title: enContent.title });
+      zonesById[row.zone_lite_id].samples.push({
+        kind: row.subtype ? 'property' : 'development',
+        id: row.id,
+        contentRows: listing.listing_content || []
+      });
     }
   });
 
   for (const zoneId of Object.keys(zonesById)) {
     const { zone, prices, samples } = zonesById[zoneId];
-    const avgPrice = prices.length ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
-    for (const locale of generator.LOCALES) {
-      const html = generator.buildZonePage({
-        baseUrl, locale, zoneId, zoneName: zone.name, cityName: zone.city, countryIsoCode: zone.country_iso,
-        listingCount: prices.length, avgPrice, currencyIso: 'EUR', sampleListings: samples,
-        imageUrl: zoneImages.getZoneImagePath(zone.name),
+    const avgPrice = prices.length ? prices.reduce((a,b) => a + b, 0) / prices.length : 0;
+
+    for (const locale of seoGenerator.LOCALES) {
+      const localizedSamples = samples.flatMap(sample => {
+        const content = contentForPublicLocale(sample.contentRows, locale);
+        return content && content.title
+          ? [{ kind: sample.kind, id: sample.id, title: content.title }]
+          : [];
+      });
+
+      const html = seoGenerator.buildZonePage({
+        baseUrl,
+        locale,
+        zoneId,
+        zoneName: zone.name,
+        cityName: zone.city,
+        countryIsoCode: zone.country_iso,
+        listingCount: prices.length,
+        avgPrice,
+        currencyIso: 'EUR',
+        sampleListings: localizedSamples,
+        imageUrl: zoneImages.getZoneImagePath(zone.name)
       });
       const outPath = path.join(DIST_SEO_DIR, locale, 'zone', `${zoneId}.html`);
       fs.mkdirSync(path.dirname(outPath), { recursive: true });
       fs.writeFileSync(outPath, html);
-
-      sitemapUrls.add(
-        `${baseUrl}/${locale}/zone/${zoneId}`
-      );
-
+      sitemapUrls.add(`${baseUrl}/${locale}/zone/${zoneId}`);
       written++;
     }
   }
 
-  // robots.txt and sitemap.xml exist even when public inventory is
-  // genuinely zero. sitemap.xml then contains only the canonical root.
-  writeIndexingArtifacts(
-    baseUrl,
-    sitemapUrls
-  );
-
+  writeIndexingArtifacts(baseUrl, sitemapUrls);
   console.log(`SEO pages generated: ${written} files in ${DIST_SEO_DIR}`);
   console.log('SEO indexing artifacts generated: robots.txt, sitemap.xml');
 }
@@ -360,10 +298,14 @@ async function main() {
 if (require.main === module) {
   main().catch(e => { console.error(e.message); process.exit(1); });
 }
+
 module.exports = {
   main,
   normalizeBaseUrl,
   buildRobotsTxt,
   buildSitemapXml,
   buildMarketSeoEntries,
+  contentForPublicLocale,
+  genuineEditorialLocales,
+  PERSISTED_LOCALE_BY_PUBLIC
 };
