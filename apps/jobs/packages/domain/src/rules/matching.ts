@@ -10,6 +10,7 @@ import { classifyMatchFactor } from './matchIntelligence';
 import type { MatchFactorRole } from './matchIntelligence';
 
 export type MatchLevel = 'match' | 'partial' | 'mismatch' | 'unknown';
+export type SkillsEvidenceSource = 'explicit_requirements' | 'description_fallback';
 
 export interface MatchFactor {
   code:
@@ -23,6 +24,11 @@ export interface MatchFactor {
   weight: number;
   messageKey: string;
   messageParams?: MessageParams;
+  // Only populated by the skills factor. This makes the evidence boundary
+  // inspectable without inventing a second score or new translated prose.
+  evidenceSource?: SkillsEvidenceSource;
+  requiredMatchCount?: number;
+  preferredMatchCount?: number;
 }
 
 export interface MatchResult {
@@ -52,6 +58,14 @@ export interface CandidateMatchingProfile {
 export interface OfferMatchingProfile {
   title: string;
   description: string;
+  // These fields already exist in jobs.job_offers. When either explicit
+  // qualification field is present it becomes the skills evidence authority;
+  // responsibilities remain product copy/context, never silently promoted to
+  // a hard qualification. Old offers without explicit fields keep the exact
+  // historical title+description fallback.
+  responsibilities?: string | null;
+  requiredQualifications?: string | null;
+  preferredQualifications?: string | null;
   contractType: string;
   workRegime: 'on_site' | 'hybrid' | 'remote';
   salaryMin: number;
@@ -70,26 +84,84 @@ const WEIGHTS: Record<MatchFactor['code'], number> = {
   location: 0.1,
 };
 
-const STOPWORDS_PT = new Set(['para', 'com', 'uma', 'que', 'dos', 'das', 'nos', 'nas', 'por', 'sem', 'ser']);
+// Small cross-locale noise list only. This is still lexical matching, not NLP;
+// removing obvious connector words prevents them from inflating denominators
+// when qualification prose is written in any of the six public languages.
+const STOPWORDS = new Set([
+  'para', 'com', 'uma', 'que', 'dos', 'das', 'nos', 'nas', 'por', 'sem', 'ser',
+  'with', 'from', 'that', 'this', 'your', 'have', 'will',
+  'avec', 'pour', 'dans', 'vous', 'être',
+  'para', 'desde', 'tener', 'como',
+  'oder', 'eine', 'einer', 'haben', 'sind',
+  'della', 'delle', 'dalla', 'avere', 'come',
+]);
 
-function extractOfferKeywords(offer: OfferMatchingProfile): string[] {
-  const text = `${offer.title} ${offer.description}`.toLowerCase();
+function extractKeywords(text: string): string[] {
   const words = text
-    .replace(/[^\p{L}\s]/gu, ' ')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}+#.\s-]/gu, ' ')
     .split(/\s+/)
-    .filter((word) => word.length > 4 && !STOPWORDS_PT.has(word));
+    .map((word) => word.replace(/^[.-]+|[.-]+$/g, ''))
+    .filter((word) => word.length > 2 && !STOPWORDS.has(word));
   return [...new Set(words)];
+}
+
+function matchedKeywords(keywords: string[], candidateSkillsLower: string[]): string[] {
+  return keywords.filter((keyword) =>
+    candidateSkillsLower.some((skill) => keyword.includes(skill) || skill.includes(keyword)),
+  );
 }
 
 function scoreSkills(candidate: CandidateMatchingProfile, offer: OfferMatchingProfile): MatchFactor {
   if (candidate.skills.length === 0) {
     return { code: 'skills', level: 'unknown', weight: WEIGHTS.skills, messageKey: 'matching.skills.unknown' };
   }
-  const offerKeywords = extractOfferKeywords(offer);
-  const candidateSkillsLower = candidate.skills.map((skill) => skill.toLowerCase());
-  const matched = offerKeywords.filter((keyword) =>
-    candidateSkillsLower.some((skill) => keyword.includes(skill) || skill.includes(keyword)),
-  );
+
+  const candidateSkillsLower = candidate.skills.map((skill) => skill.trim().toLowerCase()).filter(Boolean);
+  const requiredText = offer.requiredQualifications?.trim() ?? '';
+  const preferredText = offer.preferredQualifications?.trim() ?? '';
+  const hasExplicitRequirements = requiredText.length > 0 || preferredText.length > 0;
+
+  if (hasExplicitRequirements) {
+    const requiredKeywords = requiredText ? extractKeywords(requiredText) : [];
+    const preferredKeywords = preferredText ? extractKeywords(preferredText) : [];
+    const requiredMatched = matchedKeywords(requiredKeywords, candidateSkillsLower);
+    const preferredMatched = matchedKeywords(preferredKeywords, candidateSkillsLower);
+    const totalMatched = new Set([...requiredMatched, ...preferredMatched]).size;
+
+    let level: MatchLevel;
+    if (requiredKeywords.length > 0) {
+      const requiredRate = requiredMatched.length / requiredKeywords.length;
+      if (requiredRate >= 0.15) level = 'match';
+      else if (requiredMatched.length > 0 || preferredMatched.length > 0) level = 'partial';
+      else level = 'mismatch';
+    } else {
+      // Preferred-only evidence can improve relevance, but must never be
+      // presented as proof that a required qualification was satisfied.
+      level = preferredMatched.length > 0 ? 'partial' : 'mismatch';
+    }
+
+    return {
+      code: 'skills',
+      level,
+      weight: WEIGHTS.skills,
+      messageKey:
+        level === 'match'
+          ? 'matching.skills.match'
+          : level === 'partial'
+            ? 'matching.skills.partial'
+            : 'matching.skills.mismatch',
+      ...(level === 'match' || level === 'partial' ? { messageParams: { count: totalMatched } } : {}),
+      evidenceSource: 'explicit_requirements',
+      requiredMatchCount: requiredMatched.length,
+      preferredMatchCount: preferredMatched.length,
+    };
+  }
+
+  // Backwards compatibility for offers created before the explicit
+  // qualification fields were wired through the application layer.
+  const offerKeywords = extractKeywords(`${offer.title} ${offer.description}`);
+  const matched = matchedKeywords(offerKeywords, candidateSkillsLower);
   const rate = offerKeywords.length === 0 ? 0 : matched.length / offerKeywords.length;
 
   if (rate >= 0.15) {
@@ -99,6 +171,7 @@ function scoreSkills(candidate: CandidateMatchingProfile, offer: OfferMatchingPr
       weight: WEIGHTS.skills,
       messageKey: 'matching.skills.match',
       messageParams: { count: matched.length },
+      evidenceSource: 'description_fallback',
     };
   }
   if (matched.length > 0) {
@@ -108,9 +181,16 @@ function scoreSkills(candidate: CandidateMatchingProfile, offer: OfferMatchingPr
       weight: WEIGHTS.skills,
       messageKey: 'matching.skills.partial',
       messageParams: { count: matched.length },
+      evidenceSource: 'description_fallback',
     };
   }
-  return { code: 'skills', level: 'mismatch', weight: WEIGHTS.skills, messageKey: 'matching.skills.mismatch' };
+  return {
+    code: 'skills',
+    level: 'mismatch',
+    weight: WEIGHTS.skills,
+    messageKey: 'matching.skills.mismatch',
+    evidenceSource: 'description_fallback',
+  };
 }
 
 function scoreContractType(candidate: CandidateMatchingProfile, offer: OfferMatchingProfile): MatchFactor {
