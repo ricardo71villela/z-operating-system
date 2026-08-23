@@ -6,8 +6,18 @@ import { EmailModule } from './email/email.module';
 import { CalendarModule } from './calendar/calendar.module';
 import { EventsModule } from './events/events.module';
 import { AuthModule } from './auth/auth.module';
+import { MessagesModule } from './messages/messages.module';
 
 @Module({
-  imports: [WhatsappModule, IntegrationsModule, TodayModule, EmailModule, CalendarModule, EventsModule, AuthModule],
+  imports: [
+    WhatsappModule,
+    IntegrationsModule,
+    TodayModule,
+    EmailModule,
+    CalendarModule,
+    EventsModule,
+    AuthModule,
+    MessagesModule,
+  ],
 })
 export class AppModule {}

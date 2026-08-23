@@ -1,3 +1,6 @@
+import { DraftEventActions } from "./draft-event-actions";
+import { ResolveMessageAction } from "./resolve-message-action";
+
 interface PendingMessage {
   id: string;
   thread_id: string;
@@ -33,8 +36,8 @@ interface TodayResponse {
 }
 
 // TODO(auth): tenantId virá da sessão autenticada assim que desk_users
-// estiver ligado ao Supabase auth. Por agora é lido de uma env var só para
-// a fundação ser navegável localmente.
+// estiver ligado ao Supabase auth (ver POST /auth/bootstrap-tenant). Por
+// agora é lido de uma env var só para a fundação ser navegável localmente.
 async function getTodayData(): Promise<TodayResponse | null> {
   const apiUrl = process.env.NEXT_PUBLIC_DESK_API_URL;
   const tenantId = process.env.NEXT_PUBLIC_DESK_DEV_TENANT_ID;
@@ -51,6 +54,8 @@ async function getTodayData(): Promise<TodayResponse | null> {
 
 export default async function TodayPage() {
   const data = await getTodayData();
+  const apiUrl = process.env.NEXT_PUBLIC_DESK_API_URL ?? "";
+  const tenantId = process.env.NEXT_PUBLIC_DESK_DEV_TENANT_ID ?? "";
 
   if (!data) {
     return (
@@ -91,8 +96,8 @@ export default async function TodayPage() {
             <li key={event.id}>
               {event.title} — {new Date(event.starts_at).toLocaleString("pt-PT")}
               {event.confidence_score !== null &&
-                ` (confiança: ${Math.round(event.confidence_score * 100)}%)`}
-              {/* TODO: ações de confirmar/rejeitar — ADR-0001, decisão humana obrigatória */}
+                ` (confiança: ${Math.round(event.confidence_score * 100)}%)`}{" "}
+              <DraftEventActions eventId={event.id} tenantId={tenantId} apiUrl={apiUrl} />
             </li>
           ))}
         </ul>
@@ -105,7 +110,10 @@ export default async function TodayPage() {
           {pendingMessages.map((message) => (
             <li key={message.id}>
               <strong>[{message.state}]</strong>{" "}
-              {message.ai_summary || message.body}
+              {message.ai_summary || message.body}{" "}
+              {message.state !== "resolved" && (
+                <ResolveMessageAction messageId={message.id} tenantId={tenantId} apiUrl={apiUrl} />
+              )}
             </li>
           ))}
         </ul>
