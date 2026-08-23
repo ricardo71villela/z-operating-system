@@ -42,7 +42,15 @@ Decisão de fundação (ver `docs/architecture/ADR-0001`): v1 opera em modo **hu
 - `supabase/migrations/` — schema reprodutível (tenants, threads, messages, events, integrations).
 - `docs/architecture/` — decisões e modelo de domínio específicos do Z Desk.
 
-## Quadro de tarefas (ADR-0003)
+## Gestão de pessoal (ADR-0004)
+
+- `desk_work_schedules` — horário semanal recorrente por pessoa (dia + hora início/fim)
+- `desk_absences` — férias/baixa/outro, com intervalo de datas e estado (`requested`/`approved`)
+- `GET /personnel/monthly-map?tenantId=&year=&month=` — mapa mensal derivado (não armazenado): cruza horário recorrente com ausências aprovadas, dia a dia, por pessoa
+- Alimenta a atribuição de missões e a sugestão de reuniões com disponibilidade real — ligação feita quando a IA for ligada, não implementada agora
+- Deliberadamente sem hierarquia de aprovação, sem calendário de feriados, sem integração com processamento de salários — é gestão de pessoal operacional, não um módulo de RH
+
+## Quadro de gestão de tarefas (ADR-0003)
 
 - `desk_tasks` — tarefas pessoais (`task_type='personal'`, `assigned_to = created_by`) e missões atribuídas a colegas (`task_type='mission'`, `assigned_to != created_by`)
 - Quadro Kanban de três colunas: `todo`, `in_progress`, `done`

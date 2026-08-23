@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8" />
+<title>Z Desk — Mapa de Pessoal</title>
+<style>
+  :root {
+    --white: #FFFFFF; --black: #0A0A0A;
+    --gray-50: #F8F8F6; --gray-100: #F0EFE9; --gray-200: #E2E0D8;
+    --gray-300: #C8C6BC; --gray-400: #9E9C94; --gray-500: #6E6C64;
+    --gray-700: #3A3834; --gray-900: #1A1916;
+    --gold: #B8935A; --gold-light: #D4AF7A; --gold-dark: #8B6B3A; --gold-pale: #F5EDD8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--gray-50); color: var(--gray-900);
+    font-family: 'DM Sans', 'Helvetica Neue', Arial, sans-serif; font-weight: 300;
+  }
+  .shell { max-width: 1040px; margin: 0 auto; padding: 48px 24px 90px; }
+
+  header.page-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 40px; padding-bottom: 24px; border-bottom: 1px solid var(--gray-200);
+  }
+  header.page-head .brand {
+    font-family: Georgia, 'Cormorant Garamond', serif; font-weight: 500; font-size: 15px;
+    letter-spacing: 0.2em; text-transform: uppercase; color: var(--gray-500);
+  }
+  header.page-head h1 {
+    font-family: Georgia, 'Cormorant Garamond', serif; font-weight: 400; font-style: italic;
+    font-size: 36px; margin: 4px 0 0; color: var(--black);
+  }
+  .month-label { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gray-400); }
+
+  .legend { margin-bottom: 24px; }
+  .legend-item { display: inline-block; margin-right: 20px; font-size: 11px; color: var(--gray-500); }
+  .legend-swatch {
+    display: inline-block; width: 12px; height: 12px; border-radius: 2px;
+    margin-right: 6px; vertical-align: middle;
+  }
+  .legend-swatch.working { background: var(--gold-pale); border: 1px solid var(--gold-light); }
+  .legend-swatch.vacation { background: var(--gray-700); }
+  .legend-swatch.sick { background: var(--gray-400); }
+  .legend-swatch.off { background: var(--gray-50); border: 1px solid var(--gray-200); }
+
+  table.map { width: 100%; border-collapse: collapse; }
+  table.map th, table.map td {
+    border: 1px solid var(--gray-200); text-align: center; font-size: 10px;
+  }
+  table.map th.name-col, table.map td.name-col {
+    text-align: left; padding: 8px 10px; font-size: 12px; color: var(--gray-900);
+    background: var(--white); white-space: nowrap; border-right: 2px solid var(--gray-300);
+  }
+  table.map th { padding: 6px 2px; color: var(--gray-400); font-weight: 400; background: var(--white); }
+  table.map th.weekend { color: var(--gray-300); }
+  table.map td.day-cell { width: 26px; height: 30px; padding: 0; }
+  .cell-fill { width: 100%; height: 100%; }
+  .cell-fill.working { background: var(--gold-pale); }
+  .cell-fill.vacation { background: var(--gray-700); }
+  .cell-fill.sick { background: var(--gray-400); }
+  .cell-fill.off { background: var(--gray-50); }
+
+  .footnote {
+    margin-top: 22px; font-size: 11px; color: var(--gray-400); font-style: italic;
+    border-left: 2px solid var(--gray-200); padding-left: 12px;
+  }
+</style>
+</head>
+<body>
+  <div class="shell">
+    <header class="page-head">
+      <div>
+        <div class="brand">Z Desk</div>
+        <h1>Mapa de Pessoal</h1>
+      </div>
+      <div class="month-label">Agosto 2026</div>
+    </header>
+
+    <div class="legend">
+      <span class="legend-item"><span class="legend-swatch working"></span>A trabalhar</span>
+      <span class="legend-item"><span class="legend-swatch vacation"></span>Férias</span>
+      <span class="legend-item"><span class="legend-swatch sick"></span>Baixa</span>
+      <span class="legend-item"><span class="legend-swatch off"></span>Fora de horário</span>
+    </div>
+
+    <table class="map">
+      <tr>
+        <th class="name-col">Pessoa</th>
+        <th>1</th><th>2</th><th class="weekend">3</th><th class="weekend">4</th><th>5</th><th>6</th><th>7</th><th class="weekend">8</th><th class="weekend">9</th><th>10</th>
+        <th>11</th><th>12</th><th class="weekend">13</th><th class="weekend">14</th><th>15</th><th>16</th><th>17</th><th class="weekend">18</th><th class="weekend">19</th><th>20</th>
+        <th>21</th><th>22</th><th class="weekend">23</th><th class="weekend">24</th><th>25</th><th>26</th><th>27</th><th class="weekend">28</th><th class="weekend">29</th><th>30</th><th>31</th>
+      </tr>
+      <tr>
+        <td class="name-col">Ricardo Villela</td>
+        <!-- 31 days: work Mon-Fri, weekends off -->
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+      </tr>
+      <tr>
+        <td class="name-col">Ana Costa</td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill vacation"></div></td>
+        <td class="day-cell"><div class="cell-fill vacation"></div></td>
+        <td class="day-cell"><div class="cell-fill vacation"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill vacation"></div></td>
+        <td class="day-cell"><div class="cell-fill vacation"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+      </tr>
+      <tr>
+        <td class="name-col">Miguel Santos</td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill sick"></div></td>
+        <td class="day-cell"><div class="cell-fill sick"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill off"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+        <td class="day-cell"><div class="cell-fill working"></div></td>
+      </tr>
+    </table>
+
+    <p class="footnote">
+      Mapa derivado — não é armazenado; cruza o horário semanal recorrente de cada pessoa com qualquer ausência aprovada nesse dia. Alimenta a atribuição de missões e a sugestão de reuniões (quando a IA for ligada) com disponibilidade real.
+    </p>
+  </div>
+</body>
+</html>
