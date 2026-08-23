@@ -1,23 +1,17 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
-async function startWorkersIfEnabled() {
-  if (process.env.DESK_ENABLE_WORKERS !== 'true') return;
-
-  await import('./queues/workers/inbound-message.worker');
-  await import('./queues/workers/ai-triage.worker');
-  const { scheduleEmailSyncPolling } = await import('./queues/workers/email-sync.worker');
-  const { scheduleCalendarSyncPolling } = await import('./queues/workers/calendar-sync.worker');
-  const { scheduleWeeklyValidationTick } = await import('./queues/workers/schedule-validation.worker');
-
-  scheduleEmailSyncPolling();
-  scheduleCalendarSyncPolling();
-  scheduleWeeklyValidationTick();
+function assertLegacyWorkersRemainDisabled() {
+  if (process.env.DESK_ENABLE_WORKERS === 'true') {
+    throw new Error(
+      'Z Desk background workers remain disabled until they are migrated to canonical workspace authority. Do not enable DESK_ENABLE_WORKERS.',
+    );
+  }
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  await startWorkersIfEnabled();
+  assertLegacyWorkersRemainDisabled();
+  const app = await NestFactory.create(AppModule, { rawBody: true });
   await app.listen(process.env.PORT ?? 3001);
 }
 
