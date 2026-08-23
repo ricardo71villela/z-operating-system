@@ -504,7 +504,63 @@ export class PersonnelController {
       overtimeTotals, // { [userId]: totalHoursApproved } — ver ADR-0006
     };
   }
+
+  /**
+   * Cross-references the task board (ADR-0003) with personnel availability
+   * (ADR-0004/0005) for one week — the two were separate views until now.
+   * Returns raw counts per person, not a pre-baked "overloaded" flag:
+   * where the threshold sits (e.g. "2+ in-progress missions and ≤2
+   * available days = flag it") is a product/UI decision, not something to
+   * hardcode into this endpoint.
+   */
+  @Get('workload-map')
+  async workloadMap(@Query('tenantId') tenantId: string, @Query('weekStart') weekStart: string) {
+    const start = new Date(weekStart + 'T00:00:00Z');
+    const weekDates = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(start);
+      d.setUTCDate(d.getUTCDate() + i);
+      return d.toISOString().slice(0, 10);
+    });
+    const weekEnd = weekDates[6];
+
+    const [usersRes, tasksRes, schedulesRes, overridesRes, absencesRes] = await Promise.all([
+      supabaseAdmin.from('desk_users').select('id, email').eq('tenant_id', tenantId),
+      supabaseAdmin
+        .from('desk_tasks')
+        .select('assigned_to, task_type, status')
+        .eq('tenant_id', tenantId)
+        .in('status', ['todo', 'in_progress']),
+      supabaseAdmin.from('desk_work_schedules').select('user_id, day_of_week, start_time, end_time').eq('tenant_id', tenantId),
+      supabaseAdmin.from('desk_schedule_overrides').select('user_id, date, start_time, end_time').eq('tenant_id', tenantId).gte('date', weekStart).lte('date', weekEnd),
+      supabaseAdmin.from('desk_absences').select('user_id, type, start_date, end_date').eq('tenant_id', tenantId).eq('status', 'approved').lte('start_date', weekEnd).gte('end_date', weekStart),
+    ]);
+    for (const r of [usersRes, tasksRes, schedulesRes, overridesRes, absencesRes]) if (r.error) throw r.error;
+
+    const users = usersRes.data ?? [];
+    const tasks = tasksRes.data ?? [];
+    const schedules = schedulesRes.data ?? [];
+    const overrides = overridesRes.data ?? [];
+    const absences = absencesRes.data ?? [];
+
+    const workload = users.map((user) => {
+      const userTasks = tasks.filter((t) => t.assigned_to === user.id);
+      const days = weekDates.map((date) => resolveDay(date, user.id, schedules, overrides, absences));
+
+      return {
+        userId: user.id,
+        email: user.email,
+        tasksOpen: userTasks.length,
+        tasksInProgress: userTasks.filter((t) => t.status === 'in_progress').length,
+        missionsOpen: userTasks.filter((t) => t.task_type === 'mission').length,
+        availableDaysThisWeek: days.filter((d) => d.status === 'working').length,
+        absentDaysThisWeek: days.filter((d) => d.status === 'absent').length,
+      };
+    });
+
+    return { weekStart, weekEnd, workload };
+  }
 }
+
 
 /**
  * Shared by monthlyMap and the standalone overtime/monthly-total endpoint,

@@ -77,6 +77,12 @@ Decisão de fundação (ver `docs/architecture/ADR-0001`): v1 opera em modo **hu
 - `POST /tasks`, `GET /tasks?tenantId=&assignedTo=` (agrupado por coluna), `POST /tasks/:id/move`, `POST /tasks/:id/reassign`, `PATCH /tasks/:id`, `DELETE /tasks/:id`
 - Independente do estado de mensagem (`desk_messages.state`) por decisão explícita — cobrem coisas diferentes: ciclo de vida de uma conversa vs. trabalho atribuível a alguém
 
+### Mapa de carga cruzado (tarefas + pessoal)
+
+- `GET /personnel/workload-map?tenantId=&weekStart=` — cruza `desk_tasks` (missões abertas/em curso por pessoa) com a disponibilidade da semana (mesma resolução de `weekly-view`)
+- Devolve contagens em bruto por pessoa (`tasksOpen`, `tasksInProgress`, `missionsOpen`, `availableDaysThisWeek`, `absentDaysThisWeek`) — **não** um sinalizador "sobrecarregado" pré-calculado; onde fica o limiar (ex.: "2+ missões em curso e ≤2 dias disponíveis") é decisão de produto/UI, não lógica fixa no backend
+- Primeira vista do Z Desk que combina duas áreas construídas em separado (ADR-0003 + ADR-0004/0005) sem exigir schema novo
+
 ## Auth & isolamento multi-tenant
 
 - RLS ativado em todas as tabelas de domínio, com políticas escritas (`20260823004000_z_desk_rls_policies.sql`) — `desk_current_user_tenant_id()` mapeia a sessão Supabase auth ao tenant via `desk_users`
