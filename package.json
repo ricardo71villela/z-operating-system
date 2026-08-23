@@ -12,7 +12,9 @@
     "tooling/*",
     "apps/find",
     "apps/mobility",
-    "apps/mobility/packages/*"
+    "apps/mobility/packages/*",
+    "apps/desk",
+    "apps/desk/backend"
   ],
   "scripts": {
     "jobs:typecheck": "npm run typecheck --workspace=@zjobs/domain && npm run typecheck --workspace=@zjobs/api",
@@ -32,7 +34,10 @@
     "studio:test:mobile": "npm run test:mobile --prefix apps/studio",
     "studio:test:layout": "npm run test:layout --prefix apps/studio",
     "studio:test:visual": "npm run test:visual --prefix apps/studio",
-    "studio:ai:check": "npm run check --prefix apps/studio/backend && npm test --prefix apps/studio/backend"
+    "studio:ai:check": "npm run check --prefix apps/studio/backend && npm test --prefix apps/studio/backend",
+    "desk:typecheck": "npm run typecheck --workspace=z-desk-next",
+    "desk:backend:typecheck": "npm run typecheck --workspace=z-desk-backend",
+    "desk:build": "npm run build --workspace=z-desk-next"
   },
   "engines": {
     "node": ">=22 <25",
