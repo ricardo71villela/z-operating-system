@@ -1,6 +1,6 @@
 import { Controller, Get, Query, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { RequireDeskAuth } from '../auth/desk-auth.decorators';
+import { RequireDeskAuth, RequireDeskRoles } from '../auth/desk-auth.decorators';
 import type { DeskAuthContext } from '../auth/desk-auth-context';
 import { exchangeGmailCode, getGmailAuthUrl } from '../email/gmail.client';
 import { exchangeMicrosoftCode, getMicrosoftAuthUrl } from '../email/microsoft-graph.client';
@@ -22,6 +22,7 @@ export class CalendarOAuthController {
 
   @Get('google/authorize')
   @RequireDeskAuth()
+  @RequireDeskRoles('owner', 'admin')
   async authorizeGoogle(@Req() req: DeskRequest, @Res() res: Response) {
     const state = await this.states.issue(req.deskContext!, 'google_calendar', 'calendar_connect');
     const redirectUri = `${process.env.DESK_BACKEND_PUBLIC_URL}/integrations/calendar/google/callback`;
@@ -42,11 +43,12 @@ export class CalendarOAuthController {
       { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, expiresAt: tokens.expiresAt },
     );
 
-    res.redirect(`${process.env.DESK_FRONTEND_PUBLIC_URL}/integrations?connected=google_calendar`);
+    res.redirect(`${process.env.DESK_FRONTEND_PUBLIC_URL}/settings?connected=google_calendar`);
   }
 
   @Get('microsoft/authorize')
   @RequireDeskAuth()
+  @RequireDeskRoles('owner', 'admin')
   async authorizeMicrosoft(@Req() req: DeskRequest, @Res() res: Response) {
     const state = await this.states.issue(req.deskContext!, 'microsoft_calendar', 'calendar_connect');
     const redirectUri = `${process.env.DESK_BACKEND_PUBLIC_URL}/integrations/calendar/microsoft/callback`;
@@ -67,6 +69,6 @@ export class CalendarOAuthController {
       { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, expiresAt: tokens.expiresAt },
     );
 
-    res.redirect(`${process.env.DESK_FRONTEND_PUBLIC_URL}/integrations?connected=microsoft_calendar`);
+    res.redirect(`${process.env.DESK_FRONTEND_PUBLIC_URL}/settings?connected=microsoft_calendar`);
   }
 }

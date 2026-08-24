@@ -5,9 +5,7 @@ const AUTHORITY_KEYS = new Set(['tenantId', 'tenant_id', 'workspaceId', 'workspa
 
 function safeSearchParams(request: NextRequest) {
   const params = new URLSearchParams();
-  for (const [key, value] of request.nextUrl.searchParams.entries()) {
-    if (!AUTHORITY_KEYS.has(key)) params.append(key, value);
-  }
+  for (const [key, value] of request.nextUrl.searchParams.entries()) if (!AUTHORITY_KEYS.has(key)) params.append(key, value);
   return params;
 }
 
@@ -30,15 +28,15 @@ async function forward(request: NextRequest, context: { params: Promise<{ path: 
   const response = await deskApiFetch(target, {
     method: request.method,
     body,
+    redirect: 'manual',
     headers: body ? { 'Content-Type': request.headers.get('content-type') || 'application/json' } : undefined,
   });
 
   if (!response) return NextResponse.json({ error: 'desk_session_required' }, { status: 401 });
+  const location = response.headers.get('location');
+  if (location && response.status >= 300 && response.status < 400) return NextResponse.redirect(location, response.status as 301 | 302 | 303 | 307 | 308);
   const payload = await response.text();
-  return new NextResponse(payload, {
-    status: response.status,
-    headers: { 'Content-Type': response.headers.get('content-type') || 'application/json' },
-  });
+  return new NextResponse(payload, { status: response.status, headers: { 'Content-Type': response.headers.get('content-type') || 'application/json' } });
 }
 
 export const GET = forward;
