@@ -1,46 +1,31 @@
 import { Worker } from 'bullmq';
 import { redisConnection, EMAIL_SYNC_QUEUE, emailSyncQueue, aiTriageQueue } from '../queues';
-import { supabaseAdmin } from '../../supabase/supabase-admin';
+import { deskAdmin } from '../../supabase/supabase-admin';
 import { listRecentGmailMessages, getGmailMessage } from '../../email/gmail.client';
 import { listRecentGraphMessages } from '../../email/microsoft-graph.client';
+import type { ActiveDeskIntegration } from '../../integrations-security/integration-credential.service';
+import { accessTokenForWorker, listActiveWorkerIntegrations, updateWorkerSyncState } from '../worker-credentials';
 
-const POLL_INTERVAL_MS = 5 * 60 * 1000; // TODO: replace with Gmail push (Pub/Sub) + Graph webhooks; polling is a v1 shortcut
+const POLL_INTERVAL_MS = 5 * 60 * 1000;
 
 export function scheduleEmailSyncPolling() {
-  emailSyncQueue.add(
+  return emailSyncQueue.add(
     'poll-and-fanout',
     {},
     { repeat: { every: POLL_INTERVAL_MS }, jobId: 'email-sync-poll' },
   );
 }
 
-/**
- * Each tick: loads every active gmail/microsoft desk_integrations row and
- * syncs it in turn. Sequential on purpose for the foundation branch — fine
- * at low tenant counts, but should fan out to per-integration jobs once
- * volume grows instead of one worker walking the whole list.
- *
- * TOKEN REFRESH TODO: oauth_tokens.expiresAt is never checked here — a
- * token refresh flow (using refreshToken against Google/Microsoft's token
- * endpoint) is required before this can run unattended for more than an
- * access-token lifetime (~1h for both providers).
- */
 export const emailSyncWorker = new Worker(
   EMAIL_SYNC_QUEUE,
   async () => {
-    const { data: integrations, error } = await supabaseAdmin
-      .from('desk_integrations')
-      .select('id, tenant_id, provider, external_account_id, oauth_tokens, sync_state')
-      .in('provider', ['gmail', 'microsoft'])
-      .eq('status', 'active');
+    const integrations = await listActiveWorkerIntegrations(['gmail', 'microsoft']);
 
-    if (error) throw error;
-
-    for (const integration of integrations ?? []) {
+    for (const integration of integrations) {
       try {
         if (integration.provider === 'gmail') {
           await syncGmailIntegration(integration);
-        } else {
+        } else if (integration.provider === 'microsoft') {
           await syncMicrosoftIntegration(integration);
         }
       } catch (err) {
@@ -51,19 +36,16 @@ export const emailSyncWorker = new Worker(
   { connection: redisConnection },
 );
 
-async function syncGmailIntegration(integration: any) {
-  const accessToken = integration.oauth_tokens?.accessToken;
-  if (!accessToken) return;
-
-  const { messages, newHistoryId } = await listRecentGmailMessages(
-    accessToken,
-    integration.sync_state?.historyId,
-  );
+async function syncGmailIntegration(integration: ActiveDeskIntegration) {
+  const accessToken = await accessTokenForWorker(integration);
+  const historyId = typeof integration.syncState.historyId === 'string' ? integration.syncState.historyId : undefined;
+  const { messages, newHistoryId } = await listRecentGmailMessages(accessToken, historyId);
 
   for (const summary of messages) {
     const detail = await getGmailMessage(accessToken, summary.id);
     await ingestEmailMessage({
-      tenantId: integration.tenant_id,
+      workspaceId: integration.workspaceId,
+      externalMessageId: detail.id,
       externalThreadId: detail.threadId,
       fromEmail: detail.fromEmail,
       fromName: detail.fromName,
@@ -73,24 +55,18 @@ async function syncGmailIntegration(integration: any) {
     });
   }
 
-  await supabaseAdmin
-    .from('desk_integrations')
-    .update({ sync_state: { historyId: newHistoryId } })
-    .eq('id', integration.id);
+  await updateWorkerSyncState(integration, { ...integration.syncState, historyId: newHistoryId });
 }
 
-async function syncMicrosoftIntegration(integration: any) {
-  const accessToken = integration.oauth_tokens?.accessToken;
-  if (!accessToken) return;
-
-  const { messages, newDeltaLink } = await listRecentGraphMessages(
-    accessToken,
-    integration.sync_state?.deltaLink,
-  );
+async function syncMicrosoftIntegration(integration: ActiveDeskIntegration) {
+  const accessToken = await accessTokenForWorker(integration);
+  const deltaLink = typeof integration.syncState.deltaLink === 'string' ? integration.syncState.deltaLink : undefined;
+  const { messages, newDeltaLink } = await listRecentGraphMessages(accessToken, deltaLink);
 
   for (const message of messages) {
     await ingestEmailMessage({
-      tenantId: integration.tenant_id,
+      workspaceId: integration.workspaceId,
+      externalMessageId: message.id,
       externalThreadId: message.conversationId,
       fromEmail: message.fromEmail,
       fromName: message.fromName,
@@ -100,14 +76,12 @@ async function syncMicrosoftIntegration(integration: any) {
     });
   }
 
-  await supabaseAdmin
-    .from('desk_integrations')
-    .update({ sync_state: { deltaLink: newDeltaLink } })
-    .eq('id', integration.id);
+  await updateWorkerSyncState(integration, { ...integration.syncState, deltaLink: newDeltaLink });
 }
 
 interface NormalizedEmail {
-  tenantId: string;
+  workspaceId: string;
+  externalMessageId: string;
   externalThreadId: string;
   fromEmail: string;
   fromName: string | null;
@@ -117,54 +91,64 @@ interface NormalizedEmail {
 }
 
 async function ingestEmailMessage(email: NormalizedEmail) {
-  const { data: contact, error: contactError } = await supabaseAdmin
-    .from('desk_contacts')
+  if (!email.fromEmail || !email.externalMessageId || !email.externalThreadId) return;
+
+  const { data: contact, error: contactError } = await deskAdmin
+    .from('contacts')
     .upsert(
-      { tenant_id: email.tenantId, email: email.fromEmail, display_name: email.fromName },
-      { onConflict: 'tenant_id,email' },
+      { workspace_id: email.workspaceId, email: email.fromEmail, display_name: email.fromName },
+      { onConflict: 'workspace_id,email' },
     )
     .select()
     .single();
   if (contactError) throw contactError;
 
-  const { data: thread, error: threadError } = await supabaseAdmin
-    .from('desk_threads')
+  const { data: thread, error: threadError } = await deskAdmin
+    .from('threads')
     .upsert(
       {
-        tenant_id: email.tenantId,
+        workspace_id: email.workspaceId,
         contact_id: contact.id,
         email_thread_id: email.externalThreadId,
         subject: email.subject,
         last_message_at: email.receivedAt,
       },
-      { onConflict: 'tenant_id,email_thread_id' },
+      { onConflict: 'workspace_id,email_thread_id' },
     )
     .select()
     .single();
   if (threadError) throw threadError;
 
-  const { data: message, error: messageError } = await supabaseAdmin
-    .from('desk_messages')
+  const { data: message, error: messageError } = await deskAdmin
+    .from('messages')
     .insert({
-      tenant_id: email.tenantId,
+      workspace_id: email.workspaceId,
       thread_id: thread.id,
       channel: 'email',
       direction: 'inbound',
+      external_message_id: email.externalMessageId,
       body: email.body,
       received_at: email.receivedAt,
       state: 'pending_decision',
     })
     .select()
     .single();
+
+  if (messageError?.code === '23505') return;
   if (messageError) throw messageError;
 
-  await supabaseAdmin
-    .from('desk_contacts')
+  await deskAdmin
+    .from('contacts')
     .update({
       thread_count: (contact.thread_count ?? 0) + 1,
       last_interaction_at: email.receivedAt,
     })
-    .eq('id', contact.id);
+    .eq('id', contact.id)
+    .eq('workspace_id', email.workspaceId);
 
-  await aiTriageQueue.add('triage', { messageId: message.id, tenantId: email.tenantId });
+  await aiTriageQueue.add(
+    'triage',
+    { messageId: message.id, workspaceId: email.workspaceId },
+    { jobId: `triage:${message.id}` },
+  );
 }
