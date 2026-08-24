@@ -74,7 +74,7 @@ test('release QA: AI and provider execution remain opt-in in example configurati
 test('release QA: all Desk SQL authority contracts remain registered for CI discovery', () => {
   const tests = fs.readdirSync(path.join(repo, 'infrastructure/supabase/tests')).filter((name) => /^z_desk_.*\.sql$/.test(name));
   assert.ok(tests.length >= 11, `expected >= 11 Desk SQL gates, found ${tests.length}`);
-  for (const required of ['zos_convergence','integration_security','worker_ingestion','external_calendar','ai_triage','team_authority','task_event','personnel','message_action','integration_management']) {
+  for (const required of ['zos_convergence','integration_security','worker_ingestion','external_calendar','ai_triage','team_authority','task_event','personnel','today_action','integration_management']) {
     assert.ok(tests.some((name) => name.includes(required)), `missing Desk SQL gate containing ${required}`);
   }
 });
