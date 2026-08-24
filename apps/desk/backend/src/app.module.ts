@@ -4,6 +4,7 @@ import { AuthModule } from './auth/auth.module';
 import { DeskAuthGuard } from './auth/desk-auth.guard';
 import { DeskAuthContextService } from './auth/desk-auth-context.service';
 import { CalendarModule } from './calendar/calendar.module';
+import { ContactsModule } from './contacts/contacts.module';
 import { EmailModule } from './email/email.module';
 import { EventsModule } from './events/events.module';
 import { IntegrationsModule } from './integrations/integrations.module';
@@ -28,6 +29,7 @@ import { WhatsappModule } from './whatsapp/whatsapp.module';
     TodayModule,
     EventsModule,
     MessagesModule,
+    ContactsModule,
     TasksModule,
     PersonnelModule,
     SettingsModule,
