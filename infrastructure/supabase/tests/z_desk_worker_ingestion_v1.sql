@@ -15,31 +15,31 @@ select public.zdesk_bootstrap_workspace(
 
 do $$
 declare
-  workspace_id uuid := ((select payload from _desk_worker)->>'workspaceId')::uuid;
+  v_workspace_id uuid := ((select payload from _desk_worker)->>'workspaceId')::uuid;
   contact_id uuid;
   thread_id uuid;
 begin
   insert into desk.contacts(workspace_id,email,display_name)
-  values(workspace_id,'sender@example.test','Sender')
+  values(v_workspace_id,'sender@example.test','Sender')
   on conflict(workspace_id,email) do update set display_name=excluded.display_name
   returning id into contact_id;
 
   insert into desk.threads(workspace_id,contact_id,email_thread_id,subject)
-  values(workspace_id,contact_id,'thread-1','Hello')
+  values(v_workspace_id,contact_id,'thread-1','Hello')
   on conflict(workspace_id,email_thread_id) do update set subject=excluded.subject
   returning id into thread_id;
 
   insert into desk.messages(
     workspace_id,thread_id,channel,direction,external_message_id,body
   ) values(
-    workspace_id,thread_id,'email','inbound','provider-message-1','First copy'
+    v_workspace_id,thread_id,'email','inbound','provider-message-1','First copy'
   );
 
   begin
     insert into desk.messages(
       workspace_id,thread_id,channel,direction,external_message_id,body
     ) values(
-      workspace_id,thread_id,'email','inbound','provider-message-1','Duplicate copy'
+      v_workspace_id,thread_id,'email','inbound','provider-message-1','Duplicate copy'
     );
     raise exception 'duplicate provider message unexpectedly accepted';
   exception when unique_violation then null;
@@ -49,7 +49,7 @@ begin
     workspace_id,title,starts_at,ends_at,source,status,
     external_calendar_provider,external_calendar_event_id
   ) values(
-    workspace_id,'External event',now()+interval '1 hour',now()+interval '2 hours',
+    v_workspace_id,'External event',now()+interval '1 hour',now()+interval '2 hours',
     'external_sync','confirmed','google_calendar','event-1'
   )
   on conflict(workspace_id,external_calendar_provider,external_calendar_event_id)
