@@ -30,13 +30,17 @@ test('release security: readiness is boolean-only and manager-only', () => {
   assert.doesNotMatch(settings, /return\s+process\.env|:\s*process\.env\[/);
 });
 
-test('release security: OAuth state and integration credential SQL remain browser-inaccessible', () => {
+test('release security: OAuth state and integration credentials remain browser-inaccessible and encrypted', () => {
   const migrationsDir = path.join(repo, 'infrastructure/supabase/migrations');
   const sql = fs.readdirSync(migrationsDir).filter((name) => name.endsWith('.sql')).map((name) => read(path.join(migrationsDir, name))).join('\n');
-  assert.match(sql, /revoke all on desk\.integration_credentials from authenticated/i);
+  const cryptoSource = read(path.join(root, 'src/integrations-security/integration-crypto.ts'));
+  assert.match(sql, /revoke all on desk\.integrations\s*,\s*desk\.integration_credentials\s*,\s*desk\.oauth_states from authenticated/i);
   assert.match(sql, /revoke all on function public\.zdesk_consume_oauth_state[^;]*authenticated/i);
   assert.match(sql, /revoke all on function public\.zdesk_register_integration[^;]*authenticated/i);
-  assert.match(sql, /AES-256-GCM/i);
+  assert.match(cryptoSource, /createCipheriv\('aes-256-gcm'/i);
+  assert.match(cryptoSource, /createDecipheriv\('aes-256-gcm'/i);
+  assert.match(cryptoSource, /setAAD/);
+  assert.match(cryptoSource, /getAuthTag|setAuthTag/);
 });
 
 test('release security: release-sensitive provider actions remain disabled by default', () => {
