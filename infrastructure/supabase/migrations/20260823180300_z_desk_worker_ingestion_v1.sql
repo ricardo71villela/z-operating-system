@@ -19,6 +19,7 @@ drop index if exists desk.uq_desk_contacts_workspace_email;
 drop index if exists desk.uq_desk_contacts_workspace_whatsapp;
 drop index if exists desk.uq_desk_threads_workspace_email;
 drop index if exists desk.uq_desk_threads_workspace_whatsapp;
+drop index if exists desk.uq_desk_events_external;
 
 create unique index uq_desk_contacts_workspace_email
   on desk.contacts(workspace_id, email);
@@ -28,6 +29,8 @@ create unique index uq_desk_threads_workspace_email
   on desk.threads(workspace_id, email_thread_id);
 create unique index uq_desk_threads_workspace_whatsapp
   on desk.threads(workspace_id, whatsapp_chat_id);
+create unique index uq_desk_events_external
+  on desk.events(workspace_id, external_calendar_provider, external_calendar_event_id);
 
 create index idx_desk_integrations_worker_scan
   on desk.integrations(provider, status, workspace_id)
