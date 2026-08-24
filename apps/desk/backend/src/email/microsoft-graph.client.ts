@@ -31,6 +31,12 @@ export interface MicrosoftTokens {
   email: string;
 }
 
+export interface RefreshedMicrosoftTokens {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: string;
+}
+
 export async function exchangeMicrosoftCode(code: string, redirectUri: string): Promise<MicrosoftTokens> {
   const res = await fetch(MS_TOKEN_URL, {
     method: 'POST',
@@ -58,6 +64,27 @@ export async function exchangeMicrosoftCode(code: string, redirectUri: string): 
     refreshToken: json.refresh_token,
     expiresAt: new Date(Date.now() + json.expires_in * 1000).toISOString(),
     email: me.mail ?? me.userPrincipalName,
+  };
+}
+
+export async function refreshMicrosoftAccessToken(refreshToken: string): Promise<RefreshedMicrosoftTokens> {
+  const res = await fetch(MS_TOKEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      refresh_token: refreshToken,
+      client_id: process.env.MICROSOFT_OAUTH_CLIENT_ID ?? '',
+      client_secret: process.env.MICROSOFT_OAUTH_CLIENT_SECRET ?? '',
+      grant_type: 'refresh_token',
+    }),
+  });
+  if (!res.ok) throw new Error(`Falha ao renovar token Microsoft: ${res.status}`);
+  const json = await res.json();
+  if (!json.access_token || !json.expires_in) throw new Error('Resposta de refresh Microsoft incompleta.');
+  return {
+    accessToken: json.access_token,
+    refreshToken: json.refresh_token ?? refreshToken,
+    expiresAt: new Date(Date.now() + json.expires_in * 1000).toISOString(),
   };
 }
 
