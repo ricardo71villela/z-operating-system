@@ -1,46 +1,31 @@
 import { Worker } from 'bullmq';
 import { redisConnection, CALENDAR_SYNC_QUEUE, calendarSyncQueue } from '../queues';
-import { supabaseAdmin } from '../../supabase/supabase-admin';
+import { deskAdmin } from '../../supabase/supabase-admin';
 import { listGoogleCalendarEvents } from '../../calendar/google-calendar.client';
 import { listGraphCalendarEvents } from '../../calendar/microsoft-calendar.client';
+import type { ActiveDeskIntegration } from '../../integrations-security/integration-credential.service';
+import { accessTokenForWorker, listActiveWorkerIntegrations, updateWorkerSyncState } from '../worker-credentials';
 
-const POLL_INTERVAL_MS = 5 * 60 * 1000; // TODO: Google/Microsoft both support push channels (webhooks); polling is a v1 shortcut, same tradeoff as email sync
+const POLL_INTERVAL_MS = 5 * 60 * 1000;
 
 export function scheduleCalendarSyncPolling() {
-  calendarSyncQueue.add(
+  return calendarSyncQueue.add(
     'poll-and-fanout',
     {},
     { repeat: { every: POLL_INTERVAL_MS }, jobId: 'calendar-sync-poll' },
   );
 }
 
-/**
- * Pulls events FROM Google/Outlook Calendar INTO desk_events
- * (source='external_sync'). This is one direction of sync; the other
- * direction (Z Desk → external calendar, when an ai_suggested draft gets
- * confirmed) lives in calendar-push.service.ts, triggered from the events
- * confirm endpoint — not from this worker.
- *
- * Purpose of the pull direction: give the AI real availability to reason
- * against (busy/free), and let confirmed-elsewhere meetings show up in the
- * "hoje" view without the user having re-created them in Z Desk.
- */
 export const calendarSyncWorker = new Worker(
   CALENDAR_SYNC_QUEUE,
   async () => {
-    const { data: integrations, error } = await supabaseAdmin
-      .from('desk_integrations')
-      .select('id, tenant_id, provider, oauth_tokens, sync_state')
-      .in('provider', ['google_calendar', 'microsoft_calendar'])
-      .eq('status', 'active');
+    const integrations = await listActiveWorkerIntegrations(['google_calendar', 'microsoft_calendar']);
 
-    if (error) throw error;
-
-    for (const integration of integrations ?? []) {
+    for (const integration of integrations) {
       try {
         if (integration.provider === 'google_calendar') {
           await syncGoogleCalendar(integration);
-        } else {
+        } else if (integration.provider === 'microsoft_calendar') {
           await syncMicrosoftCalendar(integration);
         }
       } catch (err) {
@@ -51,15 +36,14 @@ export const calendarSyncWorker = new Worker(
   { connection: redisConnection },
 );
 
-async function syncGoogleCalendar(integration: any) {
-  const accessToken = integration.oauth_tokens?.accessToken;
-  if (!accessToken) return;
-
-  const { events, newSyncToken } = await listGoogleCalendarEvents(accessToken, integration.sync_state?.syncToken);
+async function syncGoogleCalendar(integration: ActiveDeskIntegration) {
+  const accessToken = await accessTokenForWorker(integration);
+  const syncToken = typeof integration.syncState.syncToken === 'string' ? integration.syncState.syncToken : undefined;
+  const { events, newSyncToken } = await listGoogleCalendarEvents(accessToken, syncToken);
 
   for (const event of events) {
     await upsertExternalEvent({
-      tenantId: integration.tenant_id,
+      workspaceId: integration.workspaceId,
       provider: 'google_calendar',
       externalId: event.externalId,
       title: event.title,
@@ -68,21 +52,17 @@ async function syncGoogleCalendar(integration: any) {
     });
   }
 
-  await supabaseAdmin
-    .from('desk_integrations')
-    .update({ sync_state: { syncToken: newSyncToken } })
-    .eq('id', integration.id);
+  await updateWorkerSyncState(integration, { ...integration.syncState, syncToken: newSyncToken });
 }
 
-async function syncMicrosoftCalendar(integration: any) {
-  const accessToken = integration.oauth_tokens?.accessToken;
-  if (!accessToken) return;
-
-  const { events, newDeltaLink } = await listGraphCalendarEvents(accessToken, integration.sync_state?.deltaLink);
+async function syncMicrosoftCalendar(integration: ActiveDeskIntegration) {
+  const accessToken = await accessTokenForWorker(integration);
+  const deltaLink = typeof integration.syncState.deltaLink === 'string' ? integration.syncState.deltaLink : undefined;
+  const { events, newDeltaLink } = await listGraphCalendarEvents(accessToken, deltaLink);
 
   for (const event of events) {
     await upsertExternalEvent({
-      tenantId: integration.tenant_id,
+      workspaceId: integration.workspaceId,
       provider: 'microsoft_calendar',
       externalId: event.externalId,
       title: event.title,
@@ -91,14 +71,11 @@ async function syncMicrosoftCalendar(integration: any) {
     });
   }
 
-  await supabaseAdmin
-    .from('desk_integrations')
-    .update({ sync_state: { deltaLink: newDeltaLink } })
-    .eq('id', integration.id);
+  await updateWorkerSyncState(integration, { ...integration.syncState, deltaLink: newDeltaLink });
 }
 
 interface ExternalEvent {
-  tenantId: string;
+  workspaceId: string;
   provider: 'google_calendar' | 'microsoft_calendar';
   externalId: string;
   title: string;
@@ -107,18 +84,19 @@ interface ExternalEvent {
 }
 
 async function upsertExternalEvent(event: ExternalEvent) {
-  await supabaseAdmin.from('desk_events').upsert(
+  const { error } = await deskAdmin.from('events').upsert(
     {
-      tenant_id: event.tenantId,
+      workspace_id: event.workspaceId,
       title: event.title,
       starts_at: event.startsAt,
       ends_at: event.endsAt,
       source: 'external_sync',
-      status: 'confirmed', // it already exists on the external calendar — nothing for the human to confirm here
+      status: 'confirmed',
       external_calendar_provider: event.provider,
       external_calendar_event_id: event.externalId,
       updated_at: new Date().toISOString(),
     },
-    { onConflict: 'tenant_id,external_calendar_provider,external_calendar_event_id' },
+    { onConflict: 'workspace_id,external_calendar_provider,external_calendar_event_id' },
   );
+  if (error) throw error;
 }
