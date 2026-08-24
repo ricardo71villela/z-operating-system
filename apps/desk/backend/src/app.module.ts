@@ -8,6 +8,7 @@ import { ContactsModule } from './contacts/contacts.module';
 import { EmailModule } from './email/email.module';
 import { EventsModule } from './events/events.module';
 import { IntegrationsModule } from './integrations/integrations.module';
+import { LeadsModule } from './leads/leads.module';
 import { MessagesModule } from './messages/messages.module';
 import { PersonnelModule } from './personnel/personnel.module';
 import { SettingsModule } from './settings/settings.module';
@@ -30,6 +31,7 @@ import { WhatsappModule } from './whatsapp/whatsapp.module';
     EventsModule,
     MessagesModule,
     ContactsModule,
+    LeadsModule,
     TasksModule,
     PersonnelModule,
     SettingsModule,

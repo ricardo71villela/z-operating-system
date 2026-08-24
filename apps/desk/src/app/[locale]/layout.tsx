@@ -8,6 +8,7 @@ import { routing } from "@/i18n/routing";
 import { DeskShell } from "@/components/desk-shell";
 import "../globals.css";
 import "../completion.css";
+import "../brand-leads.css";
 
 const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans", display: "swap", weight: ["300", "400", "500"] });
 const cormorant = Cormorant_Garamond({ subsets: ["latin"], variable: "--font-cormorant", display: "swap", weight: ["400", "500"], style: ["normal", "italic"] });
