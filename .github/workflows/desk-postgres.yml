@@ -15,6 +15,7 @@ on:
       - "infrastructure/supabase/tests/z_desk_ai_triage_v1.sql"
       - "infrastructure/supabase/tests/z_desk_team_authority_v1.sql"
       - "infrastructure/supabase/tests/z_desk_task_event_mutation_authority_v1.sql"
+      - "infrastructure/supabase/tests/z_desk_personnel_authority_v1.sql"
       - ".github/workflows/desk-postgres.yml"
   pull_request:
     branches:
@@ -29,6 +30,7 @@ on:
       - "infrastructure/supabase/tests/z_desk_ai_triage_v1.sql"
       - "infrastructure/supabase/tests/z_desk_team_authority_v1.sql"
       - "infrastructure/supabase/tests/z_desk_task_event_mutation_authority_v1.sql"
+      - "infrastructure/supabase/tests/z_desk_personnel_authority_v1.sql"
       - ".github/workflows/desk-postgres.yml"
 
 permissions:
@@ -36,7 +38,7 @@ permissions:
 
 jobs:
   postgres:
-    name: Full ZOS migrations + Desk RLS/integrations/workers/calendars/AI/team/mutations/source/build
+    name: Full ZOS migrations + Desk RLS/integrations/workers/calendars/AI/team/mutations/personnel/source/build
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
@@ -154,6 +156,11 @@ jobs:
         env:
           PGPASSWORD: zdesk_dev_pw
         run: psql -h localhost -U postgres -d zos_ci -v ON_ERROR_STOP=1 -f infrastructure/supabase/tests/z_desk_task_event_mutation_authority_v1.sql
+
+      - name: Verify Z Desk personnel authority/privacy
+        env:
+          PGPASSWORD: zdesk_dev_pw
+        run: psql -h localhost -U postgres -d zos_ci -v ON_ERROR_STOP=1 -f infrastructure/supabase/tests/z_desk_personnel_authority_v1.sql
 
       - name: Verify Z Desk source security contracts
         run: node --test apps/desk/backend/tests/*.test.js
