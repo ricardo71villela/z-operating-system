@@ -5,6 +5,13 @@ import type { DeskAuthContext } from '../auth/desk-auth-context';
 import { deskAdmin, supabaseAdmin } from '../supabase/supabase-admin';
 
 type DeskRequest = Request & { deskContext?: DeskAuthContext };
+type DeskContactRow = {
+  id: string;
+  display_name: string | null;
+  email: string | null;
+  whatsapp_number: string | null;
+  relationship_tier: string;
+};
 
 @RequireDeskAuth()
 @Controller('messages')
@@ -20,11 +27,11 @@ export class MessagesController {
     if (threadsError) throw threadsError;
 
     const contactIds = [...new Set((threads ?? []).map((thread) => thread.contact_id).filter(Boolean))] as string[];
-    const contactById = new Map<string, any>();
+    const contactById = new Map<string, DeskContactRow>();
     if (contactIds.length > 0) {
       const { data: contacts, error } = await deskAdmin.from('contacts').select('id,display_name,email,whatsapp_number,relationship_tier').in('id', contactIds);
       if (error) throw error;
-      for (const contact of contacts ?? []) contactById.set(contact.id, contact);
+      for (const contact of contacts ?? []) contactById.set(contact.id, contact as DeskContactRow);
     }
 
     const { data: recentMessages, error: messagesError } = await deskAdmin
@@ -38,7 +45,7 @@ export class MessagesController {
     for (const message of recentMessages ?? []) if (!latestByThread.has(message.thread_id)) latestByThread.set(message.thread_id, message);
 
     return (threads ?? []).map((thread) => {
-      const contact = thread.contact_id ? contactById.get(thread.contact_id) : null;
+      const contact = thread.contact_id ? contactById.get(thread.contact_id) ?? null : null;
       const latest = latestByThread.get(thread.id);
       return {
         id: thread.id,
@@ -64,11 +71,11 @@ export class MessagesController {
     if (threadError) throw threadError;
     if (!thread) throw new NotFoundException('Desk thread not found.');
 
-    let contact = null;
+    let contact: DeskContactRow | null = null;
     if (thread.contact_id) {
       const { data, error } = await deskAdmin.from('contacts').select('id,display_name,email,whatsapp_number,relationship_tier').eq('workspace_id', context.workspaceId).eq('id', thread.contact_id).maybeSingle();
       if (error) throw error;
-      contact = data;
+      contact = (data as DeskContactRow | null) ?? null;
     }
     const { data: messages, error: messagesError } = await deskAdmin
       .from('messages')
