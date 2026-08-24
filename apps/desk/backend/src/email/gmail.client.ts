@@ -32,6 +32,12 @@ export interface GoogleTokens {
   email: string;
 }
 
+export interface RefreshedGoogleTokens {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: string;
+}
+
 export async function exchangeGmailCode(code: string, redirectUri: string): Promise<GoogleTokens> {
   const res = await fetch(GOOGLE_TOKEN_URL, {
     method: 'POST',
@@ -62,6 +68,27 @@ export async function exchangeGmailCode(code: string, redirectUri: string): Prom
   };
 }
 
+export async function refreshGoogleAccessToken(refreshToken: string): Promise<RefreshedGoogleTokens> {
+  const res = await fetch(GOOGLE_TOKEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      refresh_token: refreshToken,
+      client_id: process.env.GOOGLE_OAUTH_CLIENT_ID ?? '',
+      client_secret: process.env.GOOGLE_OAUTH_CLIENT_SECRET ?? '',
+      grant_type: 'refresh_token',
+    }),
+  });
+  if (!res.ok) throw new Error(`Falha ao renovar token Google: ${res.status}`);
+  const json = await res.json();
+  if (!json.access_token || !json.expires_in) throw new Error('Resposta de refresh Google incompleta.');
+  return {
+    accessToken: json.access_token,
+    refreshToken: json.refresh_token ?? refreshToken,
+    expiresAt: new Date(Date.now() + json.expires_in * 1000).toISOString(),
+  };
+}
+
 export interface GmailMessageSummary {
   id: string;
   threadId: string;
@@ -78,14 +105,16 @@ export async function listRecentGmailMessages(
     );
     if (!res.ok) throw new Error(`Falha ao listar mensagens Gmail: ${res.status}`);
     const json = await res.json();
-    const profile = await fetch(`${GMAIL_API_BASE}/users/me/profile`, {
+    const profileRes = await fetch(`${GMAIL_API_BASE}/users/me/profile`, {
       headers: { Authorization: `Bearer ${accessToken}` },
-    }).then((r) => r.json());
+    });
+    if (!profileRes.ok) throw new Error(`Falha ao obter perfil Gmail: ${profileRes.status}`);
+    const profile = await profileRes.json();
     return { messages: json.messages ?? [], newHistoryId: profile.historyId };
   }
 
   const res = await fetch(
-    `${GMAIL_API_BASE}/users/me/history?startHistoryId=${historyId}&historyTypes=messageAdded`,
+    `${GMAIL_API_BASE}/users/me/history?startHistoryId=${encodeURIComponent(historyId)}&historyTypes=messageAdded`,
     { headers: { Authorization: `Bearer ${accessToken}` } },
   );
   if (!res.ok) throw new Error(`Falha ao obter histórico Gmail: ${res.status}`);
@@ -109,7 +138,7 @@ export interface GmailMessageDetail {
 }
 
 export async function getGmailMessage(accessToken: string, messageId: string): Promise<GmailMessageDetail> {
-  const res = await fetch(`${GMAIL_API_BASE}/users/me/messages/${messageId}?format=full`, {
+  const res = await fetch(`${GMAIL_API_BASE}/users/me/messages/${encodeURIComponent(messageId)}?format=full`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!res.ok) throw new Error(`Falha ao obter mensagem Gmail ${messageId}: ${res.status}`);
