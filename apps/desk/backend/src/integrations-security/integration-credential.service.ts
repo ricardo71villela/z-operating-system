@@ -67,12 +67,18 @@ export class IntegrationCredentialService {
     if (error) throw error;
   }
 
-  async listActive(providers: DeskIntegrationProvider[]): Promise<ActiveDeskIntegration[]> {
-    const { data: integrations, error } = await deskAdmin
+  async listActive(
+    providers: DeskIntegrationProvider[],
+    workspaceId?: string,
+  ): Promise<ActiveDeskIntegration[]> {
+    let query = deskAdmin
       .from('integrations')
       .select('id,workspace_id,provider,external_account_id,sync_state')
       .in('provider', providers)
       .eq('status', 'active');
+    if (workspaceId) query = query.eq('workspace_id', workspaceId);
+
+    const { data: integrations, error } = await query;
     if (error) throw error;
 
     const result: ActiveDeskIntegration[] = [];
