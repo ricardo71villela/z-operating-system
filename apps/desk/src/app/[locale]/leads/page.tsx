@@ -1,15 +1,21 @@
 import { setRequestLocale } from 'next-intl/server';
 import { LeadsBoard, type LeadRecord } from '@/components/leads-board';
-import { callDeskApi } from '@/lib/desk-api';
+import { deskApiFetch } from '@/lib/desk-api';
 import { getLeadsCopy } from '@/lib/leads-copy';
 
 export const dynamic = 'force-dynamic';
+
+async function getLeads(): Promise<{ leads: LeadRecord[]; unavailable: boolean }> {
+  const response = await deskApiFetch('leads');
+  if (!response?.ok) return { leads: [], unavailable: true };
+  return { leads: await response.json() as LeadRecord[], unavailable: false };
+}
 
 export default async function LeadsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
   const copy = getLeadsCopy(locale);
-  const result = await callDeskApi<LeadRecord[]>('/leads');
+  const result = await getLeads();
 
   return (
     <main id="desk-main" className="page leads-page">
@@ -20,7 +26,7 @@ export default async function LeadsPage({ params }: { params: Promise<{ locale: 
           <p>{copy.subtitle}</p>
         </div>
       </div>
-      <LeadsBoard copy={copy} initialLeads={result.data ?? []} unavailable={result.unavailable} />
+      <LeadsBoard copy={copy} initialLeads={result.leads} unavailable={result.unavailable} />
     </main>
   );
 }
