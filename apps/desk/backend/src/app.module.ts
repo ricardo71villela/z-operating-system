@@ -11,6 +11,7 @@ import { MessagesModule } from './messages/messages.module';
 import { PersonnelModule } from './personnel/personnel.module';
 import { SettingsModule } from './settings/settings.module';
 import { TasksModule } from './tasks/tasks.module';
+import { TeamModule } from './team/team.module';
 import { TodayModule } from './today/today.module';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
 
@@ -30,6 +31,7 @@ import { WhatsappModule } from './whatsapp/whatsapp.module';
     TasksModule,
     PersonnelModule,
     SettingsModule,
+    TeamModule,
     EmailModule,
     CalendarModule,
     IntegrationsModule,
