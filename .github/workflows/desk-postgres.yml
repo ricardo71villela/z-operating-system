@@ -11,6 +11,7 @@ on:
       - "infrastructure/supabase/tests/z_desk_zos_convergence_v1.sql"
       - "infrastructure/supabase/tests/z_desk_integration_security_v1.sql"
       - "infrastructure/supabase/tests/z_desk_worker_ingestion_v1.sql"
+      - "infrastructure/supabase/tests/z_desk_external_calendar_links_v1.sql"
       - ".github/workflows/desk-postgres.yml"
   pull_request:
     branches:
@@ -21,6 +22,7 @@ on:
       - "infrastructure/supabase/tests/z_desk_zos_convergence_v1.sql"
       - "infrastructure/supabase/tests/z_desk_integration_security_v1.sql"
       - "infrastructure/supabase/tests/z_desk_worker_ingestion_v1.sql"
+      - "infrastructure/supabase/tests/z_desk_external_calendar_links_v1.sql"
       - ".github/workflows/desk-postgres.yml"
 
 permissions:
@@ -28,7 +30,7 @@ permissions:
 
 jobs:
   postgres:
-    name: Full ZOS migrations + Desk RLS/integrations/workers/source/build
+    name: Full ZOS migrations + Desk RLS/integrations/workers/calendars/source/build
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
@@ -126,6 +128,11 @@ jobs:
         env:
           PGPASSWORD: zdesk_dev_pw
         run: psql -h localhost -U postgres -d zos_ci -v ON_ERROR_STOP=1 -f infrastructure/supabase/tests/z_desk_worker_ingestion_v1.sql
+
+      - name: Verify Z Desk external calendar link authority
+        env:
+          PGPASSWORD: zdesk_dev_pw
+        run: psql -h localhost -U postgres -d zos_ci -v ON_ERROR_STOP=1 -f infrastructure/supabase/tests/z_desk_external_calendar_links_v1.sql
 
       - name: Verify Z Desk source security contracts
         run: node --test apps/desk/backend/tests/*.test.js
