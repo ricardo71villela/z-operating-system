@@ -9,17 +9,17 @@ import { EventsModule } from './events/events.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { MessagesModule } from './messages/messages.module';
 import { PersonnelModule } from './personnel/personnel.module';
+import { SettingsModule } from './settings/settings.module';
 import { TasksModule } from './tasks/tasks.module';
 import { TodayModule } from './today/today.module';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
 
 /**
- * D3B activation boundary.
+ * Z Desk API boundary.
  *
- * Core workspace routes, hardened Google/Microsoft OAuth, workspace-scoped
- * WhatsApp onboarding and signed WhatsApp webhook verification are mounted.
- * Background provider workers remain fail-closed until their legacy tenant
- * semantics are migrated to canonical Desk workspace authority.
+ * Workspace routes and hardened provider boundaries are mounted here. BullMQ
+ * workers run from the independent workers-main.ts runtime, preventing API
+ * lifecycle from implicitly starting background provider processing.
  */
 @Module({
   imports: [
@@ -29,6 +29,7 @@ import { WhatsappModule } from './whatsapp/whatsapp.module';
     MessagesModule,
     TasksModule,
     PersonnelModule,
+    SettingsModule,
     EmailModule,
     CalendarModule,
     IntegrationsModule,
