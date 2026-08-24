@@ -22,7 +22,12 @@ test('Z Desk product surface exposes operational shell and primary workspaces', 
   for (const route of ['today','inbox','tasks','calendar','personnel','contacts','team','settings']) assert.match(shell, new RegExp(`'${route}'`));
   assert.match(readWeb('src/app/[locale]/today/page.tsx'), /dashboard-grid/);
   assert.match(readWeb('src/app/[locale]/tasks/tasks-board.tsx'), /kanban/);
-  assert.match(readWeb('src/app/[locale]/calendar/page.tsx'), /calendar-grid/);
+  const calendar = readWeb('src/app/[locale]/calendar/page.tsx');
+  assert.match(calendar, /calendar-week-grid/);
+  assert.match(calendar, /calendar-month-grid/);
+  assert.match(calendar, /calendar-year-grid/);
+  assert.match(calendar, /getFrancePublicHolidays/);
+  assert.match(calendar, /personnel\/monthly-map/);
   assert.match(readWeb('src/app/[locale]/inbox/page.tsx'), /split-view/);
   assert.match(readWeb('src/app/[locale]/contacts/page.tsx'), /contact-grid/);
 });
