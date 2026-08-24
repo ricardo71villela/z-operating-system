@@ -8,14 +8,7 @@ on:
     paths:
       - "apps/desk/**"
       - "infrastructure/supabase/migrations/**"
-      - "infrastructure/supabase/tests/z_desk_zos_convergence_v1.sql"
-      - "infrastructure/supabase/tests/z_desk_integration_security_v1.sql"
-      - "infrastructure/supabase/tests/z_desk_worker_ingestion_v1.sql"
-      - "infrastructure/supabase/tests/z_desk_external_calendar_links_v1.sql"
-      - "infrastructure/supabase/tests/z_desk_ai_triage_v1.sql"
-      - "infrastructure/supabase/tests/z_desk_team_authority_v1.sql"
-      - "infrastructure/supabase/tests/z_desk_task_event_mutation_authority_v1.sql"
-      - "infrastructure/supabase/tests/z_desk_personnel_authority_v1.sql"
+      - "infrastructure/supabase/tests/z_desk_*.sql"
       - ".github/workflows/desk-postgres.yml"
   pull_request:
     branches:
@@ -23,14 +16,7 @@ on:
     paths:
       - "apps/desk/**"
       - "infrastructure/supabase/migrations/**"
-      - "infrastructure/supabase/tests/z_desk_zos_convergence_v1.sql"
-      - "infrastructure/supabase/tests/z_desk_integration_security_v1.sql"
-      - "infrastructure/supabase/tests/z_desk_worker_ingestion_v1.sql"
-      - "infrastructure/supabase/tests/z_desk_external_calendar_links_v1.sql"
-      - "infrastructure/supabase/tests/z_desk_ai_triage_v1.sql"
-      - "infrastructure/supabase/tests/z_desk_team_authority_v1.sql"
-      - "infrastructure/supabase/tests/z_desk_task_event_mutation_authority_v1.sql"
-      - "infrastructure/supabase/tests/z_desk_personnel_authority_v1.sql"
+      - "infrastructure/supabase/tests/z_desk_*.sql"
       - ".github/workflows/desk-postgres.yml"
 
 permissions:
@@ -38,7 +24,7 @@ permissions:
 
 jobs:
   postgres:
-    name: Full ZOS migrations + Desk RLS/integrations/workers/calendars/AI/team/mutations/personnel/source/build
+    name: Full ZOS migrations + all Desk authority/source/build gates
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
@@ -122,45 +108,19 @@ jobs:
           test "$count" -gt 0
           echo "INTEGRATED_MIGRATIONS_APPLIED=${count}"
 
-      - name: Verify Z Desk PostgreSQL/RLS authority
+      - name: Verify every Z Desk PostgreSQL authority contract
         env:
           PGPASSWORD: zdesk_dev_pw
-        run: psql -h localhost -U postgres -d zos_ci -v ON_ERROR_STOP=1 -f infrastructure/supabase/tests/z_desk_zos_convergence_v1.sql
-
-      - name: Verify Z Desk integration security authority
-        env:
-          PGPASSWORD: zdesk_dev_pw
-        run: psql -h localhost -U postgres -d zos_ci -v ON_ERROR_STOP=1 -f infrastructure/supabase/tests/z_desk_integration_security_v1.sql
-
-      - name: Verify Z Desk worker ingestion authority
-        env:
-          PGPASSWORD: zdesk_dev_pw
-        run: psql -h localhost -U postgres -d zos_ci -v ON_ERROR_STOP=1 -f infrastructure/supabase/tests/z_desk_worker_ingestion_v1.sql
-
-      - name: Verify Z Desk external calendar link authority
-        env:
-          PGPASSWORD: zdesk_dev_pw
-        run: psql -h localhost -U postgres -d zos_ci -v ON_ERROR_STOP=1 -f infrastructure/supabase/tests/z_desk_external_calendar_links_v1.sql
-
-      - name: Verify Z Desk AI triage consent authority
-        env:
-          PGPASSWORD: zdesk_dev_pw
-        run: psql -h localhost -U postgres -d zos_ci -v ON_ERROR_STOP=1 -f infrastructure/supabase/tests/z_desk_ai_triage_v1.sql
-
-      - name: Verify Z Desk team invitation/role authority
-        env:
-          PGPASSWORD: zdesk_dev_pw
-        run: psql -h localhost -U postgres -d zos_ci -v ON_ERROR_STOP=1 -f infrastructure/supabase/tests/z_desk_team_authority_v1.sql
-
-      - name: Verify Z Desk task/event mutation authority
-        env:
-          PGPASSWORD: zdesk_dev_pw
-        run: psql -h localhost -U postgres -d zos_ci -v ON_ERROR_STOP=1 -f infrastructure/supabase/tests/z_desk_task_event_mutation_authority_v1.sql
-
-      - name: Verify Z Desk personnel authority/privacy
-        env:
-          PGPASSWORD: zdesk_dev_pw
-        run: psql -h localhost -U postgres -d zos_ci -v ON_ERROR_STOP=1 -f infrastructure/supabase/tests/z_desk_personnel_authority_v1.sql
+        run: |
+          set -euo pipefail
+          count=0
+          while IFS= read -r test_file; do
+            echo "--- ${test_file} ---"
+            psql -h localhost -U postgres -d zos_ci -v ON_ERROR_STOP=1 -f "${test_file}"
+            count=$((count + 1))
+          done < <(find infrastructure/supabase/tests -maxdepth 1 -type f -name 'z_desk_*.sql' -print | sort)
+          test "$count" -gt 0
+          echo "Z_DESK_SQL_CONTRACTS_RUN=${count}"
 
       - name: Verify Z Desk source security contracts
         run: node --test apps/desk/backend/tests/*.test.js
