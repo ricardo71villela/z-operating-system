@@ -1,8 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 import { DeskAuthContextService } from './desk-auth-context.service';
-import { DESK_AUTH_REQUIRED } from './desk-auth.decorators';
+import { DESK_ALLOWED_ROLES, DESK_AUTH_REQUIRED } from './desk-auth.decorators';
+import type { DeskRole } from './desk-auth-context';
 
 @Injectable()
 export class DeskAuthGuard implements CanActivate {
@@ -16,12 +17,20 @@ export class DeskAuthGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
-    if (!required) return true;
+    const allowedRoles = this.reflector.getAllAndOverride<DeskRole[]>(DESK_ALLOWED_ROLES, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (!required && !allowedRoles?.length) return true;
 
     const request = context.switchToHttp().getRequest<Request & { deskContext?: unknown }>();
     const organisationHeader = request.header('x-zos-organisation-id') || undefined;
     const deskContext = await this.contexts.requireContext(request.header('authorization'), organisationHeader);
     request.deskContext = deskContext;
+
+    if (allowedRoles?.length && !allowedRoles.includes(deskContext.role)) {
+      throw new ForbiddenException('Desk role does not permit this action.');
+    }
 
     // Compatibility bridge for the Claude foundation routes. These values
     // are server-derived and overwrite any caller-supplied authority IDs.
