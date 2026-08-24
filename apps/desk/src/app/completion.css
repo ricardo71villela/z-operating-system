@@ -41,4 +41,36 @@
   .form-row { align-items: stretch; }
   .form-row label { width: 100%; }
   .form-row input, .form-row select { width: 100%; }
+
+  /* The tablet breakpoint intentionally collapses navigation text, but mobile
+     must restore readable labels. Keep the bottom navigation compact and
+     horizontally scrollable instead of exposing unlabeled navigation dots. */
+  .desk-nav {
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+  .desk-nav::-webkit-scrollbar { display: none; }
+  .desk-nav a {
+    flex: 0 0 72px;
+    min-width: 72px;
+    min-height: 52px;
+    padding: 6px 4px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    font-size: 10px;
+    line-height: 1.05;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .desk-nav a .nav-dot {
+    width: 7px;
+    height: 7px;
+    flex: 0 0 7px;
+  }
 }
