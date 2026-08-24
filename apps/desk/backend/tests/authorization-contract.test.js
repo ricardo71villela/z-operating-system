@@ -25,7 +25,7 @@ test('guard overwrites caller authority ids', () => {
   assert.match(guard, /query\.workspaceId = deskContext\.workspaceId/);
 });
 
-test('D3B mounts only hardened provider boundaries', () => {
+test('D3 mounts hardened provider boundaries and isolates worker runtime', () => {
   const app = src('app.module.ts');
   assert.match(app, /EmailModule/);
   assert.match(app, /CalendarModule/);
@@ -34,7 +34,13 @@ test('D3B mounts only hardened provider boundaries', () => {
 
   const main = src('main.ts');
   assert.match(main, /rawBody:\s*true/);
-  assert.match(main, /DESK_ENABLE_WORKERS === 'true'/);
-  assert.match(main, /remain disabled until they are migrated to canonical workspace authority/);
-  assert.doesNotMatch(main, /startWorkersIfEnabled/);
+  assert.match(main, /ZDESK_API=READY/);
+  assert.doesNotMatch(main, /emailSyncWorker|calendarSyncWorker|inboundMessageWorker|scheduleValidationWorker/);
+  assert.doesNotMatch(main, /DESK_ENABLE_WORKERS/);
+
+  const workers = src('workers-main.ts');
+  assert.match(workers, /scheduleEmailSyncPolling/);
+  assert.match(workers, /scheduleCalendarSyncPolling/);
+  assert.match(workers, /scheduleWeeklyValidationTick/);
+  assert.match(workers, /ZDESK_WORKERS=READY/);
 });
