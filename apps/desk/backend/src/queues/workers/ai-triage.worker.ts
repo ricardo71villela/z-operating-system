@@ -1,45 +1,42 @@
 import { Worker } from 'bullmq';
 import { redisConnection, AI_TRIAGE_QUEUE } from '../queues';
-import { supabaseAdmin } from '../../supabase/supabase-admin';
+import { deskAdmin } from '../../supabase/supabase-admin';
 
 interface AiTriageJob {
   messageId: string;
-  tenantId: string;
+  workspaceId: string;
 }
 
 /**
- * AI triage: summarizes the message, assigns priority, and — when the
- * message reads as a meeting request — creates a desk_events row with
- * source='ai_suggested', status='draft' and a confidence_score.
- *
- * Per ADR-0001, this worker NEVER sets status='confirmed'. Confirmation is
- * a human action in the UI. confidence_score is persisted regardless, so
- * a future autonomous-confirmation policy can read from it without a
- * schema change.
+ * AI triage remains human-in-the-loop: it may summarize, prioritize and
+ * create a draft event suggestion, but it never confirms an event.
  */
 export const aiTriageWorker = new Worker<AiTriageJob>(
   AI_TRIAGE_QUEUE,
   async (job) => {
-    const { messageId, tenantId } = job.data;
+    const { messageId, workspaceId } = job.data;
 
-    const { data: message, error } = await supabaseAdmin
-      .from('desk_messages')
-      .select('id, thread_id, body')
+    const { data: message, error } = await deskAdmin
+      .from('messages')
+      .select('id,thread_id,body,workspace_id')
       .eq('id', messageId)
+      .eq('workspace_id', workspaceId)
       .single();
 
     if (error) throw error;
 
     const triage = await runTriage(message.body ?? '');
 
-    await supabaseAdmin
-      .from('desk_messages')
+    const { error: updateError } = await deskAdmin
+      .from('messages')
       .update({ ai_summary: triage.summary, ai_priority: triage.priority })
-      .eq('id', messageId);
+      .eq('id', messageId)
+      .eq('workspace_id', workspaceId);
+    if (updateError) throw updateError;
 
     if (triage.meetingIntent) {
-      await supabaseAdmin.from('desk_events').insert({
-        tenant_id: tenantId,
+      const { error: eventError } = await deskAdmin.from('events').insert({
+        workspace_id: workspaceId,
         thread_id: message.thread_id,
         title: triage.meetingIntent.title,
         starts_at: triage.meetingIntent.startsAt,
@@ -48,6 +45,7 @@ export const aiTriageWorker = new Worker<AiTriageJob>(
         status: 'draft',
         confidence_score: triage.meetingIntent.confidence,
       });
+      if (eventError) throw eventError;
     }
   },
   { connection: redisConnection },
@@ -65,9 +63,8 @@ interface TriageResult {
 }
 
 /**
- * TODO: replace with a real call to the Claude API (summarization + meeting
- * intent extraction via function calling, per the architecture agreed in
- * chat). Placeholder keeps the pipeline runnable end-to-end for now.
+ * Placeholder only. D4 will connect this to the approved ZOS AI authority;
+ * no provider call or autonomous action is introduced in D3.
  */
 async function runTriage(_body: string): Promise<TriageResult> {
   return { summary: '', priority: 'normal', meetingIntent: null };
