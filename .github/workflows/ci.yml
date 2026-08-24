@@ -22,7 +22,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Verify five-product root authority
+      - name: Verify six-product root authority
         run: |
           node <<'NODE'
           const fs = require('fs');
@@ -33,10 +33,14 @@ jobs:
             'apps/jobs',
             'apps/studio',
             'apps/fashion',
+            'apps/desk',
+            'apps/desk/backend',
+            'apps/desk/docs/RELEASE_READINESS.md',
             'packages/geography/geography.js',
             'packages/geography/README.md',
             'infrastructure/supabase/migrations/20260821170000_z_mobility_database_convergence_v1.sql',
             'infrastructure/supabase/tests/z_mobility_database_convergence_v1.sql',
+            'infrastructure/supabase/tests/z_desk_zos_convergence_v1.sql',
             '150-standards/MONOREPO-CONTRACT.md',
           ];
           for (const p of required) {
@@ -45,7 +49,7 @@ jobs:
           if (fs.existsSync('packages/geography/package.json')) {
             throw new Error('Geography fixture must not silently become an npm workspace package');
           }
-          for (const script of ['zos:setup','zos:check','zos:test','zos:build','fashion:check','studio:check']) {
+          for (const script of ['zos:setup','zos:check','zos:test','zos:build','fashion:check','studio:check','desk:check','desk:test','desk:build']) {
             if (!pkg.scripts?.[script]) throw new Error(`Missing root script: ${script}`);
           }
           const studio = JSON.parse(fs.readFileSync('apps/studio/package.json', 'utf8'));
@@ -54,11 +58,19 @@ jobs:
           const fashionPartner = JSON.parse(fs.readFileSync('apps/fashion/apps/fashion-partner/package.json', 'utf8'));
           if (fashionDomain.name !== '@zfashion/domain') throw new Error('Fashion domain must be vertical-owned');
           if (fashionPartner.name !== '@zfashion/partner') throw new Error('Fashion partner must be vertical-owned');
+          const deskWeb = JSON.parse(fs.readFileSync('apps/desk/package.json', 'utf8'));
+          const deskBackend = JSON.parse(fs.readFileSync('apps/desk/backend/package.json', 'utf8'));
+          if (deskWeb.name !== '@zdesk/web') throw new Error('Desk web package must be product-owned');
+          if (deskBackend.name !== '@zdesk/backend') throw new Error('Desk backend package must be product-owned');
           const geoReadme = fs.readFileSync('packages/geography/README.md', 'utf8');
           if (!/fixture/i.test(geoReadme) || !/Supabase/i.test(geoReadme) || !/not the canonical runtime/i.test(geoReadme)) {
             throw new Error('Geography fixture authority must be explicit');
           }
-          console.log('ZOS_MONOREPO_CONTRACT=PASS');
+          const rootReadme = fs.readFileSync('README.md', 'utf8');
+          for (const product of ['Z Find','Z Mobility','Z Jobs','Z Studio','Z Fashion','Z Desk']) {
+            if (!rootReadme.includes(product)) throw new Error(`Top-level README missing active product: ${product}`);
+          }
+          console.log('ZOS_SIX_PRODUCT_MONOREPO_CONTRACT=PASS');
           NODE
 
   jobs:
@@ -125,10 +137,35 @@ jobs:
       - run: npm run fashion:setup
       - run: npm run fashion:check
 
-  postgres-convergence:
-    name: ZOS Shared PostgreSQL Convergence
+  desk:
+    name: Z Desk
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install and typecheck Z Desk web
+        run: |
+          npm install --prefix apps/desk --ignore-scripts --no-audit --no-fund
+          npm run typecheck --prefix apps/desk
+      - name: Build Z Desk web
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
+          DESK_API_URL: http://127.0.0.1:3001
+        run: npm run build --prefix apps/desk
+      - name: Install and verify Z Desk backend
+        run: |
+          npm install --prefix apps/desk/backend --ignore-scripts --no-audit --no-fund
+          npm run typecheck --prefix apps/desk/backend
+          npm test --prefix apps/desk/backend
+          npm run build --prefix apps/desk/backend
+
+  postgres-convergence:
+    name: ZOS Shared PostgreSQL Six-Product Convergence
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
     services:
       postgres:
         image: postgres:17
@@ -156,7 +193,6 @@ jobs:
           create role anon nologin;
           create role authenticated nologin;
           create role service_role nologin bypassrls;
-
           create schema if not exists auth;
           create table auth.users (
             id uuid primary key default gen_random_uuid(),
@@ -177,7 +213,6 @@ jobs:
           grant execute on function auth.uid() to anon, authenticated, service_role;
           grant execute on function auth.jwt() to anon, authenticated, service_role;
           grant execute on function auth.role() to anon, authenticated, service_role;
-
           create schema if not exists storage;
           create table storage.buckets (
             id text primary key,
@@ -228,8 +263,20 @@ jobs:
           "
           npm ci --prefix apps/fashion/apps/fashion-partner
           node apps/fashion/apps/fashion-partner/tests/db.test.js
-      - name: Final convergence marker
+      - name: Verify Z Desk database authority contracts
         env:
           PGPASSWORD: zos_ci_pw
         run: |
-          psql -h localhost -U postgres -d zos_convergence_test -v ON_ERROR_STOP=1 -Atc "select 'ZOS_FIVE_APP_POSTGRES_CONVERGENCE=PASS';"
+          set -euo pipefail
+          count=0
+          while IFS= read -r test_file; do
+            echo "VERIFYING ${test_file}"
+            psql -h localhost -U postgres -d zos_convergence_test -v ON_ERROR_STOP=1 -f "${test_file}"
+            count=$((count + 1))
+          done < <(find infrastructure/supabase/tests -maxdepth 1 -type f -name 'z_desk_*.sql' -print | sort)
+          test "$count" -gt 0
+          echo "Z_DESK_SIX_PRODUCT_SQL_CONTRACTS=${count}"
+      - name: Final convergence marker
+        env:
+          PGPASSWORD: zos_ci_pw
+        run: psql -h localhost -U postgres -d zos_convergence_test -v ON_ERROR_STOP=1 -Atc "select 'ZOS_SIX_APP_POSTGRES_CONVERGENCE=PASS';"
