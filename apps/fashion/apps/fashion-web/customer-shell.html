@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="fr-FR" data-locale="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f7f6f2">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Z Fashion</title>
+  <meta name="description" content="Z Fashion — aperçu du site client.">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/customer-pages.css">
+</head>
+<body>
+  <a class="skip-link" href="#main" data-shell-copy="skip">Aller au contenu</a>
+  <div class="preview-ribbon"><span>APERÇU</span><span data-shell-copy="preview">Site client en construction · aucun paiement réel</span></div>
+
+  <header class="site-header customer-header">
+    <div class="header-row">
+      <button class="icon-button mobile-menu" id="menuButton" aria-label="Menu" aria-expanded="false">☰</button>
+      <a class="customer-brand-mark" href="/" aria-label="Z Fashion">
+        <span class="customer-brand-square" aria-hidden="true"></span>
+      </a>
+      <a class="customer-wordmark" href="/" aria-label="Z Fashion"><span>Fashion</span></a>
+      <nav class="utility-nav" aria-label="Navigation utilitaire">
+        <a href="/recherche" data-shell-copy="search">Rechercher</a>
+        <a href="/connexion" data-shell-copy="account">Compte</a>
+        <a href="/favoris" aria-label="Favoris">♡</a>
+        <a href="/panier" data-shell-copy="bag">Panier</a>
+      </nav>
+    </div>
+    <div class="category-bar customer-category-bar">
+      <nav aria-label="Catégories">
+        <a href="/nouveautes" data-route-link="new">Nouveautés</a>
+        <a href="/femme" data-route-link="women">Femme</a>
+        <a href="/homme" data-route-link="men">Homme</a>
+        <a href="/enfant" data-route-link="kids">Enfant</a>
+        <a href="/sport" data-route-link="sport">Sport</a>
+        <a href="/accessoires" data-route-link="accessories">Accessoires</a>
+        <a href="/beaute" data-route-link="beauty">Beauté</a>
+        <a class="sale-link" href="/soldes" data-route-link="sale">Soldes</a>
+      </nav>
+      <label class="language-picker">
+        <span class="sr-only" data-shell-copy="language">Langue</span>
+        <select id="localeSelect" aria-label="Langue">
+          <option value="fr">FR</option><option value="pt">PT</option><option value="en">EN</option>
+          <option value="es">ES</option><option value="it">IT</option><option value="de">DE</option>
+        </select>
+      </label>
+    </div>
+  </header>
+
+  <main id="main" class="customer-main">
+    <nav class="breadcrumb" aria-label="Fil d’Ariane" id="breadcrumb"></nav>
+    <section class="page-hero">
+      <p class="eyebrow" id="pageEyebrow">Z FASHION</p>
+      <h1 id="pageTitle">Z Fashion</h1>
+      <p id="pageIntro"></p>
+      <div class="page-actions" id="pageActions"></div>
+    </section>
+    <section class="page-content" id="pageContent" aria-live="polite"></section>
+  </main>
+
+  <footer class="site-footer customer-footer">
+    <div class="footer-brand">
+      <img src="/brand/zos-mark-white-tile.svg" alt="" class="footer-brand-logo">
+      <span class="footer-fashion">Fashion</span>
+    </div>
+    <div>
+      <strong data-shell-copy="discover">Découvrir</strong>
+      <a href="/nouveautes" data-route-link="new">Nouveautés</a>
+      <a href="/corners">Corners</a>
+      <a href="/soldes" data-route-link="sale">Soldes</a>
+    </div>
+    <div>
+      <strong data-shell-copy="help">Aide</strong>
+      <a href="/livraisons" data-shell-copy="delivery">Livraisons</a>
+      <a href="/retours-remboursements" data-shell-copy="returns">Retours</a>
+      <a href="/contact" data-shell-copy="contact">Contact</a>
+    </div>
+    <div class="footer-zos"><span id="brandEndorsement">Une marque de l’écosystème ZOS</span></div>
+    <p class="footer-note" data-shell-copy="footerPreview">Aperçu produit. Aucun paiement réel ni réservation de stock.</p>
+  </footer>
+
+  <nav class="mobile-dock" aria-label="Navigation mobile">
+    <a href="/"><span>⌂</span><small data-shell-copy="home">Accueil</small></a>
+    <a href="/recherche"><span>⌕</span><small data-shell-copy="search">Rechercher</small></a>
+    <a href="/favoris"><span>♡</span><small data-shell-copy="favourites">Favoris</small></a>
+    <a href="/panier"><span>▢</span><small data-shell-copy="bag">Panier</small></a>
+    <a href="/compte"><span>○</span><small data-shell-copy="account">Compte</small></a>
+  </nav>
+
+  <script src="/customer-routes.js"></script>
+  <script src="/customer-site.js"></script>
+</body>
+</html>
