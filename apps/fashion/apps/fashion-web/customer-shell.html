@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/customer-pages.css">
   <link rel="stylesheet" href="/customer-commerce.css">
+  <link rel="stylesheet" href="/customer-account.css">
 </head>
 <body>
   <a class="skip-link" href="#main" data-shell-copy="skip">Aller au contenu</a>
@@ -25,8 +26,8 @@
       <nav class="utility-nav" aria-label="Navigation utilitaire">
         <a href="/recherche" data-shell-copy="search">Rechercher</a>
         <a href="/connexion" data-shell-copy="account">Compte</a>
-        <a href="/favoris" aria-label="Favoris">♡</a>
-        <a href="/panier" data-shell-copy="bag">Panier</a>
+        <a href="/favoris" aria-label="Favoris">♡<span class="customer-count" id="headerFavouriteCount">0</span></a>
+        <a href="/panier"><span data-shell-copy="bag">Panier</span><span class="customer-count" id="headerBagCount">0</span></a>
       </nav>
     </div>
     <div class="category-bar customer-category-bar">
@@ -85,14 +86,15 @@
   <nav class="mobile-dock" aria-label="Navigation mobile">
     <a href="/"><span>⌂</span><small data-shell-copy="home">Accueil</small></a>
     <a href="/recherche"><span>⌕</span><small data-shell-copy="search">Rechercher</small></a>
-    <a href="/favoris"><span>♡</span><small data-shell-copy="favourites">Favoris</small></a>
-    <a href="/panier"><span>▢</span><small data-shell-copy="bag">Panier</small></a>
+    <a href="/favoris"><span>♡</span><small data-shell-copy="favourites">Favoris</small><b id="mobileFavouriteCount">0</b></a>
+    <a href="/panier"><span>▢</span><small data-shell-copy="bag">Panier</small><b id="mobileBagCount">0</b></a>
     <a href="/compte"><span>○</span><small data-shell-copy="account">Compte</small></a>
   </nav>
 
   <div class="customer-toast" id="customerToast" role="status" aria-live="polite" hidden></div>
   <script src="/customer-routes.js"></script>
   <script src="/customer-catalog.js"></script>
+  <script src="/customer-state.js"></script>
   <script src="/customer-site.js"></script>
 </body>
 </html>
