@@ -131,6 +131,8 @@ jobs:
         run: |
           node --check apps/fashion/apps/fashion-web/app.js
           node apps/fashion/apps/fashion-web/tests/storefront-contract.test.js
+          node --check apps/fashion/apps/fashion-web/polish.js
+          node apps/fashion/apps/fashion-web/tests/final-polish-contract.test.js
 
       - name: Verify Fashion Partner API against real PostgreSQL
         env:
