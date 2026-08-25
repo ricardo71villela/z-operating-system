@@ -25,6 +25,12 @@ button,a,input,select{outline-offset:4px}
 .site-header .brand::before{content:"";position:absolute;left:3vw;top:5px;width:48px;height:48px;background:#050505;border-radius:1px}
 .site-header .brand::after{content:"";position:absolute;left:calc(3vw + 7px);top:12px;width:34px;height:34px;background:#fff;-webkit-mask:url('./brand/zos-mark-linear.svg') center/contain no-repeat;mask:url('./brand/zos-mark-linear.svg') center/contain no-repeat}
 
+/* Validated dark-surface logo authority — white tile with black Z mark. */
+.site-footer .footer-brand{display:flex;align-items:center;gap:.8rem}
+.site-footer .footer-brand>img{display:none}
+.site-footer .footer-brand::before{content:"";width:2.85rem;height:3.45rem;display:block;flex:0 0 auto;background:url('./brand/zos-mark-white-tile.svg') center/contain no-repeat}
+.site-footer .footer-brand>span{font-family:"Playfair Display",Georgia,serif;font-size:2.3rem;line-height:1;color:#fff}
+
 @media(max-width:980px){
   .site-header .brand::before,.site-header .brand::after{display:none}
 }
