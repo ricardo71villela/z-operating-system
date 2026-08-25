@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - chore/zos-five-app-convergence-v1
+      - feature/zfashion-full-customer-site-v1
     paths:
       - "apps/fashion/**"
       - "packages/geography/**"
@@ -133,6 +134,9 @@ jobs:
           node apps/fashion/apps/fashion-web/tests/storefront-contract.test.js
           node --check apps/fashion/apps/fashion-web/polish.js
           node apps/fashion/apps/fashion-web/tests/final-polish-contract.test.js
+          node --check apps/fashion/apps/fashion-web/customer-routes.js
+          node --check apps/fashion/apps/fashion-web/customer-site.js
+          node apps/fashion/apps/fashion-web/tests/full-customer-site-contract.test.js
 
       - name: Verify Fashion Partner API against real PostgreSQL
         env:
