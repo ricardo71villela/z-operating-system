@@ -1,0 +1,14 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const root=path.resolve(__dirname,'..');
+const html=fs.readFileSync(path.join(root,'polished.html'),'utf8');
+const css=fs.readFileSync(path.join(root,'polish.css'),'utf8');
+const js=fs.readFileSync(path.join(root,'polish.js'),'utf8');
+for(const marker of ['polish.css','polish.js','accountDrawer','mobile-dock','catalog-toolbar','searchSuggestions','partnerFulfilment']) assert.ok(html.includes(marker),`missing polish marker: ${marker}`);
+for(const marker of ['safe-area-inset-bottom','mobile-dock',':focus-visible','account-content','detail-polish']) assert.ok(css.includes(marker),`missing polish CSS: ${marker}`);
+for(const marker of ['Z_FASHION_FINAL_POLISH','openAccount','syncMobileCounts','sortMode','baseOpenProduct','baseAddCart','baseRenderCart','baseRenderWishlist']) assert.ok(js.includes(marker),`missing polish behavior: ${marker}`);
+for(const locale of ['pt','en','fr','es','it','de']) assert.ok(js.includes(`${locale}:{`)||js.includes(`${locale}: {`),`missing polish locale: ${locale}`);
+assert.ok(html.includes('noindex,nofollow'),'polished preview must remain noindex');
+assert.ok(html.includes('sem pagamentos live'),'payment boundary must remain explicit');
+console.log('Z_FASHION_FINAL_POLISH_CONTRACT=PASS');
