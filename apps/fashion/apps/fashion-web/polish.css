@@ -1,0 +1,30 @@
+/* Z Fashion final visual/UX polish — additive Preview layer */
+:root{--zf-shadow:0 18px 55px rgba(0,0,0,.12)}
+button,a,input,select{outline-offset:4px}
+:focus-visible{outline:2px solid #111;outline-offset:3px}
+.hero-shade{background:linear-gradient(90deg,rgba(0,0,0,.56),rgba(0,0,0,.08) 64%),linear-gradient(0deg,rgba(0,0,0,.22),transparent 55%)}
+.hero h1{letter-spacing:-.03em}
+.product-image:after{content:"View";position:absolute;left:50%;bottom:14px;transform:translate(-50%,10px);opacity:0;background:rgba(255,255,255,.94);padding:8px 14px;font-size:8px;text-transform:uppercase;letter-spacing:.14em;transition:.25s;pointer-events:none}
+.product-card:hover .product-image:after{opacity:1;transform:translate(-50%,0)}
+.catalog-toolbar{border-top:1px solid var(--line);padding:13px 0 18px;display:flex;justify-content:space-between;align-items:center}
+.catalog-count{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+.sort-control{display:flex;align-items:center;gap:9px;font-size:10px;text-transform:uppercase;letter-spacing:.09em}
+.sort-control select{border:0;border-bottom:1px solid var(--line);background:transparent;padding:5px 22px 5px 2px;font-size:10px;cursor:pointer}
+.drawer-boundary{font-size:9px;color:#777;line-height:1.5;margin:0 0 14px}
+.account-content{padding-top:32px}.account-mark{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line);padding-bottom:22px}.account-mark img{width:52px;height:52px}.account-mark span{font-size:9px;letter-spacing:.14em;text-transform:uppercase}.account-content h3{font-family:"Playfair Display",Georgia,serif;font-size:34px;font-weight:500;line-height:1.08;margin:28px 0 16px}.account-content>p{font-size:12px;line-height:1.7;color:#666}.account-benefits{margin:26px 0 30px}.account-benefits div{display:grid;grid-template-columns:35px 1fr;padding:13px 0;border-top:1px solid var(--line);align-items:center}.account-benefits strong{font-size:9px;color:#999}.account-benefits span{font-size:11px}.account-note{display:block;margin-top:10px;color:#888;font-size:9px;text-align:center}
+.detail-polish{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0 2px}.detail-polish span{border:1px solid var(--line);padding:10px;font-size:9px;line-height:1.35;color:#666}.size-helper{display:flex;justify-content:space-between;align-items:center;margin-top:18px}.size-helper span{font-size:9px;text-transform:uppercase;letter-spacing:.12em}.size-helper button{border:0;background:none;text-decoration:underline;font-size:9px;color:#777;cursor:pointer}
+.empty-polish{padding:24px 0;color:#777;font-size:12px;line-height:1.65}.empty-polish strong{display:block;font-family:"Playfair Display",Georgia,serif;font-size:25px;font-weight:500;color:#111;margin-bottom:8px}.empty-polish .button{margin-top:16px}
+.search-suggestions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:18px}.search-suggestions>span{font-size:9px;text-transform:uppercase;letter-spacing:.11em;color:#888;margin-right:4px}.search-suggestions button{border:1px solid var(--line);background:#fff;border-radius:18px;padding:7px 11px;font-size:9px;cursor:pointer}
+.mobile-dock{display:none}
+@media(max-width:680px){
+  body{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+  .product-image:after{display:none}
+  .catalog-toolbar{padding:11px 0 16px}.sort-control>span{display:none}
+  .account-content h3{font-size:31px}
+  .detail-polish{grid-template-columns:1fr}
+  .search-suggestions{overflow-x:auto;flex-wrap:nowrap}.search-suggestions>*{white-space:nowrap}
+  .mobile-dock{position:fixed;display:grid;grid-template-columns:repeat(5,1fr);left:0;right:0;bottom:0;z-index:100;background:rgba(247,246,242,.98);border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom));backdrop-filter:blur(16px)}
+  .mobile-dock a,.mobile-dock button{border:0;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:48px;position:relative;cursor:pointer}.mobile-dock span{font-size:18px;line-height:1}.mobile-dock small{font-size:8px;text-transform:uppercase;letter-spacing:.06em}.mobile-dock b{position:absolute;top:1px;right:calc(50% - 19px);font-size:8px;background:#111;color:#fff;border-radius:12px;min-width:14px;height:14px;display:grid;place-items:center;padding:0 3px}
+  .toast{bottom:calc(78px + env(safe-area-inset-bottom))}
+}
+@media(prefers-reduced-motion:reduce){.product-image:after{transition:none}}
