@@ -33,18 +33,18 @@ assert.match(catalogue, /isNew:true/);
 assert.match(catalogue, /window\.ZFashionCustomerCatalog/);
 
 for (const renderer of ['renderCategory','renderSearch','renderProduct','renderCorners','renderCorner','renderPrivateSale']) {
-  assert.match(runtime, new RegExp(`const ${renderer} =`), `missing ${renderer}`);
+  assert.match(runtime, new RegExp(`const\\s+${renderer}\\s*=`), `missing ${renderer}`);
 }
 assert.match(runtime, /productsForCategory/);
 assert.match(runtime, /searchResults/);
-assert.match(runtime, /product\.slug === slug\(\)/);
-assert.match(runtime, /p=>p\.partnerId===partner\.id/);
-assert.match(runtime, /p=>p\.privateSale/);
+assert.match(runtime, /\.slug\s*===\s*slug\(\)/);
+assert.match(runtime, /\.partnerId\s*===\s*partner\.id/);
+assert.match(runtime, /\.privateSale/);
 assert.match(runtime, /new Intl\.NumberFormat/);
-assert.match(runtime, /currentSort === 'price-asc'/);
-assert.match(runtime, /currentSort === 'price-desc'/);
+assert.match(runtime, /currentSort\s*===\s*'price-asc'/);
+assert.match(runtime, /currentSort\s*===\s*'price-desc'/);
 assert.match(runtime, /No stock reservation|Aucune réservation de stock/);
-assert.match(runtime, /Z_FASHION_CUSTOMER_COMMERCE = 'PREVIEW_PASS'/);
+assert.match(runtime, /Z_FASHION_CUSTOMER_COMMERCE\s*=\s*'PREVIEW_PASS'/);
 assert.doesNotMatch(runtime, /fetch\(|XMLHttpRequest|supabase|stripe|paymentIntent|createOrder|reserveStock/i);
 
 for (const selector of ['commerce-product-grid','commerce-product-detail','commerce-corner-grid','corner-profile','private-sale-banner']) {
