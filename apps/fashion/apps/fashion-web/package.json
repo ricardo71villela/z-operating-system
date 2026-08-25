@@ -1,0 +1,9 @@
+{
+  "name": "@zfashion/web-preview",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Z Fashion customer storefront preview — static, preview-safe and backend-independent.",
+  "scripts": {
+    "test": "node tests/storefront-contract.test.js"
+  }
+}
