@@ -127,6 +127,11 @@ jobs:
           npm ci --prefix apps/fashion/packages/fashion-domain
           npm test --prefix apps/fashion/packages/fashion-domain
 
+      - name: Verify Fashion storefront Preview contract
+        run: |
+          node --check apps/fashion/apps/fashion-web/app.js
+          node apps/fashion/apps/fashion-web/tests/storefront-contract.test.js
+
       - name: Verify Fashion Partner API against real PostgreSQL
         env:
           DATABASE_URL: postgres://postgres:zfashion_dev_pw@localhost:5432/zos_ci
