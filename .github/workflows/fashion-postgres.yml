@@ -128,15 +128,14 @@ jobs:
           npm ci --prefix apps/fashion/packages/fashion-domain
           npm test --prefix apps/fashion/packages/fashion-domain
 
-      - name: Verify Fashion storefront Preview contract
+      - name: Verify Fashion customer web contracts
         run: |
           node --check apps/fashion/apps/fashion-web/app.js
-          node apps/fashion/apps/fashion-web/tests/storefront-contract.test.js
           node --check apps/fashion/apps/fashion-web/polish.js
-          node apps/fashion/apps/fashion-web/tests/final-polish-contract.test.js
           node --check apps/fashion/apps/fashion-web/customer-routes.js
+          node --check apps/fashion/apps/fashion-web/customer-catalog.js
           node --check apps/fashion/apps/fashion-web/customer-site.js
-          node apps/fashion/apps/fashion-web/tests/full-customer-site-contract.test.js
+          npm test --prefix apps/fashion/apps/fashion-web
 
       - name: Verify Fashion Partner API against real PostgreSQL
         env:
