@@ -43,7 +43,8 @@
     "fashion:setup": "npm ci --prefix apps/fashion/packages/fashion-domain && npm ci --prefix apps/fashion/apps/fashion-partner",
     "fashion:domain:test": "npm test --prefix apps/fashion/packages/fashion-domain",
     "fashion:partner:test": "npm test --prefix apps/fashion/apps/fashion-partner",
-    "fashion:check": "npm run fashion:domain:test && npm run fashion:partner:test"
+    "fashion:web:test": "npm test --prefix apps/fashion/apps/fashion-web",
+    "fashion:check": "npm run fashion:domain:test && npm run fashion:partner:test && npm run fashion:web:test"
   },
   "engines": {
     "node": ">=22 <25",
