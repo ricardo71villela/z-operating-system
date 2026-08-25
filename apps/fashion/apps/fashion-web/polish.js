@@ -16,87 +16,43 @@
   document.getElementById('memberButton')?.addEventListener('click', openAccount);
   document.querySelector('[data-close="account"]')?.addEventListener('click', closeDrawers);
 
-  const mobile = {
-    search:document.getElementById('mobileSearch'), wishlist:document.getElementById('mobileWishlist'), cart:document.getElementById('mobileCart'), account:document.getElementById('mobileAccount')
-  };
+  const mobile = { search:document.getElementById('mobileSearch'), wishlist:document.getElementById('mobileWishlist'), cart:document.getElementById('mobileCart'), account:document.getElementById('mobileAccount') };
   mobile.search?.addEventListener('click', openSearch); mobile.wishlist?.addEventListener('click',()=>openDrawer('wishlist')); mobile.cart?.addEventListener('click',()=>openDrawer('cart')); mobile.account?.addEventListener('click',openAccount);
 
-  const syncMobileCounts = () => {
-    const wish = document.getElementById('wishlistCount')?.textContent || '0';
-    const bag = document.getElementById('cartCount')?.textContent || '0';
-    document.getElementById('mobileWishlistCount').textContent=wish; document.getElementById('mobileCartCount').textContent=bag;
-  };
+  const syncMobileCounts = () => { const wish = document.getElementById('wishlistCount')?.textContent || '0'; const bag = document.getElementById('cartCount')?.textContent || '0'; document.getElementById('mobileWishlistCount').textContent=wish; document.getElementById('mobileCartCount').textContent=bag; };
   new MutationObserver(syncMobileCounts).observe(document.querySelector('.utility-nav'),{subtree:true,childList:true,characterData:true}); syncMobileCounts();
 
   const baseSetFilter = setFilter;
   let sortMode='featured';
   const updateCount = () => { const n=document.querySelectorAll('#productGrid .product-card').length; document.getElementById('productCount').textContent=`${n} ${locale==='fr'?'pièces':locale==='en'?'pieces':'peças'}`; };
-  const sortGrid = () => {
-    const grid=document.getElementById('productGrid'); const cards=[...grid.querySelectorAll('.product-card')];
-    if(sortMode==='featured'){ renderProducts(); updateCount(); return; }
-    cards.sort((a,b)=>{const pa=products.find(p=>p.id===a.dataset.product)?.price||0,pb=products.find(p=>p.id===b.dataset.product)?.price||0; return sortMode==='price-asc'?pa-pb:pb-pa;});
-    cards.forEach(c=>grid.appendChild(c)); updateCount();
-  };
+  const sortGrid = () => { const grid=document.getElementById('productGrid'); const cards=[...grid.querySelectorAll('.product-card')]; if(sortMode==='featured'){ renderProducts(); updateCount(); return; } cards.sort((a,b)=>{const pa=products.find(p=>p.id===a.dataset.product)?.price||0,pb=products.find(p=>p.id===b.dataset.product)?.price||0; return sortMode==='price-asc'?pa-pb:pb-pa;}); cards.forEach(c=>grid.appendChild(c)); updateCount(); };
   setFilter = function(filter){ baseSetFilter(filter); updateCount(); if(sortMode!=='featured') sortGrid(); };
   document.getElementById('sortSelect')?.addEventListener('change',e=>{sortMode=e.target.value;sortGrid()}); updateCount();
 
   const baseOpenProduct = openProduct;
-  openProduct = function(id){
-    baseOpenProduct(id);
-    const copyBox=document.querySelector('.product-detail-copy'); if(!copyBox)return;
-    const sizeRow=copyBox.querySelector('.size-row');
-    if(sizeRow && !copyBox.querySelector('.size-helper')){
-      const helper=document.createElement('div'); helper.className='size-helper'; helper.innerHTML=`<span>${locale==='fr'?'Taille':locale==='en'?'Size':'Tamanho'}</span><button type="button">${locale==='fr'?'Guide des tailles':locale==='en'?'Size guide':'Guia de tamanhos'}</button>`; sizeRow.before(helper); helper.querySelector('button').onclick=()=>toast(`${helper.querySelector('button').textContent} · aperçu`);
-    }
-    if(!copyBox.querySelector('.detail-polish')){
-      const services=document.createElement('div'); services.className='detail-polish'; services.innerHTML=`<span>${locale==='fr'?'Stock de démonstration — aucune réservation':locale==='en'?'Demo stock — no reservation':'Stock demonstrativo — sem reserva'}</span><span>${locale==='fr'?'Retours définis par boutique':locale==='en'?'Returns defined by boutique':'Devoluções definidas por boutique'}</span>`; copyBox.querySelector('.partner-note')?.before(services);
-    }
-  };
+  openProduct = function(id){ baseOpenProduct(id); const copyBox=document.querySelector('.product-detail-copy'); if(!copyBox)return; const sizeRow=copyBox.querySelector('.size-row'); if(sizeRow && !copyBox.querySelector('.size-helper')){ const helper=document.createElement('div'); helper.className='size-helper'; helper.innerHTML=`<span>${locale==='fr'?'Taille':locale==='en'?'Size':'Tamanho'}</span><button type="button">${locale==='fr'?'Guide des tailles':locale==='en'?'Size guide':'Guia de tamanhos'}</button>`; sizeRow.before(helper); helper.querySelector('button').onclick=()=>toast(`${helper.querySelector('button').textContent} · aperçu`); } if(!copyBox.querySelector('.detail-polish')){ const services=document.createElement('div'); services.className='detail-polish'; services.innerHTML=`<span>${locale==='fr'?'Stock de démonstration — aucune réservation':locale==='en'?'Demo stock — no reservation':'Stock demonstrativo — sem reserva'}</span><span>${locale==='fr'?'Retours définis par boutique':locale==='en'?'Returns defined by boutique':'Devoluções definidas por boutique'}</span>`; copyBox.querySelector('.partner-note')?.before(services); } };
 
   const baseAddCart = addCart;
   addCart = function(id){ const selected=document.querySelector('.size-row button.active')?.textContent?.trim(); baseAddCart(id); const item=cart.find(x=>x.id===id); if(item && selected)item.size=selected; renderCart(); syncMobileCounts(); };
   const baseRenderCart = renderCart;
-  renderCart = function(){
-    baseRenderCart();
-    document.querySelectorAll('#cartItems .mini-item').forEach((row,i)=>{const item=cart[i]; const small=row.querySelector('small'); if(item?.size && small && !small.textContent.includes(item.size))small.textContent += ` · ${item.size}`;});
-    if(!cart.length){document.getElementById('cartItems').innerHTML=`<div class="empty-polish"><strong>${locale==='fr'?'Votre panier est vide.':locale==='en'?'Your bag is empty.':'O seu carrinho está vazio.'}</strong><span>${locale==='fr'?'Ajoutez des pièces de différentes boutiques.':locale==='en'?'Add pieces from different boutiques.':'Adicione peças de diferentes boutiques.'}</span><br><button class="button dark" data-polish-shop>${t('shopNow')}</button></div>`; document.querySelector('[data-polish-shop]').onclick=()=>{closeDrawers();setFilter('all')}}
-    syncMobileCounts();
-  };
+  renderCart = function(){ baseRenderCart(); document.querySelectorAll('#cartItems .mini-item').forEach((row,i)=>{const item=cart[i]; const small=row.querySelector('small'); if(item?.size && small && !small.textContent.includes(item.size))small.textContent += ` · ${item.size}`;}); if(!cart.length){document.getElementById('cartItems').innerHTML=`<div class="empty-polish"><strong>${locale==='fr'?'Votre panier est vide.':locale==='en'?'Your bag is empty.':'O seu carrinho está vazio.'}</strong><span>${locale==='fr'?'Ajoutez des pièces de différentes boutiques.':locale==='en'?'Add pieces from different boutiques.':'Adicione peças de diferentes boutiques.'}</span><br><button class="button dark" data-polish-shop>${t('shopNow')}</button></div>`; document.querySelector('[data-polish-shop]').onclick=()=>{closeDrawers();setFilter('all')}} syncMobileCounts(); };
   const baseRenderWishlist = renderWishlist;
   renderWishlist = function(){baseRenderWishlist(); if(!wishlist.size){document.getElementById('wishlistItems').innerHTML=`<div class="empty-polish"><strong>${locale==='fr'?'Votre sélection est vide.':locale==='en'?'Your edit is empty.':'A sua seleção está vazia.'}</strong><span>${locale==='fr'?'Enregistrez les pièces que vous souhaitez retrouver.':locale==='en'?'Save pieces you want to revisit.':'Guarde as peças a que quer voltar.'}</span><br><button class="button dark" data-polish-wish-shop>${t('shopNow')}</button></div>`; document.querySelector('[data-polish-wish-shop]').onclick=()=>{closeDrawers();setFilter('all')}} syncMobileCounts(); };
 
   document.querySelectorAll('[data-search]').forEach(btn=>btn.addEventListener('click',()=>{const q=btn.dataset.search; document.getElementById('searchInput').value=q; search(q); document.getElementById('searchSuggestions').style.display='none';}));
   document.getElementById('searchInput')?.addEventListener('input',e=>{document.getElementById('searchSuggestions').style.display=e.target.value.trim()?'none':'flex'});
-
   document.getElementById('localeSelect')?.addEventListener('change',()=>setTimeout(()=>{applyPolishCopy();updateCount();renderCart();renderWishlist();},0));
-  applyPolishCopy(); renderCart(); renderWishlist();
-  window.Z_FASHION_FINAL_POLISH='PASS';
+  applyPolishCopy(); renderCart(); renderWishlist(); window.Z_FASHION_FINAL_POLISH='PASS';
 })();
 
 (() => {
   if (document.documentElement.lang !== 'fr') return;
   const launchFr = {
-    preview:'Catalogue de démonstration · aucun paiement réel', search:'Rechercher', account:'Compte', allSale:'Toute la sélection', women:'Femme', men:'Homme', children:'Enfant', sports:'Sport', accessories:'Accessoires', beauty:'Beauté', sale:'Soldes', newSeason:'Nouvelle saison · 2026', heroTitle:'Découvrir le style.<br>Acheter mieux.', heroCopy:'Boutiques, marques et collections dans une expérience unique — avec sélection éditoriale, stock partenaire et finalisation de commande Z Fashion.', shopNow:'Découvrir la sélection', exploreCorners:'Explorer les Corners', multiBoutique:'Multi-boutiques', multiBoutiqueCopy:'Un panier, plusieurs boutiques', freshStock:'Stock actualisé', freshStockCopy:'Disponibilité par boutique', easyReturns:'Retours simplifiés', easyReturnsCopy:'Conditions claires par commande', zosIdentity:'Compte unique', zosIdentityCopy:'Préférences et favoris réunis', editWomen:'Éditorial', womenEditTitle:'Luxe discret, nouveau rythme', editMen:'Homme', menEditTitle:'Coupe structurée sans effort', editNew:'Nouveautés', newEditTitle:'Les pièces qui définissent la saison', discover:'Découvrir', allSaleTitle:'Toute la sélection', allSaleCopy:'Une sélection transversale de plusieurs boutiques. Dans cet aperçu, les produits sont démonstratifs.', all:'Tout', partnerBoutiques:'Boutiques partenaires', cornersTitle:'Corners', cornersCopy:'Chaque partenaire conserve son identité, sa sélection et son stock dans l’expérience Z Fashion.', viewAll:'Voir tout', enterCorner:'Entrer dans le Corner', privateSale:'Vente privée', campaignTitle:'Une sélection réservée aux membres.', campaignCopy:'Aperçu des campagnes Z Fashion : l’accès, le stock et les conditions commerciales restent définis par boutique et par marché.', memberAccess:'Accès membre', support:'Aide', delivery:'Livraisons', returns:'Retours', contact:'Contact', footerPreview:'Aperçu produit. Aucun paiement réel, aucune donnée de paiement et aucune modification de la base ZOS.', cart:'Panier', checkoutPreview:'Paiement indisponible dans cet aperçu', close:'Fermer'
+    preview:'Catalogue de démonstration · aucun paiement réel', search:'Rechercher', account:'Compte', allSale:'Toute la sélection', women:'Femme', men:'Homme', children:'Enfant', sports:'Sport', accessories:'Accessoires', beauty:'Beauté', sale:'Soldes', newSeason:'Nouvelle saison · 2026', heroTitle:'Découvrir le style.<br>Acheter mieux.', heroCopy:'Boutiques, marques et collections dans une expérience unique — avec sélection éditoriale, stock partenaire et finalisation de commande Z Fashion.', shopNow:'Découvrir la sélection', exploreCorners:'Explorer les Corners', multiBoutique:'Multi-boutiques', multiBoutiqueCopy:'Un panier, plusieurs boutiques', freshStock:'Stock actualisé', freshStockCopy:'Disponibilité par boutique', easyReturns:'Retours simplifiés', easyReturnsCopy:'Conditions claires par commande', zosIdentity:'Compte unique', zosIdentityCopy:'Préférences et favoris réunis', editWomen:'Éditorial', womenEditTitle:'Luxe discret, nouveau rythme', editMen:'Homme', menEditTitle:'Coupe structurée sans effort', editNew:'Nouveautés', newEditTitle:'Les pièces qui définissent la saison', discover:'Découvrir', allSaleTitle:'Toute la sélection', allSaleCopy:'Une sélection transversale de plusieurs boutiques. Dans cet aperçu, les produits sont démonstratifs.', all:'Tout', partnerBoutiques:'Boutiques partenaires', cornersTitle:'Corners', cornersCopy:'Chaque partenaire conserve son identité, sa sélection et son stock dans l’expérience Z Fashion.', viewAll:'Voir tout', enterCorner:'Entrer dans le Corner', privateSale:'Vente privée', campaignTitle:'Une sélection réservée aux membres.', campaignCopy:'Aperçu des campagnes Z Fashion : l’accès, le stock et les conditions commerciales restent définis par boutique et par marché.', memberAccess:'Accès membre', support:'Aide', delivery:'Livraisons', returns:'Retours', contact:'Contact', footerPreview:'Aperçu produit. Aucun paiement réel, aucune donnée de paiement et aucune modification de la base ZOS.', cart:'Panier', checkoutPreview:'Paiement indisponible dans cet aperçu', close:'Fermer', sortBy:'Trier', featured:'Sélection', priceAsc:'Prix ↑', priceDesc:'Prix ↓', partnerFulfilment:'Lors de la commande réelle, les expéditions et les retours seront identifiés par boutique.', oneIdentity:'Un compte. Une expérience continue.', accountTitle:'Votre compte vous accompagne également dans Z Fashion.', accountCopy:'Favoris, boutiques suivies, adresses et préférences restent liés au même compte, selon les autorisations de chaque produit.', savedStyle:'Enregistrer styles et favoris', followCorners:'Suivre les Corners et les boutiques', sharedAddresses:'Réutiliser les adresses autorisées', signinPreview:'Connexion disponible après activation', accountBoundary:'Aperçu : aucune session réelle n’est ouverte.', home:'Accueil', popularSearches:'Recherches populaires'
   };
-  const productFr = {
-    p1:['Blazer structuré en laine','Blazer à la construction épurée, épaule souple et laine froide. Une pièce de transition pensée pour le quotidien.'],
-    p2:['Manteau minimaliste en laine','Manteau aux lignes longues et à la finition minimaliste, sélectionné par Maison Nord.'],
-    p3:['Surchemise technique','Surchemise légère à construction technique et volume décontracté, idéale pour les superpositions.'],
-    p4:['Sac Arc en cuir','Sac compact en cuir à structure courbe, finitions discrètes et bandoulière réglable.'],
-    p5:['Runner 02','Sneaker de course urbaine au profil léger, semelle réactive et construction respirante.'],
-    p6:['Robe colonne','Robe longue à encolure épurée et tissu fluide au toucher sec.'],
-    p7:['Bomber en daim','Bomber en daim souple à finition mate et proportions contemporaines.'],
-    p8:['Mocassin 19','Mocassin de construction classique réinterprété avec semelle fine et bout allongé.']
-  };
-  locale='fr'; localStorage.setItem('zfashion_locale','fr'); document.documentElement.dataset.locale='fr';
-  Object.assign(translations.fr, launchFr);
-  products.forEach(p=>{const tr=productFr[p.id];if(tr){p.name=tr[0];p.description=tr[1];}});
-  applyLocale('fr');
-  document.querySelectorAll('[data-i18n]').forEach(el=>{const v=launchFr[el.dataset.i18n]??copy?.fr?.[el.dataset.i18n];if(v!==undefined)el.innerHTML=v;});
-  const input=document.getElementById('searchInput');if(input)input.placeholder='Rechercher marques, pièces, boutiques…';
-  document.querySelectorAll('.corner-card p').forEach((el,i)=>{el.textContent=['Mode femme contemporaine','Essentiels contemporains','Cuir & accessoires'][i]||el.textContent;});
+  const productFr = { p1:['Blazer structuré en laine','Blazer à la construction épurée, épaule souple et laine froide. Une pièce de transition pensée pour le quotidien.'], p2:['Manteau minimaliste en laine','Manteau aux lignes longues et à la finition minimaliste, sélectionné par Maison Nord.'], p3:['Surchemise technique','Surchemise légère à construction technique et volume décontracté, idéale pour les superpositions.'], p4:['Sac Arc en cuir','Sac compact en cuir à structure courbe, finitions discrètes et bandoulière réglable.'], p5:['Runner 02','Sneaker de course urbaine au profil léger, semelle réactive et construction respirante.'], p6:['Robe colonne','Robe longue à encolure épurée et tissu fluide au toucher sec.'], p7:['Bomber en daim','Bomber en daim souple à finition mate et proportions contemporaines.'], p8:['Mocassin 19','Mocassin de construction classique réinterprété avec semelle fine et bout allongé.'] };
+  locale='fr'; localStorage.setItem('zfashion_locale','fr'); document.documentElement.dataset.locale='fr'; Object.assign(translations.fr, launchFr); products.forEach(p=>{const tr=productFr[p.id];if(tr){p.name=tr[0];p.description=tr[1];}}); applyLocale('fr'); document.querySelectorAll('[data-i18n]').forEach(el=>{const v=launchFr[el.dataset.i18n];if(v!==undefined)el.innerHTML=v;}); const input=document.getElementById('searchInput');if(input)input.placeholder='Rechercher marques, pièces, boutiques…'; document.querySelectorAll('.corner-card p').forEach((el,i)=>{el.textContent=['Mode femme contemporaine','Essentiels contemporains','Cuir & accessoires'][i]||el.textContent;});
   const oldToast=toast; toast=function(msg){const map={'Adicionado ao carrinho':'Ajouté au panier','Conta ZOS · autenticação live ainda não ativada':'Compte · authentification réelle pas encore activée','Venda Privada · Preview':'Vente privée · aperçu'};oldToast(map[msg]||msg);};
   const frOpen=openProduct; openProduct=function(id){frOpen(id);const add=document.querySelector('[data-add]');if(add)add.textContent='Ajouter au panier';const note=document.querySelector('.partner-note');if(note){const p=products.find(x=>x.id===id);note.textContent=`Stock de démonstration · ${p?.corner||'boutique'}. Le stock réel appartient à la boutique et sera vérifié lors de la finalisation de commande après activation du backend.`;}};
-  renderProducts();renderCart();renderWishlist();
-  window.Z_FASHION_FRANCE_LAUNCH='PASS';
+  renderProducts();renderCart();renderWishlist(); window.Z_FASHION_FRANCE_LAUNCH='PASS';
 })();
