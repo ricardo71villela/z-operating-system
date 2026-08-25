@@ -41,6 +41,12 @@
   const input=document.getElementById('searchInput'); if(input) input.placeholder='Rechercher marques, pièces, boutiques…';
   document.querySelectorAll('.corner-card p').forEach((el,i)=>{el.textContent=['Mode femme contemporaine','Essentiels contemporains','Cuir & accessoires'][i]||el.textContent;});
 
+  const footerEndorsement=document.querySelector('.footer-zos');
+  if(footerEndorsement){
+    footerEndorsement.innerHTML='<span>Une marque de l’écosystème ZOS</span>';
+    footerEndorsement.style.gap='0';
+  }
+
   const originalToast=toast;
   toast=function(message){
     const map={'Adicionado ao carrinho':'Ajouté au panier','Conta ZOS · autenticação live ainda não ativada':'Compte · authentification réelle pas encore activée','Venda Privada · Preview':'Vente privée · aperçu'};
