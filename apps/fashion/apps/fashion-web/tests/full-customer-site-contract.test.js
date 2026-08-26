@@ -9,16 +9,25 @@ const shell = read('customer-shell.html');
 const routes = read('customer-routes.js');
 const runtime = read('customer-site.js');
 const css = read('customer-pages.css');
+const brandCss = read('customer-brand-authority.css');
 const vercel = JSON.parse(read('vercel.json'));
 
 assert.match(shell, /<html lang="fr-FR" data-locale="fr">/);
 assert.match(shell, /id="localeSelect"/);
 for (const locale of ['fr','pt','en','es','it','de']) assert.match(shell, new RegExp(`<option value="${locale}">`));
 assert.match(shell, /customer-brand-mark/);
-assert.match(shell, />Fashion<\/span>/);
+assert.match(shell, /customer-brand-authority\.css/);
+assert.match(shell, /customer-brand-logo customer-brand-logo-dark/);
 assert.match(shell, /zos-mark-white-tile\.svg/);
+assert.match(shell, />Fashion<\/span>/);
+assert.match(shell, /footer-brand-logo/);
 assert.match(shell, /id="brandEndorsement"/);
+assert.doesNotMatch(shell, /customer-brand-square/);
 assert.doesNotMatch(shell, /Z Operating System/i);
+assert.match(brandCss, /customer-brand-logo\{width:3\.2rem;height:3\.2rem/);
+assert.match(brandCss, /customer-brand-logo-dark\{filter:invert\(1\)\}/);
+assert.match(brandCss, /footer-brand-logo\{width:2\.85rem;height:3\.45rem/);
+assert.match(brandCss, /footer-fashion\{font-family:"Playfair Display"/);
 
 const requiredIds = [
   'new','women','men','kids','sport','accessories','beauty','sale','search','product','corners','corner','privateSale',
