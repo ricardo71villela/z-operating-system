@@ -2,11 +2,12 @@
   "name": "@zfashion/partner",
   "version": "0.0.0",
   "private": true,
-  "description": "Z Fashion Partner API — onboarding, stock feed, brand and product management endpoints wired to the Z Fashion domain.",
+  "description": "Z Fashion Partner and customer commerce API — onboarding, catalog operations and authenticated checkout/order boundaries wired to the Z Fashion domain.",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "test": "node tests/api.test.js && node tests/dashboard-contract.test.js"
+    "start:customer": "node src/customer-commerce.js",
+    "test": "node tests/api.test.js && node tests/dashboard-contract.test.js && node tests/customer-commerce.test.js"
   },
   "dependencies": {
     "pg": "^8.23.0"
