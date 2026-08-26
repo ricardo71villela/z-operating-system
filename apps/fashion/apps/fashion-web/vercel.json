@@ -1,0 +1,61 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "cleanUrls": false,
+  "trailingSlash": false,
+  "buildCommand": "rm -rf public && mkdir -p public && cp ./*.html ./*.css ./*.js public/ && cp launch.html public/index.html && cp -R brand public/brand && echo Z_FASHION_STATIC_PREVIEW_BUILD=PASS",
+  "outputDirectory": "public",
+  "rewrites": [
+    { "source": "/", "destination": "/launch.html" },
+    { "source": "/nouveautes", "destination": "/customer-shell.html" },
+    { "source": "/femme", "destination": "/customer-shell.html" },
+    { "source": "/homme", "destination": "/customer-shell.html" },
+    { "source": "/enfant", "destination": "/customer-shell.html" },
+    { "source": "/sport", "destination": "/customer-shell.html" },
+    { "source": "/accessoires", "destination": "/customer-shell.html" },
+    { "source": "/beaute", "destination": "/customer-shell.html" },
+    { "source": "/soldes", "destination": "/customer-shell.html" },
+    { "source": "/recherche", "destination": "/customer-shell.html" },
+    { "source": "/corners", "destination": "/customer-shell.html" },
+    { "source": "/vente-privee", "destination": "/customer-shell.html" },
+    { "source": "/favoris", "destination": "/customer-shell.html" },
+    { "source": "/panier", "destination": "/customer-shell.html" },
+    { "source": "/connexion", "destination": "/customer-shell.html" },
+    { "source": "/compte", "destination": "/customer-shell.html" },
+    { "source": "/compte/profil", "destination": "/customer-shell.html" },
+    { "source": "/compte/adresses", "destination": "/customer-shell.html" },
+    { "source": "/compte/commandes", "destination": "/customer-shell.html" },
+    { "source": "/compte/retours", "destination": "/customer-shell.html" },
+    { "source": "/compte/suivi", "destination": "/customer-shell.html" },
+    { "source": "/checkout", "destination": "/customer-shell.html" },
+    { "source": "/checkout/livraison", "destination": "/customer-shell.html" },
+    { "source": "/checkout/paiement", "destination": "/customer-shell.html" },
+    { "source": "/checkout/revision", "destination": "/customer-shell.html" },
+    { "source": "/checkout/confirmation", "destination": "/customer-shell.html" },
+    { "source": "/livraisons", "destination": "/customer-shell.html" },
+    { "source": "/retours-remboursements", "destination": "/customer-shell.html" },
+    { "source": "/aide", "destination": "/customer-shell.html" },
+    { "source": "/contact", "destination": "/customer-shell.html" },
+    { "source": "/mentions-legales", "destination": "/customer-shell.html" },
+    { "source": "/cgv", "destination": "/customer-shell.html" },
+    { "source": "/conditions-utilisation", "destination": "/customer-shell.html" },
+    { "source": "/confidentialite", "destination": "/customer-shell.html" },
+    { "source": "/cookies", "destination": "/customer-shell.html" },
+    { "source": "/consentement", "destination": "/customer-shell.html" },
+    { "source": "/404", "destination": "/404.html" },
+    { "source": "/erreur", "destination": "/technical-shell.html" },
+    { "source": "/maintenance", "destination": "/technical-shell.html" },
+    { "source": "/produit/:slug", "destination": "/customer-shell.html" },
+    { "source": "/corner/:slug", "destination": "/customer-shell.html" },
+    { "source": "/compte/commandes/:id", "destination": "/customer-shell.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    }
+  ]
+}

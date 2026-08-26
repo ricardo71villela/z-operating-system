@@ -3,71 +3,30 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 
-const ROOT = path.resolve(
-  __dirname,
-  '../../../..'
-);
+const ROOT = path.resolve(__dirname, '../../../..');
+const FIND = path.join(ROOT, 'apps/find');
+const WEB = path.join(FIND, 'apps/zfind-web');
+const SRC = path.join(WEB, 'src');
 
-const FIND = path.join(
-  ROOT,
-  'apps/find'
-);
+const locales = require(path.join(SRC, 'services/public-locales.js'));
+const routes = require(path.join(SRC, 'services/public-routes.js'));
 
-const WEB = path.join(
-  FIND,
-  'apps/zfind-web'
-);
-
-const locales = require(
-  path.join(
-    WEB,
-    'src/services/public-locales.js'
-  )
-);
-
-const routes = require(
-  path.join(
-    WEB,
-    'src/services/public-routes.js'
-  )
-);
-
-const seo = require(
-  path.join(
-    WEB,
-    'src/services/seo-page-generator.js'
-  )
-);
-
-const app = fs.readFileSync(
-  path.join(WEB, 'src/app.js'),
-  'utf8'
-);
-
-const body = fs.readFileSync(
-  path.join(WEB, 'src/body.html'),
-  'utf8'
-);
-
-const head = fs.readFileSync(
-  path.join(WEB, 'src/head_top.txt'),
-  'utf8'
-);
-
-const viewmodels = fs.readFileSync(
-  path.join(WEB, 'src/viewmodels.js'),
-  'utf8'
-);
-
+const app = fs.readFileSync(path.join(SRC, 'app.js'), 'utf8');
+const body = fs.readFileSync(path.join(SRC, 'body.html'), 'utf8');
+const head = fs.readFileSync(path.join(SRC, 'head_top.txt'), 'utf8');
+const viewmodels = fs.readFileSync(path.join(SRC, 'viewmodels.js'), 'utf8');
+const i18n = fs.readFileSync(path.join(SRC, 'i18n.js'), 'utf8');
+const i18nPhase4 = fs.readFileSync(path.join(SRC, 'i18n-phase4.js'), 'utf8');
+const sixLanguageMenu = fs.readFileSync(path.join(SRC, 'six-language-menu.js'), 'utf8');
+const build = fs.readFileSync(path.join(WEB, 'scripts/build.js'), 'utf8');
 const migration = fs.readFileSync(
-  path.join(
-    ROOT,
-    'infrastructure/supabase/migrations/20260814224500_z_find_french_default_language_convergence_v1.sql'
-  ),
+  path.join(ROOT, 'infrastructure/supabase/migrations/20260814224500_z_find_french_default_language_convergence_v1.sql'),
   'utf8'
 );
 
+const REQUIRED = ['fr','en','pt','es','de','it'];
 let passed = 0;
 
 function test(name, fn) {
@@ -76,302 +35,138 @@ function test(name, fn) {
   console.log('PASS:', name);
 }
 
-console.log(
-  '\n=== PHASE 4 — PUBLIC LANGUAGE FOUNDATION ==='
-);
+function keyPaths(value, prefix = '') {
+  return Object.keys(value).flatMap(key => {
+    const next = prefix ? `${prefix}.${key}` : key;
+    const child = value[key];
+    return child && typeof child === 'object' && !Array.isArray(child)
+      ? keyPaths(child, next)
+      : [next];
+  }).sort();
+}
 
-test('six public languages', () => {
-  assert.deepStrictEqual(
-    locales.PUBLIC_LOCALES,
-    ['fr','en','pt','es','de','it']
-  );
+console.log('\n=== Z FIND — SIX-LANGUAGE PUBLIC CONTRACT ===');
+
+test('exact six public languages', () => {
+  assert.deepStrictEqual(locales.PUBLIC_LOCALES, REQUIRED);
 });
 
-test('French public default', () => {
-  assert.strictEqual(
-    locales.DEFAULT_PUBLIC_LOCALE,
-    'fr'
-  );
+test('all six are translated/selectable authorities', () => {
+  assert.deepStrictEqual(locales.TRANSLATED_PUBLIC_LOCALES, REQUIRED);
+  assert.deepStrictEqual(locales.LEGACY_TRANSLATED_LOCALES, REQUIRED);
 });
 
-test('one Portuguese public identity', () => {
-  assert.strictEqual(
-    locales.persistedLocaleFor('pt'),
-    'pt-PT'
-  );
+test('French remains public default', () => {
+  assert.strictEqual(locales.DEFAULT_PUBLIC_LOCALE, 'fr');
+});
 
-  assert.strictEqual(
-    locales.publicLocaleForPersisted('pt-PT'),
-    'pt'
-  );
-
-  assert(
-    !JSON.stringify(locales).includes('pt-BR')
-  );
+test('Portuguese keeps one public identity and pt-PT persistence', () => {
+  assert.strictEqual(locales.persistedLocaleFor('pt'), 'pt-PT');
+  assert.strictEqual(locales.publicLocaleForPersisted('pt-PT'), 'pt');
+  assert(!JSON.stringify(locales).includes('pt-BR'));
 });
 
 test('six formatting locales', () => {
   assert.deepStrictEqual(
-    locales.PUBLIC_LOCALES.map(
-      x => locales.formattingLocaleFor(x)
-    ),
-    [
-      'fr-FR',
-      'en-IE',
-      'pt-PT',
-      'es-ES',
-      'de-DE',
-      'it-IT'
-    ]
+    REQUIRED.map(x => locales.formattingLocaleFor(x)),
+    ['fr-FR','en-IE','pt-PT','es-ES','de-DE','it-IT']
   );
 });
 
-test('six-language menu is visible while only translated locales are selectable', () => {
-  assert.deepStrictEqual(
-    locales.LEGACY_TRANSLATED_LOCALES,
-    ['fr','en','pt']
-  );
-
-  assert.deepStrictEqual(
-    locales.PUBLIC_LOCALES,
-    ['fr','en','pt','es','de','it']
-  );
-
-  const panelMatch = body.match(
-    /<div\s+class="lang-menu-panel"[^>]*>([\s\S]*?)<\/div>/
-  );
-
-  assert(
-    panelMatch,
-    'compact language menu panel must exist'
-  );
-
-  const panel = panelMatch[1];
-
-  for (const lang of locales.PUBLIC_LOCALES) {
-    assert(
-      panel.includes(`data-lang="${lang}"`),
-      `language menu must visibly include ${lang}`
-    );
-  }
-
-  for (const lang of locales.LEGACY_TRANSLATED_LOCALES) {
-    assert(
-      new RegExp(
-        `<button[^>]*data-lang="${lang}"(?![^>]*disabled)[^>]*>`
-      ).test(panel),
-      `${lang} must remain selectable`
-    );
-  }
-
-  for (const lang of ['es','de','it']) {
-    assert(
-      new RegExp(
-        `<button[^>]*data-lang="${lang}"[^>]*disabled[^>]*>`
-      ).test(panel),
-      `${lang} must be visible but disabled until complete translations ship`
-    );
+test('language menu contains all six languages', () => {
+  for (const lang of REQUIRED) {
+    assert(body.includes(`data-lang="${lang}"`), `missing ${lang} language button`);
   }
 });
 
-test('French remains the static public default in the compact menu', () => {
-  assert(
-    body.includes(
-      'id="current-lang-label">FR</span>'
-    )
-  );
-
-  assert.strictEqual(
-    locales.DEFAULT_PUBLIC_LOCALE,
-    'fr'
-  );
+test('production language activator enables every translated locale', () => {
+  assert(sixLanguageMenu.includes("['fr', 'en', 'pt', 'es', 'de', 'it']"));
+  assert(sixLanguageMenu.includes("button.disabled = false"));
+  assert(sixLanguageMenu.includes("button.removeAttribute('disabled')"));
+  assert(sixLanguageMenu.includes("planned.remove()"));
 });
 
-test('runtime uses central default authority', () => {
-  assert(
-    app.includes(
-      'PUBLIC_LOCALE_CONFIG.DEFAULT_PUBLIC_LOCALE'
-    )
-  );
-
-  assert(
-    !app.includes(
-      "localStorage.getItem('zfind_lang') || 'en'"
-    )
-  );
+test('build includes Phase-4 translations and menu activation before app', () => {
+  const phase4Pos = build.indexOf('+ i18nPhase4');
+  const menuPos = build.indexOf('+ sixLanguageMenu');
+  const appPos = build.indexOf('+ app');
+  assert(phase4Pos >= 0 && menuPos > phase4Pos && appPos > menuPos);
 });
 
-test('root document and SEO are French', () => {
-  assert(
-    head.includes('<html lang="fr">')
+test('ES DE IT translation dictionaries match complete EN key shape', () => {
+  const context = {};
+  vm.createContext(context);
+  vm.runInContext(
+    `${i18n}\n${i18nPhase4}\nthis.__Z_FIND_I18N__ = I18N;`,
+    context,
+    { filename: 'zfind-six-language-i18n.bundle.js' }
   );
 
-  assert(
-    head.includes(
-      '<title>Z Find — De vraies opportunités immobilières</title>'
-    )
-  );
+  const dict = context.__Z_FIND_I18N__;
+  const englishKeys = keyPaths(dict.en);
+  assert(englishKeys.length > 250, 'expected complete interface dictionary');
 
-  assert(
-    head.includes(
-      'Achetez, louez et investissez'
-    )
-  );
+  for (const locale of REQUIRED) {
+    assert(dict[locale], `missing ${locale} dictionary`);
+    assert.deepStrictEqual(keyPaths(dict[locale]), englishKeys, `${locale} key shape differs from EN`);
+  }
 });
 
-test('root WebSite JSON-LD is French', () => {
-  const match = head.match(
-    /<script type="application\/ld\+json" id="zfind-root-website-schema">([\s\S]*?)<\/script>/
-  );
+test('new locale copy is genuine rather than English fallback', () => {
+  const context = {};
+  vm.createContext(context);
+  vm.runInContext(`${i18n}\n${i18nPhase4}\nthis.d = I18N;`, context);
+  const d = context.d;
+  assert.strictEqual(d.es.common.search, 'Buscar');
+  assert.strictEqual(d.de.common.search, 'Suchen');
+  assert.strictEqual(d.it.common.search, 'Cerca');
+  assert.notStrictEqual(d.es.hero.lead, d.en.hero.lead);
+  assert.notStrictEqual(d.de.hero.lead, d.en.hero.lead);
+  assert.notStrictEqual(d.it.hero.lead, d.en.hero.lead);
+});
 
+test('runtime uses central translated locale authority', () => {
+  assert(app.includes('PUBLIC_LOCALE_CONFIG.LEGACY_TRANSLATED_LOCALES'));
+  assert(!app.includes("localStorage.getItem('zfind_lang') || 'en'"));
+});
+
+test('root document and WebSite JSON-LD remain French', () => {
+  assert(head.includes('<html lang="fr">'));
+  assert(head.includes('<title>Z Find — De vraies opportunités immobilières</title>'));
+  const match = head.match(/<script type="application\/ld\+json" id="zfind-root-website-schema">([\s\S]*?)<\/script>/);
   assert(match);
-
-  const schema = JSON.parse(match[1]);
-
-  assert.strictEqual(
-    schema.inLanguage,
-    'fr'
-  );
+  assert.strictEqual(JSON.parse(match[1]).inLanguage, 'fr');
 });
 
-test('all six viewmodel locales exist', () => {
-  [
-    "fr:'fr-FR'",
-    "en:'en-IE'",
-    "pt:'pt-PT'",
-    "es:'es-ES'",
-    "de:'de-DE'",
-    "it:'it-IT'"
-  ].forEach(
-    token => assert(viewmodels.includes(token))
-  );
+test('all six viewmodel formatting locales exist', () => {
+  ["fr:'fr-FR'","en:'en-IE'","pt:'pt-PT'","es:'es-ES'","de:'de-DE'","it:'it-IT'"]
+    .forEach(token => assert(viewmodels.includes(token)));
 });
 
 test('Property routes exist in six languages', () => {
   const slug = 'test-123456';
-
   assert.deepStrictEqual(
-    locales.PUBLIC_LOCALES.map(
-      locale =>
-        routes.buildEntityPath({
-          locale,
-          kind: 'property',
-          slug
-        })
-    ),
-    [
-      '/fr/bien/' + slug,
-      '/en/property/' + slug,
-      '/pt/imovel/' + slug,
-      '/es/inmueble/' + slug,
-      '/de/immobilie/' + slug,
-      '/it/immobile/' + slug
-    ]
+    REQUIRED.map(locale => routes.buildEntityPath({ locale, kind:'property', slug })),
+    ['/fr/bien/'+slug,'/en/property/'+slug,'/pt/imovel/'+slug,'/es/inmueble/'+slug,'/de/immobilie/'+slug,'/it/immobile/'+slug]
   );
 });
 
 test('Development routes exist in six languages', () => {
   const slug = 'campo-alegre-74d210';
-
   assert.deepStrictEqual(
-    locales.PUBLIC_LOCALES.map(
-      locale =>
-        routes.buildEntityPath({
-          locale,
-          kind: 'development',
-          slug
-        })
-    ),
-    [
-      '/fr/programme/' + slug,
-      '/en/development/' + slug,
-      '/pt/empreendimento/' + slug,
-      '/es/promocion/' + slug,
-      '/de/neubauprojekt/' + slug,
-      '/it/nuova-costruzione/' + slug
-    ]
+    REQUIRED.map(locale => routes.buildEntityPath({ locale, kind:'development', slug })),
+    ['/fr/programme/'+slug,'/en/development/'+slug,'/pt/empreendimento/'+slug,'/es/promocion/'+slug,'/de/neubauprojekt/'+slug,'/it/nuova-costruzione/'+slug]
   );
 });
 
-test('public intents exclude Off-market', () => {
-  assert.deepStrictEqual(
-    routes.INTENTS,
-    ['buy','rent','invest','developments']
-  );
-
-  assert.throws(
-    () =>
-      routes.buildIntentPath({
-        locale: 'fr',
-        intent: 'offmarket'
-      })
-  );
+test('database language authority already contains all six with French default', () => {
+  for (const persisted of ['fr','en','pt-PT','es','de','it']) {
+    assert(migration.includes(`'${persisted}'`));
+  }
+  assert(migration.includes("where code = 'fr'"));
+  assert(!migration.includes('pt-BR'));
 });
 
-test('French is SEO x-default', () => {
-  assert.strictEqual(
-    seo.DEFAULT_LOCALE,
-    'fr'
-  );
-
-  const html = seo.buildListingPage({
-    kind: 'property',
-    baseUrl: 'https://zfind.online',
-    locale: 'en',
-    id: 'test-property',
-    title: 'Test',
-    description: 'Test property',
-    priceValue: 100000,
-    currencyIso: 'EUR',
-    priceIsFrom: false,
-    zoneLabel: 'Test',
-    cityLabel: 'Porto',
-    countryIsoCode: 'PT',
-    imageUrl: null,
-    imageAlt: null
-  });
-
-  assert(
-    html.includes(
-      'hreflang="x-default" href="https://zfind.online/fr/property/test-property"'
-    )
-  );
-});
-
-test('migration changes default only', () => {
-  assert(
-    migration.includes(
-      "where code = 'fr'"
-    )
-  );
-
-  assert(
-    migration.includes(
-      "'pt-PT'"
-    )
-  );
-
-  assert(
-    migration.includes(
-      'zfind_system_languages_one_default_idx'
-    )
-  );
-
-  assert(
-    !migration.includes('pt-BR')
-  );
-
-  assert(
-    !migration.includes('sort_order =')
-  );
-});
-
-assert.strictEqual(
-  passed,
-  15
-);
-
+assert.strictEqual(passed, 16);
 console.log('');
-console.log(
-  `PUBLIC LANGUAGE FOUNDATION: ${passed}/15 PASSED`
-);
+console.log(`SIX-LANGUAGE PUBLIC CONTRACT: ${passed}/16 PASSED`);

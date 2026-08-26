@@ -1,102 +1,93 @@
-# My Studio — wrapper nativo (iOS + Android)
+# Z Studio — wrapper nativo (iOS + Android)
 
-Este é o projeto Capacitor que embrulha o `my-studio.html` numa app nativa,
-pronta a abrir no Xcode (iOS) e no Android Studio (Android). Gerei e
-configurei tudo o que dava para fazer sem essas ferramentas — o que falta
-só pode ser feito nelas, por ti.
+Este projeto Capacitor empacota o Z Studio para iOS e Android. A identidade nativa está congelada e não é placeholder:
 
-## O que já está feito e verificado
+- App ID / Android package / namespace: `com.zoperatingsystem.zstudio`
+- Nome: `Z Studio`
+- Android Play Billing Library: `9.1.0`
+- Autoridade de catálogo: `../commercial/store-products.v1.json`
 
-- ✅ Projetos `ios/` e `android/` gerados e sincronizados
-- ✅ Ícones nativos em todos os tamanhos exigidos (iOS: 1024×1024 universal;
-  Android: 5 densidades × quadrado, redondo e "adaptativo")
-- ✅ Cor de fundo do ícone adaptativo Android ajustada à marca (`#0A0A0A`)
-- ✅ Permissões de câmara/galeria configuradas no `Info.plist` (iOS) e
-  `AndroidManifest.xml` (Android) — sem isto, a app **rebentava** ao tentar
-  tirar uma foto
-- ✅ `npx cap sync` corrido sem erros nos dois projetos
+**Não alterar o App ID durante a preparação das lojas.** O package `com.zoperatingsystem.zstudio` é também a autoridade usada pelo backend Google Play e pelo contrato de produtos.
 
-## O que NÃO consegui fazer aqui (e porquê)
+## Estado atual
 
-- **Compilar a app** — o Gradle (Android) precisa de descarregar de
-  `services.gradle.org`, que este ambiente não consegue alcançar (confirmei:
-  erro 403). O Xcode (iOS) só existe em macOS, que não está disponível aqui
-  de todo. Isto só se resolve na tua máquina.
-- **Testar num dispositivo/simulador real** — por isso há 3 pontos que
-  preciso que confirmes assim que compilares (ver secção "Testar primeiro").
+### Base nativa
 
-## Antes de tudo: 3 coisas que só tu decides
+- projetos `ios/` e `android/` presentes;
+- ícones e permissões nativas presentes;
+- autenticação ZOS/Supabase já disponível no WebView;
+- `@capacitor/filesystem` e `@capacitor/share` instalados;
+- Android BillingClient first-party registado em `MainActivity`;
+- compras Google nunca concedem entitlement no cliente.
 
-1. **App ID definitivo** — está como `com.mystudio.app` (placeholder). Muda
-   para algo que controlas, ex.: `com.<teudominio>.mystudio`, em
-   `capacitor.config.ts` E dentro do Xcode/Android Studio (não basta mudar
-   o ficheiro de config depois de gerado — ver abaixo).
-2. **Nome de exibição** — está "My Studio" em todo o lado; muda se quiseres
-   outro nome comercial.
-3. **Versão** — ambos os projetos começam em `1.0`.
+### Google Play billing
 
-## Passos seguintes — iOS (precisas de um Mac)
+O fluxo fonte atual é:
 
-1. Instala o [Xcode](https://apps.apple.com/app/xcode/id497799835) (grátis,
-   App Store) e cria uma conta [Apple Developer](https://developer.apple.com/programs/)
-   (99€/ano).
-2. `npm install` nesta pasta (instala as dependências do Capacitor).
-3. `npx cap open ios` — abre o projeto no Xcode.
-4. No Xcode: seleciona o projeto → separador "Signing & Capabilities" →
-   escolhe a tua equipa de developer → confirma o Bundle Identifier.
-5. Liga um iPhone por USB (ou usa o simulador) e carrega em ▶ para testar.
-6. Quando estiver pronto: Product → Archive → Distribute App → App Store
-   Connect, e segue o assistente.
+1. login Z Studio;
+2. `/api/google/play/prepare` resolve a pessoa ZOS e reserva, se elegível, o trial global;
+3. o servidor devolve `obfuscated_account_id` = UUID canónico ZOS e decide `use_trial_offer`;
+4. `ZStudioPlayBilling.purchase()` abre Google Play com o base plan exato;
+5. `purchaseUpdated` ou `currentPurchases()` entrega apenas evidência transitória ao bridge;
+6. `/api/google/play/reconcile` ou `/api/google/play/restore` volta a consultar `purchases.subscriptionsv2.get`;
+7. o backend escreve estado comercial/entitlements;
+8. só depois o backend confirma (`acknowledge`) a compra;
+9. RTDN funciona apenas como trigger e também volta a consultar o estado atual Google.
 
-## Passos seguintes — Android
+No `onResume`, `MainActivity` injeta `www/google-play-billing-bridge.js`. O bridge chama `currentPurchases()` para recuperar compras concluídas enquanto a app esteve fechada, reinstalada ou usada noutro dispositivo. O purchase token não é persistido em `localStorage`.
 
-1. Instala o [Android Studio](https://developer.android.com/studio) (grátis)
-   e cria uma conta [Google Play Console](https://play.google.com/console/)
-   (25$, pagamento único).
-2. `npm install` nesta pasta.
-3. `npx cap open android` — abre o projeto no Android Studio.
-4. Deixa o Android Studio descarregar o Gradle e o SDK automaticamente
-   (é aqui que este ambiente ficava bloqueado — no teu computador funciona
-   normalmente).
-5. Testa num emulador ou num telemóvel Android por USB (▶ Run).
-6. Build → Generate Signed Bundle/APK → segue o assistente para criar a
-   chave de assinatura (guarda-a bem — perde-la impede atualizações futuras
-   à app).
-7. Sobe o `.aab` gerado à Google Play Console.
+## Bloqueio deliberado antes da ativação
 
-## Testar primeiro — 3 pontos de risco genuíno
+`capacitor.config.json` mantém:
 
-A app foi construída como página web, com funcionalidades que dependem de
-APIs do browser. Dentro do wrapper nativo, o comportamento pode ser
-diferente — testa isto logo no início, antes de gastares tempo a preparar
-a loja:
-
-1. **Descarregar PNG / ZIP / PDF** — usa APIs de download do browser
-   (`<a download>`). Dentro da WebView nativa pode não guardar como
-   esperado. Se não funcionar bem, a correção é adicionar os plugins
-   oficiais `@capacitor/filesystem` + `@capacitor/share` para guardar
-   ficheiros de forma nativa — não implementei isto agora porque não
-   conseguia testar se era mesmo necessário.
-2. **"Escolher pasta" (Google Drive/Dropbox/OneDrive sincronizados)** —
-   usa a File System Access API, que **não existe** em WebViews nativas
-   (nem no Safari/iOS, nem garantidamente no Android). Vai mostrar o aviso
-   "browser não suportado" e cair para o upload normal — o que é o
-   comportamento correto, só confirma que não achas isto confuso para
-   quem usar a app nativa.
-3. **Partilhar (Web Share API)** — deve funcionar em Android; em iOS dentro
-   de uma WebView Capacitor pode precisar do plugin `@capacitor/share`
-   para abrir a folha de partilha nativa em vez de cair para download.
-
-## Estrutura desta pasta
-
-```
-capacitor.config.ts   — configuração central (nome, app ID, cores)
-package.json           — dependências do Capacitor
-www/                    — cópia da app web (index.html = my-studio.html)
-ios/                    — projeto Xcode completo
-android/                — projeto Android Studio completo
+```json
+"ZStudioPlayBilling": {
+  "commercialBaseUrl": ""
+}
 ```
 
-**Nota:** `www/` é uma cópia estática. Se atualizares o `my-studio.html`
-original, tens de copiar o novo ficheiro para `www/index.html` e correr
-`npx cap sync` outra vez antes de recompilar.
+Isto é **fail-closed por desenho**. Enquanto `z-studio-commercial` não tiver deployment HTTPS autorizado, a app não mostra/ativa o fluxo comercial Google. Não preencher com uma URL inventada ou preview efémero.
+
+Quando o runtime comercial tiver uma URL HTTPS canónica validada:
+
+1. colocar essa origem exata em `plugins.ZStudioPlayBilling.commercialBaseUrl`;
+2. correr `npm install` se necessário;
+3. correr `npx cap sync` para copiar `www/` e a configuração para os projetos nativos;
+4. compilar novamente Android;
+5. executar a matriz de teste do runbook `../docs/google-play-release-runbook.md`.
+
+## Android — build e teste
+
+1. Instalar Android Studio e SDK exigido pelo projeto.
+2. Nesta pasta: `npm install`.
+3. Executar `npm run test:google-play`.
+4. Executar `npx cap sync android`.
+5. Executar `npx cap open android`.
+6. Confirmar em Android Studio que `applicationId` permanece `com.zoperatingsystem.zstudio`.
+7. Compilar e testar primeiro com testador de licença / faixa interna.
+8. Só gerar o `.aab` de release depois da matriz comercial estar PASS.
+
+A chave de assinatura/Play App Signing é autoridade externa e deve ser guardada fora do repositório.
+
+## iOS
+
+O projeto iOS continua separado do Google Play. Para alterações web comuns em `www/`, correr `npx cap sync ios` antes de compilar no Xcode. Não reutilizar credenciais ou identificadores Google no target iOS.
+
+## Riscos nativos que continuam a exigir dispositivo real
+
+- downloads PNG/ZIP/PDF e integração Filesystem/Share;
+- seletor de pasta (File System Access API não é uma autoridade nativa portátil);
+- folha de partilha;
+- Billing UI/Play Store real, pending purchase, renewal, grace, hold, pause, cancel, restore e reinstall.
+
+## Estrutura
+
+```text
+capacitor.config.json  — app id, cores e plugins; commercialBaseUrl fica vazio até ativação
+package.json           — Capacitor + teste Google Play
+www/                    — artefactos web empacotados, incluindo google-play-billing-bridge.js
+ios/                    — projeto Xcode
+android/                — projeto Android Studio + ZStudioPlayBillingPlugin
+```
+
+`www/` é uma cópia estática. Depois de qualquer alteração ao conteúdo empacotado, correr `npx cap sync` antes da compilação nativa.

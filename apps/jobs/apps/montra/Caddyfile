@@ -1,0 +1,40 @@
+{
+  admin off
+  persist_config off
+  auto_https off
+  log {
+    format json
+  }
+  servers {
+    trusted_proxies static private_ranges 100.0.0.0/8
+  }
+}
+
+:{$PORT:3000} {
+  log {
+    format json
+  }
+
+  encode gzip
+
+  header {
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    Referrer-Policy "strict-origin-when-cross-origin"
+  }
+
+  @health path /health
+  respond @health "ok" 200
+
+  @candidatos path /candidatos
+  rewrite @candidatos /candidatos.html
+
+  @empregadores path /empregadores
+  rewrite @empregadores /empregadores.html
+
+  @ferramentas path /ferramentas
+  rewrite @ferramentas /ferramentas.html
+
+  root * /srv
+  file_server
+}

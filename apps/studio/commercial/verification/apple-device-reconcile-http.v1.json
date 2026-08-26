@@ -1,0 +1,13 @@
+{
+  "authority": "ZSTUDIO_APPLE_DEVICE_RECONCILE_HTTP_V1",
+  "result": "PASS",
+  "testedCommit": "c93e116deae9d3492f6ae56199b81a6f4ea01488",
+  "route": "/api/apple/reconcile",
+  "bearerAuth": true,
+  "canonicalPersonRequired": true,
+  "appAccountTokenEqualityRequired": true,
+  "clientCommercialAuthorityAccepted": false,
+  "writerRequiredBeforeSuccess": true,
+  "finishTransactionExecuted": false,
+  "liveDatabaseMutation": false
+}

@@ -1,0 +1,11 @@
+{
+  "authority": "ZSTUDIO_VERIFIED_COMMERCIAL_EVENT_ADAPTER_V1",
+  "result": "PASS",
+  "testedCommit": "c93e116deae9d3492f6ae56199b81a6f4ea01488",
+  "writer": "public.zstudio_apply_verified_commercial_event",
+  "writerArgumentCount": 15,
+  "providerNeutralBuilder": true,
+  "appleCurrentStateAdapter": true,
+  "databaseWrite": false,
+  "appleRevokedMapsTo": "expired"
+}

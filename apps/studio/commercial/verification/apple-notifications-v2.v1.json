@@ -1,0 +1,13 @@
+{
+  "authority": "ZSTUDIO_APPLE_NOTIFICATIONS_V2_VERIFICATION_CORE_V1",
+  "result": "PASS",
+  "testedCommit": "c93e116deae9d3492f6ae56199b81a6f4ea01488",
+  "signedPayloadVerification": true,
+  "notificationUuidIdempotency": true,
+  "subscriptionInnerJwsVerification": true,
+  "notificationIsReconciliationTrigger": true,
+  "writerExecuted": false,
+  "endpointCreated": false,
+  "appStoreConnectConfigured": false,
+  "liveDatabaseMutation": false
+}

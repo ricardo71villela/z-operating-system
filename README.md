@@ -1,55 +1,30 @@
 # Z Operating System — ZOS
 
-ZOS is the shared operating system and engineering platform for the Z ecosystem.
+ZOS is the shared operating layer behind a portfolio of independent products. Each product retains its own domain semantics, experience and product authority; ZOS Core provides approved shared capabilities such as canonical identity and cross-product infrastructure.
 
-This repository combines two complementary layers:
+## Active products
 
-1. **Strategic architecture and governance** — the principles, domain models, standards, security, data, intelligence and operating model of ZOS.
-2. **Operational product engineering** — the applications, shared packages, database infrastructure and CI/CD that implement those principles.
+| Product | Role | Repository authority |
+| --- | --- | --- |
+| Z Find | Marketplace / vertical | `apps/find/` |
+| Z Mobility | Marketplace / vertical | `apps/mobility/` |
+| Z Jobs | Marketplace / vertical | `apps/jobs/` |
+| Z Fashion | Marketplace / vertical | `apps/fashion/` |
+| Z Studio | Horizontal product | `apps/studio/` |
+| Z Desk | Horizontal operational workspace | `apps/desk/` |
 
-The repository is the intended **single source of truth** for the Z ecosystem.
+## Shared authority
 
----
+Canonical shared identity is owned by ZOS Core, including `zos.persons`, `zos.organisations` and `zos.memberships`. Product-specific roles and semantics remain in their owning domains. Z Desk therefore projects workspace access through `desk.workspace_members` and does not introduce a second person, organisation or membership authority.
 
-## Products
+Integrated Supabase deployment authority lives in `infrastructure/supabase/migrations/`. Product-local fixtures or historical migration sources are not production authority unless explicitly designated by governance.
 
-ZOS supports multiple independent marketplaces and products:
+## Quality gates
 
-- **Z Find** — real estate
-- **Z Mobility** — automotive
-- **Z Jobs** — employment
-- **Z Living** — rentals *(future)*
-- **Z Finance** — financial services *(future)*
+The root CI is the ecosystem-level convergence authority and must cover all six active products. Product-specific workflows provide deeper gates where needed. A green root gate must not silently exclude an active ZOS product.
 
-Each product remains an independent marketplace with its own domain semantics, application experience and business lifecycle.
+See `150-standards/MONOREPO-CONTRACT.md` for the governance contract and `apps/desk/docs/RELEASE_READINESS.md` for the current Z Desk release boundary.
 
-They share selected ZOS capabilities where appropriate.
+## Release discipline
 
-> **One ecosystem. Multiple marketplaces. Shared intelligence. Separate domain ownership.**
-
----
-
-## Core architectural principles
-
-ZOS follows the Architectural Constitution v1.1.
-
-Key principles include:
-
-- Platform capabilities and domain ownership remain explicitly separated.
-- Canonical identity is shared only where stable cross-vertical identity is required.
-- Registry answers **“what is it?”**
-- Data Observations answer **“what was observed about it?”**
-- Domain-specific lifecycles remain owned by their domains.
-- Cross-vertical activation requires explicit consent.
-- AI may assist interpretation and processing but does not automatically author canonical truth.
-- Integration messages are transport mechanisms, not a universal semantic Event model.
-- Shared intelligence does not imply shared ownership of domain semantics.
-
----
-
-# Repository structure
-
-## Operational platform
-
-```text
-apps/
+Convergence work is production-neutral until separately authorised. Passing CI does not itself authorize merge to `main`, live database mutation, provider-account changes, billing changes or production deployment.

@@ -1,0 +1,81 @@
+name: Z Studio Apple Server Foundation
+
+on:
+  push:
+    branches:
+      - feature/zstudio-apple-server-verification-v1
+    paths:
+      - 'apps/studio/commercial/**'
+      - '.github/workflows/zstudio-apple-server-foundation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  foundation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout exact branch authority
+        uses: actions/checkout@v4
+        with:
+          ref: feature/zstudio-apple-server-verification-v1
+          fetch-depth: 0
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Generate exact dependency lock
+        working-directory: apps/studio/commercial
+        run: npm install --package-lock-only --ignore-scripts
+
+      - name: Install from generated lock
+        working-directory: apps/studio/commercial
+        run: npm ci --ignore-scripts
+
+      - name: Check commercial foundation
+        working-directory: apps/studio/commercial
+        run: npm run check
+
+      - name: Test commercial foundation
+        working-directory: apps/studio/commercial
+        run: npm test
+
+      - name: Verify bootstrap mutation boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code -- apps/studio/commercial/store-products.v1.json
+          rm -rf apps/studio/commercial/node_modules
+
+          unexpected="$({ git status --porcelain --untracked-files=all; } \
+            | awk '$2 != "apps/studio/commercial/package-lock.json" { print }')"
+
+          if [ -n "$unexpected" ]; then
+            echo "Unexpected bootstrap mutation(s):"
+            printf '%s\n' "$unexpected"
+            exit 1
+          fi
+
+          test -f apps/studio/commercial/package-lock.json
+
+      - name: Commit generated dependency lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- apps/studio/commercial/package-lock.json \
+             && git ls-files --error-unmatch apps/studio/commercial/package-lock.json >/dev/null 2>&1; then
+            echo "Dependency lock already authoritative."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/studio/commercial/package-lock.json
+          git commit -m "chore(studio): lock Apple server dependencies"
+          git push origin HEAD:feature/zstudio-apple-server-verification-v1

@@ -1,0 +1,93 @@
+name: Z Studio Apple Signed Data Authority
+
+on:
+  push:
+    branches:
+      - feature/zstudio-apple-server-verification-v1
+    paths:
+      - 'apps/studio/commercial/**'
+      - '.github/workflows/zstudio-apple-signed-data-authority.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  signed-data-authority:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout exact branch authority
+        uses: actions/checkout@v4
+        with:
+          ref: feature/zstudio-apple-server-verification-v1
+          fetch-depth: 0
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install exact commercial dependencies
+        working-directory: apps/studio/commercial
+        run: npm ci --ignore-scripts
+
+      - name: Check Apple signed-data source
+        working-directory: apps/studio/commercial
+        run: npm run check
+
+      - name: Test Apple signed-data authority
+        working-directory: apps/studio/commercial
+        run: npm test
+
+      - name: Verify frozen commercial authorities remain unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code -- \
+            apps/studio/commercial/package-lock.json \
+            apps/studio/commercial/store-products.v1.json \
+            apps/studio/commercial/certs/AppleIncRootCertificate.cer \
+            apps/studio/commercial/certs/AppleRootCA-G2.cer \
+            apps/studio/commercial/certs/AppleRootCA-G3.cer
+
+      - name: Record tested signed-data authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          tested_sha="$(git rev-parse HEAD)"
+          marker='apps/studio/commercial/verification/apple-signed-data-core.v1.json'
+          mkdir -p "$(dirname "$marker")"
+
+          cat > "$marker" <<EOF
+          {
+            "authority": "ZSTUDIO_APPLE_SIGNED_DATA_CORE_V1",
+            "result": "PASS",
+            "testedCommit": "$tested_sha",
+            "appleServerLibrary": "@apple/app-store-server-library@3.1.0",
+            "onlineCertificateChecks": true,
+            "rootCertificateCount": 3
+          }
+          EOF
+
+          rm -rf apps/studio/commercial/node_modules
+
+          unexpected="$({ git status --porcelain --untracked-files=all; } \
+            | awk '$2 != "apps/studio/commercial/verification/apple-signed-data-core.v1.json" { print }')"
+          if [ -n "$unexpected" ]; then
+            echo 'Unexpected mutation(s):'
+            printf '%s\n' "$unexpected"
+            exit 1
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$marker"
+          if git diff --cached --quiet; then
+            echo 'Signed-data PASS marker already authoritative.'
+            exit 0
+          fi
+          git commit -m 'test(studio): record Apple signed-data authority pass'
+          git push origin HEAD:feature/zstudio-apple-server-verification-v1

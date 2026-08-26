@@ -1,17 +1,21 @@
 {
-  "name": "my-studio",
+  "name": "@zstudio/app",
   "version": "1.0.0",
   "private": true,
-  "description": "My Studio — ferramenta universal de criação de conteúdo para redes sociais",
+  "description": "Z Studio — cross-platform content-creation product for the ZOS ecosystem.",
   "scripts": {
-    "setup": "npm install --prefix tests && npm install --prefix native",
+    "setup": "npm ci --prefix tests && npm ci --prefix native",
     "dev": "node scripts/dev.js",
     "build": "node scripts/build.js",
     "sync": "npm run build && npm run sync --prefix native",
     "build:android": "npm run sync && cd native/android && ./gradlew assembleDebug",
-    "test": "npm test --prefix tests -- ../app/my-studio.html",
+    "test": "npm run test:content-persistence --prefix tests -- ../app/my-studio.html && npm run test:preview-state --prefix tests -- ../app/my-studio.html && npm run test:mobile --prefix tests -- ../app/my-studio.html && npm test --prefix tests -- ../app/my-studio.html",
+    "test:auth": "npm run build && node tests/auth-session.test.js",
     "test:mobile": "npm run test:mobile --prefix tests -- ../app/my-studio.html",
     "test:layout": "npm run test:layout --prefix tests -- ../app/my-studio.html",
-    "test:visual": "node scripts/test-visual.js"
+    "test:renderer-layer2": "npm run test:renderer-layer2 --prefix tests -- ../app/my-studio.html",
+    "test:ux": "node tests/ux-information-architecture.test.js",
+    "test:visual": "node scripts/test-visual.js",
+    "test:language-ui": "node tests/language-selector-contract.test.js"
   }
 }

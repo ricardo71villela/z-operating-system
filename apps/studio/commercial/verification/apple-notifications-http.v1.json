@@ -1,0 +1,17 @@
+{
+  "authority": "ZSTUDIO_APPLE_NOTIFICATIONS_HTTP_ENDPOINT_V1",
+  "result": "PASS",
+  "testedCommit": "2ad9cb0431ae298f3022490eb85a2f63855b34bc",
+  "route": "/api/apple/notifications",
+  "signedPayloadOnly": true,
+  "bearerAuthRequired": false,
+  "successStatus": 200,
+  "verifiedUnsupportedAcknowledged": true,
+  "appleRetryFailureStatus": "4xx_or_5xx",
+  "reconciliationServiceRequired": true,
+  "writerRequiredBeforeCommercialSuccess": true,
+  "automaticRetry": false,
+  "appStoreConnectConfigured": false,
+  "liveDatabaseMutation": false,
+  "productionDeploymentCreated": false
+}

@@ -1,12 +1,14 @@
 {
   "name": "my-studio-app",
   "version": "1.0.0",
-  "description": "My Studio — wrapper nativo (Capacitor) para iOS e Android",
+  "description": "Z Studio — wrapper nativo (Capacitor) para iOS e Android",
   "private": true,
   "scripts": {
     "sync": "npx cap sync",
     "open:ios": "npx cap open ios",
-    "open:android": "npx cap open android"
+    "open:android": "npx cap open android",
+    "test:billing": "node --test tests/*.test.cjs",
+    "test:google-play": "node --test tests/*.test.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",

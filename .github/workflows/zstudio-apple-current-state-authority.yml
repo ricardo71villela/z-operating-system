@@ -1,0 +1,111 @@
+name: Z Studio Apple Current State Authority
+
+on:
+  push:
+    branches:
+      - feature/zstudio-apple-server-verification-v1
+    paths:
+      - 'apps/studio/commercial/lib/apple-server-api.js'
+      - 'apps/studio/commercial/tests/apple-server-api.test.js'
+      - 'apps/studio/commercial/package.json'
+      - '.github/workflows/zstudio-apple-current-state-authority.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  current-state-authority:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout exact branch authority
+        uses: actions/checkout@v4
+        with:
+          ref: feature/zstudio-apple-server-verification-v1
+          fetch-depth: 0
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install exact commercial dependencies
+        working-directory: apps/studio/commercial
+        run: npm ci --ignore-scripts
+
+      - name: Check commercial server source
+        working-directory: apps/studio/commercial
+        run: npm run check
+
+      - name: Test Apple current-state reconciliation
+        working-directory: apps/studio/commercial
+        run: npm test
+
+      - name: Verify frozen authorities remain untouched
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD^ HEAD -- \
+            apps/studio/commercial/package-lock.json \
+            apps/studio/commercial/store-products.v1.json \
+            apps/studio/commercial/certs/AppleIncRootCertificate.cer \
+            apps/studio/commercial/certs/AppleRootCA-G2.cer \
+            apps/studio/commercial/certs/AppleRootCA-G3.cer \
+            apps/studio/commercial/certs/root-authority.v1.json \
+            apps/studio/commercial/lib/apple-signed-data.js
+
+      - name: Verify read-only reconciliation boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -d apps/studio/commercial/api
+          if grep -E \
+            'zstudio_apply_verified_commercial_event|studio\.billing_events|/rest/v1/|/rpc/' \
+            apps/studio/commercial/lib/apple-server-api.js; then
+            echo 'Unexpected database-write authority in current-state gate.'
+            exit 1
+          fi
+
+      - name: Record tested current-state authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          tested_sha="$(git rev-parse HEAD)"
+          marker='apps/studio/commercial/verification/apple-current-state-reconciliation.v1.json'
+          mkdir -p "$(dirname "$marker")"
+
+          cat > "$marker" <<EOF
+          {
+            "authority": "ZSTUDIO_APPLE_CURRENT_STATE_RECONCILIATION_V1",
+            "result": "PASS",
+            "testedCommit": "$tested_sha",
+            "appleServerLibrary": "@apple/app-store-server-library@3.1.0",
+            "transactionInfoRequired": true,
+            "subscriptionStatusRequired": true,
+            "readOnly": true,
+            "appleRevokedMapsTo": "expired"
+          }
+          EOF
+
+          rm -rf apps/studio/commercial/node_modules
+
+          unexpected="$({ git status --porcelain --untracked-files=all; } \
+            | awk '$2 != "apps/studio/commercial/verification/apple-current-state-reconciliation.v1.json" { print }')"
+          if [ -n "$unexpected" ]; then
+            echo 'Unexpected mutation(s):'
+            printf '%s\n' "$unexpected"
+            exit 1
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$marker"
+          if git diff --cached --quiet; then
+            echo 'Current-state PASS marker already authoritative.'
+            exit 0
+          fi
+          git commit -m 'test(studio): record Apple current-state authority pass'
+          git push origin HEAD:feature/zstudio-apple-server-verification-v1

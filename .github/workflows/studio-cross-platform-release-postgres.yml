@@ -1,0 +1,77 @@
+name: Z Studio Cross-Platform Release PostgreSQL
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "infrastructure/supabase/migrations/20260821010000_zstudio_apple_purchase_preflight_authority_v1.sql"
+      - "infrastructure/supabase/migrations/20260821011000_zstudio_web_customer_portal_authority_v1.sql"
+      - "infrastructure/supabase/tests/zstudio_apple_purchase_preflight_v1.sql"
+      - "infrastructure/supabase/tests/zstudio_web_customer_portal_authority_v1.sql"
+      - ".github/workflows/studio-cross-platform-release-postgres.yml"
+  pull_request:
+    paths:
+      - "infrastructure/supabase/migrations/20260821010000_zstudio_apple_purchase_preflight_authority_v1.sql"
+      - "infrastructure/supabase/migrations/20260821011000_zstudio_web_customer_portal_authority_v1.sql"
+      - "infrastructure/supabase/tests/zstudio_apple_purchase_preflight_v1.sql"
+      - "infrastructure/supabase/tests/zstudio_web_customer_portal_authority_v1.sql"
+      - ".github/workflows/studio-cross-platform-release-postgres.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: zstudio_test_pw
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create disposable Supabase-compatible database
+        env: { PGPASSWORD: zstudio_test_pw }
+        run: |
+          psql -h localhost -U postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE zstudio_cross_platform_test;"
+          psql -h localhost -U postgres -d zstudio_cross_platform_test -v ON_ERROR_STOP=1 -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+          psql -h localhost -U postgres -d zstudio_cross_platform_test -v ON_ERROR_STOP=1 <<'SQL'
+          create role anon nologin;
+          create role authenticated nologin;
+          create role service_role nologin bypassrls;
+          create schema if not exists auth;
+          create table auth.users (id uuid primary key default gen_random_uuid(), email text unique, created_at timestamptz not null default now());
+          create or replace function auth.uid() returns uuid language sql stable as $$
+            select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
+          $$;
+          revoke all on function auth.uid() from public;
+          grant usage on schema auth to anon, authenticated, service_role;
+          grant execute on function auth.uid() to anon, authenticated, service_role;
+          create schema if not exists storage;
+          create table storage.buckets (id text primary key, name text not null unique, public boolean not null default false);
+          create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text not null, name text not null, owner_id uuid);
+          SQL
+      - name: Apply complete migration chain
+        env: { PGPASSWORD: zstudio_test_pw }
+        run: |
+          set -euo pipefail
+          while IFS= read -r migration; do
+            echo "APPLYING ${migration}"
+            psql -h localhost -U postgres -d zstudio_cross_platform_test -v ON_ERROR_STOP=1 -f "${migration}"
+          done < <(find infrastructure/supabase/migrations -maxdepth 1 -type f -name '*.sql' -print | sort)
+      - name: Verify Apple global trial preflight
+        env: { PGPASSWORD: zstudio_test_pw }
+        run: psql -h localhost -U postgres -d zstudio_cross_platform_test -v ON_ERROR_STOP=1 -f infrastructure/supabase/tests/zstudio_apple_purchase_preflight_v1.sql
+      - name: Verify Web Stripe portal authority
+        env: { PGPASSWORD: zstudio_test_pw }
+        run: psql -h localhost -U postgres -d zstudio_cross_platform_test -v ON_ERROR_STOP=1 -f infrastructure/supabase/tests/zstudio_web_customer_portal_authority_v1.sql
+      - name: Final cross-platform authority marker
+        env: { PGPASSWORD: zstudio_test_pw }
+        run: psql -h localhost -U postgres -d zstudio_cross_platform_test -v ON_ERROR_STOP=1 -Atc "select 'ZSTUDIO_CROSS_PLATFORM_POSTGRES_AUTHORITY=PASS';"

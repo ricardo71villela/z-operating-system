@@ -1,0 +1,103 @@
+name: Z Studio Apple Root Authority
+
+on:
+  push:
+    branches:
+      - feature/zstudio-apple-server-verification-v1
+    paths:
+      - '.github/workflows/zstudio-apple-root-authority.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apple-roots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout exact branch authority
+        uses: actions/checkout@v4
+        with:
+          ref: feature/zstudio-apple-server-verification-v1
+          fetch-depth: 0
+
+      - name: Download Apple PKI root certificates
+        shell: bash
+        run: |
+          set -euo pipefail
+          root_dir='apps/studio/commercial/certs'
+          mkdir -p "$root_dir"
+
+          curl --fail --silent --show-error --location \
+            'https://www.apple.com/appleca/AppleIncRootCertificate.cer' \
+            --output "$root_dir/AppleIncRootCertificate.cer"
+          curl --fail --silent --show-error --location \
+            'https://www.apple.com/certificateauthority/AppleRootCA-G2.cer' \
+            --output "$root_dir/AppleRootCA-G2.cer"
+          curl --fail --silent --show-error --location \
+            'https://www.apple.com/certificateauthority/AppleRootCA-G3.cer' \
+            --output "$root_dir/AppleRootCA-G3.cer"
+
+      - name: Verify exact Apple root authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          root_dir='apps/studio/commercial/certs'
+
+          verify_root() {
+            file="$1"
+            expected="$2"
+            openssl x509 -inform DER -in "$root_dir/$file" -noout >/dev/null
+            actual="$(openssl x509 -inform DER -in "$root_dir/$file" -noout -fingerprint -sha256 \
+              | cut -d= -f2 | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+            if [ "$actual" != "$expected" ]; then
+              echo "Unexpected SHA-256 fingerprint for $file"
+              echo "expected=$expected"
+              echo "actual=$actual"
+              exit 1
+            fi
+          }
+
+          verify_root \
+            'AppleIncRootCertificate.cer' \
+            'b0b1730ecbc7ff4505142c49f1295e6eda6bcaed7e2c68c5be91b5a11001f024'
+          verify_root \
+            'AppleRootCA-G2.cer' \
+            'c2b9b042dd57830e7d117dac55ac8ae19407d38e41d88f3215bc3a890444a050'
+          verify_root \
+            'AppleRootCA-G3.cer' \
+            '63343abfb89a6a03ebb57e9b3f5fa7be7c4f5c756f3017b3a8c488c3653e9179'
+
+      - name: Verify exact mutation boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          unexpected="$({ git status --porcelain --untracked-files=all; } \
+            | awk '$2 !~ /^apps\/studio\/commercial\/certs\/(AppleIncRootCertificate|AppleRootCA-G2|AppleRootCA-G3)\.cer$/ { print }')"
+          if [ -n "$unexpected" ]; then
+            echo 'Unexpected mutation(s):'
+            printf '%s\n' "$unexpected"
+            exit 1
+          fi
+
+      - name: Commit verified Apple roots
+        shell: bash
+        run: |
+          set -euo pipefail
+          root_dir='apps/studio/commercial/certs'
+          if git diff --quiet -- "$root_dir" \
+             && [ -z "$(git ls-files --others --exclude-standard "$root_dir")" ]; then
+            echo 'Apple root certificates already authoritative.'
+            exit 0
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            "$root_dir/AppleIncRootCertificate.cer" \
+            "$root_dir/AppleRootCA-G2.cer" \
+            "$root_dir/AppleRootCA-G3.cer"
+          git commit -m 'chore(studio): establish Apple root certificate authority'
+          git push origin HEAD:feature/zstudio-apple-server-verification-v1

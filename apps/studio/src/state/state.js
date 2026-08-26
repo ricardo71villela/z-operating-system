@@ -5,7 +5,7 @@
 // ═══ ESTADO ═══
 const FORMATS = { feed45: [1080, 1350], square: [1080, 1080], story: [1080, 1920], wide: [1920, 1080], pin: [1000, 1500] };
 const state = {
-  lang: 'pt', source: 'upload', format: 'feed45', template: 'classico',
+  lang: 'en', source: 'upload', format: 'feed45', template: 'classico',
   photo: null, img: null,
   title: '', price: '', loc: '', badge: '', showSpecs: true, bg: 'dark',
   photos: [], carPhotos: [], photoFiles: [],

@@ -1,0 +1,440 @@
+/* ZSTUDIO_MOBILE_HEADER_V1
+   Phone header authority:
+   - first bar restores a readable Z Studio identity with a materially larger mark;
+   - from 361px upward, second bar keeps Bulk Generation + account/language on one calm utility row;
+   - at 360px and below, actions fall back to two rows so touch targets and labels never clip;
+   - Sign In / Account and language share one restrained segmented utility control;
+   - no creation-flow, preview, renderer, auth or billing behavior changes.
+*/
+
+@media (max-width: 620px) {
+  header {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100%;
+    min-width: 0;
+    padding: 0 !important;
+    gap: 0 !important;
+    align-items: stretch !important;
+    background: #0b0d0e;
+    border-bottom: 1px solid #34393d;
+  }
+
+  header .brand {
+    width: 100%;
+    min-width: 0;
+    min-height: 66px;
+    display: flex !important;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 11px 16px 10px;
+    border-bottom: 1px solid rgba(177, 184, 189, .16);
+  }
+
+  header #headerLogo {
+    width: 40px !important;
+    height: 40px !important;
+    flex: 0 0 40px;
+    object-fit: contain;
+    opacity: 1;
+  }
+
+  header .brand .tag {
+    min-width: 0;
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 !important;
+    border: 0 !important;
+    font-size: 0 !important;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  header .brand .tag::before {
+    content: 'Z Studio';
+    display: block;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.62rem;
+    line-height: .96;
+    font-style: normal;
+    font-weight: 600;
+    letter-spacing: .012em;
+    color: #f7f4ed;
+    white-space: nowrap;
+  }
+
+  header .brand .tag [data-i18n="headerTagline"] {
+    display: none !important;
+  }
+
+  /* ZSTUDIO_MOBILE_UTILITY_ROW_V1
+     One deliberate utility row on normal phone widths. On the real 390px
+     contract the action box is slightly inset by the app shell; 8px internal
+     padding + a 158px utility segment leaves ~175px for Bulk Generation. */
+  header .header-actions {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 158px !important;
+    grid-template-rows: 44px !important;
+    align-items: stretch;
+    justify-items: stretch;
+    gap: 7px;
+    padding: 10px 8px 12px;
+    margin: 0 !important;
+  }
+
+  header #btnHeaderBulk {
+    grid-column: 1;
+    grid-row: 1;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 7px !important;
+    padding: 9px 10px !important;
+    border-radius: 3px !important;
+    font-size: .61rem !important;
+    line-height: 1.15;
+    letter-spacing: .07em !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis;
+    flex: none !important;
+  }
+
+  /* ZSTUDIO_MOBILE_UTILITY_SEGMENT_V2
+     Sign In + language remain two accessible controls but read as one object.
+     No native iOS select arrow is used; symmetric padding keeps the language
+     code optically centred and a custom chevron remains independent of text. */
+  header .lang-switch {
+    grid-column: 2;
+    grid-row: 1;
+    width: 158px !important;
+    min-width: 158px !important;
+    max-width: 158px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    justify-self: stretch;
+    position: relative;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 56px !important;
+    align-items: stretch;
+    gap: 0 !important;
+    margin: 0 !important;
+    border: 1px solid #565c61;
+    border-radius: 3px;
+    overflow: hidden;
+    background: #0b0d0e;
+  }
+
+  header .lang-switch::before {
+    content: '';
+    position: absolute;
+    right: 56px;
+    top: 8px;
+    bottom: 8px;
+    width: 1px;
+    background: rgba(177, 184, 189, .38);
+    pointer-events: none;
+  }
+
+  header .lang-switch::after {
+    content: '';
+    position: absolute;
+    right: 9px;
+    top: 50%;
+    width: 5px;
+    height: 5px;
+    border-right: 1px solid #9ba0a4;
+    border-bottom: 1px solid #9ba0a4;
+    transform: translateY(-68%) rotate(45deg);
+    transform-origin: center;
+    opacity: .76;
+    pointer-events: none;
+  }
+
+  header #zstudioAuthButton {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    align-self: center;
+    padding: 9px 8px !important;
+    border: 1px solid transparent !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: #c8cccf !important;
+    font-size: .59rem !important;
+    line-height: 1.15;
+    letter-spacing: .065em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: none !important;
+  }
+
+  header #langSwitch {
+    width: 56px !important;
+    min-width: 56px !important;
+    max-width: 56px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    align-self: center;
+    padding: 0 14px !important;
+    border: 1px solid transparent !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: #f1f2ef !important;
+    font-size: .67rem;
+    line-height: 1;
+    text-align: center !important;
+    text-align-last: center !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    flex: none !important;
+  }
+
+  header .lang-switch:focus-within {
+    outline: 2px solid rgba(242, 242, 239, .86);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(76, 157, 225, .12);
+  }
+
+  header #zstudioAuthButton:focus-visible,
+  header #langSwitch:focus-visible {
+    outline: 0 !important;
+    box-shadow: inset 0 0 0 1px rgba(242, 242, 239, .22) !important;
+    background: rgba(255, 255, 255, .035) !important;
+  }
+
+  /* The mobile information-flow runtime predates this header authority and
+     injects legacy compact-header declarations after page CSS. These selectors
+     intentionally outrank only those legacy declarations so there is one
+     deterministic rendered geometry on real phones. */
+  html[data-zstudio-mobile-flow="v2"] body header .header-actions {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: none !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 158px !important;
+    grid-template-rows: 44px !important;
+    flex: none !important;
+    margin: 0 !important;
+    padding: 10px 8px 12px !important;
+    gap: 7px !important;
+  }
+
+  html[data-zstudio-mobile-flow="v2"] body header #btnHeaderBulk {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    padding: 9px 10px !important;
+    border-radius: 3px !important;
+    font-size: .61rem !important;
+    letter-spacing: .07em !important;
+    overflow: hidden !important;
+  }
+
+  html[data-zstudio-mobile-flow="v2"] body header .lang-switch {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    width: 158px !important;
+    min-width: 158px !important;
+    max-width: 158px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 56px !important;
+    justify-self: stretch !important;
+    gap: 0 !important;
+    border: 1px solid #565c61 !important;
+    border-radius: 3px !important;
+    overflow: hidden !important;
+  }
+
+  html[data-zstudio-mobile-flow="v2"] body header #zstudioAuthButton {
+    width: 100% !important;
+    max-width: none !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    border: 1px solid transparent !important;
+    border-radius: 0 !important;
+  }
+
+  html[data-zstudio-mobile-flow="v2"] body header #langSwitch {
+    width: 56px !important;
+    min-width: 56px !important;
+    max-width: 56px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+    border: 1px solid transparent !important;
+    border-radius: 0 !important;
+    text-align: center !important;
+    text-align-last: center !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+  }
+
+  /* ZSTUDIO_MOBILE_BORDER_AUTHORITY_V1
+     One optical border weight throughout the phone UI. Shape may still vary
+     by semantic component (chips stay pills), but stroke weight does not. */
+  header #btnHeaderBulk,
+  .controls select,
+  .controls input[type="text"],
+  .controls input[type="number"],
+  .controls textarea,
+  .controls .btn,
+  .controls .dropzone,
+  .controls .seg button,
+  .controls .chip,
+  .stage .canvas-frame,
+  .stage .export-more-toggle,
+  .stage .caption-mobile-toggle,
+  .stage .zs-assistant-empty-state,
+  .stage .btn {
+    border-width: 1px !important;
+    border-style: solid !important;
+  }
+
+  /* ZSTUDIO_MOBILE_SECTION_ACCENTS_V1
+     The logo rainbow is an accent, never a text treatment. Section titles stay
+     neutral/high-contrast while their 1px continuation line carries the brand. */
+  .controls .step-label {
+    color: #d7dadd;
+  }
+
+  .controls .step-label::after {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 92, 113, .70) 0%,
+      rgba(236, 190, 78, .70) 22%,
+      rgba(95, 194, 145, .68) 46%,
+      rgba(76, 157, 225, .70) 72%,
+      rgba(139, 104, 220, .72) 100%
+    ) !important;
+    opacity: .62;
+  }
+
+  /* Selection gets the same quiet one-pixel signature. The fill remains dark
+     so white text contrast stays stable and selected state is not color-only. */
+  .controls .seg button.active,
+  .controls .chip.active,
+  .caption-box.open .caption-mobile-toggle {
+    color: #f3f4f1 !important;
+    border: 1px solid transparent !important;
+    background:
+      linear-gradient(#141719, #141719) padding-box,
+      linear-gradient(
+        90deg,
+        rgba(255, 92, 113, .72),
+        rgba(236, 190, 78, .70),
+        rgba(95, 194, 145, .68),
+        rgba(76, 157, 225, .70),
+        rgba(139, 104, 220, .72)
+      ) border-box !important;
+  }
+
+  /* Accessible focus stays brighter than decorative accents and includes a
+     non-rainbow luminance change, so focus is not communicated by hue alone. */
+  .controls select:focus-visible,
+  .controls input:focus-visible,
+  .controls textarea:focus-visible,
+  .controls button:focus-visible,
+  .stage button:focus-visible,
+  header #btnHeaderBulk:focus-visible {
+    outline: 2px solid rgba(242, 242, 239, .86) !important;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(76, 157, 225, .12) !important;
+  }
+}
+
+/* Narrow-phone fallback. Below 360px the compact one-row utility would leave
+   too little room for a translated Bulk label, so we deliberately return to
+   two rows while retaining the same visual language and touch sizes. */
+@media (max-width: 360px) {
+  header .brand {
+    min-height: 62px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  header #headerLogo {
+    width: 36px !important;
+    height: 36px !important;
+    flex-basis: 36px;
+  }
+
+  header .brand .tag::before {
+    font-size: 1.48rem;
+  }
+
+  header .header-actions,
+  html[data-zstudio-mobile-flow="v2"] body header .header-actions {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: 44px 44px !important;
+    gap: 7px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
+  header #btnHeaderBulk,
+  html[data-zstudio-mobile-flow="v2"] body header #btnHeaderBulk {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    font-size: .59rem !important;
+    letter-spacing: .065em !important;
+  }
+
+  header .lang-switch,
+  html[data-zstudio-mobile-flow="v2"] body header .lang-switch {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    width: 218px !important;
+    min-width: 218px !important;
+    max-width: 218px !important;
+    height: 44px !important;
+    justify-self: end !important;
+    grid-template-columns: minmax(0, 1fr) 60px !important;
+  }
+
+  header #zstudioAuthButton {
+    font-size: .59rem !important;
+    letter-spacing: .065em !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+
+  header #langSwitch,
+  html[data-zstudio-mobile-flow="v2"] body header #langSwitch {
+    width: 60px !important;
+    min-width: 60px !important;
+    max-width: 60px !important;
+    padding-left: 17px !important;
+    padding-right: 17px !important;
+  }
+
+  header .lang-switch::before {
+    right: 60px;
+  }
+
+  header .lang-switch::after {
+    right: 9px;
+  }
+}

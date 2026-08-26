@@ -63,12 +63,75 @@ test('competências do candidato aparecem na descrição -> fator skills = match
   const r = computeMatchScore(baseCandidate({ skills: ['typescript', 'postgres'] }), baseOffer());
   const skillsFactor = r.factors.find((f) => f.code === 'skills');
   assert.equal(skillsFactor?.level, 'match');
+  assert.equal(skillsFactor?.evidenceSource, 'description_fallback');
 });
 
 test('nenhuma competência em comum -> fator skills = mismatch', () => {
   const r = computeMatchScore(baseCandidate({ skills: ['culinária', 'jardinagem'] }), baseOffer());
   const skillsFactor = r.factors.find((f) => f.code === 'skills');
   assert.equal(skillsFactor?.level, 'mismatch');
+});
+
+test('qualificações obrigatórias explícitas tornam-se a autoridade de evidência de skills', () => {
+  const r = computeMatchScore(
+    baseCandidate({ skills: ['typescript', 'postgres'] }),
+    baseOffer({
+      description: 'Descrição genérica sem requisitos técnicos.',
+      requiredQualifications: 'TypeScript PostgreSQL',
+      preferredQualifications: null,
+    }),
+  );
+  const skills = r.factors.find((f) => f.code === 'skills');
+  assert.equal(skills?.level, 'match');
+  assert.equal(skills?.evidenceSource, 'explicit_requirements');
+  assert.equal(skills?.requiredMatchCount, 2);
+  assert.equal(skills?.preferredMatchCount, 0);
+});
+
+test('match apenas em qualificações preferenciais é partial, nunca prova requisito obrigatório', () => {
+  const r = computeMatchScore(
+    baseCandidate({ skills: ['kubernetes'] }),
+    baseOffer({
+      description: 'Função de plataforma.',
+      requiredQualifications: 'Java Spring Hibernate',
+      preferredQualifications: 'Kubernetes',
+    }),
+  );
+  const skills = r.factors.find((f) => f.code === 'skills');
+  assert.equal(skills?.level, 'partial');
+  assert.equal(skills?.evidenceSource, 'explicit_requirements');
+  assert.equal(skills?.requiredMatchCount, 0);
+  assert.equal(skills?.preferredMatchCount, 1);
+});
+
+test('descrição não pode mascarar incompatibilidade quando existem requisitos explícitos', () => {
+  const r = computeMatchScore(
+    baseCandidate({ skills: ['typescript'] }),
+    baseOffer({
+      description: 'A equipa trabalha diariamente com TypeScript.',
+      requiredQualifications: 'Java Spring Hibernate',
+      preferredQualifications: null,
+    }),
+  );
+  const skills = r.factors.find((f) => f.code === 'skills');
+  assert.equal(skills?.level, 'mismatch');
+  assert.equal(skills?.evidenceSource, 'explicit_requirements');
+});
+
+test('responsabilidades não são silenciosamente tratadas como requisitos', () => {
+  const r = computeMatchScore(
+    baseCandidate({ skills: ['kubernetes'] }),
+    baseOffer({
+      title: 'Platform Engineer',
+      description: 'Função de engenharia de plataforma.',
+      responsibilities: 'Operar Kubernetes em produção.',
+      requiredQualifications: null,
+      preferredQualifications: null,
+    }),
+  );
+  const skills = r.factors.find((f) => f.code === 'skills');
+  assert.equal(skills?.evidenceSource, 'description_fallback');
+  assert.equal(skills?.level, 'mismatch');
 });
 
 test('tipo de contrato desejado corresponde -> match; não corresponde -> mismatch', () => {
@@ -203,7 +266,6 @@ test('parâmetros interpolados corretamente em ambos os idiomas (contagem de com
   }));
   const explained = explainMatchFactors(r.factors, 'pt');
   const skillsFactor = explained.find((f) => f.code === 'skills');
-  // O número exato de competências batidas tem de aparecer na frase, não um placeholder por preencher.
   assert.ok(!skillsFactor?.explanation.includes('{count}'), 'parâmetro não interpolado: ' + skillsFactor?.explanation);
 });
 

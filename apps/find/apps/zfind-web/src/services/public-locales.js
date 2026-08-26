@@ -1,7 +1,7 @@
 /* ============================================================
    Z FIND — PUBLIC LOCALE AUTHORITY
 
-   Phase 4 public language contract:
+   Public language contract:
      fr · en · pt · es · de · it
 
    French is the default public language.
@@ -9,9 +9,10 @@
    Portuguese has ONE public identity: /pt/.
    Persisted Portuguese content remains pt-PT for compatibility.
 
-   ES/DE/IT belong to the Phase-4 six-language contract but are not
-   exposed through the legacy Phase-3 language switch until the new
-   interface ships complete translations for those surfaces.
+   All six public locales now have complete public interface
+   translations. LEGACY_TRANSLATED_LOCALES is retained as a
+   compatibility export for older consumers, but its value now
+   reflects the complete six-language public contract.
    ============================================================ */
 
 (function (root, factory) {
@@ -35,11 +36,12 @@
 
   const DEFAULT_PUBLIC_LOCALE = 'fr';
 
-  const LEGACY_TRANSLATED_LOCALES = Object.freeze([
-    'fr',
-    'en',
-    'pt'
-  ]);
+  const TRANSLATED_PUBLIC_LOCALES = Object.freeze(
+    PUBLIC_LOCALES.slice()
+  );
+
+  // Compatibility export used by the existing public runtime.
+  const LEGACY_TRANSLATED_LOCALES = TRANSLATED_PUBLIC_LOCALES;
 
   const PERSISTED_LOCALE_BY_PUBLIC = Object.freeze({
     fr: 'fr',
@@ -110,6 +112,7 @@
   return Object.freeze({
     PUBLIC_LOCALES,
     DEFAULT_PUBLIC_LOCALE,
+    TRANSLATED_PUBLIC_LOCALES,
     LEGACY_TRANSLATED_LOCALES,
     PERSISTED_LOCALE_BY_PUBLIC,
     FORMAT_LOCALE_BY_PUBLIC,

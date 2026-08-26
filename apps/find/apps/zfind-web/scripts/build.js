@@ -13,16 +13,7 @@
    placeholder-substitution + hard-fail discipline already proven for
    __PATH_D__ (the logo). This build now REQUIRES SUPABASE_URL and
    SUPABASE_ANON_KEY to be set in the builder's environment — it will
-   refuse to produce output otherwise, even though the shipped UI does
-   not yet call into the Supabase services layer (that begins in
-   Sprint 1.2). Proving the plumbing end-to-end now, before wiring the
-   UI to it, is deliberate.
-
-   NOTE: this build's OUTPUT BYTES will differ from every pre-Sprint-1.1
-   reference file (the vendor SDK, config, and 5 services scripts are
-   new content) — this is expected and correct, not a regression. The
-   ZFIND_APPROVED_REFERENCE strict-diff check below is only meaningful
-   against a Sprint-1.1-or-later reference from now on.
+   refuse to produce output otherwise.
 
    Usage: node scripts/build.js
    Output: dist/z-find-prototype.html
@@ -34,7 +25,7 @@ const path = require('path');
 const SRC = path.join(__dirname, '..', 'src');
 const PUBLIC = path.join(__dirname, '..', 'public');
 const DIST = path.join(__dirname, '..', 'dist');
-const APPROVED_REFERENCE = process.env.ZFIND_APPROVED_REFERENCE || null; // optional path to compare against
+const APPROVED_REFERENCE = process.env.ZFIND_APPROVED_REFERENCE || null;
 
 function read(file) {
   const fullPath = path.join(SRC, file);
@@ -79,9 +70,9 @@ function build() {
   const headTop = read('head_top.txt');
   const css = read('css_block.txt');
   const body = read('body.html');
-  const pathD = read('path_data.txt');        // 9th source artifact — the traced logo SVG path
-  const vendorSupabase = read('vendor-supabase.js'); // Supabase JS SDK (UMD build), inlined — no external CDN dependency at runtime
-  const configTemplate = read('config.template.js'); // 10th source artifact — build-time Supabase config injection (Sprint 1.1)
+  const pathD = read('path_data.txt');
+  const vendorSupabase = read('vendor-supabase.js');
+  const configTemplate = read('config.template.js');
   const publicLocalesService = read('services/public-locales.js');
   const publicRoutesService = read('services/public-routes.js');
   const marketRegistryService = read('services/market-registry.js');
@@ -103,15 +94,15 @@ function build() {
   const rentabilityService = read('services/rentability.js');
   const geography = read('geography.js');
   const i18n = read('i18n.js');
+  const i18nPhase4 = read('i18n-phase4.js');
+  const sixLanguageMenu = read('six-language-menu.js');
   const viewmodels = read('viewmodels.js');
   const app = read('app.js');
   const internationalWelcomeService = read('services/international-welcome.js');
   const internationalWelcomeRouteSyncService = read('services/international-welcome-route-sync.js');
 
-  // ---- Logo path placeholder (unchanged since Sprint A) ----
   const resolvedBody = resolvePlaceholders(body, { '__PATH_D__': pathD }, 'body.html');
 
-  // ---- Supabase config placeholders (Sprint 1.1, new) ----
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
   const missingEnv = [];
@@ -151,62 +142,40 @@ function build() {
     + zonesService + '\n'
     + zoneImagesService + '\n'
     + rentabilityService + '\n'
-    + geography + '\n' + i18n + '\n' + viewmodels + '\n' + app
+    + geography + '\n'
+    + i18n + '\n'
+    + i18nPhase4 + '\n'
+    + sixLanguageMenu + '\n'
+    + viewmodels + '\n'
+    + app
     + '\n' + internationalWelcomeService
     + '\n' + internationalWelcomeRouteSyncService
     + '\n</script>\n</body>\n</html>\n';
 
   fs.mkdirSync(DIST, { recursive: true });
 
-  // DESIGN.1D — keep the approved hero visual as a separately cached
-  // public WebP in production, while copying it beside the local
-  // single-file prototype so file:// visual review resolves the same
-  // relative URL without inventing a second source of truth.
-  const heroAsset = path.join(
-    PUBLIC,
-    'brand',
-    'zfind-atlantic-hero.webp'
-  );
-
+  const heroAsset = path.join(PUBLIC, 'brand', 'zfind-atlantic-hero.webp');
   if (!fs.existsSync(heroAsset)) {
-    throw new Error(
-      'BUILD FAILED: approved hero asset missing: public/brand/zfind-atlantic-hero.webp'
-    );
+    throw new Error('BUILD FAILED: approved hero asset missing: public/brand/zfind-atlantic-hero.webp');
   }
 
   const distBrand = path.join(DIST, 'brand');
   fs.mkdirSync(distBrand, { recursive: true });
-  fs.copyFileSync(
-    heroAsset,
-    path.join(distBrand, 'zfind-atlantic-hero.webp')
-  );
+  fs.copyFileSync(heroAsset, path.join(distBrand, 'zfind-atlantic-hero.webp'));
 
-  const marketMapSource = path.join(
-    PUBLIC,
-    'brand',
-    'markets'
-  );
-  const marketMapDest = path.join(
-    distBrand,
-    'markets'
-  );
-  copyDirectoryRecursive(
-    marketMapSource,
-    marketMapDest
-  );
+  const marketMapSource = path.join(PUBLIC, 'brand', 'markets');
+  const marketMapDest = path.join(distBrand, 'markets');
+  copyDirectoryRecursive(marketMapSource, marketMapDest);
 
   const outPath = path.join(DIST, 'z-find-prototype.html');
   fs.writeFileSync(outPath, html);
 
-  const report = {
-    outPath,
-    sizeBytes: Buffer.byteLength(html, 'utf8'),
-  };
-
+  const report = { outPath, sizeBytes: Buffer.byteLength(html, 'utf8') };
   console.log('Built:', report.outPath);
   console.log('Size:', report.sizeBytes, 'bytes');
   console.log('Logo path placeholder: resolved, 0 remaining');
   console.log('Supabase config placeholders: resolved, 0 remaining');
+  console.log('Six-language UI: fr, en, pt, es, de, it');
   console.log('Hero visual asset: copied to dist/brand/zfind-atlantic-hero.webp');
   console.log('Market map assets: copied to dist/brand/markets');
 
@@ -224,8 +193,5 @@ function build() {
   return report;
 }
 
-if (require.main === module) {
-  build();
-}
-
+if (require.main === module) build();
 module.exports = { build };

@@ -46,6 +46,9 @@ jobs:
       - name: Install monorepo dependencies
         run: npm ci
 
+      - name: Verify Railway hosting contract
+        run: node apps/jobs/tools/verify-railway-hosting.mjs
+
       - name: Create database
         env:
           PGPASSWORD: zjobs_dev_pw
@@ -76,6 +79,11 @@ jobs:
         env:
           DATABASE_URL: postgresql://zjobs_app:zjobs_app_dev_pw@localhost:5432/zjobs
         run: npx tsx apps/jobs/apps/api/scripts/verify-vertical-slice.ts
+
+      - name: Verify explicit requirements PostgreSQL matching
+        env:
+          DATABASE_URL: postgresql://zjobs_app:zjobs_app_dev_pw@localhost:5432/zjobs
+        run: npx tsx apps/jobs/apps/api/scripts/verify-explicit-requirements-matching.ts
 
       - name: Verify Supabase JWT cryptography
         run: npx tsx apps/jobs/apps/api/src/supabaseAuth.test.ts

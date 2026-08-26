@@ -1,0 +1,127 @@
+name: Z Studio Paid AI PostgreSQL
+
+on:
+  workflow_dispatch:
+
+  push:
+    paths:
+      - "infrastructure/supabase/migrations/**"
+      - "infrastructure/supabase/tests/zstudio_paid_ai_runtime_v1.sql"
+      - ".github/workflows/studio-paid-ai-postgres.yml"
+
+  pull_request:
+    branches: [main]
+    paths:
+      - "infrastructure/supabase/migrations/**"
+      - "infrastructure/supabase/tests/zstudio_paid_ai_runtime_v1.sql"
+      - ".github/workflows/studio-paid-ai-postgres.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  postgres:
+    name: Atomic paid AI quota + metering
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: zstudio_test_pw
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create disposable Supabase-compatible database
+        env:
+          PGPASSWORD: zstudio_test_pw
+        run: |
+          psql -h localhost -U postgres -v ON_ERROR_STOP=1 \
+            -c "CREATE DATABASE zstudio_paid_ai_test;"
+
+          psql -h localhost -U postgres -d zstudio_paid_ai_test -v ON_ERROR_STOP=1 \
+            -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+
+          psql -h localhost -U postgres -d zstudio_paid_ai_test -v ON_ERROR_STOP=1 <<'SQL'
+          create role anon nologin;
+          create role authenticated nologin;
+          create role service_role nologin bypassrls;
+
+          create schema if not exists auth;
+
+          create table auth.users (
+            id uuid primary key default gen_random_uuid(),
+            email text unique,
+            created_at timestamptz not null default now()
+          );
+
+          create or replace function auth.uid()
+          returns uuid
+          language sql
+          stable
+          as $$
+            select nullif(
+              current_setting('request.jwt.claim.sub', true),
+              ''
+            )::uuid;
+          $$;
+
+          revoke all on function auth.uid() from public;
+
+          grant usage on schema auth
+            to anon, authenticated, service_role;
+
+          grant execute on function auth.uid()
+            to anon, authenticated, service_role;
+
+          -- Minimal disposable Supabase Storage fixture required by the full
+          -- repository migration chain. No production data is used here.
+          create schema if not exists storage;
+
+          create table storage.buckets (
+            id text primary key,
+            name text not null unique,
+            public boolean not null default false
+          );
+
+          create table storage.objects (
+            id uuid primary key default gen_random_uuid(),
+            bucket_id text not null,
+            name text not null,
+            owner_id uuid
+          );
+          SQL
+
+      - name: Apply all Supabase migrations in order
+        env:
+          PGPASSWORD: zstudio_test_pw
+        run: |
+          for f in $(ls infrastructure/supabase/migrations/*.sql | sort); do
+            echo "--- APPLYING $f ---"
+            psql \
+              -h localhost \
+              -U postgres \
+              -d zstudio_paid_ai_test \
+              -v ON_ERROR_STOP=1 \
+              -f "$f"
+          done
+
+      - name: Verify paid AI runtime authority
+        env:
+          PGPASSWORD: zstudio_test_pw
+        run: |
+          psql \
+            -h localhost \
+            -U postgres \
+            -d zstudio_paid_ai_test \
+            -v ON_ERROR_STOP=1 \
+            -f infrastructure/supabase/tests/zstudio_paid_ai_runtime_v1.sql

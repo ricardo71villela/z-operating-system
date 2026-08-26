@@ -10,5 +10,13 @@
   "android": {
     "backgroundColor": "#0A0A0A",
     "allowMixedContent": false
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    },
+    "ZStudioPlayBilling": {
+      "commercialBaseUrl": ""
+    }
   }
 }

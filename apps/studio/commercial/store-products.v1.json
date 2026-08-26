@@ -1,0 +1,71 @@
+{
+  "authority": "ZSTUDIO_STORE_PRODUCT_AUTHORITY_V1",
+  "appId": "com.zoperatingsystem.zstudio",
+  "commercialTargetCurrency": "EUR",
+  "trialDays": 3,
+  "plans": {
+    "weekly": {
+      "billingCadence": "weekly",
+      "commercialTargetPriceMinor": 599,
+      "apple": {
+        "productId": "com.zoperatingsystem.zstudio.subscription.weekly",
+        "subscriptionGroupKey": "zstudio_access",
+        "subscriptionLevel": 1,
+        "introOffer": {
+          "type": "free_trial",
+          "durationDays": 3
+        }
+      },
+      "google": {
+        "productId": "zstudio.access",
+        "basePlanId": "weekly",
+        "offerId": "trial-3d",
+        "offerType": "free_trial",
+        "trialDurationDays": 3,
+        "eligibility": "never_had_subscription"
+      }
+    },
+    "monthly": {
+      "billingCadence": "monthly",
+      "commercialTargetPriceMinor": 1499,
+      "apple": {
+        "productId": "com.zoperatingsystem.zstudio.subscription.monthly",
+        "subscriptionGroupKey": "zstudio_access",
+        "subscriptionLevel": 1,
+        "introOffer": {
+          "type": "free_trial",
+          "durationDays": 3
+        }
+      },
+      "google": {
+        "productId": "zstudio.access",
+        "basePlanId": "monthly",
+        "offerId": "trial-3d",
+        "offerType": "free_trial",
+        "trialDurationDays": 3,
+        "eligibility": "never_had_subscription"
+      }
+    },
+    "annual": {
+      "billingCadence": "annual",
+      "commercialTargetPriceMinor": 11999,
+      "apple": {
+        "productId": "com.zoperatingsystem.zstudio.subscription.annual",
+        "subscriptionGroupKey": "zstudio_access",
+        "subscriptionLevel": 1,
+        "introOffer": {
+          "type": "free_trial",
+          "durationDays": 3
+        }
+      },
+      "google": {
+        "productId": "zstudio.access",
+        "basePlanId": "annual",
+        "offerId": "trial-3d",
+        "offerType": "free_trial",
+        "trialDurationDays": 3,
+        "eligibility": "never_had_subscription"
+      }
+    }
+  }
+}
