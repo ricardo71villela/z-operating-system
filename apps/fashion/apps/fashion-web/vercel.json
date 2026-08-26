@@ -39,6 +39,9 @@
     { "source": "/confidentialite", "destination": "/customer-shell.html" },
     { "source": "/cookies", "destination": "/customer-shell.html" },
     { "source": "/consentement", "destination": "/customer-shell.html" },
+    { "source": "/404", "destination": "/404.html" },
+    { "source": "/erreur", "destination": "/technical-shell.html" },
+    { "source": "/maintenance", "destination": "/technical-shell.html" },
     { "source": "/produit/:slug", "destination": "/customer-shell.html" },
     { "source": "/corner/:slug", "destination": "/customer-shell.html" },
     { "source": "/compte/commandes/:id", "destination": "/customer-shell.html" }
