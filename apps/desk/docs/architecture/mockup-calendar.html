@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8" />
+<title>Z Desk — Calendário</title>
+<style>
+  :root {
+    --white: #FFFFFF; --black: #0A0A0A;
+    --gray-50: #F8F8F6; --gray-100: #F0EFE9; --gray-200: #E2E0D8;
+    --gray-300: #C8C6BC; --gray-400: #9E9C94; --gray-500: #6E6C64;
+    --gray-700: #3A3834; --gray-900: #1A1916;
+    --gold: #B8935A; --gold-light: #D4AF7A; --gold-dark: #8B6B3A; --gold-pale: #F5EDD8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--gray-50); color: var(--gray-900);
+    font-family: 'DM Sans', 'Helvetica Neue', Arial, sans-serif; font-weight: 300;
+  }
+  .shell { max-width: 1040px; margin: 0 auto; padding: 48px 24px 90px; }
+
+  header.page-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 40px; padding-bottom: 24px; border-bottom: 1px solid var(--gray-200);
+  }
+  header.page-head .brand {
+    font-family: Georgia, 'Cormorant Garamond', serif; font-weight: 500; font-size: 15px;
+    letter-spacing: 0.2em; text-transform: uppercase; color: var(--gray-500);
+  }
+  header.page-head h1 {
+    font-family: Georgia, 'Cormorant Garamond', serif; font-weight: 400; font-style: italic;
+    font-size: 36px; margin: 4px 0 0; color: var(--black);
+  }
+  .week-range { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gray-400); }
+
+  .legend { margin-bottom: 28px; }
+  .legend-item { display: inline-block; margin-right: 22px; font-size: 11px; color: var(--gray-500); }
+  .legend-dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 7px; vertical-align: middle; }
+  .legend-dot.confirmed { background: var(--gold); }
+  .legend-dot.suggested { background: var(--white); border: 1.5px dashed var(--gold-light); }
+  .legend-dot.external { background: var(--gray-400); }
+
+  table.grid {
+    width: 100%; border-collapse: collapse; table-layout: fixed;
+    border-top: 1px solid var(--gray-200); border-left: 1px solid var(--gray-200);
+    background: var(--white);
+  }
+  table.grid col.time-col { width: 56px; }
+  table.grid th {
+    padding: 10px 8px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--gray-500); border-right: 1px solid var(--gray-200);
+    border-bottom: 1px solid var(--gray-200); background: var(--white); text-align: center; font-weight: 400;
+  }
+  table.grid th.today { color: var(--gold-dark); font-weight: 500; }
+  table.grid td.time-cell {
+    padding: 6px 8px; font-size: 10px; color: var(--gray-400);
+    border-right: 1px solid var(--gray-200); border-bottom: 1px solid var(--gray-100);
+    text-align: right; background: var(--gray-50); vertical-align: top;
+  }
+  table.grid td.day-cell {
+    height: 46px; border-right: 1px solid var(--gray-200); border-bottom: 1px solid var(--gray-100);
+    background: var(--white); padding: 3px; vertical-align: top;
+  }
+
+  .event {
+    border-radius: 2px; padding: 5px 7px; font-size: 10.5px; line-height: 1.3; color: var(--white);
+  }
+  .event.confirmed { background: var(--gold); }
+  .event.external { background: var(--gray-500); }
+  .event.suggested {
+    background: var(--white); border: 1.5px dashed var(--gold-light); color: var(--gold-dark);
+  }
+  .conf-mini { height: 2px; background: var(--gray-200); border-radius: 1px; margin-top: 4px; }
+  .conf-mini-fill { height: 100%; background: var(--gold-light); }
+
+  .footnote {
+    margin-top: 22px; font-size: 11px; color: var(--gray-400); font-style: italic;
+    border-left: 2px solid var(--gray-200); padding-left: 12px;
+  }
+</style>
+</head>
+<body>
+  <div class="shell">
+    <header class="page-head">
+      <div>
+        <div class="brand">Z Desk</div>
+        <h1>Calendário</h1>
+      </div>
+      <div class="week-range">24–30 de Agosto, 2026</div>
+    </header>
+
+    <div class="legend">
+      <span class="legend-item"><span class="legend-dot confirmed"></span>Confirmado</span>
+      <span class="legend-item"><span class="legend-dot suggested"></span>Sugerido pela IA · por confirmar</span>
+      <span class="legend-item"><span class="legend-dot external"></span>Sincronizado (Google/Outlook)</span>
+    </div>
+
+    <table class="grid">
+      <colgroup>
+        <col class="time-col">
+        <col><col><col><col><col><col><col>
+      </colgroup>
+      <tr>
+        <th></th>
+        <th>Seg 24</th><th>Ter 25</th><th>Qua 26</th><th class="today">Qui 27</th>
+        <th>Sex 28</th><th>Sáb 29</th><th>Dom 30</th>
+      </tr>
+      <tr>
+        <td class="time-cell">09:00</td>
+        <td class="day-cell"></td>
+        <td class="day-cell"><div class="event confirmed">Visita T3, Foz</div></td>
+        <td class="day-cell"></td>
+        <td class="day-cell">
+          <div class="event suggested">
+            Bloco follow-up
+            <div class="conf-mini"><div class="conf-mini-fill" style="width:45%;"></div></div>
+          </div>
+        </td>
+        <td class="day-cell"></td>
+        <td class="day-cell"></td>
+        <td class="day-cell"></td>
+      </tr>
+      <tr>
+        <td class="time-cell">11:00</td>
+        <td class="day-cell"><div class="event external">Reunião parceiros (Outlook)</div></td>
+        <td class="day-cell"></td>
+        <td class="day-cell">
+          <div class="event suggested">
+            João Marques — T2 Matosinhos
+            <div class="conf-mini"><div class="conf-mini-fill" style="width:78%;"></div></div>
+          </div>
+        </td>
+        <td class="day-cell"></td>
+        <td class="day-cell"></td>
+        <td class="day-cell"></td>
+        <td class="day-cell"></td>
+      </tr>
+      <tr>
+        <td class="time-cell">15:30</td>
+        <td class="day-cell"></td>
+        <td class="day-cell"></td>
+        <td class="day-cell"></td>
+        <td class="day-cell"><div class="event confirmed">Follow-up Sra. Duarte</div></td>
+        <td class="day-cell"></td>
+        <td class="day-cell"></td>
+        <td class="day-cell"></td>
+      </tr>
+      <tr>
+        <td class="time-cell">17:00</td>
+        <td class="day-cell"></td>
+        <td class="day-cell"></td>
+        <td class="day-cell"></td>
+        <td class="day-cell"></td>
+        <td class="day-cell"><div class="event external">Angariação Cedofeita (Google)</div></td>
+        <td class="day-cell"></td>
+        <td class="day-cell"></td>
+      </tr>
+    </table>
+
+    <p class="footnote">
+      Eventos sugeridos pela IA (contorno tracejado) nunca aparecem como confirmados — só entram na agenda real depois de uma confirmação humana explícita, feita na vista "Hoje".
+    </p>
+  </div>
+</body>
+</html>
