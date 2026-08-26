@@ -28,11 +28,12 @@ assert.match(runtime, /Stock reservation: Disabled/);
 assert.match(runtime, /Order creation: Disabled/);
 assert.match(runtime, /No real order will be created|Aucune commande réelle ne sera créée/);
 
-for (const id of ['delivery','refunds','help','contact']) assert.match(runtime, new RegExp(`route\.id === '${id}'`));
+for (const id of ['delivery','refunds','help']) assert.match(runtime, new RegExp(`route\.id === '${id}'`));
 assert.match(runtime, /service-card-grid/);
 assert.match(runtime, /return-steps/);
 assert.match(runtime, /faq-list/);
 assert.match(runtime, /previewContact/);
+assert.match(runtime, /contact-form/);
 assert.match(runtime, /Aucun envoi réel|Nothing was sent/);
 
 for (const id of ['legalNotice','termsSale','termsUse','privacy','cookies']) assert.match(runtime, new RegExp(`${id}:`));
