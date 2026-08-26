@@ -150,6 +150,8 @@ jobs:
         run: |
           grep -Fq "const AI_ENDPOINT = 'https://z-studio-platform-seven.vercel.app/api/ai';" src/main.js
           echo "AI_SPLIT_BACKEND_CONTRACT=PASS"
+      - name: Verify passwordless Auth session contract
+        run: npm run test:auth
       - name: Run functional tests with exact transitional assertions allowance
         shell: bash
         run: |
