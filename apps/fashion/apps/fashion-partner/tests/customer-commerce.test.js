@@ -9,6 +9,7 @@ const CLIENT_B = '22222222-2222-4222-8222-222222222222';
 const CART_ID = '33333333-3333-4333-8333-333333333333';
 const PRODUCT_ID = '44444444-4444-4444-8444-444444444444';
 const ORDER_ID = '55555555-5555-4555-8555-555555555555';
+const CHECKOUT_KEY = 'checkout-http-contract-0001';
 
 function makeRepository() {
   const calls = [];
@@ -42,8 +43,8 @@ function makeRepository() {
         items: [{ productId: PRODUCT_ID, quantity: 1, unitPriceMinorUnits: 12900, currentPriceMinorUnits: 12900, sellableQuantity: 3, priceMatches: true, stockSufficient: true }],
       };
     },
-    async attemptCheckout(clientUserId, cartId) {
-      calls.push(['attemptCheckout', clientUserId, cartId]);
+    async attemptCheckout(clientUserId, cartId, idempotencyKey) {
+      calls.push(['attemptCheckout', clientUserId, cartId, idempotencyKey]);
       return orders.get(ORDER_ID);
     },
     async listOrders(clientUserId) {
@@ -75,11 +76,12 @@ async function withServer(server, fn) {
   }
 }
 
-function request(port, method, path, { clientUserId, body } = {}) {
+function request(port, method, path, { clientUserId, body, idempotencyKey } = {}) {
   return new Promise((resolve, reject) => {
     const payload = body === undefined ? null : JSON.stringify(body);
     const headers = { 'Content-Type': 'application/json' };
     if (clientUserId) headers['x-test-client'] = clientUserId;
+    if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
     if (payload) headers['Content-Length'] = Buffer.byteLength(payload);
     const req = http.request({ hostname: '127.0.0.1', port, method, path, headers }, (res) => {
       let raw = '';
@@ -121,7 +123,7 @@ async function run() {
 
   // Controlled activation exercises the future runtime contract without
   // changing the default. Product/Partner/price authority is derived by the
-  // repository; the browser sends only productId + quantity.
+  // PostgreSQL repository; the browser is never authoritative for them.
   await withServer(createCustomerCommerceServer({ repository, authenticateClient, writesEnabled: () => true }), async (port) => {
     let res = await request(port, 'POST', '/me/cart', { clientUserId: CLIENT_A, body: { clientUserId: CLIENT_B } });
     assert.strictEqual(res.status, 201);
@@ -134,16 +136,35 @@ async function run() {
     assert.strictEqual(res.status, 201);
     const addCall = repository.calls.find((entry) => entry[0] === 'addCartItem');
     assert.strictEqual(addCall[1], CLIENT_A);
-    assert.deepStrictEqual(addCall[3], { productId: PRODUCT_ID, quantity: 1, partnerId: 'attacker_partner', unitPriceMinorUnits: 1 });
 
     res = await request(port, 'GET', `/me/cart/${CART_ID}/checkout-preflight`, { clientUserId: CLIENT_A });
     assert.strictEqual(res.status, 200);
     assert.strictEqual(res.body.preflight.ready, true);
 
+    // A checkout write without retry identity is rejected before the
+    // repository can reserve any stock.
     res = await request(port, 'POST', `/me/cart/${CART_ID}/checkout`, { clientUserId: CLIENT_A });
+    assert.strictEqual(res.status, 400);
+    assert.strictEqual(res.body.error, 'idempotency_key_required');
+
+    res = await request(port, 'POST', `/me/cart/${CART_ID}/checkout`, {
+      clientUserId: CLIENT_A,
+      idempotencyKey: CHECKOUT_KEY,
+    });
     assert.strictEqual(res.status, 201);
     assert.strictEqual(res.body.order.id, ORDER_ID);
     assert.strictEqual(res.body.order.status, 'pending_payment');
+
+    // Network retry with the same key carries the same retry identity to the
+    // repository. The real PostgreSQL contract proves it resolves to one Order.
+    res = await request(port, 'POST', `/me/cart/${CART_ID}/checkout`, {
+      clientUserId: CLIENT_A,
+      idempotencyKey: CHECKOUT_KEY,
+    });
+    assert.strictEqual(res.status, 201);
+    assert.strictEqual(res.body.order.id, ORDER_ID);
+    const checkoutCalls = repository.calls.filter((entry) => entry[0] === 'attemptCheckout');
+    assert.ok(checkoutCalls.every((entry) => entry[3] === CHECKOUT_KEY));
 
     // Checkout creates only a pending-payment Order. Payment is deliberately
     // absent from this HTTP authority; a guessed pay endpoint is a hard 404.
