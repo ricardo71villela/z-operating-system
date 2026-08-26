@@ -5,6 +5,7 @@ const root=path.resolve(__dirname,'..');
 const html=fs.readFileSync(path.join(root,'polished.html'),'utf8');
 const launch=fs.readFileSync(path.join(root,'launch.html'),'utf8');
 const css=fs.readFileSync(path.join(root,'polish.css'),'utf8');
+const tile=fs.readFileSync(path.join(root,'brand/zos-mark-white-tile.svg'),'utf8');
 const js=fs.readFileSync(path.join(root,'polish.js'),'utf8');
 const launchJs=fs.readFileSync(path.join(root,'launch-i18n.js'),'utf8');
 const vercel=JSON.parse(fs.readFileSync(path.join(root,'vercel.json'),'utf8'));
@@ -26,6 +27,10 @@ assert.ok(!launch.includes('<div class="footer-zos"><img'),'institutional footer
 assert.ok(!launch.includes('Z OPERATING SYSTEM'),'full system name must not be customer-facing launch copy');
 assert.ok(launch.includes('width:2.2rem;height:2.2rem'),'header logo must not be visually smaller than Fashion initial');
 assert.ok(launch.includes('width:2.45rem;height:2.45rem'),'footer product logo must retain sufficient visual weight');
+assert.ok(css.includes('@media(max-width:1199px)'),'header mark must stay hidden below wide desktop');
+assert.ok(tile.includes('<rect width="1024" height="1024" fill="#ffffff"/>'),'white tile background missing');
+assert.ok(!tile.includes('<image'),'white tile must be pure SVG');
+assert.ok(!tile.includes('data:image'),'white tile must not embed raster data');
 
 for(const locale of ['fr','pt','en','es','it','de']) {
   assert.ok(launchJs.includes(`${locale}:{`)||launchJs.includes(`${locale}: {`),`launch runtime missing locale: ${locale}`);

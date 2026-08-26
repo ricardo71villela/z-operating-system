@@ -10,6 +10,6 @@
 .customer-footer .footer-brand-logo{width:2.85rem;height:3.45rem;display:block;object-fit:contain;object-position:center;flex:0 0 auto;background:none;padding:0;border-radius:0;box-sizing:border-box;filter:none;transform:none}
 .customer-footer .footer-fashion{font-family:"Playfair Display",Georgia,serif;font-size:2.3rem;color:#fff;line-height:1}
 
-@media(max-width:980px){
+@media(max-width:1199px){
   .customer-header .customer-brand-mark{display:none}
 }

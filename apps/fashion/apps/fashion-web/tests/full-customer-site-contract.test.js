@@ -9,6 +9,7 @@ const routes = read('customer-routes.js');
 const runtime = read('customer-site.js');
 const css = read('customer-pages.css');
 const brandCss = read('customer-brand-authority.css');
+const tile = read('brand/zos-mark-white-tile.svg');
 const vercel = JSON.parse(read('vercel.json'));
 
 assert.equal(vercel.cleanUrls, false, 'static .html rewrite destinations require cleanUrls disabled');
@@ -35,6 +36,10 @@ assert.match(brandCss, /customer-brand-logo\{width:3\.2rem;height:3\.2rem/);
 assert.match(brandCss, /customer-brand-logo-dark\{filter:invert\(1\)\}/);
 assert.match(brandCss, /footer-brand-logo\{width:2\.85rem;height:3\.45rem/);
 assert.match(brandCss, /footer-fashion\{font-family:"Playfair Display"/);
+
+assert.match(brandCss, /@media\(max-width:1199px\)/);
+assert.doesNotMatch(tile, /<image\b/);
+assert.doesNotMatch(tile, /data:image/);
 
 const requiredIds = ['new','women','men','kids','sport','accessories','beauty','sale','search','product','corners','corner','privateSale','favourites','bag','login','account','profile','addresses','orders','order','returns','tracking','checkoutIdentify','checkoutDelivery','checkoutPayment','checkoutReview','checkoutConfirmation','delivery','refunds','help','contact','legalNotice','termsSale','termsUse','privacy','cookies','consent'];
 for (const id of requiredIds) assert.match(routes, new RegExp(`id:'${id}'`), `missing route ${id}`);
