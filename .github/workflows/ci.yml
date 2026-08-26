@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - chore/zos-five-app-convergence-v1
+      - feature/zfashion-full-customer-site-v1
   pull_request:
     branches:
       - main

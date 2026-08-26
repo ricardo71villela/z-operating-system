@@ -31,7 +31,7 @@ button,a,input,select{outline-offset:4px}
 .site-footer .footer-brand::before{content:"";width:2.85rem;height:3.45rem;display:block;flex:0 0 auto;background:url('./brand/zos-mark-white-tile.svg') center/contain no-repeat}
 .site-footer .footer-brand>span{font-family:"Playfair Display",Georgia,serif;font-size:2.3rem;line-height:1;color:#fff}
 
-@media(max-width:980px){
+@media(max-width:1199px){
   .site-header .brand::before,.site-header .brand::after{display:none}
 }
 @media(max-width:680px){

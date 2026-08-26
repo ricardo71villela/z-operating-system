@@ -22,7 +22,7 @@ assert.ok(html.includes('sem pagamentos live'), 'preview must disclose payment b
 assert.ok(js.includes('Stock demonstrativo'), 'product detail must disclose stock boundary');
 assert.ok(css.includes('@media(max-width:680px)'), 'mobile responsive contract missing');
 assert.ok(css.includes('prefers-reduced-motion'), 'reduced motion accessibility contract missing');
-assert.equal(vercel.cleanUrls, true);
+assert.equal(vercel.cleanUrls, false, 'static .html rewrite destinations require cleanUrls disabled');
 assert.equal(vercel.trailingSlash, false);
 
 console.log('Z_FASHION_STOREFRONT_PREVIEW_CONTRACT=PASS');
