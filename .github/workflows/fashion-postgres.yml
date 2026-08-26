@@ -6,6 +6,7 @@ on:
       - main
       - chore/zos-five-app-convergence-v1
       - feature/zfashion-full-customer-site-v1
+      - feature/zfashion-checkout-http-v1
     paths:
       - "apps/fashion/**"
       - "packages/geography/**"
@@ -146,6 +147,7 @@ jobs:
         run: |
           npm ci --prefix apps/fashion/apps/fashion-partner
           node apps/fashion/apps/fashion-partner/tests/db.test.js
+          node apps/fashion/apps/fashion-partner/tests/customer-commerce-db.test.js
 
       - name: Final Fashion PostgreSQL marker
         env:
