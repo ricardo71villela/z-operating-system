@@ -1,0 +1,9 @@
+{
+  "name": "@zfashion/admin-preview",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Z Fashion internal operations backoffice Preview.",
+  "scripts": {
+    "test": "node tests/backoffice-contract.test.js"
+  }
+}
