@@ -11,6 +11,14 @@ const css = read('customer-pages.css');
 const brandCss = read('customer-brand-authority.css');
 const vercel = JSON.parse(read('vercel.json'));
 
+assert.equal(vercel.cleanUrls, false, 'static .html rewrite destinations require cleanUrls disabled');
+assert.equal(vercel.outputDirectory, 'public');
+assert.match(vercel.buildCommand, /mkdir -p public/);
+assert.match(vercel.buildCommand, /cp \.\/\*\.html \.\/\*\.css \.\/\*\.js public\//);
+assert.match(vercel.buildCommand, /cp launch\.html public\/index\.html/);
+assert.match(vercel.buildCommand, /cp -R brand public\/brand/);
+assert.match(vercel.buildCommand, /Z_FASHION_STATIC_PREVIEW_BUILD=PASS/);
+
 assert.match(shell, /<html lang="fr-FR" data-locale="fr">/);
 assert.match(shell, /id="localeSelect"/);
 for (const locale of ['fr','pt','en','es','it','de']) assert.match(shell, new RegExp(`<option value="${locale}">`));

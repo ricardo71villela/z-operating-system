@@ -1,7 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "cleanUrls": true,
+  "cleanUrls": false,
   "trailingSlash": false,
+  "buildCommand": "rm -rf public && mkdir -p public && cp ./*.html ./*.css ./*.js public/ && cp launch.html public/index.html && cp -R brand public/brand && echo Z_FASHION_STATIC_PREVIEW_BUILD=PASS",
+  "outputDirectory": "public",
   "rewrites": [
     { "source": "/", "destination": "/launch.html" },
     { "source": "/nouveautes", "destination": "/customer-shell.html" },
