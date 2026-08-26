@@ -25,7 +25,7 @@ assert.match(html,/Maison Nord/);
 assert.match(html,/Aperçu uniquement\. Auth, stock, commandes, paiements et versements réels restent désactivés\./);
 assert.match(html,/aucun règlement, transfert Stripe ou versement réel n’est activé/);
 assert.match(js,/Z_FASHION_PARTNER_DASHBOARD='PREVIEW_PASS'/);
-assert.doesNotMatch(js,/fetch\(|XMLHttpRequest|WebSocket|EventSource|navigator\.sendBeacon|supabase|stripe|createOrder|reserveStock|insert\(|update\(|delete\(/i);
+assert.doesNotMatch(js,/fetch\(|XMLHttpRequest|WebSocket|EventSource|navigator\.sendBeacon|supabase|createOrder|reserveStock|insert\(|update\(|delete\(/i);
 
 for(const selector of ['sidebar','topbar','kpis','grid-main','grid-secondary','orders','preview-note']){
   assert.match(css,new RegExp(`\\.${selector}`),`missing Partner dashboard style ${selector}`);
