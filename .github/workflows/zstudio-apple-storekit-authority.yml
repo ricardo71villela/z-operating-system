@@ -1,0 +1,90 @@
+name: Z Studio Apple StoreKit Authority
+
+on:
+  push:
+    paths:
+      - 'apps/studio/native/ios/**'
+      - 'apps/studio/tests/apple-storekit-native-authority.test.js'
+      - '.github/workflows/zstudio-apple-storekit-authority.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'apps/studio/native/ios/**'
+      - 'apps/studio/tests/apple-storekit-native-authority.test.js'
+      - '.github/workflows/zstudio-apple-storekit-authority.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zstudio-apple-storekit-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apple-storekit-native:
+    name: Apple StoreKit Native Contract
+    runs-on: macos-26
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify static StoreKit authority
+        run: node apps/studio/tests/apple-storekit-native-authority.test.js
+
+      - name: Install native Capacitor dependencies
+        run: npm ci --prefix apps/studio/native
+
+      - name: Prepare native iOS web assets
+        working-directory: apps/studio/native
+        run: npx cap copy ios
+
+      - name: Verify Xcode authority
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          xcodebuild -version
+
+          XCODE_VERSION="$(
+            xcodebuild -version |
+            awk 'NR == 1 { print $2 }'
+          )"
+
+          XCODE_MAJOR="${XCODE_VERSION%%.*}"
+
+          test "$XCODE_MAJOR" -ge 26
+
+          echo "XCODE_MAJOR=$XCODE_MAJOR"
+          echo "PASS: Xcode 26+ authority"
+
+      - name: Compile native iOS StoreKit authority
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "===== XCODE PROJECT SCHEME DISCOVERY ====="
+
+          xcodebuild \
+            -project apps/studio/native/ios/App/App.xcodeproj \
+            -list
+
+          echo "===== SCHEME-DRIVEN SPM BUILD ====="
+
+          xcodebuild \
+            -project apps/studio/native/ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/zstudio-storekit-derived-data" \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+          echo "ZSTUDIO_APPLE_STOREKIT_NATIVE_CI=PASS"
