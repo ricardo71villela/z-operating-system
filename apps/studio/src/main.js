@@ -84,7 +84,9 @@ async function loadDraftIfAny() {
       document.querySelectorAll('#langsSeg button').forEach(b => b.classList.toggle('active', state.brand.langs.has(b.dataset.l)));
     }
     state.lang = meta.lang || state.lang;
-    document.querySelectorAll('#langSwitch button').forEach(b => b.classList.toggle('active', b.dataset.lang === state.lang));
+    const restoredLangSwitch = document.getElementById('langSwitch');
+    if (restoredLangSwitch) restoredLangSwitch.value = state.lang;
+    document.documentElement.lang = state.lang;
     applyUIStrings(); // se o rascunho trouxer outro idioma, a interface já arranca traduzida
     state.smartCrop = meta.smartCrop !== false;
     state.filter = meta.filter || 'auto';
@@ -250,8 +252,8 @@ async function deleteBrandKit() {
 // ═══════════════════════════════════════════════════════════════
 // [UI_STRINGS extraído para src/data/i18n.js — ver ficheiro]
 function uiT(key) {
-  const dict = UI_STRINGS[state.lang] || UI_STRINGS.pt;
-  return (key in dict) ? dict[key] : (UI_STRINGS.pt[key] || '');
+  const dict = UI_STRINGS[state.lang] || UI_STRINGS.en;
+  return (key in dict) ? dict[key] : (UI_STRINGS.en[key] || '');
 }
 function applyUIStrings() {
   document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -687,12 +689,14 @@ function hexToRgb(hex) {
 function rgbToHex(r, g, b) {
   return '#' + [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
 }
-// Define a cor de destaque E a sua versão RGB (para o CSS controlar opacidade —
-// usado pelo brilho ambiente atrás da pré-visualização, que reage à categoria ativa)
+// ZSTUDIO_CONTENT_ACCENT_DECOUPLING_V1
+// A cor escolhida pelo cliente pertence ao CONTEÚDO produzido.
+// A interface Z Studio mantém uma autoridade visual neutra independente.
+// O nome da função é preservado para compatibilidade com os call-sites existentes.
 function setGoldVar(hex) {
-  document.documentElement.style.setProperty('--gold', hex);
   const [r, g, b] = hexToRgb(hex);
-  document.documentElement.style.setProperty('--gold-rgb', `${r},${g},${b}`);
+  document.documentElement.style.setProperty('--content-accent', hex);
+  document.documentElement.style.setProperty('--content-accent-rgb', `${r},${g},${b}`);
 }
 // desloca uma cor em direção ao branco (amt>0) ou ao preto (amt<0), amt entre -1 e 1
 function shade(hex, amt) {
@@ -770,8 +774,13 @@ function fillBg(ctx, W, H, P, y0, y1) {
   ctx.fillRect(0, y0 ?? 0, W, (y1 ?? H) - (y0 ?? 0));
 }
 function setLang(l) {
+  l = SUPPORTED_UI_LANGS.includes(l) ? l : 'en';
   state.lang = l;
-  document.querySelectorAll('#langSwitch button').forEach(b => b.classList.toggle('active', b.dataset.lang === l));
+
+  const languageSelector = document.getElementById('langSwitch');
+  if (languageSelector) languageSelector.value = l;
+
+  document.documentElement.lang = l;
   applyUIStrings(); // a interface muda de idioma junto com o conteúdo — não só o post gerado
   renderBadgeChips();
   renderCategoryExtras();
@@ -1025,6 +1034,168 @@ function wrapN(ctx, txt, maxW, maxLines) {
   if (cur && lines.length < maxLines) lines.push(cur);
   return lines;
 }
+
+// ZSTUDIO_P2_VISUAL_HIERARCHY_V1
+// Approved P2 authority:
+// - empty-state contrast only;
+// - template differentiation unchanged;
+// - Minimalist collision-safe hierarchy;
+// - readable 1–2 line metadata;
+// - locally scaled category extras;
+// - Finance V4 adaptive compact multilingual geometry.
+function wrapAllTextLines(
+  ctx,
+  txt,
+  maxW
+) {
+  const words =
+    String(txt || '')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+
+  const lines = [];
+  let current = '';
+
+  for (const word of words) {
+    const test =
+      current
+        ? current + ' ' + word
+        : word;
+
+    if (
+      current &&
+      ctx.measureText(test).width >
+        maxW
+    ) {
+      lines.push(current);
+      current = word;
+
+    } else {
+      current = test;
+    }
+  }
+
+  if (current) {
+    lines.push(current);
+  }
+
+  return lines;
+}
+
+function fitWrappedText(
+  ctx,
+  txt,
+  maxW,
+  font,
+  minSize,
+  maxSize,
+  maxLines
+) {
+  for (
+    let size = maxSize;
+    size >= minSize;
+    size -= 1
+  ) {
+    ctx.font =
+      font.replace(
+        'SIZE',
+        String(size)
+      );
+
+    const lines =
+      wrapAllTextLines(
+        ctx,
+        txt,
+        maxW
+      );
+
+    if (
+      lines.length <=
+      maxLines
+    ) {
+      return {
+        size,
+        lines,
+        truncated: false
+      };
+    }
+  }
+
+  ctx.font =
+    font.replace(
+      'SIZE',
+      String(minSize)
+    );
+
+  const raw =
+    wrapAllTextLines(
+      ctx,
+      txt,
+      maxW
+    );
+
+  const lines =
+    raw.slice(
+      0,
+      maxLines
+    );
+
+  const truncated =
+    raw.length >
+    maxLines;
+
+  if (
+    truncated &&
+    lines.length
+  ) {
+    let last =
+      lines[
+        lines.length - 1
+      ];
+
+    while (
+      last.length > 1 &&
+      ctx.measureText(
+        last + '…'
+      ).width >
+        maxW
+    ) {
+      const parts =
+        last.split(/\s+/);
+
+      if (
+        parts.length > 1
+      ) {
+        parts.pop();
+        last =
+          parts.join(' ');
+
+      } else {
+        last =
+          last.slice(
+            0,
+            -1
+          );
+      }
+    }
+
+    lines[
+      lines.length - 1
+    ] =
+      last.replace(
+        /[\s.,;:]+$/,
+        ''
+      ) + '…';
+  }
+
+  return {
+    size: minSize,
+    lines,
+    truncated
+  };
+}
+
 // Ficha de produto — universal: até 4 pares rótulo/valor, com presets por categoria
 // (imóveis, carros, viagens, moda, cosmética) ou totalmente livre. O resto fica na legenda.
 // ── Dados extra por categoria (certificado energético, estrelas, alergénios,
@@ -1077,24 +1248,149 @@ function renderCategoryExtras() {
       <div style="display:flex;flex-wrap:wrap;gap:5px;">${SIZE_LIST.map(s =>
         `<button type="button" class="chip${state.sizes.includes(s) ? ' active' : ''}" onclick="toggleSize('${s}')">${s}</button>`).join('')}</div>`;
   } else if (state.category === 'carros') {
-    html += `<label class="f" style="margin-top:14px;">${uiT('financeCalcLabel')}</label>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
-        <div><label class="f" style="margin-top:0;font-size:0.6rem;">${uiT('financeMonths')}</label><input type="number" min="1" value="${state.financeMonths}" oninput="state.financeMonths=+this.value||1; renderCategoryExtras(); scheduleSaveDraft();"></div>
-        <div><label class="f" style="margin-top:0;font-size:0.6rem;">${uiT('financeDown')}</label><input type="number" min="0" max="100" value="${state.financeDownPct}" oninput="state.financeDownPct=+this.value||0; renderCategoryExtras(); scheduleSaveDraft();"></div>
-        <div><label class="f" style="margin-top:0;font-size:0.6rem;">${uiT('financeAPR')}</label><input type="number" min="0" step="0.1" value="${state.financeAPR}" oninput="state.financeAPR=+this.value||0; renderCategoryExtras(); scheduleSaveDraft();"></div>
+    html += `<label class="f finance-extra-title">${uiT('financeCalcLabel')}</label>
+      <div class="finance-grid">
+        <div class="finance-field"><label class="f finance-label">${uiT('financeMonths')}</label><input class="finance-input" type="number" min="1" value="${state.financeMonths}" oninput="state.financeMonths=+this.value||1; renderCategoryExtras(); scheduleSaveDraft();"></div>
+        <div class="finance-field"><label class="f finance-label">${uiT('financeDown')}</label><input class="finance-input" type="number" min="0" max="100" value="${state.financeDownPct}" oninput="state.financeDownPct=+this.value||0; renderCategoryExtras(); scheduleSaveDraft();"></div>
+        <div class="finance-field"><label class="f finance-label">${uiT('financeAPR')}</label><input class="finance-input" type="number" min="0" step="0.1" value="${state.financeAPR}" oninput="state.financeAPR=+this.value||0; renderCategoryExtras(); scheduleSaveDraft();"></div>
       </div>`;
-    const priceNum = parseEuroNumber(state.price);
-    if (priceNum > 0 && state.financeMonths > 0) {
-      const principal = priceNum * (1 - state.financeDownPct / 100);
-      const r = (state.financeAPR / 100) / 12;
-      const n = state.financeMonths;
-      const monthly = Math.round(r > 0 ? (principal * r) / (1 - Math.pow(1 + r, -n)) : principal / n);
-      html += `<div class="hint" style="margin-top:9px;">${uiT('financeEstimate')}: <strong style="color:var(--gold);">≈ ${monthly.toLocaleString(state.lang)}€/${uiT('financeMonthAbbrev')}</strong>
-        <button type="button" class="btn btn-line" style="padding:4px 10px;font-size:0.6rem;margin-left:8px;vertical-align:middle;" onclick="pickBadgeChip('${uiT('financeFromBadgePrefix')} ${monthly}€/${uiT('financeMonthAbbrev')}')">${uiT('financeUseInBadge')}</button></div>`;
+
+    const priceNum =
+      parseEuroNumber(
+        state.price
+      );
+
+    if (
+      priceNum > 0 &&
+      state.financeMonths > 0
+    ) {
+      const principal =
+        priceNum *
+        (
+          1 -
+          state.financeDownPct /
+          100
+        );
+
+      const r =
+        (
+          state.financeAPR /
+          100
+        ) /
+        12;
+
+      const n =
+        state.financeMonths;
+
+      const monthly =
+        Math.round(
+          r > 0
+            ? (
+                principal * r
+              ) /
+              (
+                1 -
+                Math.pow(
+                  1 + r,
+                  -n
+                )
+              )
+            : principal / n
+        );
+
+      html += `<div class="hint finance-summary">${uiT('financeEstimate')}: <strong style="color:var(--gold);">≈ ${monthly.toLocaleString(state.lang)}€/${uiT('financeMonthAbbrev')}</strong>
+        <button type="button" class="btn btn-line finance-button" onclick="pickBadgeChip('${uiT('financeFromBadgePrefix')} ${monthly}€/${uiT('financeMonthAbbrev')}')">${uiT('financeUseInBadge')}</button></div>`;
     }
   }
+
   wrap.innerHTML = html;
+
+  if (
+    state.category === 'carros'
+  ) {
+    applyFinanceAdaptiveLabelRail(
+      wrap
+    );
+  }
 }
+
+function financeRenderedLineCount(
+  label
+) {
+  if (!label) {
+    return 0;
+  }
+
+  const range =
+    document.createRange();
+
+  range.selectNodeContents(
+    label
+  );
+
+  const tops =
+    new Set(
+      [...range.getClientRects()]
+        .filter(
+          rect =>
+            rect.width > 0 &&
+            rect.height > 0
+        )
+        .map(
+          rect =>
+            Math.round(
+              rect.top * 2
+            ) / 2
+        )
+    );
+
+  return Math.max(
+    1,
+    tops.size
+  );
+}
+
+function applyFinanceAdaptiveLabelRail(
+  wrap
+) {
+  const grid =
+    wrap &&
+    wrap.querySelector(
+      '.finance-grid'
+    );
+
+  if (!grid) {
+    return false;
+  }
+
+  grid.classList.remove(
+    'finance-two-line'
+  );
+
+  const labels =
+    [
+      ...grid.querySelectorAll(
+        '.finance-label'
+      )
+    ];
+
+  const requiresTwo =
+    labels.some(
+      label =>
+        financeRenderedLineCount(
+          label
+        ) > 1
+    );
+
+  if (requiresTwo) {
+    grid.classList.add(
+      'finance-two-line'
+    );
+  }
+
+  return requiresTwo;
+}
+
 function pickEnergyRating(l) { state.energyRating = (state.energyRating === l ? '' : l); renderCategoryExtras(); draw(); scheduleSaveDraft(); }
 function pickStarRating(n) { state.starRating = (state.starRating === n ? 0 : n); renderCategoryExtras(); draw(); scheduleSaveDraft(); }
 function toggleAllergen(k) { const i = state.allergens.indexOf(k); if (i >= 0) state.allergens.splice(i, 1); else state.allergens.push(k); renderCategoryExtras(); draw(); scheduleSaveDraft(); }
@@ -1194,10 +1490,10 @@ function drawPlaceholderArt(ctx, W, H, P) {
 
   ctx.save();
   ctx.textAlign = 'center';
-  ctx.fillStyle = P.gold; ctx.globalAlpha = 0.6;
+  ctx.fillStyle = P.gold; ctx.globalAlpha = 0.82;
   ctx.font = `400 ${Math.round(W * 0.026)}px "DM Sans", sans-serif`;
   ctx.fillText(t.emptyHint1, cx, cy + s * 1.9);
-  ctx.globalAlpha = 0.36;
+  ctx.globalAlpha = 0.60;
   ctx.font = `300 ${Math.round(W * 0.0175)}px "DM Sans", sans-serif`;
   ctx.fillText(t.emptyHint2, cx, cy + s * 1.9 + Math.round(W * 0.034));
   ctx.restore();
@@ -1226,7 +1522,7 @@ function drawGridTextBand(ctx, W, H, P, gridH, FS, story, locLine) {
   wrapN(ctx, state.title, W - 128 * FS, 1).forEach(l => { ctx.fillText(l, 56 * FS, y); y += ts + 4; });
   y += 6 * FS;
   ctx.fillStyle = P.muted; ctx.font = `300 ${22 * FS}px "DM Sans", sans-serif`;
-  ctx.fillText('📍 ' + locLine, 56 * FS, y);
+  if (locLine) ctx.fillText('📍 ' + locLine, 56 * FS, y);
   ctx.textAlign = 'right'; ctx.fillStyle = P.goldBig; ctx.font = `500 ${34 * FS}px "Cormorant Garamond", serif`;
   ctx.fillText(state.price, W - 56 * FS, y);
   ctx.textAlign = 'left';
@@ -1235,6 +1531,640 @@ function drawGridTextBand(ctx, W, H, P, gridH, FS, story, locLine) {
     ctx.fillText(footerLine(), 56 * FS, H - 22 * FS);
   });
 }
+
+// ZSTUDIO_COLLAGE_EDITORIAL_MOSAIC_V1
+// 6–8 photos use editorial hierarchy rather than equal-weight rows.
+// The recipe family is selected by the actual photo-area aspect ratio so
+// Story/Pin, Feed/Square and Wide remain coherent without format-specific UX.
+const COLLAGE_EDITORIAL_RECIPES = Object.freeze({
+  vertical: Object.freeze({
+    6: Object.freeze({
+      cols: 3,
+      rows: 3,
+      tiles: Object.freeze([
+        [0, 0, 0, 2, 2],
+        [1, 2, 0, 1, 1],
+        [2, 2, 1, 1, 1],
+        [3, 0, 2, 1, 1],
+        [4, 1, 2, 1, 1],
+        [5, 2, 2, 1, 1]
+      ])
+    }),
+    7: Object.freeze({
+      cols: 3,
+      rows: 4,
+      tiles: Object.freeze([
+        [0, 0, 0, 2, 2],
+        [1, 0, 2, 2, 1],
+        [2, 0, 3, 2, 1],
+        [3, 2, 0, 1, 1],
+        [4, 2, 1, 1, 1],
+        [5, 2, 2, 1, 1],
+        [6, 2, 3, 1, 1]
+      ])
+    }),
+    8: Object.freeze({
+      cols: 3,
+      rows: 4,
+      tiles: Object.freeze([
+        [0, 0, 0, 2, 2],
+        [1, 0, 2, 2, 1],
+        [2, 2, 0, 1, 1],
+        [3, 2, 1, 1, 1],
+        [4, 2, 2, 1, 1],
+        [5, 0, 3, 1, 1],
+        [6, 1, 3, 1, 1],
+        [7, 2, 3, 1, 1]
+      ])
+    })
+  }),
+
+  standard: Object.freeze({
+    6: Object.freeze({
+      cols: 3,
+      rows: 3,
+      tiles: Object.freeze([
+        [0, 0, 0, 2, 2],
+        [1, 2, 0, 1, 1],
+        [2, 2, 1, 1, 1],
+        [3, 0, 2, 1, 1],
+        [4, 1, 2, 1, 1],
+        [5, 2, 2, 1, 1]
+      ])
+    }),
+    7: Object.freeze({
+      cols: 4,
+      rows: 3,
+      tiles: Object.freeze([
+        [0, 0, 0, 2, 2],
+        [1, 2, 0, 2, 1],
+        [2, 2, 1, 2, 1],
+        [3, 0, 2, 1, 1],
+        [4, 1, 2, 1, 1],
+        [5, 2, 2, 1, 1],
+        [6, 3, 2, 1, 1]
+      ])
+    }),
+    8: Object.freeze({
+      cols: 4,
+      rows: 3,
+      tiles: Object.freeze([
+        [0, 0, 0, 2, 2],
+        [1, 2, 0, 2, 1],
+        [2, 2, 1, 1, 1],
+        [3, 3, 1, 1, 1],
+        [4, 0, 2, 1, 1],
+        [5, 1, 2, 1, 1],
+        [6, 2, 2, 1, 1],
+        [7, 3, 2, 1, 1]
+      ])
+    })
+  }),
+
+  wide: Object.freeze({
+    6: Object.freeze({
+      cols: 5,
+      rows: 2,
+      tiles: Object.freeze([
+        [0, 0, 0, 2, 2],
+        [1, 2, 0, 2, 1],
+        [2, 4, 0, 1, 1],
+        [3, 2, 1, 1, 1],
+        [4, 3, 1, 1, 1],
+        [5, 4, 1, 1, 1]
+      ])
+    }),
+    7: Object.freeze({
+      cols: 6,
+      rows: 2,
+      tiles: Object.freeze([
+        [0, 0, 0, 2, 2],
+        [1, 2, 0, 2, 1],
+        [2, 2, 1, 2, 1],
+        [3, 4, 0, 1, 1],
+        [4, 5, 0, 1, 1],
+        [5, 4, 1, 1, 1],
+        [6, 5, 1, 1, 1]
+      ])
+    }),
+    8: Object.freeze({
+      cols: 6,
+      rows: 2,
+      tiles: Object.freeze([
+        [0, 0, 0, 2, 2],
+        [1, 2, 0, 2, 1],
+        [2, 2, 1, 1, 1],
+        [3, 3, 1, 1, 1],
+        [4, 4, 0, 1, 1],
+        [5, 5, 0, 1, 1],
+        [6, 4, 1, 1, 1],
+        [7, 5, 1, 1, 1]
+      ])
+    })
+  })
+});
+
+function getCollageEditorialFamily(W, gridH) {
+  const ratio = W / gridH;
+  if (ratio >= 1.55) return 'wide';
+  if (ratio <= 0.85) return 'vertical';
+  return 'standard';
+}
+
+function getCollageEditorialRecipe(W, gridH, count) {
+  const family = getCollageEditorialFamily(W, gridH);
+  const recipes = COLLAGE_EDITORIAL_RECIPES[family];
+  return recipes[count] || null;
+}
+
+function drawCollageEditorialRecipe(ctx, imgs, W, gridH, gap, recipe) {
+  const unitW =
+    (W - gap * (recipe.cols - 1)) / recipe.cols;
+
+  const unitH =
+    (gridH - gap * (recipe.rows - 1)) / recipe.rows;
+
+  recipe.tiles.forEach(([imgIdx, col, row, spanW, spanH]) => {
+    const img = imgs[imgIdx];
+    if (!img) return;
+
+    const x = col * (unitW + gap);
+    const y = row * (unitH + gap);
+
+    const w =
+      spanW * unitW +
+      (spanW - 1) * gap;
+
+    const h =
+      spanH * unitH +
+      (spanH - 1) * gap;
+
+    smartCoverDraw(ctx, img, x, y, w, h);
+  });
+}
+
+
+// ZSTUDIO_WIDE_PORTRAIT_CINEMATIC_RIGHT_V2
+//
+// Wide 16:9 + portrait source:
+// preserve the complete portrait by default and use sampled colour only
+// to extend the composition to the left. No blurred/scaled copy of the
+// photograph is ever drawn into the background.
+//
+// Only the three single-photo listing templates use this path:
+// Classic, Editorial and Minimalist. Collage, Before/After and photo
+// carousel slides retain their existing renderer.
+//
+// The foreground still uses smartCoverDraw inside an aspect-matched
+// contain rectangle, preserving photo filters and manual zoom/pan.
+const WIDE_PORTRAIT_CINEMATIC_STYLES = Object.freeze({
+  classico: Object.freeze({
+    toneAlpha: 0.70,
+    leftBlack: 0.94,
+    midBlack: 0.54,
+    rightBlack: 0.16,
+    shadowAlpha: 0.18,
+    shadowBlur: 18
+  }),
+
+  editorial: Object.freeze({
+    toneAlpha: 0.52,
+    leftBlack: 0.97,
+    midBlack: 0.66,
+    rightBlack: 0.28,
+    shadowAlpha: 0.08,
+    shadowBlur: 10
+  }),
+
+  minimalista: Object.freeze({
+    toneAlpha: 0.34,
+    leftBlack: 0.985,
+    midBlack: 0.78,
+    rightBlack: 0.44,
+    shadowAlpha: 0,
+    shadowBlur: 0
+  })
+});
+
+const widePortraitToneCache =
+  new WeakMap();
+
+function isWidePortraitCinematicEligible(img) {
+  return !!(
+    img &&
+    state.format === 'wide' &&
+    img.height > img.width * 1.05
+  );
+}
+
+function getWidePortraitCinematicGeometry(
+  img,
+  x,
+  y,
+  w,
+  h
+) {
+  const iw =
+    img.naturalWidth ||
+    img.width;
+
+  const ih =
+    img.naturalHeight ||
+    img.height;
+
+  const maxW =
+    w * 0.58;
+
+  const maxH =
+    h * 0.96;
+
+  const scale =
+    Math.min(
+      maxW / iw,
+      maxH / ih
+    );
+
+  const dw =
+    iw * scale;
+
+  const dh =
+    ih * scale;
+
+  const sidePad =
+    Math.max(
+      20,
+      w * 0.024
+    );
+
+  const dx =
+    x +
+    w -
+    dw -
+    sidePad;
+
+  const dy =
+    y +
+    (h - dh) / 2;
+
+  return {
+    x: dx,
+    y: dy,
+    w: dw,
+    h: dh,
+    sourceVisiblePct: 100,
+    heightOccupancyPct:
+      100 * dh / h,
+    widthOccupancyPct:
+      100 * dw / w
+  };
+}
+
+function sampleWidePortraitTones(img) {
+  if (
+    widePortraitToneCache.has(img)
+  ) {
+    return widePortraitToneCache.get(img);
+  }
+
+  // Conservative neutral fallback for any canvas/CORS failure.
+  let tones = [
+    [22, 22, 22],
+    [18, 18, 18],
+    [14, 14, 14]
+  ];
+
+  try {
+    const c =
+      document.createElement('canvas');
+
+    c.width = 12;
+    c.height = 12;
+
+    const ctx =
+      c.getContext(
+        '2d',
+        {
+          willReadFrequently: true
+        }
+      );
+
+    ctx.drawImage(
+      img,
+      0,
+      0,
+      12,
+      12
+    );
+
+    const data =
+      ctx.getImageData(
+        0,
+        0,
+        12,
+        12
+      ).data;
+
+    const bands = [
+      [0, 4],
+      [4, 8],
+      [8, 12]
+    ];
+
+    tones =
+      bands.map(
+        ([start, end]) => {
+          let r = 0;
+          let g = 0;
+          let b = 0;
+          let n = 0;
+
+          for (
+            let yy = start;
+            yy < end;
+            yy++
+          ) {
+            for (
+              let xx = 0;
+              xx < 12;
+              xx++
+            ) {
+              const i =
+                (
+                  yy * 12 +
+                  xx
+                ) * 4;
+
+              r += data[i];
+              g += data[i + 1];
+              b += data[i + 2];
+              n++;
+            }
+          }
+
+          return [
+            Math.round(r / n),
+            Math.round(g / n),
+            Math.round(b / n)
+          ];
+        }
+      );
+
+  } catch (error) {
+    // Cross-origin or unreadable canvas:
+    // retain the neutral sampled-tone fallback.
+  }
+
+  widePortraitToneCache.set(
+    img,
+    tones
+  );
+
+  return tones;
+}
+
+function widePortraitRgba(
+  rgb,
+  alpha
+) {
+  return (
+    'rgba(' +
+    rgb[0] +
+    ',' +
+    rgb[1] +
+    ',' +
+    rgb[2] +
+    ',' +
+    alpha +
+    ')'
+  );
+}
+
+function drawWidePortraitCinematicRight(
+  ctx,
+  img,
+  x,
+  y,
+  w,
+  h,
+  applyManualAdjust,
+  template
+) {
+  if (
+    !isWidePortraitCinematicEligible(img)
+  ) {
+    return false;
+  }
+
+  const style =
+    WIDE_PORTRAIT_CINEMATIC_STYLES[
+      template
+    ] ||
+    WIDE_PORTRAIT_CINEMATIC_STYLES
+      .editorial;
+
+  const tones =
+    sampleWidePortraitTones(img);
+
+  const geometry =
+    getWidePortraitCinematicGeometry(
+      img,
+      x,
+      y,
+      w,
+      h
+    );
+
+  ctx.save();
+
+  ctx.beginPath();
+
+  ctx.rect(
+    x,
+    y,
+    w,
+    h
+  );
+
+  ctx.clip();
+
+  // Only flat sampled RGB values reach the visible background.
+  // No recognizable copy of the source image can appear here.
+  const vertical =
+    ctx.createLinearGradient(
+      0,
+      y,
+      0,
+      y + h
+    );
+
+  vertical.addColorStop(
+    0,
+    widePortraitRgba(
+      tones[0],
+      style.toneAlpha
+    )
+  );
+
+  vertical.addColorStop(
+    0.5,
+    widePortraitRgba(
+      tones[1],
+      style.toneAlpha
+    )
+  );
+
+  vertical.addColorStop(
+    1,
+    widePortraitRgba(
+      tones[2],
+      style.toneAlpha
+    )
+  );
+
+  ctx.fillStyle =
+    vertical;
+
+  ctx.fillRect(
+    x,
+    y,
+    w,
+    h
+  );
+
+  const horizontal =
+    ctx.createLinearGradient(
+      x,
+      0,
+      x + w,
+      0
+    );
+
+  horizontal.addColorStop(
+    0,
+    'rgba(0,0,0,' +
+      style.leftBlack +
+      ')'
+  );
+
+  horizontal.addColorStop(
+    0.50,
+    'rgba(0,0,0,' +
+      style.midBlack +
+      ')'
+  );
+
+  horizontal.addColorStop(
+    0.78,
+    'rgba(0,0,0,' +
+      style.rightBlack +
+      ')'
+  );
+
+  horizontal.addColorStop(
+    1,
+    'rgba(0,0,0,' +
+      Math.max(
+        0.08,
+        style.rightBlack -
+          0.08
+      ) +
+      ')'
+  );
+
+  ctx.fillStyle =
+    horizontal;
+
+  ctx.fillRect(
+    x,
+    y,
+    w,
+    h
+  );
+
+  if (
+    style.shadowAlpha >
+    0
+  ) {
+    ctx.save();
+
+    ctx.shadowColor =
+      'rgba(0,0,0,' +
+      style.shadowAlpha +
+      ')';
+
+    ctx.shadowBlur =
+      style.shadowBlur;
+
+    ctx.shadowOffsetX = -2;
+    ctx.shadowOffsetY = 3;
+
+    // Aspect-matched target => neutral state preserves 100% source.
+    // smartCoverDraw also keeps the existing filter/manual-adjust contract.
+    smartCoverDraw(
+      ctx,
+      img,
+      geometry.x,
+      geometry.y,
+      geometry.w,
+      geometry.h,
+      applyManualAdjust
+    );
+
+    ctx.restore();
+
+  } else {
+    smartCoverDraw(
+      ctx,
+      img,
+      geometry.x,
+      geometry.y,
+      geometry.w,
+      geometry.h,
+      applyManualAdjust
+    );
+  }
+
+  ctx.restore();
+
+  return true;
+}
+
+function drawPrimaryTemplatePhoto(
+  ctx,
+  img,
+  x,
+  y,
+  w,
+  h,
+  applyManualAdjust,
+  template
+) {
+  if (
+    drawWidePortraitCinematicRight(
+      ctx,
+      img,
+      x,
+      y,
+      w,
+      h,
+      applyManualAdjust,
+      template
+    )
+  ) {
+    return;
+  }
+
+  smartCoverDraw(
+    ctx,
+    img,
+    x,
+    y,
+    w,
+    h,
+    applyManualAdjust
+  );
+}
+
 async function drawListing(ctx, W, H) {
   const P = pal();
   const story = state.format === 'story';
@@ -1246,7 +2176,7 @@ async function drawListing(ctx, W, H) {
   const locLine = state.loc || '';
 
   if (state.template === 'classico') {
-    if (state.img) smartCoverDraw(ctx, state.img, 0, 0, W, H, true);
+    if (state.img) drawPrimaryTemplatePhoto(ctx, state.img, 0, 0, W, H, true, 'classico');
     const g = ctx.createLinearGradient(0, H * 0.42, 0, H);
     g.addColorStop(0, `rgba(${P.gradRGB},0)`); g.addColorStop(0.6, `rgba(${P.gradRGB},0.78)`); g.addColorStop(1, `rgba(${P.gradRGB},0.97)`);
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
@@ -1285,16 +2215,65 @@ async function drawListing(ctx, W, H) {
     tLines.forEach((l, i) => ctx.fillText(l, W / 2, titleYs[i]));
 
     ctx.fillStyle = P.muted; ctx.font = `300 ${30*FS}px "DM Sans", sans-serif`;
-    ctx.fillText('📍 ' + locLine, W / 2, locY);
+    if (locLine) ctx.fillText('📍 ' + locLine, W / 2, locY);
 
     if (specs) {
-      ctx.strokeStyle = P.rule; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(W/2 - 200*FS, specsY - 42*FS); ctx.lineTo(W/2 + 200*FS, specsY - 42*FS); ctx.stroke();
+      const specFit =
+        fitWrappedText(
+          ctx,
+          specs,
+          W - 140*FS,
+          '300 SIZEpx "DM Sans", sans-serif',
+          20*FS,
+          28*FS,
+          2
+        );
+
+      const specStep =
+        specFit.size +
+        6*FS;
+
+      const specFirstY =
+        specsY -
+        (
+          specFit.lines.length -
+          1
+        ) *
+        specStep;
+
+      ctx.strokeStyle = P.rule;
+      ctx.lineWidth = 1;
+
+      ctx.beginPath();
+
+      ctx.moveTo(
+        W/2 - 200*FS,
+        specFirstY - 30*FS
+      );
+
+      ctx.lineTo(
+        W/2 + 200*FS,
+        specFirstY - 30*FS
+      );
+
+      ctx.stroke();
+
       ctx.fillStyle = P.gold;
-      // a ficha universal pode ter texto bem mais comprido do que "3 quartos" — encolhe até caber
-      const ss = fitText(ctx, specs, W - 140*FS, '300 SIZEpx "DM Sans", sans-serif', 15*FS, 28*FS);
-      ctx.font = `300 ${ss}px "DM Sans", sans-serif`;
-      ctx.fillText(specs, W / 2, specsY);
+
+      ctx.font =
+        `300 ${specFit.size}px "DM Sans", sans-serif`;
+
+      specFit.lines.forEach(
+        (line, index) => {
+          ctx.fillText(
+            line,
+            W / 2,
+            specFirstY +
+              index *
+              specStep
+          );
+        }
+      );
     }
     watermark(() => {
       ctx.fillStyle = P.faint; ctx.font = `300 ${22*FS}px "DM Sans", sans-serif`;
@@ -1302,32 +2281,513 @@ async function drawListing(ctx, W, H) {
     });
 
   } else if (state.template === 'minimalista') {
-    const barH = (story ? 300 : 220) * FS;
-    if (state.img) smartCoverDraw(ctx, state.img, 0, 0, W, H - barH, true);
-    fillBg(ctx, W, H, P, H - barH, H);
-    ctx.strokeStyle = P.rule; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(0, H - barH); ctx.lineTo(W, H - barH); ctx.stroke();
+    const p2MinimalHierarchy =
+      state.format === 'feed45' ||
+      state.format === 'story' ||
+      state.format === 'wide';
 
-    if (state.badge) {
-      ctx.textAlign = 'left'; ctx.fillStyle = P.gold; ctx.font = `400 ${22*FS}px "DM Sans", sans-serif`;
-      spacedLeft(ctx, state.badge.toUpperCase(), 64*FS, H - barH + 46*FS, 6*FS);
+    if (!p2MinimalHierarchy) {
+      // Square + Pin retain the pre-P2 renderer path.
+      const barH =
+        (
+          story
+            ? 300
+            : 220
+        ) * FS;
+
+      if (state.img) {
+        drawPrimaryTemplatePhoto(
+          ctx,
+          state.img,
+          0,
+          0,
+          W,
+          H - barH,
+          true,
+          'minimalista'
+        );
+      }
+
+      fillBg(
+        ctx,
+        W,
+        H,
+        P,
+        H - barH,
+        H
+      );
+
+      ctx.strokeStyle = P.rule;
+      ctx.lineWidth = 1;
+
+      ctx.beginPath();
+      ctx.moveTo(0, H - barH);
+      ctx.lineTo(W, H - barH);
+      ctx.stroke();
+
+      if (state.badge) {
+        ctx.textAlign = 'left';
+        ctx.fillStyle = P.gold;
+        ctx.font =
+          `400 ${22*FS}px "DM Sans", sans-serif`;
+
+        spacedLeft(
+          ctx,
+          state.badge.toUpperCase(),
+          64*FS,
+          H - barH + 46*FS,
+          6*FS
+        );
+      }
+
+      ctx.textAlign = 'left';
+      ctx.fillStyle = P.ink;
+
+      const ts =
+        fitText(
+          ctx,
+          state.title,
+          W - 128*FS,
+          '500 SIZEpx "DM Sans", sans-serif',
+          30*FS,
+          44*FS
+        );
+
+      let y =
+        H - barH +
+        100*FS;
+
+      ctx.font =
+        `500 ${ts}px "DM Sans", sans-serif`;
+
+      wrapN(
+        ctx,
+        state.title,
+        W - 128*FS,
+        2
+      ).forEach(
+        line => {
+          ctx.fillText(
+            line,
+            64*FS,
+            y
+          );
+
+          y +=
+            ts +
+            8*FS;
+        }
+      );
+
+      ctx.fillStyle = P.muted;
+      ctx.font =
+        `300 ${24*FS}px "DM Sans", sans-serif`;
+
+      if (locLine) {
+        ctx.fillText(
+          '📍 ' + locLine,
+          64*FS,
+          y + 8*FS
+        );
+      }
+
+      ctx.textAlign = 'right';
+      ctx.fillStyle = P.goldBig;
+      ctx.font =
+        `500 ${40*FS}px "Cormorant Garamond", serif`;
+
+      ctx.fillText(
+        state.price,
+        W - 64*FS,
+        H - barH +
+          100*FS
+      );
+
+      ctx.textAlign = 'left';
+
+      watermark(
+        () => {
+          ctx.fillStyle = P.faint;
+
+          ctx.font =
+            `300 ${19*FS}px "DM Sans", sans-serif`;
+
+          ctx.fillText(
+            footerLine(),
+            64*FS,
+            H - 28*FS
+          );
+        }
+      );
+
+    } else {
+      const barH =
+        (
+          story
+            ? 300
+            : 220
+        ) * FS;
+
+      const barTop =
+        H - barH;
+
+      if (state.img) {
+        drawPrimaryTemplatePhoto(
+          ctx,
+          state.img,
+          0,
+          0,
+          W,
+          barTop,
+          true,
+          'minimalista'
+        );
+      }
+
+      fillBg(
+        ctx,
+        W,
+        H,
+        P,
+        barTop,
+        H
+      );
+
+      ctx.strokeStyle = P.rule;
+      ctx.lineWidth = 1;
+
+      ctx.beginPath();
+      ctx.moveTo(
+        0,
+        barTop
+      );
+      ctx.lineTo(
+        W,
+        barTop
+      );
+      ctx.stroke();
+
+      const left =
+        64 * FS;
+
+      const right =
+        W -
+        64 * FS;
+
+      if (
+        state.format ===
+        'wide'
+      ) {
+        // Wide approved candidate:
+        // measured price reservation, no collision.
+        if (state.badge) {
+          ctx.textAlign = 'left';
+          ctx.fillStyle = P.gold;
+
+          ctx.font =
+            `400 ${22*FS}px "DM Sans", sans-serif`;
+
+          spacedLeft(
+            ctx,
+            state.badge.toUpperCase(),
+            left,
+            barTop +
+              46*FS,
+            6*FS
+          );
+        }
+
+        const priceFont =
+          40 * FS;
+
+        ctx.font =
+          `500 ${priceFont}px "Cormorant Garamond", serif`;
+
+        const priceWidth =
+          ctx.measureText(
+            state.price
+          ).width;
+
+        const safetyGap =
+          42 * FS;
+
+        const titleMaxW =
+          Math.max(
+            220 * FS,
+            right -
+            priceWidth -
+            safetyGap -
+            left
+          );
+
+        const titleFit =
+          fitWrappedText(
+            ctx,
+            state.title,
+            titleMaxW,
+            '500 SIZEpx "DM Sans", sans-serif',
+            30*FS,
+            44*FS,
+            2
+          );
+
+        const footerY =
+          H -
+          28*FS;
+
+        const lineStep =
+          titleFit.size +
+          7*FS;
+
+        let titleStart =
+          barTop +
+          (
+            titleFit.lines.length > 1
+              ? 80
+              : 100
+          ) * FS;
+
+        let locationY =
+          titleStart +
+          (
+            titleFit.lines.length -
+            1
+          ) *
+          lineStep +
+          titleFit.size +
+          15*FS;
+
+        const maxLocationY =
+          footerY -
+          31*FS;
+
+        if (
+          locationY >
+          maxLocationY
+        ) {
+          const shift =
+            locationY -
+            maxLocationY;
+
+          titleStart -= shift;
+          locationY -= shift;
+        }
+
+        ctx.textAlign = 'left';
+        ctx.fillStyle = P.ink;
+
+        ctx.font =
+          `500 ${titleFit.size}px "DM Sans", sans-serif`;
+
+        titleFit.lines.forEach(
+          (line, index) => {
+            ctx.fillText(
+              line,
+              left,
+              titleStart +
+                index *
+                lineStep
+            );
+          }
+        );
+
+        ctx.fillStyle = P.muted;
+
+        ctx.font =
+          `300 ${24*FS}px "DM Sans", sans-serif`;
+
+        if (locLine) {
+          ctx.fillText(
+            '📍 ' + locLine,
+            left,
+            locationY
+          );
+        }
+
+        ctx.textAlign = 'right';
+        ctx.fillStyle = P.goldBig;
+
+        ctx.font =
+          `500 ${priceFont}px "Cormorant Garamond", serif`;
+
+        ctx.fillText(
+          state.price,
+          right,
+          barTop +
+            100*FS
+        );
+
+        ctx.textAlign = 'left';
+
+        watermark(
+          () => {
+            ctx.fillStyle = P.faint;
+
+            ctx.font =
+              `300 ${20*FS}px "DM Sans", sans-serif`;
+
+            ctx.fillText(
+              footerLine(),
+              left,
+              footerY
+            );
+          }
+        );
+
+      } else {
+        // Feed V2.1 + Story V2:
+        // badge/price header row,
+        // title owns width underneath.
+        const headerY =
+          barTop +
+          (
+            story
+              ? 42
+              : 30
+          ) * FS;
+
+        if (state.badge) {
+          ctx.textAlign = 'left';
+          ctx.fillStyle = P.gold;
+
+          ctx.font =
+            `400 ${20*FS}px "DM Sans", sans-serif`;
+
+          spacedLeft(
+            ctx,
+            state.badge.toUpperCase(),
+            left,
+            headerY,
+            5*FS
+          );
+        }
+
+        const priceSize =
+          (
+            story
+              ? 40
+              : 34
+          ) * FS;
+
+        ctx.textAlign = 'right';
+        ctx.fillStyle = P.goldBig;
+
+        ctx.font =
+          `500 ${priceSize}px "Cormorant Garamond", serif`;
+
+        ctx.fillText(
+          state.price,
+          right,
+          headerY +
+            3*FS
+        );
+
+        const titleFit =
+          fitWrappedText(
+            ctx,
+            state.title,
+            W - 128*FS,
+            '500 SIZEpx "DM Sans", sans-serif',
+            31*FS,
+            (
+              story
+                ? 40
+                : 36
+            ) * FS,
+            2
+          );
+
+        const titleY =
+          barTop +
+          (
+            story
+              ? 91
+              : 72
+          ) * FS;
+
+        const lineStep =
+          titleFit.size +
+          (
+            story
+              ? 6
+              : 4
+          ) * FS;
+
+        ctx.textAlign = 'left';
+        ctx.fillStyle = P.ink;
+
+        ctx.font =
+          `500 ${titleFit.size}px "DM Sans", sans-serif`;
+
+        titleFit.lines.forEach(
+          (line, index) => {
+            ctx.fillText(
+              line,
+              left,
+              titleY +
+                index *
+                lineStep
+            );
+          }
+        );
+
+        const locationY =
+          titleY +
+          (
+            titleFit.lines.length -
+            1
+          ) *
+          lineStep +
+          titleFit.size +
+          (
+            story
+              ? 17
+              : 10
+          ) * FS;
+
+        ctx.fillStyle = P.muted;
+
+        ctx.font =
+          `300 ${
+            (
+              story
+                ? 22
+                : 20
+            ) * FS
+          }px "DM Sans", sans-serif`;
+
+        if (locLine) {
+          ctx.fillText(
+            '📍 ' + locLine,
+            left,
+            locationY
+          );
+        }
+
+        const footerY =
+          H -
+          (
+            story
+              ? 24
+              : 20
+          ) * FS;
+
+        watermark(
+          () => {
+            ctx.fillStyle = P.faint;
+
+            ctx.font =
+              `300 ${20*FS}px "DM Sans", sans-serif`;
+
+            ctx.fillText(
+              footerLine(),
+              left,
+              footerY
+            );
+          }
+        );
+      }
     }
-    ctx.textAlign = 'left'; ctx.fillStyle = P.ink;
-    const ts = fitText(ctx, state.title, W - 128*FS, '500 SIZEpx "DM Sans", sans-serif', 30*FS, 44*FS);
-    let y = H - barH + 100*FS;
-    ctx.font = `500 ${ts}px "DM Sans", sans-serif`;
-    wrapN(ctx, state.title, W - 128*FS, 2).forEach(l => { ctx.fillText(l, 64*FS, y); y += ts + 8*FS; });
-    ctx.fillStyle = P.muted; ctx.font = `300 ${24*FS}px "DM Sans", sans-serif`;
-    ctx.fillText('📍 ' + locLine, 64*FS, y + 8*FS);
-
-    ctx.textAlign = 'right'; ctx.fillStyle = P.goldBig; ctx.font = `500 ${40*FS}px "Cormorant Garamond", serif`;
-    ctx.fillText(state.price, W - 64*FS, H - barH + 100*FS);
-    ctx.textAlign = 'left';
-    watermark(() => {
-      ctx.fillStyle = P.faint; ctx.font = `300 ${19*FS}px "DM Sans", sans-serif`;
-      ctx.fillText(footerLine(), 64*FS, H - 28*FS);
-    });
-
   } else if (state.template === 'colagem') {
     // Colagem — 2 a 8 fotos numa grelha, com uma faixa de texto sólida em
     // baixo. Usa as fotos marcadas com ✓ (já é o mecanismo de seleção que
@@ -1342,26 +2802,75 @@ async function drawListing(ctx, W, H) {
     if (photos.length >= 2) {
       const imgs = await Promise.all(photos.map(loadImg));
       if (photos.length === 3) {
-        // caso especial: destaque à esquerda + 2 fotos empilhadas à direita
+        // 3 fotos já tinha hierarquia editorial: hero + 2 secundárias.
         const halfW = (W - gap) / 2, halfH = (gridH - gap) / 2;
         if (imgs[0]) smartCoverDraw(ctx, imgs[0], 0, 0, halfW, gridH);
         if (imgs[1]) smartCoverDraw(ctx, imgs[1], halfW + gap, 0, halfW, halfH);
         if (imgs[2]) smartCoverDraw(ctx, imgs[2], halfW + gap, halfH + gap, halfW, halfH);
+
+      } else if (photos.length >= 6) {
+        // 6–8 fotos: mosaico editorial aprovado.
+        // A ordem selecionada define a hierarquia:
+        // foto 1 = hero; foto 2/3 = destaques quando o recipe os prevê.
+        const recipe =
+          getCollageEditorialRecipe(W, gridH, photos.length);
+
+        if (!recipe) {
+          throw new Error(
+            'Unsupported editorial collage count: ' +
+            photos.length
+          );
+        }
+
+        drawCollageEditorialRecipe(
+          ctx,
+          imgs,
+          W,
+          gridH,
+          gap,
+          recipe
+        );
+
       } else {
-        // 2, 4, 5, 6, 7 ou 8 fotos — disposição em linhas, da esquerda para a
-        // direita, de cima a baixo (2ª linha só existe se houver fotos para ela)
-        const rowsMap = { 2: [2], 4: [2, 2], 5: [2, 3], 6: [3, 3], 7: [4, 3], 8: [4, 4] };
+        // 2, 4 e 5 mantêm a composição já aprovada.
+        const rowsMap = {
+          2: [2],
+          4: [2, 2],
+          5: [2, 3]
+        };
+
         const rows = rowsMap[photos.length];
-        const rowH = (gridH - gap * (rows.length - 1)) / rows.length;
-        let idx = 0, y = 0;
+        const rowH =
+          (gridH - gap * (rows.length - 1)) /
+          rows.length;
+
+        let idx = 0;
+        let y = 0;
+
         rows.forEach(count => {
-          const cellW = (W - gap * (count - 1)) / count;
+          const cellW =
+            (W - gap * (count - 1)) /
+            count;
+
           let x = 0;
+
           for (let c = 0; c < count; c++) {
             const im = imgs[idx++];
-            if (im) smartCoverDraw(ctx, im, x, y, cellW, rowH);
+
+            if (im) {
+              smartCoverDraw(
+                ctx,
+                im,
+                x,
+                y,
+                cellW,
+                rowH
+              );
+            }
+
             x += cellW + gap;
           }
+
           y += rowH + gap;
         });
       }
@@ -1416,7 +2925,7 @@ async function drawListing(ctx, W, H) {
 
   } else {
     const photoH = story ? H * 0.6 : H * 0.62;
-    if (state.img) smartCoverDraw(ctx, state.img, 0, 0, W, photoH, true);
+    if (state.img) drawPrimaryTemplatePhoto(ctx, state.img, 0, 0, W, photoH, true, 'editorial');
     fillBg(ctx, W, H, P, photoH, H);
     ctx.strokeStyle = P.badgeBg; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(64, photoH + 2); ctx.lineTo(W - 64, photoH + 2); ctx.stroke();
@@ -1437,15 +2946,42 @@ async function drawListing(ctx, W, H) {
     wrapN(ctx, state.title, W - 128, 2).forEach(l => { ctx.fillText(l, 64, y); y += ts + 6; });
     y += 4;
     ctx.fillStyle = P.muted; ctx.font = '300 29px "DM Sans", sans-serif';
-    ctx.fillText('📍 ' + locLine, 64, y); y += 66;
+    if (locLine) ctx.fillText('📍 ' + locLine, 64, y); y += 66;
     ctx.fillStyle = P.goldBig;
     ctx.font = '500 58px "Cormorant Garamond", serif';
     ctx.fillText(state.price, 64, y); y += 58;
     if (state.showSpecs && specsLine()) {
+      const specFit =
+        fitWrappedText(
+          ctx,
+          specsLine(),
+          W - 128,
+          '300 SIZEpx "DM Sans", sans-serif',
+          20,
+          27,
+          2
+        );
+
       ctx.fillStyle = P.muted;
-      const ss2 = fitText(ctx, specsLine(), W - 128, '300 SIZEpx "DM Sans", sans-serif', 16, 27);
-      ctx.font = `300 ${ss2}px "DM Sans", sans-serif`;
-      ctx.fillText(specsLine(), 64, y);
+
+      ctx.font =
+        `300 ${specFit.size}px "DM Sans", sans-serif`;
+
+      const specStep =
+        specFit.size +
+        7;
+
+      specFit.lines.forEach(
+        (line, index) => {
+          ctx.fillText(
+            line,
+            64,
+            y +
+              index *
+              specStep
+          );
+        }
+      );
     }
     drawLogo(ctx, W - 130, H - 96, 0.66, P.gold);
     ctx.textAlign = 'left';
@@ -1841,7 +3377,7 @@ async function generateVideoClip() {
       tLines.forEach((l, i) => ctx.fillText(l, W / 2, titleYs[i]));
 
       ctx.fillStyle = P.muted; ctx.font = `300 ${30*FS}px "DM Sans", sans-serif`;
-      ctx.fillText('📍 ' + locLine, W / 2, locY);
+      if (locLine) ctx.fillText('📍 ' + locLine, W / 2, locY);
 
       if (specs) {
         ctx.strokeStyle = P.rule; ctx.lineWidth = 1;
@@ -2100,13 +3636,30 @@ function toggleLangActive(l) {
   renderLangSwitch();
   scheduleSaveDraft();
 }
-const LANG_LABELS = { pt:'PT', en:'EN', fr:'FR', es:'ES', de:'DE', it:'IT' };
+const LANG_LABELS = { en:'EN', pt:'PT', fr:'FR', es:'ES', de:'DE', it:'IT' };
+const SUPPORTED_UI_LANGS = ['en', 'pt', 'fr', 'es', 'de', 'it'];
+
 function renderLangSwitch() {
   const el = document.getElementById('langSwitch');
-  const active = ['pt', ...[...state.brand.langs].filter(l => l !== 'pt')];
-  el.innerHTML = active.map(l =>
-    `<button data-lang="${l}" class="${l === state.lang ? 'active' : ''}" onclick="setLang('${l}')">${LANG_LABELS[l]}</button>`).join('');
-  if (!active.includes(state.lang)) setLang('pt');
+  if (!el) return;
+
+  const activeLang = SUPPORTED_UI_LANGS.includes(state.lang)
+    ? state.lang
+    : 'en';
+
+  state.lang = activeLang;
+
+  el.replaceChildren(
+    ...SUPPORTED_UI_LANGS.map(lang => {
+      const option = document.createElement('option');
+      option.value = lang;
+      option.textContent = LANG_LABELS[lang];
+      return option;
+    })
+  );
+
+  el.value = activeLang;
+  document.documentElement.lang = activeLang;
 }
 renderLangSwitch();
 // Sem logótipo por defeito — drawLogo() usa a inicial do nome da marca até

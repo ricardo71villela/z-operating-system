@@ -164,7 +164,7 @@ function drawGridTextBand(ctx, W, H, P, gridH, FS, story, locLine) {
   y += 10 * FS;
   ctx.fillStyle = P.muted;
   ctx.font = `300 ${22 * FS}px "DM Sans", sans-serif`;
-  ctx.fillText('📍 ' + locLine, 56 * FS, y);
+  if (locLine) ctx.fillText('📍 ' + locLine, 56 * FS, y);
 
   ctx.textAlign = 'right';
   ctx.fillStyle = P.goldBig;

@@ -25,6 +25,9 @@ async function main() {
 
   // conteúdo sintético determinístico — mesma "foto" (gradiente fixo) sempre
   await win.webContents.executeJavaScript(`(async () => {
+    // Golden content language is explicitly PT.
+    // App first-run language must not silently redefine golden authority.
+    setLang('pt');
     function mkPhoto(seed) {
       const c = document.createElement('canvas'); c.width = 1000; c.height = 1000;
       const ctx = c.getContext('2d');
@@ -34,6 +37,54 @@ async function main() {
       return new Promise(res => c.toBlob(b => res(new File([b], 'golden.png', {type:'image/png'})), 'image/png'));
     }
     window.__mkPhoto = mkPhoto;
+
+    // ZSTUDIO_P1_2_WIDE_PORTRAIT_VISUAL_GOLDENS_V1
+    // Deterministic portrait fixtures for the approved Wide portrait path.
+    function mkSizedPhoto(seed, width, height, filename) {
+      const c = document.createElement('canvas');
+      c.width = width;
+      c.height = height;
+      const ctx = c.getContext('2d');
+      const g = ctx.createLinearGradient(0, 0, width, height);
+      g.addColorStop(0, seed);
+      g.addColorStop(1, '#1a1008');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, width, height);
+
+      // Fixed reference lines make crop/contain regressions visually obvious.
+      ctx.strokeStyle = 'rgba(255,255,255,0.24)';
+      ctx.lineWidth = Math.max(2, width / 320);
+      for (let i = 1; i < 6; i++) {
+        const x = width * i / 6;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+      for (let i = 1; i < 8; i++) {
+        const y = height * i / 8;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+
+      return new Promise(res =>
+        c.toBlob(
+          b => res(
+            new File(
+              [b],
+              filename,
+              { type: 'image/png' }
+            )
+          ),
+          'image/png'
+        )
+      );
+    }
+
+    window.__mkSizedPhoto = mkSizedPhoto;
+
     const f = await mkPhoto('#8a5a2a');
     await handleUploadFiles([f]);
     document.getElementById('fTitle').value = 'Golden Reference Title'; state.title = 'Golden Reference Title';
@@ -109,6 +160,78 @@ async function main() {
     window.confirm = originalConfirm;
   })()`, true);
   await shot(win, 'estado-vazio');
+
+  // 7) P1.2 — Wide portrait Cinematic Right V2.
+  // Two portrait source ratios × three single-photo templates.
+  // These six goldens are the persistent visual authority for P1.2.
+  for (const source of [
+    {
+      key: 'portrait916',
+      width: 900,
+      height: 1600,
+      seed: '#394a88'
+    },
+    {
+      key: 'portrait45',
+      width: 1000,
+      height: 1250,
+      seed: '#69732f'
+    }
+  ]) {
+    await win.webContents.executeJavaScript(`(async () => {
+      const file = await window.__mkSizedPhoto(
+        '${source.seed}',
+        ${source.width},
+        ${source.height},
+        'golden-${source.key}.png'
+      );
+
+      const url = URL.createObjectURL(file);
+
+      state.photos = [url];
+      state.carPhotos = [url];
+      state.photo = url;
+      state.img = await loadImg(url);
+
+      state.format = 'wide';
+      state.title = 'Golden Wide Portrait';
+      state.price = '123.456€';
+      state.loc = 'Porto';
+      state.badge = 'Golden Badge';
+      state.showSpecs = true;
+      state.cropAdjust = {};
+      state.filter = 'auto';
+      state.smartCrop = true;
+      state.bg = 'dark';
+
+      state._styleCustomized = true;
+      state.brand.accent = '#B8935A';
+      setGoldVar('#B8935A');
+
+      state.category = 'generico';
+      onSpecChange(0, 'Valor A');
+      onSpecChange(1, 'Valor B');
+      onSpecChange(2, 'Valor C');
+      onSpecChange(3, 'Valor D');
+    })()`, true);
+
+    for (const tpl of [
+      'classico',
+      'editorial',
+      'minimalista'
+    ]) {
+      await win.webContents.executeJavaScript(
+        `setTemplate('${tpl}');`,
+        true
+      );
+
+      await shot(
+        win,
+        `wide-${source.key}-${tpl}`
+      );
+    }
+  }
+
 
   app.exit(0);
 }

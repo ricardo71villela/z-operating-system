@@ -55,6 +55,7 @@ const UI_STRINGS = {
     brandKitDelete: '🗑 Apagar',
     brandKitHint: 'Útil para quem gere várias marcas ou clientes na mesma app — guarda e troca de configuração num clique.',
 
+    mediaStepLabel: '1 · Fotos & Vídeos',
     uploadLabel: 'Fotos e vídeos — telemóvel, máquina fotográfica, pasta ou drive sincronizado',
     dropZoneHtml: '📷 Arrasta ficheiros aqui ou clica para escolher<br><span style="font-size:0.68rem;color:var(--text3);">fotos e vídeos — de um vídeo tiramos automaticamente um fotograma</span>',
     folderBtn: '📁 Escolher pasta (Google Drive, Dropbox, OneDrive… sincronizados no computador)',
@@ -67,7 +68,7 @@ const UI_STRINGS = {
     filterAuto: 'Automático (leve)', filterNone: 'Original — sem filtro', filterVivid: 'Vívido',
     filterWarm: 'Quente', filterCool: 'Frio', filterSoft: 'Suave', filterBw: 'Preto e branco',
 
-    formatStyleLabel: '⚙ Formato & Estilo',
+    formatStyleLabel: '3 · Formato & Estilo',
     fmtFeed45: 'Feed 4:5', fmtFeed45Sub: 'Instagram · Facebook',
     fmtSquare: 'Quadrado 1:1', fmtSquareSub: 'Instagram · Facebook · LinkedIn',
     fmtStory: 'Story/Reels 9:16', fmtStorySub: 'Instagram · Facebook · TikTok · YouTube',
@@ -95,6 +96,7 @@ const UI_STRINGS = {
     downloadPngBtn: '↓ Descarregar PNG',
     carouselBtn: '↓ Carrossel completo',
     allFormatsBtn: '↓ Todos os formatos (.zip)',
+    moreExportsBtn: 'Mais opções de exportação',
     shareBtn: '📤 Partilhar',
     pdfBtn: '↓ PDF',
     copyCaptionBtn: 'Copiar legenda',
@@ -154,6 +156,7 @@ const UI_STRINGS = {
     brandKitDelete: '🗑 Delete',
     brandKitHint: 'Useful if you manage several brands or clients in the same app — save and switch configuration in one click.',
 
+    mediaStepLabel: '1 · Photos & Videos',
     uploadLabel: 'Photos and videos — phone, camera, folder or synced drive',
     dropZoneHtml: '📷 Drag files here or click to choose<br><span style="font-size:0.68rem;color:var(--text3);">photos and videos — we grab a frame automatically from any video</span>',
     folderBtn: '📁 Choose a folder (Google Drive, Dropbox, OneDrive… synced on this computer)',
@@ -166,7 +169,7 @@ const UI_STRINGS = {
     filterAuto: 'Automatic (subtle)', filterNone: 'Original — no filter', filterVivid: 'Vivid',
     filterWarm: 'Warm', filterCool: 'Cool', filterSoft: 'Soft', filterBw: 'Black & white',
 
-    formatStyleLabel: '⚙ Format & Style',
+    formatStyleLabel: '3 · Format & Style',
     fmtFeed45: 'Feed 4:5', fmtFeed45Sub: 'Instagram · Facebook',
     fmtSquare: 'Square 1:1', fmtSquareSub: 'Instagram · Facebook · LinkedIn',
     fmtStory: 'Story/Reels 9:16', fmtStorySub: 'Instagram · Facebook · TikTok · YouTube',
@@ -194,6 +197,7 @@ const UI_STRINGS = {
     downloadPngBtn: '↓ Download PNG',
     carouselBtn: '↓ Full carousel',
     allFormatsBtn: '↓ All formats (.zip)',
+    moreExportsBtn: 'More export options',
     shareBtn: '📤 Share',
     pdfBtn: '↓ PDF',
     copyCaptionBtn: 'Copy caption',
@@ -253,6 +257,7 @@ const UI_STRINGS = {
     brandKitDelete: '🗑 Supprimer',
     brandKitHint: 'Utile pour qui gère plusieurs marques ou clients dans la même appli — enregistre et change de configuration en un clic.',
 
+    mediaStepLabel: '1 · Photos & Vidéos',
     uploadLabel: 'Photos et vidéos — téléphone, appareil photo, dossier ou disque synchronisé',
     dropZoneHtml: '📷 Glisse des fichiers ici ou clique pour choisir<br><span style="font-size:0.68rem;color:var(--text3);">photos et vidéos — on extrait automatiquement une image de toute vidéo</span>',
     folderBtn: '📁 Choisir un dossier (Google Drive, Dropbox, OneDrive… synchronisés sur cet ordinateur)',
@@ -265,7 +270,7 @@ const UI_STRINGS = {
     filterAuto: 'Automatique (léger)', filterNone: 'Original — sans filtre', filterVivid: 'Vif',
     filterWarm: 'Chaud', filterCool: 'Froid', filterSoft: 'Doux', filterBw: 'Noir et blanc',
 
-    formatStyleLabel: '⚙ Format & Style',
+    formatStyleLabel: '3 · Format & Style',
     fmtFeed45: 'Fil 4:5', fmtFeed45Sub: 'Instagram · Facebook',
     fmtSquare: 'Carré 1:1', fmtSquareSub: 'Instagram · Facebook · LinkedIn',
     fmtStory: 'Story/Reels 9:16', fmtStorySub: 'Instagram · Facebook · TikTok · YouTube',
@@ -293,6 +298,7 @@ const UI_STRINGS = {
     downloadPngBtn: '↓ Télécharger en PNG',
     carouselBtn: '↓ Carrousel complet',
     allFormatsBtn: '↓ Tous les formats (.zip)',
+    moreExportsBtn: 'Plus d’options d’export',
     shareBtn: '📤 Partager',
     pdfBtn: '↓ PDF',
     copyCaptionBtn: 'Copier la légende',
@@ -352,6 +358,7 @@ const UI_STRINGS = {
     brandKitDelete: '🗑 Eliminar',
     brandKitHint: 'Útil para quien gestiona varias marcas o clientes en la misma app — guarda y cambia de configuración en un clic.',
 
+    mediaStepLabel: '1 · Fotos & Vídeos',
     uploadLabel: 'Fotos y vídeos — móvil, cámara, carpeta o unidad sincronizada',
     dropZoneHtml: '📷 Arrastra archivos aquí o haz clic para elegir<br><span style="font-size:0.68rem;color:var(--text3);">fotos y vídeos — de un vídeo extraemos automáticamente un fotograma</span>',
     folderBtn: '📁 Elegir una carpeta (Google Drive, Dropbox, OneDrive… sincronizados en este ordenador)',
@@ -364,7 +371,7 @@ const UI_STRINGS = {
     filterAuto: 'Automático (suave)', filterNone: 'Original — sin filtro', filterVivid: 'Vívido',
     filterWarm: 'Cálido', filterCool: 'Frío', filterSoft: 'Suave', filterBw: 'Blanco y negro',
 
-    formatStyleLabel: '⚙ Formato y Estilo',
+    formatStyleLabel: '3 · Formato & Estilo',
     fmtFeed45: 'Feed 4:5', fmtFeed45Sub: 'Instagram · Facebook',
     fmtSquare: 'Cuadrado 1:1', fmtSquareSub: 'Instagram · Facebook · LinkedIn',
     fmtStory: 'Story/Reels 9:16', fmtStorySub: 'Instagram · Facebook · TikTok · YouTube',
@@ -392,6 +399,7 @@ const UI_STRINGS = {
     downloadPngBtn: '↓ Descargar PNG',
     carouselBtn: '↓ Carrusel completo',
     allFormatsBtn: '↓ Todos los formatos (.zip)',
+    moreExportsBtn: 'Más opciones de exportación',
     shareBtn: '📤 Compartir',
     pdfBtn: '↓ PDF',
     copyCaptionBtn: 'Copiar leyenda',
@@ -451,6 +459,7 @@ const UI_STRINGS = {
     brandKitDelete: '🗑 Löschen',
     brandKitHint: 'Nützlich, wenn du mehrere Marken oder Kunden in derselben App verwaltest — Konfiguration mit einem Klick speichern und wechseln.',
 
+    mediaStepLabel: '1 · Fotos & Videos',
     uploadLabel: 'Fotos und Videos — Handy, Kamera, Ordner oder synchronisiertes Laufwerk',
     dropZoneHtml: '📷 Dateien hierher ziehen oder klicken zum Auswählen<br><span style="font-size:0.68rem;color:var(--text3);">Fotos und Videos — aus einem Video wird automatisch ein Frame entnommen</span>',
     folderBtn: '📁 Ordner auswählen (Google Drive, Dropbox, OneDrive… auf diesem Computer synchronisiert)',
@@ -463,7 +472,7 @@ const UI_STRINGS = {
     filterAuto: 'Automatisch (dezent)', filterNone: 'Original — kein Filter', filterVivid: 'Kräftig',
     filterWarm: 'Warm', filterCool: 'Kühl', filterSoft: 'Weich', filterBw: 'Schwarz-Weiß',
 
-    formatStyleLabel: '⚙ Format & Stil',
+    formatStyleLabel: '3 · Format & Stil',
     fmtFeed45: 'Feed 4:5', fmtFeed45Sub: 'Instagram · Facebook',
     fmtSquare: 'Quadrat 1:1', fmtSquareSub: 'Instagram · Facebook · LinkedIn',
     fmtStory: 'Story/Reels 9:16', fmtStorySub: 'Instagram · Facebook · TikTok · YouTube',
@@ -491,6 +500,7 @@ const UI_STRINGS = {
     downloadPngBtn: '↓ PNG herunterladen',
     carouselBtn: '↓ Komplettes Karussell',
     allFormatsBtn: '↓ Alle Formate (.zip)',
+    moreExportsBtn: 'Weitere Exportoptionen',
     shareBtn: '📤 Teilen',
     pdfBtn: '↓ PDF',
     copyCaptionBtn: 'Bildunterschrift kopieren',
@@ -550,6 +560,7 @@ const UI_STRINGS = {
     brandKitDelete: '🗑 Elimina',
     brandKitHint: 'Utile per chi gestisce più marchi o clienti nella stessa app — salva e cambia configurazione con un clic.',
 
+    mediaStepLabel: '1 · Foto & Video',
     uploadLabel: 'Foto e video — cellulare, fotocamera, cartella o unità sincronizzata',
     dropZoneHtml: '📷 Trascina i file qui o clicca per scegliere<br><span style="font-size:0.68rem;color:var(--text3);">foto e video — da un video estraiamo automaticamente un fotogramma</span>',
     folderBtn: '📁 Scegli una cartella (Google Drive, Dropbox, OneDrive… sincronizzati su questo computer)',
@@ -562,7 +573,7 @@ const UI_STRINGS = {
     filterAuto: 'Automatico (leggero)', filterNone: 'Originale — nessun filtro', filterVivid: 'Vivace',
     filterWarm: 'Caldo', filterCool: 'Freddo', filterSoft: 'Morbido', filterBw: 'Bianco e nero',
 
-    formatStyleLabel: '⚙ Formato e Stile',
+    formatStyleLabel: '3 · Formato & Stile',
     fmtFeed45: 'Feed 4:5', fmtFeed45Sub: 'Instagram · Facebook',
     fmtSquare: 'Quadrato 1:1', fmtSquareSub: 'Instagram · Facebook · LinkedIn',
     fmtStory: 'Story/Reels 9:16', fmtStorySub: 'Instagram · Facebook · TikTok · YouTube',
@@ -590,6 +601,7 @@ const UI_STRINGS = {
     downloadPngBtn: '↓ Scarica PNG',
     carouselBtn: '↓ Carosello completo',
     allFormatsBtn: '↓ Tutti i formati (.zip)',
+    moreExportsBtn: 'Altre opzioni di esportazione',
     shareBtn: '📤 Condividi',
     pdfBtn: '↓ PDF',
     copyCaptionBtn: 'Copia didascalia',
