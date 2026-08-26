@@ -47,6 +47,14 @@ function requirePositiveInteger(value, fieldName) {
   return value;
 }
 
+function requireIdempotencyKey(value) {
+  const key = String(value || '').trim();
+  if (key.length < 8 || key.length > 200) {
+    throw new HttpError(400, 'idempotency_key_required', 'Idempotency-Key must contain 8..200 characters');
+  }
+  return key;
+}
+
 async function authenticateWithSupabase(req, env = process.env, fetchImpl = globalThis.fetch) {
   const authHeader = String(req.headers.authorization || '');
   const match = /^Bearer\s+(.+)$/i.exec(authHeader);
@@ -61,13 +69,18 @@ async function authenticateWithSupabase(req, env = process.env, fetchImpl = glob
     throw new HttpError(503, 'auth_not_available', 'authentication verifier is not available');
   }
 
-  const response = await fetchImpl(`${supabaseUrl}/auth/v1/user`, {
-    method: 'GET',
-    headers: {
-      apikey: publishableKey,
-      Authorization: `Bearer ${match[1]}`,
-    },
-  });
+  let response;
+  try {
+    response = await fetchImpl(`${supabaseUrl}/auth/v1/user`, {
+      method: 'GET',
+      headers: {
+        apikey: publishableKey,
+        Authorization: `Bearer ${match[1]}`,
+      },
+    });
+  } catch {
+    throw new HttpError(503, 'auth_unavailable', 'authentication service is temporarily unavailable');
+  }
   if (!response.ok) throw new HttpError(401, 'invalid_session', 'Supabase session is invalid or expired');
   const user = await response.json();
   const clientUserId = requireUuid(user && user.id, 'authenticated user id');
@@ -206,7 +219,8 @@ function createPgCustomerCommerceRepository(pool) {
     };
   }
 
-  async function attemptCheckout(clientUserId, cartId) {
+  async function attemptCheckout(clientUserId, cartId, idempotencyKey) {
+    let orderId;
     const client = await pool.connect();
     try {
       await client.query('begin');
@@ -227,16 +241,19 @@ function createPgCustomerCommerceRepository(pool) {
         }
       }
 
-      const result = await client.query('select fashion.attempt_checkout($1) as order_id', [cartId]);
-      const orderId = result.rows[0].order_id;
+      const result = await client.query(
+        'select fashion.attempt_checkout_idempotent($1, $2, $3) as order_id',
+        [clientUserId, cartId, idempotencyKey]
+      );
+      orderId = result.rows[0].order_id;
       await client.query('commit');
-      return getOrder(clientUserId, orderId);
     } catch (err) {
       await client.query('rollback');
       throw err;
     } finally {
       client.release();
     }
+    return getOrder(clientUserId, orderId);
   }
 
   async function listOrders(clientUserId) {
@@ -402,11 +419,12 @@ function createCustomerCommerceServer({ repository, authenticateClient = authent
       if (req.method === 'POST' && parts.length === 4 && parts[1] === 'cart' && parts[3] === 'checkout') {
         if (!allowWrites()) throw new HttpError(503, 'commerce_writes_disabled', 'Customer commerce writes are disabled');
         const cartId = requireUuid(parts[2], 'cartId');
+        const idempotencyKey = requireIdempotencyKey(req.headers['idempotency-key']);
         const preflight = await repository.checkoutPreflight(clientUserId, cartId);
         if (!preflight.ready) {
           throw new HttpError(409, 'checkout_preflight_failed', 'Checkout preflight failed');
         }
-        const order = await repository.attemptCheckout(clientUserId, cartId);
+        const order = await repository.attemptCheckout(clientUserId, cartId, idempotencyKey);
         return sendJson(res, 201, { order });
       }
 
@@ -421,8 +439,14 @@ function createCustomerCommerceServer({ repository, authenticateClient = authent
 
       throw new HttpError(404, 'not_found', 'not found');
     } catch (err) {
-      const statusCode = err.statusCode || 400;
-      sendJson(res, statusCode, { error: err.code || 'invalid_request', message: err.message });
+      if (err instanceof HttpError || Number.isInteger(err.statusCode)) {
+        return sendJson(res, err.statusCode || 400, { error: err.code || 'invalid_request', message: err.message });
+      }
+      if (/insufficient stock|no stock record/i.test(String(err.message || ''))) {
+        return sendJson(res, 409, { error: 'stock_conflict', message: 'Checkout stock changed; refresh the Cart and try again' });
+      }
+      console.error('Z Fashion customer commerce unexpected error:', err);
+      return sendJson(res, 500, { error: 'internal_error', message: 'Customer commerce request could not be completed' });
     }
   });
 }
