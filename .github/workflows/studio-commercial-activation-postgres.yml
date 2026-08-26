@@ -1,0 +1,233 @@
+name: Z Studio Commercial Activation PostgreSQL
+
+on:
+  workflow_dispatch:
+
+  push:
+    paths:
+      - "infrastructure/supabase/migrations/**"
+      - "infrastructure/supabase/tests/zstudio_commercial_activation_v1.sql"
+      - ".github/workflows/studio-commercial-activation-postgres.yml"
+
+  pull_request:
+    paths:
+      - "infrastructure/supabase/migrations/**"
+      - "infrastructure/supabase/tests/zstudio_commercial_activation_v1.sql"
+      - ".github/workflows/studio-commercial-activation-postgres.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  postgres:
+    name: Commercial lifecycle + entitlement authority
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: zstudio_test_pw
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout exact branch authority
+        uses: actions/checkout@v4
+
+      - name: Create disposable Supabase-compatible database
+        env:
+          PGPASSWORD: zstudio_test_pw
+        run: |
+          psql \
+            -h localhost \
+            -U postgres \
+            -v ON_ERROR_STOP=1 \
+            -c "CREATE DATABASE zstudio_commercial_test;"
+
+          psql \
+            -h localhost \
+            -U postgres \
+            -d zstudio_commercial_test \
+            -v ON_ERROR_STOP=1 \
+            -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+
+          psql \
+            -h localhost \
+            -U postgres \
+            -d zstudio_commercial_test \
+            -v ON_ERROR_STOP=1 <<'SQL'
+
+          create role anon nologin;
+          create role authenticated nologin;
+          create role service_role nologin bypassrls;
+
+          create schema if not exists auth;
+
+          create table auth.users (
+            id uuid primary key default gen_random_uuid(),
+            email text unique,
+            created_at timestamptz not null default now()
+          );
+
+          create or replace function auth.uid()
+          returns uuid
+          language sql
+          stable
+          as $$
+            select nullif(
+              current_setting(
+                'request.jwt.claim.sub',
+                true
+              ),
+              ''
+            )::uuid;
+          $$;
+
+          revoke all
+          on function auth.uid()
+          from public;
+
+          grant usage
+          on schema auth
+          to anon, authenticated, service_role;
+
+          grant execute
+          on function auth.uid()
+          to anon, authenticated, service_role;
+
+          -- Minimal disposable Supabase Storage fixture required by
+          -- the complete repository migration chain.
+          create schema if not exists storage;
+
+          create table storage.buckets (
+            id text primary key,
+            name text not null unique,
+            public boolean not null default false
+          );
+
+          create table storage.objects (
+            id uuid primary key default gen_random_uuid(),
+            bucket_id text not null,
+            name text not null,
+            owner_id uuid
+          );
+
+          SQL
+
+      - name: Apply complete Supabase migration chain
+        env:
+          PGPASSWORD: zstudio_test_pw
+        run: |
+          set -euo pipefail
+
+          MIGRATION_COUNT=0
+
+          while IFS= read -r migration; do
+            MIGRATION_COUNT=$((MIGRATION_COUNT + 1))
+
+            echo
+            echo "============================================================"
+            echo "APPLYING: ${migration}"
+            echo "============================================================"
+
+            psql \
+              -h localhost \
+              -U postgres \
+              -d zstudio_commercial_test \
+              -v ON_ERROR_STOP=1 \
+              -f "${migration}"
+
+          done < <(
+            find infrastructure/supabase/migrations \
+              -maxdepth 1 \
+              -type f \
+              -name '*.sql' \
+              -print |
+            sort
+          )
+
+          echo
+          echo "MIGRATIONS_APPLIED=${MIGRATION_COUNT}"
+
+          test "${MIGRATION_COUNT}" -gt 0
+
+      - name: Verify commercial activation authority exists
+        env:
+          PGPASSWORD: zstudio_test_pw
+        run: |
+          psql \
+            -h localhost \
+            -U postgres \
+            -d zstudio_commercial_test \
+            -v ON_ERROR_STOP=1 <<'SQL'
+
+          do $$
+          begin
+            if to_regclass(
+              'studio.billing_events'
+            ) is null then
+              raise exception
+                'studio.billing_events is missing';
+            end if;
+
+            if not exists (
+              select 1
+              from pg_proc p
+              join pg_namespace n
+                on n.oid = p.pronamespace
+              where n.nspname = 'public'
+                and p.proname =
+                  'zstudio_apply_verified_commercial_event'
+            ) then
+              raise exception
+                'commercial apply RPC is missing';
+            end if;
+
+            if not exists (
+              select 1
+              from pg_proc p
+              join pg_namespace n
+                on n.oid = p.pronamespace
+              where n.nspname = 'public'
+                and p.proname =
+                  'zstudio_current_access_state'
+            ) then
+              raise exception
+                'current access RPC is missing';
+            end if;
+          end;
+          $$;
+
+          SQL
+
+      - name: Verify commercial lifecycle contract
+        env:
+          PGPASSWORD: zstudio_test_pw
+        run: |
+          psql \
+            -h localhost \
+            -U postgres \
+            -d zstudio_commercial_test \
+            -v ON_ERROR_STOP=1 \
+            -f infrastructure/supabase/tests/zstudio_commercial_activation_v1.sql
+
+      - name: Final authority marker
+        env:
+          PGPASSWORD: zstudio_test_pw
+        run: |
+          psql \
+            -h localhost \
+            -U postgres \
+            -d zstudio_commercial_test \
+            -v ON_ERROR_STOP=1 \
+            -Atc "
+              select
+                'ZSTUDIO_COMMERCIAL_POSTGRES_AUTHORITY=PASS';
+            "
