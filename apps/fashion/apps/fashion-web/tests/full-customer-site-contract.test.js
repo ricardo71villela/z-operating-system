@@ -4,7 +4,6 @@ const assert = require('assert');
 
 const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root,file),'utf8');
-
 const shell = read('customer-shell.html');
 const routes = read('customer-routes.js');
 const runtime = read('customer-site.js');
@@ -29,12 +28,7 @@ assert.match(brandCss, /customer-brand-logo-dark\{filter:invert\(1\)\}/);
 assert.match(brandCss, /footer-brand-logo\{width:2\.85rem;height:3\.45rem/);
 assert.match(brandCss, /footer-fashion\{font-family:"Playfair Display"/);
 
-const requiredIds = [
-  'new','women','men','kids','sport','accessories','beauty','sale','search','product','corners','corner','privateSale',
-  'favourites','bag','login','account','profile','addresses','orders','order','returns','tracking',
-  'checkoutIdentify','checkoutDelivery','checkoutPayment','checkoutReview','checkoutConfirmation',
-  'delivery','refunds','help','contact','legalNotice','termsSale','termsUse','privacy','cookies','consent'
-];
+const requiredIds = ['new','women','men','kids','sport','accessories','beauty','sale','search','product','corners','corner','privateSale','favourites','bag','login','account','profile','addresses','orders','order','returns','tracking','checkoutIdentify','checkoutDelivery','checkoutPayment','checkoutReview','checkoutConfirmation','delivery','refunds','help','contact','legalNotice','termsSale','termsUse','privacy','cookies','consent'];
 for (const id of requiredIds) assert.match(routes, new RegExp(`id:'${id}'`), `missing route ${id}`);
 assert.equal(requiredIds.length, 38);
 for (const locale of ['fr','pt','en','es','it','de']) assert.match(routes, new RegExp(`\\b${locale}:\\{`), `missing ${locale} copy`);
@@ -56,14 +50,12 @@ assert.match(css, /customer-brand-mark/);
 assert.match(css, /mobile-dock/);
 assert.match(css, /prefers-reduced-motion/);
 
-const rewriteSources = new Set(vercel.rewrites.map(r => r.source));
-for (const source of [
-  '/','/femme','/homme','/enfant','/sport','/accessoires','/beaute','/soldes','/nouveautes','/recherche','/corners','/vente-privee',
-  '/favoris','/panier','/connexion','/compte','/compte/profil','/compte/adresses','/compte/commandes','/compte/retours','/compte/suivi',
-  '/checkout','/checkout/livraison','/checkout/paiement','/checkout/revision','/checkout/confirmation','/livraisons','/retours-remboursements','/aide','/contact',
-  '/mentions-legales','/cgv','/conditions-utilisation','/confidentialite','/cookies','/consentement','/produit/:slug','/corner/:slug','/compte/commandes/:id'
-]) assert.ok(rewriteSources.has(source), `missing rewrite ${source}`);
-assert.equal(vercel.rewrites.find(r => r.source === '/').destination, '/launch.html');
-for (const route of vercel.rewrites.filter(r => r.source !== '/')) assert.equal(route.destination, '/customer-shell.html');
+const rewriteMap = new Map(vercel.rewrites.map(r => [r.source,r.destination]));
+const customerSources = ['/femme','/homme','/enfant','/sport','/accessoires','/beaute','/soldes','/nouveautes','/recherche','/corners','/vente-privee','/favoris','/panier','/connexion','/compte','/compte/profil','/compte/adresses','/compte/commandes','/compte/retours','/compte/suivi','/checkout','/checkout/livraison','/checkout/paiement','/checkout/revision','/checkout/confirmation','/livraisons','/retours-remboursements','/aide','/contact','/mentions-legales','/cgv','/conditions-utilisation','/confidentialite','/cookies','/consentement','/produit/:slug','/corner/:slug','/compte/commandes/:id'];
+assert.equal(rewriteMap.get('/'), '/launch.html');
+for (const source of customerSources) assert.equal(rewriteMap.get(source), '/customer-shell.html', `invalid customer rewrite ${source}`);
+assert.equal(rewriteMap.get('/404'), '/404.html');
+assert.equal(rewriteMap.get('/erreur'), '/technical-shell.html');
+assert.equal(rewriteMap.get('/maintenance'), '/technical-shell.html');
 
 console.log('Z_FASHION_FULL_CUSTOMER_SITE_FOUNDATION=PASS');
