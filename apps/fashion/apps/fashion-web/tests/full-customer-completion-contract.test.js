@@ -44,7 +44,7 @@ assert.match(runtime, /zfashion_preview_consent_v1/);
 assert.match(runtime, /n’activent aucun tracker/);
 assert.match(runtime, /validation juridique obligatoire|legal validation required/);
 
-for (const locale of ['fr','pt','en','es','it','de']) assert.match(runtime, new RegExp(`\\b${locale}:\\{preview:`), `missing completion shell copy for ${locale}`);
+for (const locale of ['fr','pt','en','es','it','de']) assert.match(runtime, new RegExp(`\\b${locale}:\\s*\\{\\s*preview:`), `missing completion shell copy for ${locale}`);
 assert.match(runtime, /window\.Z_FASHION_CUSTOMER_COMPLETION = 'PREVIEW_PASS'/);
 
 assert.doesNotMatch(runtime, /fetch\(|XMLHttpRequest|WebSocket|EventSource|navigator\.sendBeacon/i);
