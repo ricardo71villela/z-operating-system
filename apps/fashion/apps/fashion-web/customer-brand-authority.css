@@ -1,0 +1,15 @@
+/* Z Fashion customer pages — exact logo authority from validated homepage v8. */
+.customer-header .header-row{position:relative;height:58px;display:flex;align-items:center;justify-content:center;padding:0 3vw}
+.customer-header .customer-brand-mark{position:absolute;left:3vw;top:50%;transform:translateY(-50%);display:flex;align-items:center;justify-content:center;height:100%;width:auto}
+.customer-header .customer-brand-logo{width:3.2rem;height:3.2rem;display:block;object-fit:cover;object-position:center;flex:0 0 auto;border-radius:.08rem;box-shadow:none;transform:none}
+.customer-header .customer-brand-logo-dark{filter:invert(1)}
+.customer-header .customer-wordmark{font-family:"Playfair Display",Georgia,serif;font-size:32px;font-weight:500;line-height:1;letter-spacing:-.035em;display:flex;align-items:center;height:58px}
+.customer-header .customer-wordmark span{position:relative;top:-.02em}
+
+.customer-footer .footer-brand{display:flex;align-items:center;gap:.72rem}
+.customer-footer .footer-brand-logo{width:2.85rem;height:3.45rem;display:block;object-fit:contain;object-position:center;flex:0 0 auto;background:none;padding:0;border-radius:0;box-sizing:border-box;filter:none;transform:none}
+.customer-footer .footer-fashion{font-family:"Playfair Display",Georgia,serif;font-size:2.3rem;color:#fff;line-height:1}
+
+@media(max-width:980px){
+  .customer-header .customer-brand-mark{display:none}
+}
