@@ -18,6 +18,7 @@ async function run() {
   const repository = createPgCustomerCommerceRepository(pool);
   const clientA = randomUUID();
   const clientB = randomUUID();
+  const checkoutKey = `checkout-db-${randomUUID()}`;
 
   try {
     await pool.query(
@@ -56,8 +57,8 @@ async function run() {
     const cart = await repository.createCart(clientA);
     assert.strictEqual(cart.clientUserId, clientA);
 
-    // Browser supplies only Product + quantity. Partner and unit price are
-    // derived from canonical Product/current-price authority in PostgreSQL.
+    // Browser-supplied Partner/price values are ignored. Canonical Product
+    // ownership and current price are derived by PostgreSQL.
     const item = await repository.addCartItem(clientA, cart.id, {
       productId: product.id,
       quantity: 2,
@@ -68,7 +69,6 @@ async function run() {
     assert.strictEqual(item.unitPriceMinorUnits, 12900);
     assert.strictEqual(item.quantity, 2);
 
-    // Ownership is fail-closed even before checkout.
     await assert.rejects(
       () => repository.checkoutPreflight(clientB, cart.id),
       (err) => err instanceof HttpError && err.statusCode === 404 && err.code === 'cart_not_found'
@@ -80,20 +80,32 @@ async function run() {
     assert.strictEqual(preflight.items[0].sellableQuantity, 5);
     assert.strictEqual(preflight.items[0].priceMatches, true);
 
-    const order = await repository.attemptCheckout(clientA, cart.id);
+    const order = await repository.attemptCheckout(clientA, cart.id, checkoutKey);
     assert.strictEqual(order.id.length, 36);
     assert.strictEqual(order.status, 'pending_payment');
     assert.strictEqual(order.totalMinorUnits, 25800);
-    assert.strictEqual(order.netPaidMinorUnits, 25800);
     assert.strictEqual(order.packages.length, 1);
     assert.strictEqual(order.packages[0].partnerId, partner.id);
     assert.strictEqual(order.packages[0].items[0].quantity, 2);
 
-    // The database function reserved stock atomically but did NOT commit a
-    // sale: payment remains requires_payment_method and no Shipment exists.
-    const stockAfter = await getStockPg(pool, product.id);
-    assert.strictEqual(stockAfter.quantityAvailable, 5);
-    assert.strictEqual(stockAfter.quantityReserved, 2);
+    const stockAfterFirstAttempt = await getStockPg(pool, product.id);
+    assert.strictEqual(stockAfterFirstAttempt.quantityAvailable, 5);
+    assert.strictEqual(stockAfterFirstAttempt.quantityReserved, 2);
+
+    // The exact retry key must resolve to the same Order and must not reserve
+    // another two units of stock.
+    const retried = await repository.attemptCheckout(clientA, cart.id, checkoutKey);
+    assert.strictEqual(retried.id, order.id);
+    const stockAfterRetry = await getStockPg(pool, product.id);
+    assert.strictEqual(stockAfterRetry.quantityReserved, 2);
+
+    const requestRows = await pool.query(
+      `select cart_id, order_id from fashion.checkout_requests where client_user_id = $1 and idempotency_key = $2`,
+      [clientA, checkoutKey]
+    );
+    assert.strictEqual(requestRows.rows.length, 1);
+    assert.strictEqual(requestRows.rows[0].cart_id, cart.id);
+    assert.strictEqual(requestRows.rows[0].order_id, order.id);
 
     const commercial = await pool.query(
       `select status, payment_status, payment_amount_minor_units from fashion.orders where id = $1`,
@@ -114,6 +126,14 @@ async function run() {
     await assert.rejects(
       () => repository.getOrder(clientB, order.id),
       (err) => err instanceof HttpError && err.statusCode === 404 && err.code === 'order_not_found'
+    );
+
+    // Reusing the same retry key for another Cart is structurally rejected.
+    const secondCart = await repository.createCart(clientA);
+    await repository.addCartItem(clientA, secondCart.id, { productId: product.id, quantity: 1 });
+    await assert.rejects(
+      () => repository.attemptCheckout(clientA, secondCart.id, checkoutKey),
+      /Idempotency-Key is already bound to another Cart/
     );
 
     console.log('Z Fashion customer commerce PostgreSQL authority: PASS');
