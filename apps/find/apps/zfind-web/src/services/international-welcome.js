@@ -8,6 +8,7 @@
    - the existing hero <select> remains the native accessible fallback
    - market links use canonical public routes; this module never invents
      geography or market slugs.
+   - the visual welcome opens only after an explicit user action
    ============================================================ */
 
 (function (root) {
@@ -494,17 +495,42 @@
     rebindNativeFallback(host.querySelector('#hero-market'));
   }
 
-  document.addEventListener('DOMContentLoaded', render);
+  function close() {
+    const panel = document.querySelector(
+      '#view-home .market-explorer .zfind-international-welcome'
+    );
+    if (panel) panel.remove();
+  }
+
+  function bindExplicitOpenControls() {
+    const cta = document.getElementById('home-status-market-cta');
+    if (!cta || cta.dataset.welcomeOpenBound === '1') return;
+
+    cta.addEventListener('click', render);
+    cta.dataset.welcomeOpenBound = '1';
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener(
+      'DOMContentLoaded',
+      bindExplicitOpenControls
+    );
+  } else {
+    bindExplicitOpenControls();
+  }
 
   root.addEventListener('hashchange', function () {
-    // The interactive shell can return to Home without a page reload.
-    root.setTimeout(render, 0);
+    // Passive routing must never reopen the welcome panel.
+    close();
+    root.setTimeout(bindExplicitOpenControls, 0);
   });
 
   services.internationalWelcome = Object.freeze({
     locales: publicLocales.PUBLIC_LOCALES,
     selectLocale,
     enterMarket,
+    open: render,
+    close,
     render
   });
 })(typeof window !== 'undefined' ? window : this);
