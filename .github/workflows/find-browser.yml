@@ -45,6 +45,9 @@ jobs:
           npm run test:seo-pages --workspace=z-find-platform
           npm run test:seo-deployment --workspace=z-find-platform
 
+      - name: Verify international welcome explicit-open contract
+        run: node apps/find/tests/unit/international-welcome-experience.test.js
+
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
