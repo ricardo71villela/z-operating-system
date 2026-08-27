@@ -97,6 +97,37 @@ check(
 );
 
 check(
+  'welcome no longer opens automatically on initial page load',
+  !welcomeSource.includes(
+    "document.addEventListener('DOMContentLoaded', render)"
+  ) &&
+  welcomeSource.includes('bindExplicitOpenControls')
+);
+
+check(
+  'passive hash routing closes rather than reopens the welcome panel',
+  welcomeSource.includes("root.addEventListener('hashchange', function () {") &&
+  welcomeSource.includes('close();') &&
+  !welcomeSource.includes('root.setTimeout(render, 0)')
+);
+
+check(
+  'existing Home market CTA is the explicit welcome open authority',
+  body.includes('id="home-status-market-cta"') &&
+  welcomeSource.includes(
+    "document.getElementById('home-status-market-cta')"
+  ) &&
+  welcomeSource.includes("cta.addEventListener('click', render)")
+);
+
+check(
+  'welcome service exposes explicit open and close controls',
+  welcomeSource.includes('open: render') &&
+  welcomeSource.includes('close,') &&
+  welcomeSource.includes('function close()')
+);
+
+check(
   'welcome service is included by deterministic Z Find build',
   buildSource.includes(
     "read('services/international-welcome.js')"
