@@ -19,6 +19,8 @@ const LOCALES = ['fr', 'en', 'pt', 'es', 'de', 'it'];
 const MARKET_LOCALES = LOCALES.slice();
 const DEFAULT_LOCALE = 'fr';
 const MIN_LISTINGS_FOR_STATS = 5;
+const SEO_PRESENTATION_VERSION = 'zfind-static-v1';
+const FONT_URL = 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap';
 
 const COPY = Object.freeze({
   fr: Object.freeze({ properties:'Biens', developments:'Programmes neufs', from:'À partir de ', viewFull:'Voir l’annonce complète sur Z Find →', zoneTitle:(zone,city)=>`${zone}, ${city} — Immobilier | Z Find`, zoneRich:(count,zone,city,avg,cur)=>`Explorez ${count} opportunités immobilières à ${zone}, ${city}. Prix moyen : ${avg} ${cur}.`, zoneThin:(zone,city)=>`Découvrez ${zone}, ${city} — profil du quartier et opportunités immobilières actuelles sur Z Find.`, opportunities:(count,avg,cur)=>`${count} opportunités actuellement listées. Prix moyen : ${avg} ${cur}.`, adding:zone=>`Z Find ajoute activement des opportunités à ${zone}.`, seeAll:'Voir toutes les opportunités actuelles →' }),
@@ -66,11 +68,32 @@ function marketHreflangLinks(baseUrl, pathByLocale) {
   }).join('\n  ') + `\n  <link rel="alternate" hreflang="x-default" href="${baseUrl}${pathByLocale[DEFAULT_LOCALE]}">`;
 }
 
+function presentationHead() {
+  return `<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="${FONT_URL}">
+<style id="zfind-seo-page-styles" data-version="${SEO_PRESENTATION_VERSION}">
+:root{--zf-white:#fff;--zf-black:#0a0a0a;--zf-50:#f8f8f6;--zf-100:#f0efe9;--zf-200:#e2e0d8;--zf-400:#9e9c94;--zf-500:#6e6c64;--zf-700:#3a3834;--zf-900:#1a1916;--zf-gold:#b8935a;--zf-gold-dark:#8b6b3a;--zf-gold-pale:#f5edd8;--zf-shadow:0 20px 70px rgba(0,0,0,.07)}
+*{box-sizing:border-box}html{background:var(--zf-white)}body.zf-seo-body{margin:0;color:var(--zf-900);background:var(--zf-white);font-family:'DM Sans',Arial,sans-serif;font-weight:300;-webkit-font-smoothing:antialiased}body.zf-seo-body a{color:inherit;text-decoration:none}body.zf-seo-body a:focus-visible{outline:2px solid var(--zf-gold);outline-offset:3px}.zf-seo-wrap{width:min(1180px,calc(100% - 64px));margin:0 auto}.zf-seo-site-header{position:sticky;top:0;z-index:10;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--zf-200)}.zf-seo-nav{height:76px;display:flex;align-items:center;justify-content:space-between;gap:24px}.zf-seo-brand{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.8rem;font-weight:500;letter-spacing:.02em}.zf-seo-brand em{font-style:normal;color:var(--zf-gold)}.zf-seo-nav-cta,.zf-seo-primary{display:inline-flex;align-items:center;justify-content:center;padding:12px 20px;border:1px solid var(--zf-gold);background:var(--zf-gold);color:#fff!important;font-size:.72rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;transition:transform .2s ease,background .2s ease}.zf-seo-nav-cta:hover,.zf-seo-primary:hover{background:var(--zf-gold-dark);transform:translateY(-1px)}.zf-seo-main{padding:0 0 72px}.zf-seo-breadcrumb{padding:24px 0 18px;color:var(--zf-500);font-size:.78rem}.zf-seo-breadcrumb a{color:var(--zf-gold-dark)}.zf-seo-hero{margin-top:6px;padding:72px 64px;background:var(--zf-50);border:1px solid var(--zf-200)}.zf-seo-eyebrow{margin:0 0 18px;color:var(--zf-gold-dark);font-size:.72rem;font-weight:500;letter-spacing:.18em;text-transform:uppercase}.zf-seo-hero h1,.zf-seo-content h1{margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-size:clamp(2.6rem,6vw,4.7rem);font-weight:400;line-height:1.02;letter-spacing:-.02em}.zf-seo-lead{max-width:760px;margin:24px 0 0;color:var(--zf-700);font-size:1.04rem;line-height:1.75}.zf-seo-section-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;margin-top:28px}.zf-seo-card{min-height:230px;padding:30px;border:1px solid var(--zf-200);background:#fff;transition:transform .2s ease,box-shadow .2s ease}.zf-seo-card:hover{transform:translateY(-3px);box-shadow:var(--zf-shadow)}.zf-seo-card h2{margin:0 0 14px;font-family:'Cormorant Garamond',Georgia,serif;font-size:1.85rem;font-weight:400}.zf-seo-card p{margin:0;color:var(--zf-500);font-size:.92rem;line-height:1.65}.zf-seo-card p+p{margin-top:20px}.zf-seo-card a{color:var(--zf-gold-dark);font-weight:500}.zf-seo-cta-row{display:flex;justify-content:flex-end;margin-top:28px}.zf-seo-content{max-width:900px;margin:30px auto 0;padding:42px;border:1px solid var(--zf-200);background:#fff}.zf-seo-content>p{color:var(--zf-700);font-size:1rem;line-height:1.75}.zf-seo-content img{display:block;width:100%;height:auto;margin:28px 0;object-fit:cover;border:1px solid var(--zf-200)}.zf-seo-content .meta{margin-top:24px;color:var(--zf-500);font-size:.82rem}.zf-seo-content .price{margin:8px 0 24px;color:var(--zf-gold-dark);font-family:'Cormorant Garamond',Georgia,serif;font-size:2rem}.zf-seo-content ul{padding-left:20px}.zf-seo-content li{margin:10px 0}.zf-seo-content li a,.zf-seo-content>p a{color:var(--zf-gold-dark);font-weight:500}
+@media(max-width:820px){.zf-seo-wrap{width:min(100% - 32px,1180px)}.zf-seo-nav{height:66px}.zf-seo-nav-cta{display:none}.zf-seo-hero{padding:52px 28px}.zf-seo-section-grid{grid-template-columns:1fr}.zf-seo-card{min-height:0}.zf-seo-content{margin-top:18px;padding:28px 22px}.zf-seo-cta-row{justify-content:stretch}.zf-seo-primary{width:100%}}
+</style>`;
+}
+
+function siteHeader(base, ctaHref, ctaLabel) {
+  return `<header class="zf-seo-site-header">
+  <div class="zf-seo-wrap zf-seo-nav">
+    <a class="zf-seo-brand" href="${base}/" aria-label="Z Find">Z <em>Find</em></a>
+    ${ctaHref && ctaLabel ? `<a class="zf-seo-nav-cta" href="${ctaHref}">${escapeHtml(ctaLabel)} →</a>` : ''}
+  </div>
+</header>`;
+}
+
 function buildMarketPage({ baseUrl, locale, marketKey, marketLabel, publicPath, pathByLocale, heroEyebrow, heroTitle, heroLead, featuredTitle, featuredIntro, searchTitle, searchIntro, guidesTitle, guidesIntro, legalLabel, rentalLabel, openInteractive, seoTitle, seoDescription, interactiveSpaPath, legalSpaPath, touristRentalSpaPath }) {
   const base = requireBaseUrl(baseUrl);
   requireLocale(locale);
   if (!publicPath || pathByLocale[locale] !== publicPath) throw new Error('Market SEO public path mismatch.');
   const canonical = base + publicPath;
+  const interactiveUrl = base + interactiveSpaPath;
   const jsonLd = { '@context':'https://schema.org', '@type':'CollectionPage', name:seoTitle, description:seoDescription, url:canonical, about:{ '@type':'Place', name:marketLabel } };
   const breadcrumbLd = { '@context':'https://schema.org', '@type':'BreadcrumbList', itemListElement:[ { '@type':'ListItem', position:1, name:'Z Find', item:`${base}/` }, { '@type':'ListItem', position:2, name:marketLabel, item:canonical } ] };
   return `<!DOCTYPE html>
@@ -89,15 +112,25 @@ ${marketHreflangLinks(base,pathByLocale)}
 <meta name="twitter:card" content="summary">
 <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
 <script type="application/ld+json">${JSON.stringify(breadcrumbLd)}</script>
+${presentationHead()}
 </head>
-<body>
-<main data-zfind-market-key="${escapeAttr(marketKey)}">
-  <nav aria-label="breadcrumb"><a href="${base}/">Z Find</a> / <span>${escapeHtml(marketLabel)}</span></nav>
-  <header><p>${escapeHtml(heroEyebrow)}</p><h1>${escapeHtml(heroTitle)}</h1><p>${escapeHtml(heroLead)}</p></header>
-  <section><h2>${escapeHtml(featuredTitle)}</h2><p>${escapeHtml(featuredIntro)}</p></section>
-  <section><h2>${escapeHtml(searchTitle)}</h2><p>${escapeHtml(searchIntro)}</p></section>
-  <section><h2>${escapeHtml(guidesTitle)}</h2><p>${escapeHtml(guidesIntro)}</p><p><a href="${base}${legalSpaPath}">${escapeHtml(legalLabel)}</a> · <a href="${base}${touristRentalSpaPath}">${escapeHtml(rentalLabel)}</a></p></section>
-  <p><a href="${base}${interactiveSpaPath}">${escapeHtml(openInteractive)} →</a></p>
+<body class="zf-seo-body">
+${siteHeader(base, interactiveUrl, openInteractive)}
+<main class="zf-seo-main zf-seo-market" data-zfind-market-key="${escapeAttr(marketKey)}">
+  <div class="zf-seo-wrap">
+    <nav class="zf-seo-breadcrumb" aria-label="breadcrumb"><a href="${base}/">Z Find</a> / <span>${escapeHtml(marketLabel)}</span></nav>
+    <header class="zf-seo-hero">
+      <p class="zf-seo-eyebrow">${escapeHtml(heroEyebrow)}</p>
+      <h1>${escapeHtml(heroTitle)}</h1>
+      <p class="zf-seo-lead">${escapeHtml(heroLead)}</p>
+    </header>
+    <div class="zf-seo-section-grid">
+      <section class="zf-seo-card"><h2>${escapeHtml(featuredTitle)}</h2><p>${escapeHtml(featuredIntro)}</p></section>
+      <section class="zf-seo-card"><h2>${escapeHtml(searchTitle)}</h2><p>${escapeHtml(searchIntro)}</p></section>
+      <section class="zf-seo-card"><h2>${escapeHtml(guidesTitle)}</h2><p>${escapeHtml(guidesIntro)}</p><p><a href="${base}${legalSpaPath}">${escapeHtml(legalLabel)}</a> · <a href="${base}${touristRentalSpaPath}">${escapeHtml(rentalLabel)}</a></p></section>
+    </div>
+    <div class="zf-seo-cta-row"><a class="zf-seo-primary" href="${interactiveUrl}">${escapeHtml(openInteractive)} →</a></div>
+  </div>
 </main>
 </body>
 </html>`;
@@ -114,6 +147,7 @@ function buildListingPage({ kind, baseUrl, locale, availableLocales, id, title, 
   const metaDesc = buildMetaDescription(description);
   const pageTitle = `${title} — ${zoneLabel || cityLabel || ''} | Z Find`;
   const sectionLabel = kind === 'development' ? copy.developments : copy.properties;
+  const interactiveUrl = `${base}/#/${locale}/${kind}/${id}`;
   const jsonLd = JSON.parse(JSON.stringify({ '@context':'https://schema.org', '@type':'RealEstateListing', name:title, description:metaDesc, url:canonical, address:{ '@type':'PostalAddress', addressLocality:cityLabel || undefined, addressRegion:zoneLabel || undefined, addressCountry:countryIsoCode || undefined }, offers:{ '@type':'Offer', price:priceValue, priceCurrency:currencyIso, priceSpecification:priceIsFrom ? { '@type':'PriceSpecification', minPrice:priceValue } : undefined, availability:'https://schema.org/InStock' }, image:imageUrl || undefined }));
   const breadcrumbLd = { '@context':'https://schema.org', '@type':'BreadcrumbList', itemListElement:[ { '@type':'ListItem', position:1, name:'Z Find', item:base+'/'+locale }, { '@type':'ListItem', position:2, name:sectionLabel, item:`${base}/${locale}/search` }, { '@type':'ListItem', position:3, name:title, item:canonical } ] };
   return `<!DOCTYPE html>
@@ -133,16 +167,22 @@ ${imageUrl ? `<meta property="og:image" content="${escapeAttr(imageUrl)}">` : ''
 <meta name="twitter:card" content="${imageUrl ? 'summary_large_image' : 'summary'}">
 <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
 <script type="application/ld+json">${JSON.stringify(breadcrumbLd)}</script>
+${presentationHead()}
 </head>
-<body>
-<main>
-  <nav aria-label="breadcrumb"><a href="${base}/#/${locale}">Z Find</a> / <a href="${base}/#/${locale}/search">${escapeHtml(sectionLabel)}</a> / <span>${escapeHtml(title)}</span></nav>
-  <h1>${escapeHtml(title)}</h1>
-  ${imageUrl ? `<img src="${escapeAttr(imageUrl)}" alt="${escapeAttr(imageAlt || title)}" width="1200" height="675">` : ''}
-  <p>${escapeHtml(description)}</p>
-  <p class="meta">${escapeHtml([zoneLabel,cityLabel].filter(Boolean).join(', '))}</p>
-  <p class="price">${priceIsFrom ? escapeHtml(copy.from) : ''}${priceValue != null ? `${priceValue} ${currencyIso}` : ''}</p>
-  <p><a href="${base}/#/${locale}/${kind}/${id}">${escapeHtml(copy.viewFull)}</a></p>
+<body class="zf-seo-body">
+${siteHeader(base, interactiveUrl, copy.viewFull.replace(/\s*→\s*$/, ''))}
+<main class="zf-seo-main">
+  <div class="zf-seo-wrap">
+    <nav class="zf-seo-breadcrumb" aria-label="breadcrumb"><a href="${base}/#/${locale}">Z Find</a> / <a href="${base}/#/${locale}/search">${escapeHtml(sectionLabel)}</a> / <span>${escapeHtml(title)}</span></nav>
+    <article class="zf-seo-content">
+      <h1>${escapeHtml(title)}</h1>
+      ${imageUrl ? `<img src="${escapeAttr(imageUrl)}" alt="${escapeAttr(imageAlt || title)}" width="1200" height="675">` : ''}
+      <p>${escapeHtml(description)}</p>
+      <p class="meta">${escapeHtml([zoneLabel,cityLabel].filter(Boolean).join(', '))}</p>
+      <p class="price">${priceIsFrom ? escapeHtml(copy.from) : ''}${priceValue != null ? `${priceValue} ${currencyIso}` : ''}</p>
+      <p><a class="zf-seo-primary" href="${interactiveUrl}">${escapeHtml(copy.viewFull)}</a></p>
+    </article>
+  </div>
 </main>
 </body>
 </html>`;
@@ -154,6 +194,7 @@ function buildZonePage({ baseUrl, locale, zoneId, zoneName, cityName, countryIso
   const copy = COPY[locale];
   const pathForLocale = l => `/${l}/zone/${zoneId}`;
   const canonical = base + pathForLocale(locale);
+  const searchUrl = `${base}/#/${locale}/search`;
   const hasEnoughData = listingCount >= MIN_LISTINGS_FOR_STATS;
   const formattedAvg = Math.round(avgPrice).toLocaleString(locale);
   const title = copy.zoneTitle(zoneName,cityName);
@@ -175,18 +216,25 @@ ${hreflangLinks(base,pathForLocale,LOCALES)}
 <meta property="og:url" content="${canonical}">
 ${absoluteImageUrl ? `<meta property="og:image" content="${escapeAttr(absoluteImageUrl)}">` : ''}
 <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
+${presentationHead()}
 </head>
-<body>
-<main>
-  <h1>${escapeHtml(zoneName)}, ${escapeHtml(cityName)}</h1>
-  ${absoluteImageUrl ? `<img src="${escapeAttr(absoluteImageUrl)}" alt="${escapeAttr(zoneName+', '+cityName)}" width="1200" height="675">` : ''}
-  ${hasEnoughData ? `<p>${escapeHtml(copy.opportunities(listingCount,formattedAvg,currencyIso))}</p>` : `<p>${escapeHtml(copy.adding(zoneName))} <a href="${base}/#/${locale}/search">${escapeHtml(copy.seeAll)}</a></p>`}
-  ${sampleListings && sampleListings.length ? '<ul>'+sampleListings.map(l=>`<li><a href="${base}/${locale}/${l.kind}/${l.id}">${escapeHtml(l.title)}</a></li>`).join('')+'</ul>' : ''}
+<body class="zf-seo-body">
+${siteHeader(base, searchUrl, copy.seeAll.replace(/\s*→\s*$/, ''))}
+<main class="zf-seo-main">
+  <div class="zf-seo-wrap">
+    <nav class="zf-seo-breadcrumb" aria-label="breadcrumb"><a href="${base}/#/${locale}">Z Find</a> / <span>${escapeHtml(zoneName)}, ${escapeHtml(cityName)}</span></nav>
+    <article class="zf-seo-content">
+      <h1>${escapeHtml(zoneName)}, ${escapeHtml(cityName)}</h1>
+      ${absoluteImageUrl ? `<img src="${escapeAttr(absoluteImageUrl)}" alt="${escapeAttr(zoneName+', '+cityName)}" width="1200" height="675">` : ''}
+      ${hasEnoughData ? `<p>${escapeHtml(copy.opportunities(listingCount,formattedAvg,currencyIso))}</p>` : `<p>${escapeHtml(copy.adding(zoneName))} <a href="${searchUrl}">${escapeHtml(copy.seeAll)}</a></p>`}
+      ${sampleListings && sampleListings.length ? '<ul>'+sampleListings.map(l=>`<li><a href="${base}/${locale}/${l.kind}/${l.id}">${escapeHtml(l.title)}</a></li>`).join('')+'</ul>' : ''}
+    </article>
+  </div>
 </main>
 </body>
 </html>`;
 }
 
-return { buildListingPage, buildZonePage, buildMarketPage, buildMetaDescription, MIN_LISTINGS_FOR_STATS, LOCALES, MARKET_LOCALES, DEFAULT_LOCALE, COPY };
+return { buildListingPage, buildZonePage, buildMarketPage, buildMetaDescription, presentationHead, MIN_LISTINGS_FOR_STATS, SEO_PRESENTATION_VERSION, LOCALES, MARKET_LOCALES, DEFAULT_LOCALE, COPY };
 
 });

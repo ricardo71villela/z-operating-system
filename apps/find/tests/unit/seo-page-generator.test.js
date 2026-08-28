@@ -101,6 +101,42 @@ console.log('\n=== 7. Zone image mapping: explicit, never guesses ===');
   assert(zoneImages.getZoneImagePath('A Zone That Does Not Exist') === null, 'An unmapped zone returns null — never falls back to a wrong photo');
 }
 
+console.log('\n=== 8. Static SEO presentation: branded and self-contained across page types ===');
+{
+  const pathByLocale = {
+    fr:'/fr/marches/france', en:'/en/markets/france', pt:'/pt/mercados/franca',
+    es:'/es/mercados/francia', de:'/de/maerkte/frankreich', it:'/it/mercati/francia'
+  };
+  const market = gen.buildMarketPage({
+    baseUrl:'https://zfind.online', locale:'en', marketKey:'FR', marketLabel:'France',
+    publicPath:pathByLocale.en, pathByLocale,
+    heroEyebrow:'International real-estate market',
+    heroTitle:'Explore real-estate opportunities — France',
+    heroLead:'Discover properties, developments and land on Z Find for France.',
+    featuredTitle:'Featured this week', featuredIntro:'Published opportunities highlighted in this market.',
+    searchTitle:'Search this market', searchIntro:'Refine your search without leaving the selected market.',
+    guidesTitle:'Understand the market', guidesIntro:'Access the specialist guides available for this jurisdiction.',
+    legalLabel:'Legal guide', rentalLabel:'Short-term rental', openInteractive:'Explore the marketplace',
+    seoTitle:'Real estate — France | Z Find', seoDescription:'France real estate on Z Find.',
+    interactiveSpaPath:'/#/en/market/FR', legalSpaPath:'/#/en/legal/france', touristRentalSpaPath:'/#/en/tourist-rental/france'
+  });
+  const listing = gen.buildListingPage({
+    kind:'property', baseUrl:'https://zfind.online', locale:'en', id:'p1', title:'Test home', description:'A real description.',
+    priceValue:500000, currencyIso:'EUR', priceIsFrom:false, zoneLabel:'Paris', cityLabel:'Paris', countryIsoCode:'FR', imageUrl:null
+  });
+  const zone = gen.buildZonePage({
+    baseUrl:'https://zfind.online', locale:'en', zoneId:'paris', zoneName:'Paris', cityName:'Paris', countryIsoCode:'FR',
+    listingCount:0, avgPrice:0, currencyIso:'EUR', sampleListings:[], imageUrl:null
+  });
+
+  assert(gen.SEO_PRESENTATION_VERSION === 'zfind-static-v1', 'Static presentation has an explicit versioned contract');
+  assert([market, listing, zone].every(html => html.includes('<style id="zfind-seo-page-styles"')), 'Market, listing and zone pages embed the Z Find stylesheet — never render as raw browser-default HTML');
+  assert([market, listing, zone].every(html => html.includes('class="zf-seo-site-header"') && html.includes('class="zf-seo-brand"')), 'All static SEO page types include the branded Z Find shell');
+  assert(market.includes('class="zf-seo-hero"') && market.includes('class="zf-seo-section-grid"') && market.includes('class="zf-seo-primary"'), 'France-style market page renders a real hero, content-card grid and marketplace CTA');
+  assert(market.includes('@media(max-width:820px)') && market.includes('grid-template-columns:1fr'), 'Static presentation includes an explicit mobile layout');
+  assert(market.includes('Cormorant+Garamond') && market.includes('DM+Sans'), 'Static pages use the same Z Find typography families as the interactive surface');
+}
+
 console.log('\n============================================================');
 console.log(`RESULT: ${pass} passed, ${fail} failed`);
 console.log('============================================================');
