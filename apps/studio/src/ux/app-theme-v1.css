@@ -1,0 +1,451 @@
+/* ZSTUDIO_APP_THEME_V1
+   Product-shell theme authority only.
+   Dark remains the existing visual authority byte-for-byte unless the
+   light app theme is selected. Customer/post rendering is intentionally
+   independent and continues to use state.bg + pal(). */
+
+html[data-zstudio-app-theme="light"] {
+  color-scheme: light;
+  --gold: #222426;
+  --gold-light: #111315;
+  --gold-dark: #777B7E;
+  --gold-rgb: 34,36,38;
+  --black: #F4F3EF;
+  --surface: #FFFFFF;
+  --surface-2: #F8F7F4;
+  --border: #D5D3CE;
+  --text: #171819;
+  --text2: #5F6468;
+  --text3: #74797D;
+  --studio-hairline: rgba(40,43,45,.16);
+  --studio-hairline-hover: rgba(40,43,45,.30);
+  --studio-soft-surface: rgba(20,22,24,.018);
+  --studio-soft-surface-hover: rgba(20,22,24,.045);
+}
+
+html[data-zstudio-app-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* Theme toggle — a product-shell utility, never a post-style control. */
+.zs-app-theme-toggle {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  width:38px;
+  min-width:38px;
+  height:38px;
+  min-height:38px;
+  padding:0 !important;
+  border:1px solid var(--border);
+  border-radius:5px;
+  background:rgba(255,255,255,.006);
+  color:var(--text2);
+  font-family:'DM Sans',sans-serif;
+  font-size:1rem;
+  line-height:1;
+  cursor:pointer;
+  transition:border-color .18s ease, color .18s ease, background-color .18s ease, transform .18s ease;
+}
+.zs-app-theme-toggle:hover,
+.zs-app-theme-toggle:focus-visible {
+  border-color:var(--text2);
+  color:var(--text);
+  background:rgba(255,255,255,.028);
+}
+.zs-app-theme-toggle:active { transform:translateY(1px); }
+.zs-app-theme-toggle .zs-theme-icon { display:block; width:18px; text-align:center; }
+
+/* Global light shell. */
+html[data-zstudio-app-theme="light"] body {
+  background:
+    radial-gradient(ellipse 140% 60% at 50% -8%, rgba(23,24,25,.035), transparent 55%),
+    var(--black);
+  color:var(--text);
+}
+html[data-zstudio-app-theme="light"] ::-webkit-scrollbar-track { background:var(--black); }
+html[data-zstudio-app-theme="light"] ::-webkit-scrollbar-thumb {
+  background:#C6C4BE;
+  border-color:var(--black);
+}
+html[data-zstudio-app-theme="light"] ::-webkit-scrollbar-thumb:hover { background:#AAA7A0; }
+
+html[data-zstudio-app-theme="light"] header {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.78), rgba(255,255,255,.42)),
+    #F4F3EF;
+  border-bottom-color:#D8D6D1;
+  box-shadow:0 1px 0 rgba(18,20,22,.025);
+}
+html[data-zstudio-app-theme="light"] .brand .tag::before { color:#171819; }
+html[data-zstudio-app-theme="light"] .brand .tag [data-i18n="headerTagline"] { color:#696D70; }
+html[data-zstudio-app-theme="light"] .lang-select,
+html[data-zstudio-app-theme="light"] .header-actions .btn,
+html[data-zstudio-app-theme="light"] .header-actions .lang-select,
+html[data-zstudio-app-theme="light"] .zs-app-theme-toggle {
+  color:#4D5154;
+  border-color:#D0CEC8;
+  background:rgba(255,255,255,.72);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.80);
+}
+html[data-zstudio-app-theme="light"] .lang-select:hover,
+html[data-zstudio-app-theme="light"] .lang-select:focus,
+html[data-zstudio-app-theme="light"] .header-actions .btn:hover,
+html[data-zstudio-app-theme="light"] .header-actions .lang-select:hover,
+html[data-zstudio-app-theme="light"] .zs-app-theme-toggle:hover,
+html[data-zstudio-app-theme="light"] .zs-app-theme-toggle:focus-visible {
+  border-color:#A9A6A0;
+  color:#171819;
+  background:#FFFFFF;
+  box-shadow:0 0 0 2px rgba(20,22,24,.045);
+}
+
+html[data-zstudio-app-theme="light"] .controls {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.52), transparent 28%),
+    #F8F7F4;
+  border-right-color:#D8D6D1;
+  border-bottom-color:#D8D6D1;
+}
+html[data-zstudio-app-theme="light"] .controls::-webkit-scrollbar-thumb {
+  background:#C7C5BF;
+  border-color:#F8F7F4;
+}
+html[data-zstudio-app-theme="light"] .controls .step-label,
+html[data-zstudio-app-theme="light"] #brandStep .step-label {
+  color:#55595C;
+}
+html[data-zstudio-app-theme="light"] .controls .step-label::after {
+  background:linear-gradient(90deg, #D5D3CE, rgba(213,211,206,0));
+}
+html[data-zstudio-app-theme="light"] .controls label.f { color:#555A5D; }
+html[data-zstudio-app-theme="light"] .controls .hint,
+html[data-zstudio-app-theme="light"] .hint,
+html[data-zstudio-app-theme="light"] .status { color:#74797D; }
+
+html[data-zstudio-app-theme="light"] select,
+html[data-zstudio-app-theme="light"] input[type=text],
+html[data-zstudio-app-theme="light"] input[type=number],
+html[data-zstudio-app-theme="light"] textarea,
+html[data-zstudio-app-theme="light"] .controls select,
+html[data-zstudio-app-theme="light"] .controls input[type=text],
+html[data-zstudio-app-theme="light"] .controls input[type=number],
+html[data-zstudio-app-theme="light"] .controls textarea {
+  color:#171819;
+  border-color:#D1CFC9;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.96), rgba(252,251,248,.96)),
+    #FFFFFF;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.88);
+}
+html[data-zstudio-app-theme="light"] select:hover,
+html[data-zstudio-app-theme="light"] input[type=text]:hover,
+html[data-zstudio-app-theme="light"] input[type=number]:hover,
+html[data-zstudio-app-theme="light"] textarea:hover,
+html[data-zstudio-app-theme="light"] .controls select:hover,
+html[data-zstudio-app-theme="light"] .controls input[type=text]:hover,
+html[data-zstudio-app-theme="light"] .controls input[type=number]:hover,
+html[data-zstudio-app-theme="light"] .controls textarea:hover {
+  border-color:#B8B5AF;
+  background:#FFFFFF;
+}
+html[data-zstudio-app-theme="light"] select:focus,
+html[data-zstudio-app-theme="light"] input:focus,
+html[data-zstudio-app-theme="light"] textarea:focus,
+html[data-zstudio-app-theme="light"] .controls select:focus,
+html[data-zstudio-app-theme="light"] .controls input:focus,
+html[data-zstudio-app-theme="light"] .controls textarea:focus {
+  border-color:#85898C;
+  box-shadow:0 0 0 3px rgba(45,49,52,.07);
+}
+html[data-zstudio-app-theme="light"] input::placeholder,
+html[data-zstudio-app-theme="light"] textarea::placeholder { color:#92969A; }
+
+html[data-zstudio-app-theme="light"] .seg button {
+  color:#5B6063;
+  border-color:#D1CFC9;
+  background:#FBFAF7;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.74);
+}
+html[data-zstudio-app-theme="light"] .seg button:hover {
+  border-color:#AAA7A0;
+  color:#171819;
+  background:#FFFFFF;
+}
+html[data-zstudio-app-theme="light"] .seg button.active {
+  border-color:#8A8E91;
+  color:#171819;
+  background:#EEEDE9;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.76);
+}
+html[data-zstudio-app-theme="light"] .chip {
+  color:#62676A;
+  border-color:#D1CFC9;
+  background:rgba(255,255,255,.50);
+}
+html[data-zstudio-app-theme="light"] .chip:hover,
+html[data-zstudio-app-theme="light"] .chip.active {
+  border-color:#9EA1A3;
+  color:#171819;
+  background:#F0EFEB;
+}
+html[data-zstudio-app-theme="light"] input[type=range] { background:#D2D0CA; }
+html[data-zstudio-app-theme="light"] input[type=range]::-webkit-slider-thumb {
+  background:#2B2D2F;
+  border-color:#FFFFFF;
+  box-shadow:0 2px 8px rgba(20,22,24,.18);
+}
+html[data-zstudio-app-theme="light"] input[type=range]::-moz-range-thumb {
+  background:#2B2D2F;
+  border-color:#FFFFFF;
+  box-shadow:0 2px 8px rgba(20,22,24,.18);
+}
+
+html[data-zstudio-app-theme="light"] .dropzone,
+html[data-zstudio-app-theme="light"] #mediaStep .dropzone {
+  color:#656A6D;
+  border-color:#C9C7C1;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(255,255,255,.82), transparent 48%),
+    linear-gradient(180deg, rgba(255,255,255,.70), rgba(249,248,245,.82)),
+    #F7F6F2;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.86);
+}
+html[data-zstudio-app-theme="light"] .dropzone:hover,
+html[data-zstudio-app-theme="light"] .dropzone.drag,
+html[data-zstudio-app-theme="light"] #mediaStep .dropzone:hover,
+html[data-zstudio-app-theme="light"] #mediaStep .dropzone.drag {
+  border-color:#929598;
+  color:#171819;
+  background:
+    radial-gradient(circle at 50% 20%, #FFFFFF, transparent 50%),
+    #FAF9F6;
+}
+html[data-zstudio-app-theme="light"] #btnFolderPicker {
+  color:#555A5D;
+  border-color:#D0CEC8;
+  background:#FBFAF7;
+}
+html[data-zstudio-app-theme="light"] #btnFolderPicker:hover {
+  color:#171819;
+  border-color:#AAA7A0;
+  background:#FFFFFF;
+}
+html[data-zstudio-app-theme="light"] #advancedToggleRow:hover { color:#171819; }
+
+html[data-zstudio-app-theme="light"] .section-row {
+  color:#171819;
+  border-color:#D4D2CC;
+  background:#FBFAF7;
+}
+html[data-zstudio-app-theme="light"] .section-row:hover,
+html[data-zstudio-app-theme="light"] .section-row.current { border-color:#929598; }
+html[data-zstudio-app-theme="light"] .section-row .st { color:#242628; }
+html[data-zstudio-app-theme="light"] .section-row .sp { color:#777C80; }
+
+html[data-zstudio-app-theme="light"] .stage {
+  background:
+    radial-gradient(ellipse 72% 62% at 42% 42%, rgba(20,22,24,.028), transparent 72%);
+}
+html[data-zstudio-app-theme="light"] .stage-glow {
+  opacity:.50;
+  background:radial-gradient(ellipse closest-side, rgba(55,58,60,.075), rgba(55,58,60,.024) 52%, transparent 78%);
+}
+html[data-zstudio-app-theme="light"] .canvas-frame {
+  border-color:#D0CEC8;
+  background:#FFFFFF;
+  box-shadow:
+    0 28px 70px rgba(31,33,35,.14),
+    0 8px 26px rgba(31,33,35,.07),
+    inset 0 1px 0 rgba(255,255,255,.92);
+}
+html[data-zstudio-app-theme="light"] .canvas-frame:hover {
+  border-color:#B7B4AE;
+  box-shadow:
+    0 32px 78px rgba(31,33,35,.16),
+    0 10px 30px rgba(31,33,35,.08),
+    inset 0 1px 0 rgba(255,255,255,.94);
+}
+html[data-zstudio-app-theme="light"] .slide-nav { color:#666B6E; }
+html[data-zstudio-app-theme="light"] .slide-nav button {
+  color:#62676A;
+  border-color:#D0CEC8;
+  background:#FBFAF7;
+}
+html[data-zstudio-app-theme="light"] .slide-nav button:hover {
+  color:#171819;
+  border-color:#9EA1A3;
+  background:#FFFFFF;
+}
+
+html[data-zstudio-app-theme="light"] .btn-line,
+html[data-zstudio-app-theme="light"] .export-more-toggle {
+  color:#555A5D;
+  border-color:#D0CEC8;
+  background:rgba(255,255,255,.62);
+  box-shadow:none;
+}
+html[data-zstudio-app-theme="light"] .btn-line:hover,
+html[data-zstudio-app-theme="light"] .export-more-toggle:hover,
+html[data-zstudio-app-theme="light"] .export-more-shell.open .export-more-toggle {
+  color:#171819;
+  border-color:#AAA7A0;
+  background:#FFFFFF;
+  box-shadow:0 6px 18px rgba(28,30,32,.08);
+}
+html[data-zstudio-app-theme="light"] .actions .export-primary {
+  color:#FFFFFF;
+  border-color:#1C1E20;
+  background:#1C1E20;
+  box-shadow:0 8px 22px rgba(28,30,32,.15);
+}
+html[data-zstudio-app-theme="light"] .actions .export-primary:hover {
+  color:#FFFFFF;
+  border-color:#080909;
+  background:#080909;
+  box-shadow:0 10px 26px rgba(28,30,32,.19);
+}
+html[data-zstudio-app-theme="light"] .export-secondary-group {
+  border-color:#D0CEC8;
+  background:rgba(255,255,255,.985);
+  box-shadow:0 22px 54px rgba(28,30,32,.16);
+}
+html[data-zstudio-app-theme="light"] .export-secondary-group .export-secondary {
+  color:#555A5D;
+  border-color:#D5D3CE;
+  background:#FAF9F6;
+}
+html[data-zstudio-app-theme="light"] .export-secondary-group .export-secondary:hover {
+  color:#171819;
+  border-color:#AAA7A0;
+  background:#FFFFFF;
+}
+
+html[data-zstudio-app-theme="light"] .caption-box {
+  border-color:#D0CEC8;
+  background:
+    radial-gradient(circle at 50% -8%, rgba(255,255,255,.92), transparent 32%),
+    linear-gradient(180deg, rgba(255,255,255,.76), rgba(248,247,244,.68)),
+    #F8F7F4;
+  box-shadow:
+    0 22px 52px rgba(28,30,32,.08),
+    inset 0 1px 0 rgba(255,255,255,.88);
+}
+html[data-zstudio-app-theme="light"] .caption-head > label.f { color:#555A5D; }
+html[data-zstudio-app-theme="light"] .caption-head > div .btn,
+html[data-zstudio-app-theme="light"] #btnAICaption,
+html[data-zstudio-app-theme="light"] #btnAICaptionAll {
+  color:#2B2E30 !important;
+  background:
+    linear-gradient(#FFFFFF,#FFFFFF) padding-box,
+    linear-gradient(90deg,
+      rgba(255,92,112,.64),
+      rgba(245,185,73,.62),
+      rgba(91,201,151,.62),
+      rgba(82,169,231,.62),
+      rgba(155,111,238,.64)) border-box !important;
+}
+html[data-zstudio-app-theme="light"] .caption-head > div .btn:hover,
+html[data-zstudio-app-theme="light"] .caption-head > div .btn:focus,
+html[data-zstudio-app-theme="light"] #btnAICaption:hover,
+html[data-zstudio-app-theme="light"] #btnAICaption:focus,
+html[data-zstudio-app-theme="light"] #btnAICaptionAll:hover,
+html[data-zstudio-app-theme="light"] #btnAICaptionAll:focus {
+  color:#111315 !important;
+  background:
+    linear-gradient(#F9F8F5,#F9F8F5) padding-box,
+    linear-gradient(90deg,
+      rgba(255,92,112,.82),
+      rgba(245,185,73,.80),
+      rgba(91,201,151,.80),
+      rgba(82,169,231,.80),
+      rgba(155,111,238,.82)) border-box !important;
+}
+html[data-zstudio-app-theme="light"] .caption-box textarea {
+  color:#222426;
+  caret-color:#222426;
+  border-color:#D2D0CA;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255,255,255,.70), transparent 42%),
+    #FFFFFF;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.90);
+}
+html[data-zstudio-app-theme="light"] .caption-box textarea:hover { border-color:#B8B5AF; }
+html[data-zstudio-app-theme="light"] .caption-box textarea:focus {
+  border-color:#85898C;
+  box-shadow:0 0 0 3px rgba(45,49,52,.06);
+}
+
+html[data-zstudio-app-theme="light"] .toast {
+  color:#222426;
+  border-color:#B8B5AF;
+  background:#FFFFFF;
+  box-shadow:0 12px 30px rgba(28,30,32,.13), 0 4px 14px rgba(28,30,32,.06);
+}
+html[data-zstudio-app-theme="light"] .site-footer { border-top-color:#D8D6D1; }
+html[data-zstudio-app-theme="light"] .site-footer-brand span,
+html[data-zstudio-app-theme="light"] .site-footer-legal a { color:#74797D; }
+html[data-zstudio-app-theme="light"] .site-footer-legal a:hover { color:#171819; }
+html[data-zstudio-app-theme="light"] .site-footer-dot { color:#C2C0BA; }
+
+/* Keep photo-level affordances dark over media in both app themes. */
+html[data-zstudio-app-theme="light"] .ph .tick,
+html[data-zstudio-app-theme="light"] .ph-remove {
+  border-color:rgba(255,255,255,.72);
+  background:rgba(0,0,0,.58);
+  color:#FFFFFF;
+}
+html[data-zstudio-app-theme="light"] .ph.incar .tick {
+  background:#FFFFFF;
+  border-color:#FFFFFF;
+  color:#111315;
+}
+
+/* Mobile uses the same light authority without changing approved geometry. */
+@media (max-width: 620px) {
+  .zs-app-theme-toggle {
+    width:44px;
+    min-width:44px;
+    height:44px;
+    min-height:44px;
+    border-radius:6px;
+  }
+  html[data-zstudio-app-theme="light"] header,
+  html[data-zstudio-app-theme="light"][data-zstudio-mobile-flow="v2"] body header {
+    background:#F4F3EF !important;
+    border-bottom-color:#D8D6D1 !important;
+  }
+  html[data-zstudio-app-theme="light"] .controls {
+    background:#F8F7F4 !important;
+  }
+  html[data-zstudio-app-theme="light"] .export-more-toggle,
+  html[data-zstudio-app-theme="light"] .caption-mobile-toggle {
+    color:#555A5D;
+    border-color:#D0CEC8;
+    background:#FBFAF7;
+  }
+  html[data-zstudio-app-theme="light"] .export-more-toggle::after,
+  html[data-zstudio-app-theme="light"] .caption-mobile-toggle::after { color:#707578; }
+}
+
+/* Accessibility focus authority in light mode. */
+html[data-zstudio-app-theme="light"] .btn:focus-visible,
+html[data-zstudio-app-theme="light"] .lang-select:focus-visible,
+html[data-zstudio-app-theme="light"] .dropzone:focus-visible,
+html[data-zstudio-app-theme="light"] .step-label[role=button]:focus-visible,
+html[data-zstudio-app-theme="light"] .chip:focus-visible,
+html[data-zstudio-app-theme="light"] .seg button:focus-visible,
+html[data-zstudio-app-theme="light"] .controls select:focus-visible,
+html[data-zstudio-app-theme="light"] .controls input:focus-visible,
+html[data-zstudio-app-theme="light"] .controls textarea:focus-visible,
+html[data-zstudio-app-theme="light"] .controls button:focus-visible,
+html[data-zstudio-app-theme="light"] .stage button:focus-visible,
+html[data-zstudio-app-theme="light"] .header-actions .btn:focus-visible,
+html[data-zstudio-app-theme="light"] .header-actions .lang-select:focus-visible,
+html[data-zstudio-app-theme="light"] .zs-app-theme-toggle:focus-visible {
+  outline:2px solid rgba(32,35,37,.72) !important;
+  outline-offset:2px;
+  border-color:#85898C !important;
+  box-shadow:0 0 0 4px rgba(76,157,225,.10) !important;
+}
