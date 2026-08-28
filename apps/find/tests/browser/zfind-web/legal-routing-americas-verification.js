@@ -115,50 +115,11 @@ async function check(name, fn) {
       .filter({ hasText: label });
   }
 
-  async function requireUniqueActiveButton(
-    route,
-    label
-  ) {
-    const button = countryButton(route, label);
-
-    if (await button.count() !== 1)
-      throw new Error(`${label} button not unique`);
-
-    if (!(await button.isDisabled()))
-      throw new Error(`${label} is not active`);
-  }
-
-  async function requireSeparateButton(
-    route,
-    targetLabel,
-    expectedTargetRoute
-  ) {
-    const button =
-      countryButton(route, targetLabel);
-
-    if (await button.count() !== 1)
-      throw new Error(
-        `${targetLabel} button not unique`
-      );
-
-    if (await button.isDisabled())
-      throw new Error(
-        `${targetLabel} incorrectly shares active state`
-      );
-
-    await button.click();
-
-    await page.waitForFunction(
-      targetRoute => {
-        const el =
-          document.getElementById(`view-${targetRoute}`);
-
-        return (
-          el &&
-          el.classList.contains('active')
-        );
-      },
-      expectedTargetRoute
+  function headerGrid(route) {
+    return page.locator(
+      `#view-${route} ` +
+      '.legal-page > .legal-header > ' +
+      '.legal-callout:has(> button)'
     );
   }
 
@@ -167,7 +128,10 @@ async function check(name, fn) {
     '=== Z FIND AMERICAS DISTINCT COUNTRY CONTRACT ==='
   );
 
-  for (const country of countries) {
+  for (let index = 0; index < countries.length; index++) {
+    const country = countries[index];
+    const other = countries[(index + 1) % countries.length];
+
     await check(
       `${country.label} Legal Guide is independent route`,
       () => open('en', country.legal)
@@ -179,24 +143,35 @@ async function check(name, fn) {
     );
 
     await check(
-      `${country.label} legal selector has own active button`,
+      `${country.label} Legal Guide hides legacy jurisdiction grid`,
       async () => {
         await open('en', country.legal);
-        await requireUniqueActiveButton(
-          country.legal,
-          country.label
-        );
+        const grid = headerGrid(country.legal);
+        if (await grid.count() !== 1)
+          throw new Error('legal jurisdiction grid not unique');
+        if (!(await grid.isHidden()))
+          throw new Error('legal jurisdiction grid still visible');
       }
     );
 
     await check(
-      `${country.label} tourist selector has own active button`,
+      `${country.label} tourist guide hides country choices and preserves Back to Legal Guide`,
       async () => {
         await open('en', country.tourist);
-        await requireUniqueActiveButton(
+
+        const otherButton = countryButton(
           country.tourist,
-          country.label
+          other.label
         );
+        const back = page.locator(
+          `#view-${country.tourist} ` +
+          `button[onclick="navigate('${country.legal}')"]`
+        );
+
+        if (await otherButton.count() !== 1 || !(await otherButton.isHidden()))
+          throw new Error(`${other.label} tourist choice must be hidden`);
+        if (await back.count() !== 1 || !(await back.isVisible()))
+          throw new Error('Back to Legal Guide must remain visible');
       }
     );
 
@@ -262,38 +237,6 @@ async function check(name, fn) {
     );
   }
 
-  for (let index = 0; index < countries.length; index++) {
-    const current = countries[index];
-    const next =
-      countries[(index + 1) % countries.length];
-
-    await check(
-      `${current.label} legal selector navigates separately to ${next.label}`,
-      async () => {
-        await open('en', current.legal);
-
-        await requireSeparateButton(
-          current.legal,
-          next.label,
-          next.legal
-        );
-      }
-    );
-
-    await check(
-      `${current.label} tourist selector navigates separately to ${next.label}`,
-      async () => {
-        await open('en', current.tourist);
-
-        await requireSeparateButton(
-          current.tourist,
-          next.label,
-          next.tourist
-        );
-      }
-    );
-  }
-
   for (const locale of ['fr', 'en', 'pt']) {
     for (const country of countries) {
       await check(
@@ -304,27 +247,17 @@ async function check(name, fn) {
   }
 
   await check(
-    'Europe selector exposes all five Americas legal jurisdictions',
+    'Belgium Legal Guide also hides the legacy Americas jurisdiction choices',
     async () => {
       await open('en', 'legal-belgium');
-
-      for (const country of countries) {
-        const button =
-          countryButton(
-            'legal-belgium',
-            country.label
-          );
-
-        if (await button.count() !== 1)
-          throw new Error(
-            `${country.label} missing from Belgium legal selector`
-          );
-      }
+      const grid = headerGrid('legal-belgium');
+      if (await grid.count() !== 1 || !(await grid.isHidden()))
+        throw new Error('Belgium legal jurisdiction grid still visible');
     }
   );
 
   await check(
-    'Europe selector exposes all five Americas tourist jurisdictions',
+    'Belgium tourist guide hides Americas choices and preserves Back to Legal Guide',
     async () => {
       await open(
         'en',
@@ -332,17 +265,23 @@ async function check(name, fn) {
       );
 
       for (const country of countries) {
-        const button =
-          countryButton(
-            'tourist-rental-belgium',
-            country.label
-          );
+        const button = countryButton(
+          'tourist-rental-belgium',
+          country.label
+        );
 
-        if (await button.count() !== 1)
+        if (await button.count() !== 1 || !(await button.isHidden()))
           throw new Error(
-            `${country.label} missing from Belgium tourist selector`
+            `${country.label} tourist choice must be hidden`
           );
       }
+
+      const back = page.locator(
+        '#view-tourist-rental-belgium ' +
+        'button[onclick="navigate(\'legal-belgium\')"]'
+      );
+      if (await back.count() !== 1 || !(await back.isVisible()))
+        throw new Error('Belgium Back to Legal Guide must remain visible');
     }
   );
 
@@ -361,7 +300,6 @@ async function check(name, fn) {
 
   const expectedPassed =
     (countries.length * 7) +
-    (countries.length * 2) +
     (3 * countries.length) +
     2;
 
