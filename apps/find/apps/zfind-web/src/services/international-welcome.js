@@ -6,8 +6,8 @@
    - language choice is independent from market choice
    - all six public locales are available for the welcome -> market route
    - the existing hero <select> remains the native accessible fallback
-   - market links use canonical public routes; this module never invents
-     geography or market slugs.
+   - internal market entry stays inside the SPA; clean public market routes
+     remain SEO/discovery authorities and are never an intermediate UX hop.
    ============================================================ */
 
 (function (root) {
@@ -70,7 +70,7 @@
     }),
     es: Object.freeze({
       eyebrow: 'Bienvenido a Z Find',
-      title: 'Elige el idioma y el mercado',
+      title: 'Elige tu idioma y mercado',
       lead: 'Selecciona el idioma de consulta y después el país o mercado inmobiliario en el que deseas entrar.',
       language: 'Idioma',
       market: 'País o mercado',
@@ -155,19 +155,14 @@
   }
 
   function enterMarket(marketKey) {
-    if (!marketRegistry.getMarket(marketKey)) return;
+    if (!marketRegistry.getMarket(marketKey) || !root.location) return;
     safeStorageSet(STORAGE_KEY, selectedLocale);
 
-    const target = marketRegistry.marketPath(
-      marketKey,
-      selectedLocale
-    );
-
-    if (root.location && typeof root.location.assign === 'function') {
-      root.location.assign(target);
-    } else if (root.location) {
-      root.location.href = target;
-    }
+    // Internal navigation must stay inside the interactive SPA. Clean public
+    // market paths remain indexable SEO entry points, never an intermediate
+    // page between the Z Find shell and the selected market.
+    const targetHash = `/${selectedLocale}/market/${marketKey}`;
+    root.location.hash = targetHash;
   }
 
   function ensureStyles() {
