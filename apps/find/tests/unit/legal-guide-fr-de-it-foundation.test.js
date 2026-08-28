@@ -18,6 +18,11 @@ const app = fs.readFileSync(
   'utf8'
 );
 
+const headTop = fs.readFileSync(
+  path.join(WEB, 'src/head_top.txt'),
+  'utf8'
+);
+
 const pkg = fs.readFileSync(
   path.join(FIND, 'package.json'),
   'utf8'
@@ -130,6 +135,25 @@ for (const c of countries) {
     `jurisdiction navigation exposes ${route}`
   );
 });
+
+check(
+  headTop.includes(
+    '#view-legal-fr > .legal-page > .legal-header > .legal-callout'
+  ),
+  'France Legal Guide hides the jurisdiction matrix from the reading flow'
+);
+
+check(
+  headTop.includes(
+    '#view-tourist-rental-fr > .legal-page > .legal-header > .legal-callout'
+  ),
+  'France tourist-rental guide hides the jurisdiction matrix from the reading flow'
+);
+
+check(
+  /#view-legal-fr[\s\S]*#view-tourist-rental-fr[\s\S]*display:\s*none/.test(headTop),
+  'France detail-only jurisdiction suppression is active'
+);
 
 check(
   pkg.includes(
