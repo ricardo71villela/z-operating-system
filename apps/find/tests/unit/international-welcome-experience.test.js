@@ -10,6 +10,9 @@ const read = rel => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const welcomeSource = read(
   'apps/zfind-web/src/services/international-welcome.js'
 );
+const routeSyncSource = read(
+  'apps/zfind-web/src/services/international-welcome-route-sync.js'
+);
 const buildSource = read(
   'apps/zfind-web/scripts/build.js'
 );
@@ -101,6 +104,39 @@ check(
 );
 
 check(
+  'passive initial load finishes with the visual welcome closed',
+  routeSyncSource.includes('function closePassiveWelcome()') &&
+  routeSyncSource.includes("document.addEventListener('DOMContentLoaded', function () {") &&
+  routeSyncSource.includes('root.setTimeout(settlePassiveRoute, 0);') &&
+  routeSyncSource.includes('closePassiveWelcome();')
+);
+
+check(
+  'passive hash navigation finishes with the visual welcome closed',
+  routeSyncSource.includes("root.addEventListener('hashchange', function () {") &&
+  routeSyncSource.includes('root.setTimeout(settlePassiveRoute, 0);') &&
+  routeSyncSource.includes('function settlePassiveRoute()')
+);
+
+check(
+  'existing Home market CTA is the explicit visual welcome open authority',
+  body.includes('id="home-status-market-cta"') &&
+  body.includes('onclick="focusMarketExplorer()"') &&
+  routeSyncSource.includes(
+    "document.getElementById('home-status-market-cta')"
+  ) &&
+  routeSyncSource.includes(
+    "cta.addEventListener('click', welcome.render)"
+  )
+);
+
+check(
+  'explicit welcome binding is idempotent',
+  routeSyncSource.includes("cta.dataset.welcomeOpenBound === '1'") &&
+  routeSyncSource.includes("cta.dataset.welcomeOpenBound = '1'")
+);
+
+check(
   'welcome service is included by deterministic Z Find build',
   buildSource.includes(
     "read('services/international-welcome.js')"
@@ -108,6 +144,15 @@ check(
   buildSource.includes(
     "+ '\\n' + internationalWelcomeService"
   )
+);
+
+check(
+  'welcome route-sync adapter is included after the welcome service',
+  buildSource.includes(
+    "read('services/international-welcome-route-sync.js')"
+  ) &&
+  buildSource.indexOf("+ '\\n' + internationalWelcomeService") <
+    buildSource.indexOf("+ '\\n' + internationalWelcomeRouteSyncService")
 );
 
 check(
