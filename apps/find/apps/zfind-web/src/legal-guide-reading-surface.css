@@ -3,11 +3,47 @@
    ============================================================
    Legal and tourist-rental pages are reading surfaces, not market
    selection screens. The persistent site header already owns market
-   switching. Keep informational callouts inside the guide content,
-   but suppress the legacy all-jurisdiction button grid that sits
-   directly inside each legal-page header.
+   switching.
+
+   - Legal Guides: remove the legacy all-jurisdiction header grid.
+   - Tourist-rental modules: remove cross-jurisdiction choices while
+     preserving the single contextual "Back to Legal Guide" action.
+   - Informational callouts inside .legal-content remain untouched.
    ============================================================ */
 
-.legal-page > .legal-header > .legal-callout:has(> button) {
+/* Legal Guide pages should enter directly into the document. */
+.view[id^="view-legal"]
+  .legal-page > .legal-header > .legal-callout:has(> button) {
   display: none;
+}
+
+/* Tourist modules keep only their contextual return-to-guide action. */
+.view[id^="view-tourist-rental"]
+  .legal-page > .legal-header > .legal-callout:has(> button) > strong,
+#view-al-manual
+  .legal-page > .legal-header > .legal-callout:has(> button) > strong,
+#view-al-manual-es
+  .legal-page > .legal-header > .legal-callout:has(> button) > strong {
+  display: none;
+}
+
+.view[id^="view-tourist-rental"]
+  .legal-page > .legal-header > .legal-callout:has(> button) > button,
+#view-al-manual
+  .legal-page > .legal-header > .legal-callout:has(> button) > button,
+#view-al-manual-es
+  .legal-page > .legal-header > .legal-callout:has(> button) > button {
+  display: none;
+}
+
+.view[id^="view-tourist-rental"]
+  .legal-page > .legal-header > .legal-callout:has(> button)
+  > button[onclick^="navigate('legal"],
+#view-al-manual
+  .legal-page > .legal-header > .legal-callout:has(> button)
+  > button[onclick="navigate('legal')"],
+#view-al-manual-es
+  .legal-page > .legal-header > .legal-callout:has(> button)
+  > button[onclick="navigate('legal-es')"] {
+  display: inline-flex;
 }
