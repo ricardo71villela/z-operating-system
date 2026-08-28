@@ -1,0 +1,13 @@
+/* ============================================================
+   Z FIND — LEGAL GUIDE READING SURFACE
+   ============================================================
+   Legal and tourist-rental pages are reading surfaces, not market
+   selection screens. The persistent site header already owns market
+   switching. Keep informational callouts inside the guide content,
+   but suppress the legacy all-jurisdiction button grid that sits
+   directly inside each legal-page header.
+   ============================================================ */
+
+.legal-page > .legal-header > .legal-callout:has(> button) {
+  display: none;
+}
