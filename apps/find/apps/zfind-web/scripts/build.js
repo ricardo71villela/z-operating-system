@@ -69,6 +69,7 @@ function resolvePlaceholders(text, replacements, sourceLabel) {
 function build() {
   const headTop = read('head_top.txt');
   const css = read('css_block.txt');
+  const legalGuideReadingSurface = read('legal-guide-reading-surface.css');
   const body = read('body.html');
   const pathD = read('path_data.txt');
   const vendorSupabase = read('vendor-supabase.js');
@@ -118,7 +119,7 @@ function build() {
   );
 
   const html = headTop
-    + '<style>\n' + css + '\n</style>\n</head>\n<body>\n'
+    + '<style>\n' + css + '\n' + legalGuideReadingSurface + '\n</style>\n</head>\n<body>\n'
     + resolvedBody
     + '\n<script>\n'
     + vendorSupabase + '\n'
