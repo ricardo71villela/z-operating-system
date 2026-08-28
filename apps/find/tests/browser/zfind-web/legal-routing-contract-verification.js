@@ -116,9 +116,8 @@ async function run() {
     }
 
     /*
-     * Explicitly prove the GB.2A safety behavior:
-     * an unknown route cannot become an arbitrary DOM target and
-     * safely resolves visually to Home.
+     * Prove an unknown route cannot become an arbitrary DOM target
+     * and safely resolves visually to Home.
      */
     await page.goto(
       `${FILE_URL}#/en/not-a-real-view`
@@ -141,38 +140,44 @@ async function run() {
     );
 
     /*
-     * Prove the user-facing navigation function, not only direct
-     * hash loading. Start in England and click the Wales selector.
+     * Legal Guide pages are reading surfaces. The old all-country
+     * jurisdiction grid must not be visible above the document.
      */
     await expectRoute(
       page,
       'legal-england'
     );
 
-    await page.locator(
+    const englandLegacyGrid = page.locator(
       '#view-legal-england ' +
-      'button[onclick="navigate(\'legal-wales\')"]'
-    ).click();
-
-    await page.waitForFunction(
-      () =>
-        location.hash.endsWith('/legal-wales') &&
-        document.querySelector('.view.active')?.id ===
-        'view-legal-wales'
+      '.legal-page > .legal-header > ' +
+      '.legal-callout:has(> button)'
     );
 
     assert.strictEqual(
-      await activeView(page),
-      'view-legal-wales'
+      await englandLegacyGrid.count(),
+      1,
+      'England legacy jurisdiction grid must remain uniquely identifiable'
+    );
+
+    assert(
+      await englandLegacyGrid.isHidden(),
+      'England legacy jurisdiction grid must be hidden on the reading surface'
     );
 
     pass(
-      'England jurisdiction selector navigates to Wales'
+      'Legal Guide hides the legacy all-jurisdiction header grid'
     );
 
     /*
-     * Prove Legal Guide -> separate tourist module.
+     * Prove Legal Guide -> separate tourist module using the real
+     * in-document link, without relying on a cross-country grid.
      */
+    await expectRoute(
+      page,
+      'legal-wales'
+    );
+
     await page.locator(
       '#view-legal-wales ' +
       'a[onclick*="tourist-rental-wales"]'
@@ -197,38 +202,72 @@ async function run() {
     );
 
     /*
-     * Prove tourist jurisdiction switch Wales -> NI.
+     * Tourist modules must also suppress cross-jurisdiction buttons,
+     * but preserve the one contextual Back to Legal Guide action.
      */
-    await page.locator(
+    const touristCountrySwitch = page.locator(
       '#view-tourist-rental-wales ' +
       'button[onclick="navigate(\'tourist-rental-northern-ireland\')"]'
-    ).click();
+    );
+
+    assert(
+      await touristCountrySwitch.isHidden(),
+      'tourist module cross-jurisdiction buttons must be hidden'
+    );
+
+    const walesBackToGuide = page.locator(
+      '#view-tourist-rental-wales ' +
+      'button[onclick="navigate(\'legal-wales\')"]'
+    );
+
+    assert(
+      await walesBackToGuide.isVisible(),
+      'Wales tourist module must preserve Back to Legal Guide'
+    );
+
+    pass(
+      'Tourist module hides country grid and preserves Back to Legal Guide'
+    );
+
+    await walesBackToGuide.click();
 
     await page.waitForFunction(
       () =>
         location.hash.endsWith(
-          '/tourist-rental-northern-ireland'
+          '/legal-wales'
         ) &&
         document.querySelector('.view.active')?.id ===
-        'view-tourist-rental-northern-ireland'
+        'view-legal-wales'
     );
 
     assert.strictEqual(
       await activeView(page),
-      'view-tourist-rental-northern-ireland'
+      'view-legal-wales'
     );
 
     pass(
-      'Wales tourist selector navigates to Northern Ireland'
+      'Wales tourist module returns to its Legal Guide'
     );
 
     /*
-     * Back-to-guide button must preserve the jurisdiction.
+     * Back-to-guide navigation must preserve another jurisdiction too.
      */
-    await page.locator(
+    await expectRoute(
+      page,
+      'tourist-rental-northern-ireland'
+    );
+
+    const niBackToGuide = page.locator(
       '#view-tourist-rental-northern-ireland ' +
       'button[onclick="navigate(\'legal-northern-ireland\')"]'
-    ).click();
+    );
+
+    assert(
+      await niBackToGuide.isVisible(),
+      'Northern Ireland tourist module must preserve Back to Legal Guide'
+    );
+
+    await niBackToGuide.click();
 
     await page.waitForFunction(
       () =>
