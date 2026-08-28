@@ -101,6 +101,7 @@ function build() {
   const app = read('app.js');
   const internationalWelcomeService = read('services/international-welcome.js');
   const internationalWelcomeRouteSyncService = read('services/international-welcome-route-sync.js');
+  const marketRuntimeContextService = read('services/market-runtime-context.js');
 
   const resolvedBody = resolvePlaceholders(body, { '__PATH_D__': pathD }, 'body.html');
 
@@ -151,6 +152,7 @@ function build() {
     + app
     + '\n' + internationalWelcomeService
     + '\n' + internationalWelcomeRouteSyncService
+    + '\n' + marketRuntimeContextService
     + '\n</script>\n</body>\n</html>\n';
 
   fs.mkdirSync(DIST, { recursive: true });
