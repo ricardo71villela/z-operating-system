@@ -63,10 +63,14 @@ check(
 );
 
 check(
-  'market entry uses canonical six-locale public market routes',
-  welcomeSource.includes('marketRegistry.marketPath(') &&
-  welcomeSource.includes('marketKey,') &&
-  welcomeSource.includes('selectedLocale')
+  'market entry stays inside the SPA and never traverses a static SEO page',
+  welcomeSource.includes(
+    'const targetHash = `/${selectedLocale}/market/${marketKey}`;'
+  ) &&
+  welcomeSource.includes('root.location.hash = targetHash;') &&
+  !welcomeSource.includes('root.location.assign(') &&
+  !welcomeSource.includes('root.location.href = target') &&
+  !welcomeSource.includes('const target = marketRegistry.marketPath(')
 );
 
 check(
@@ -147,7 +151,7 @@ check(
 );
 
 check(
-  'every market has a canonical route in all six locales',
+  'clean public market routes remain canonical SEO/discovery authority',
   markets.every(market =>
     expectedLocales.every(locale => {
       const publicPath = marketRegistry.marketPath(
