@@ -19,3 +19,10 @@
 <script type="application/ld+json" id="zfind-root-website-schema">{"@context":"https://schema.org","@type":"WebSite","name":"Z Find","url":"https://zfind.online/","description":"Achetez, louez et investissez dans des biens et programmes immobiliers sur Z Find — un inventaire structuré, clair et sans doublons.","inLanguage":"fr"}</script>
 <link rel="preload" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap">
+<style>
+/* France guide detail pages keep jurisdiction switching out of the reading flow. */
+#view-legal-fr > .legal-page > .legal-header > .legal-callout,
+#view-tourist-rental-fr > .legal-page > .legal-header > .legal-callout {
+  display: none;
+}
+</style>
