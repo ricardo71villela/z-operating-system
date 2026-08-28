@@ -9,7 +9,7 @@
     "build": "node scripts/build.js",
     "sync": "npm run build && npm run sync --prefix native",
     "build:android": "npm run sync && cd native/android && ./gradlew assembleDebug",
-    "test": "npm run test:content-persistence --prefix tests -- ../app/my-studio.html && npm run test:preview-state --prefix tests -- ../app/my-studio.html && npm run test:mobile --prefix tests -- ../app/my-studio.html && npm test --prefix tests -- ../app/my-studio.html",
+    "test": "npm run test:content-persistence --prefix tests -- ../app/my-studio.html && npm run test:app-theme --prefix tests -- ../app/my-studio.html && npm run test:preview-state --prefix tests -- ../app/my-studio.html && npm run test:mobile --prefix tests -- ../app/my-studio.html && npm test --prefix tests -- ../app/my-studio.html",
     "test:auth": "npm run build && node tests/auth-session.test.js",
     "test:mobile": "npm run test:mobile --prefix tests -- ../app/my-studio.html",
     "test:layout": "npm run test:layout --prefix tests -- ../app/my-studio.html",
