@@ -23,8 +23,10 @@ const LAPTOP_BRAND_HEADER_CSS = path.join(SRC, 'ux', 'laptop-brand-header.css');
 const LAPTOP_PREMIUM_POLISH_CSS = path.join(SRC, 'ux', 'laptop-premium-polish-v2.css');
 const LAPTOP_VIEWPORT_BALANCE_CSS = path.join(SRC, 'ux', 'laptop-viewport-balance-v1.css');
 const MOBILE_HEADER_CSS = path.join(SRC, 'ux', 'mobile-header-v1.css');
+const APP_THEME_CSS = path.join(SRC, 'ux', 'app-theme-v1.css');
 const LAPTOP_ICON_RUNTIME_AUTHORITY_JS = path.join(SRC, 'ux', 'laptop-icon-runtime-authority-v2.js');
 const PREVIEW_STATE_MACHINE_JS = path.join(SRC, 'ux', 'preview-state-machine-v1.js');
+const APP_THEME_RUNTIME_JS = path.join(SRC, 'ux', 'app-theme-v1.js');
 
 const PLACEHOLDER = '__MYSTUDIO_SCRIPT_PLACEHOLDER__';
 const LEGACY_BRAND = 'My Studio';
@@ -37,8 +39,10 @@ const LAPTOP_BRAND_HEADER_MARKER = 'ZSTUDIO_LAPTOP_BRAND_HEADER_V1';
 const LAPTOP_PREMIUM_POLISH_MARKER = 'ZSTUDIO_LAPTOP_PREMIUM_POLISH_V2';
 const LAPTOP_VIEWPORT_BALANCE_MARKER = 'ZSTUDIO_LAPTOP_VIEWPORT_BALANCE_V1';
 const MOBILE_HEADER_MARKER = 'ZSTUDIO_MOBILE_HEADER_V1';
+const APP_THEME_MARKER = 'ZSTUDIO_APP_THEME_V1';
 const LAPTOP_ICON_RUNTIME_AUTHORITY_MARKER = 'ZSTUDIO_LAPTOP_ICON_RUNTIME_AUTHORITY_V2';
 const PREVIEW_STATE_MACHINE_MARKER = 'ZSTUDIO_PREVIEW_STATE_MACHINE_V1';
+const APP_THEME_RUNTIME_MARKER = 'ZSTUDIO_APP_THEME_RUNTIME_V1';
 
 function applyCommercialIdentity(text) {
   return String(text)
@@ -116,6 +120,7 @@ function injectLaptopBrandHeaderCss(template) {
     [LAPTOP_PREMIUM_POLISH_CSS, LAPTOP_PREMIUM_POLISH_MARKER, 'polish premium laptop'],
     [LAPTOP_VIEWPORT_BALANCE_CSS, LAPTOP_VIEWPORT_BALANCE_MARKER, 'equilíbrio viewport laptop'],
     [MOBILE_HEADER_CSS, MOBILE_HEADER_MARKER, 'cabeçalho mobile'],
+    [APP_THEME_CSS, APP_THEME_MARKER, 'tema dual da aplicação'],
   ];
   const cssParts = [];
 
@@ -221,6 +226,7 @@ function assemble() {
   const mainWithPreviewState = injectPreviewStateMachine(main, previewStateMachine);
   const layoutGuards = fs.readFileSync(path.join(SRC, 'render', 'layout-guards.js'), 'utf-8');
   const laptopIconRuntimeAuthority = fs.readFileSync(LAPTOP_ICON_RUNTIME_AUTHORITY_JS, 'utf-8');
+  const appThemeRuntime = fs.readFileSync(APP_THEME_RUNTIME_JS, 'utf-8');
   const auth = fs.readFileSync(path.join(SRC, 'platform', 'auth.js'), 'utf-8');
   const appleBilling = fs.readFileSync(path.join(SRC, 'platform', 'apple-billing.js'), 'utf-8');
   const billingUi = fs.readFileSync(path.join(SRC, 'platform', 'billing-ui.js'), 'utf-8');
@@ -230,6 +236,9 @@ function assemble() {
   }
   if (!laptopIconRuntimeAuthority.includes(LAPTOP_ICON_RUNTIME_AUTHORITY_MARKER)) {
     throw new Error('Runtime de iconografia laptop sem autoridade ' + LAPTOP_ICON_RUNTIME_AUTHORITY_MARKER + '.');
+  }
+  if (!appThemeRuntime.includes(APP_THEME_RUNTIME_MARKER)) {
+    throw new Error('Runtime de tema da aplicação sem autoridade ' + APP_THEME_RUNTIME_MARKER + '.');
   }
 
   const commercialBaseUrl = normalizeCommercialBaseUrl(process.env.ZSTUDIO_COMMERCIAL_BASE_URL);
@@ -250,6 +259,7 @@ function assemble() {
     mainWithPreviewState,
     layoutGuards,
     laptopIconRuntimeAuthority,
+    appThemeRuntime,
     auth,
     appleBilling,
     billingUi,
@@ -265,8 +275,10 @@ function assemble() {
     LAPTOP_PREMIUM_POLISH_MARKER,
     LAPTOP_VIEWPORT_BALANCE_MARKER,
     MOBILE_HEADER_MARKER,
+    APP_THEME_MARKER,
     LAPTOP_ICON_RUNTIME_AUTHORITY_MARKER,
     PREVIEW_STATE_MACHINE_MARKER,
+    APP_THEME_RUNTIME_MARKER,
   ]) {
     const markerCount = html.split(marker).length - 1;
     if (markerCount !== 1) {
@@ -282,8 +294,10 @@ function assemble() {
   console.log('LAPTOP_PREMIUM_POLISH=' + LAPTOP_PREMIUM_POLISH_MARKER);
   console.log('LAPTOP_VIEWPORT_BALANCE=' + LAPTOP_VIEWPORT_BALANCE_MARKER);
   console.log('MOBILE_HEADER=' + MOBILE_HEADER_MARKER);
+  console.log('APP_THEME=' + APP_THEME_MARKER);
   console.log('LAPTOP_ICON_RUNTIME=' + LAPTOP_ICON_RUNTIME_AUTHORITY_MARKER);
   console.log('PREVIEW_STATE_MACHINE=' + PREVIEW_STATE_MACHINE_MARKER);
+  console.log('APP_THEME_RUNTIME=' + APP_THEME_RUNTIME_MARKER);
   console.log('COMMERCIAL_RUNTIME=' + (commercialConfig.enabled ? commercialConfig.baseUrl : 'DISABLED'));
   return html;
 }
