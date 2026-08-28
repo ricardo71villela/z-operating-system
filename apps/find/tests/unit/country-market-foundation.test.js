@@ -57,6 +57,7 @@ const body = read('apps/zfind-web/src/body.html');
 const app = read('apps/zfind-web/src/app.js');
 const build = read('apps/zfind-web/scripts/build.js');
 const i18n = read('apps/zfind-web/src/i18n.js');
+const marketRuntimeContext = read('apps/zfind-web/src/services/market-runtime-context.js');
 
 check('market registry service loads', !!registry);
 check('public routes service loads', !!routes);
@@ -156,6 +157,39 @@ check('browser build bundles market registry before app',
   build.includes("read('services/market-registry.js')") && build.indexOf('marketRegistryService') < build.indexOf("const app = read('app.js')"));
 check('legacy homepage copy now describes entering markets, not only guides',
   i18n.includes("eyebrow:'International markets'") && i18n.includes("eyebrow:'Mercados internacionais'") && i18n.includes("eyebrow:'Marchés internationaux'"));
+
+check('market runtime context is bundled after app and welcome route sync',
+  build.includes("read('services/market-runtime-context.js')") &&
+  build.indexOf('marketRuntimeContextService') > build.indexOf("const app = read('app.js')") &&
+  build.indexOf("+ '\\n' + marketRuntimeContextService") > build.indexOf("+ '\\n' + internationalWelcomeRouteSyncService"));
+
+check('shared market cards hydrate source-backed cover media',
+  marketRuntimeContext.includes('propertyCardFromRow') &&
+  marketRuntimeContext.includes('developmentCardFromRow') &&
+  marketRuntimeContext.includes('resolveSearchCardImageUrl') &&
+  marketRuntimeContext.includes('root.loadFeaturedCandidateCards = async function') &&
+  marketRuntimeContext.includes('root.loadHomeCards = async function'));
+
+check('shared card renderer paints resolved cover image and preserves placeholder state',
+  marketRuntimeContext.includes('data-card-image-state') &&
+  marketRuntimeContext.includes('object-fit:cover') &&
+  marketRuntimeContext.includes("const state = imageUrl ? 'resolved' : 'placeholder'"));
+
+check('market context persists across SPA views without changing route authority',
+  marketRuntimeContext.includes("const MARKET_STORAGE_KEY = 'zfind_market'") &&
+  marketRuntimeContext.includes('rememberMarket(marketKey)') &&
+  marketRuntimeContext.includes('marketKeyFromHash() || storedMarketKey()'));
+
+check('France market maps simulator default to FR country ISO',
+  registry && registry.getMarket('FR').geography.code === 'FR' &&
+  marketRuntimeContext.includes('const marketIso = marketCountryIso(currentMarketKey())') &&
+  marketRuntimeContext.includes('select.value = marketIso'));
+
+check('unsupported country never executes Portugal acquisition-tax engine',
+  marketRuntimeContext.includes('supportedSimulatorCountries().has(countryIso)') &&
+  marketRuntimeContext.includes('calculate.disabled = !supported') &&
+  marketRuntimeContext.includes('!supportedSimulatorCountries().has(select.value)') &&
+  marketRuntimeContext.includes('Portuguese tax rules are never applied'));
 
 if (generator && seoScript && registry) {
   check('generic listing and zone SEO presentation is complete 6/6',
