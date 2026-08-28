@@ -151,10 +151,30 @@ check(
 
 check(
   legalReadingSurface.includes(
+    '.view[id^="view-legal"]'
+  ) &&
+  legalReadingSurface.includes(
     '.legal-page > .legal-header > .legal-callout:has(> button)'
   ) &&
   legalReadingSurface.includes('display: none;'),
-  'legacy all-jurisdiction header grid is hidden on guide reading surfaces'
+  'Legal Guide pages hide the legacy all-jurisdiction header grid'
+);
+
+check(
+  legalReadingSurface.includes(
+    '.view[id^="view-tourist-rental"]'
+  ) &&
+  legalReadingSurface.includes(
+    '> button[onclick^="navigate(\'legal"]'
+  ) &&
+  legalReadingSurface.includes('display: inline-flex;'),
+  'tourist modules hide country choices but preserve Back to Legal Guide'
+);
+
+check(
+  legalReadingSurface.includes('#view-al-manual') &&
+  legalReadingSurface.includes('#view-al-manual-es'),
+  'Portugal and Spain tourist modules follow the same compact reading-surface rule'
 );
 
 check(
