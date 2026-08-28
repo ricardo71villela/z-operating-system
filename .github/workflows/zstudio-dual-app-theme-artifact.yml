@@ -1,5 +1,6 @@
 name: Z Studio Dual App Theme Artifact
 
+# retry v2 — aligned with the proven Studio Electron harness
 on:
   push:
     branches:
