@@ -70,7 +70,7 @@
     }),
     es: Object.freeze({
       eyebrow: 'Bienvenido a Z Find',
-      title: 'Elige tu idioma y mercado',
+      title: 'Elige el idioma y el mercado',
       lead: 'Selecciona el idioma de consulta y después el país o mercado inmobiliario en el que deseas entrar.',
       language: 'Idioma',
       market: 'País o mercado',
