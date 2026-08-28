@@ -18,6 +18,16 @@ const app = fs.readFileSync(
   'utf8'
 );
 
+const build = fs.readFileSync(
+  path.join(WEB, 'scripts/build.js'),
+  'utf8'
+);
+
+const legalReadingSurface = fs.readFileSync(
+  path.join(WEB, 'src/legal-guide-reading-surface.css'),
+  'utf8'
+);
+
 const pkg = fs.readFileSync(
   path.join(FIND, 'package.json'),
   'utf8'
@@ -127,15 +137,61 @@ for (const c of countries) {
 ].forEach(route => {
   check(
     body.includes(route),
-    `jurisdiction navigation exposes ${route}`
+    `jurisdiction navigation source preserves ${route}`
   );
 });
 
 check(
+  build.includes(
+    "read('legal-guide-reading-surface.css')"
+  ) &&
+  build.includes('legalGuideReadingSurface'),
+  'legal reading-surface override is part of deterministic build'
+);
+
+check(
+  legalReadingSurface.includes(
+    '.view[id^="view-legal"]'
+  ) &&
+  legalReadingSurface.includes(
+    '.legal-page > .legal-header > .legal-callout:has(> button)'
+  ) &&
+  legalReadingSurface.includes('display: none;'),
+  'Legal Guide pages hide the legacy all-jurisdiction header grid'
+);
+
+check(
+  legalReadingSurface.includes(
+    '.view[id^="view-tourist-rental"]'
+  ) &&
+  legalReadingSurface.includes(
+    '> button[onclick^="navigate(\'legal"]'
+  ) &&
+  legalReadingSurface.includes('display: inline-flex;'),
+  'tourist modules hide country choices but preserve Back to Legal Guide'
+);
+
+check(
+  legalReadingSurface.includes('#view-al-manual') &&
+  legalReadingSurface.includes('#view-al-manual-es'),
+  'Portugal and Spain tourist modules follow the same compact reading-surface rule'
+);
+
+check(
+  !legalReadingSurface.includes(
+    '.legal-content .legal-callout'
+  ),
+  'informational legal-content callouts remain visible'
+);
+
+check(
   pkg.includes(
     '"test:legal-guide-fr-de-it-foundation"'
+  ) &&
+  pkg.includes(
+    'npm run test:legal-guide-fr-de-it-foundation'
   ),
-  'FR/DE/IT regression registered'
+  'FR/DE/IT regression is registered and wired into check'
 );
 
 console.log('');

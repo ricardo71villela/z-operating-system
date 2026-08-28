@@ -63,10 +63,18 @@ async function check(name, fn) {
     );
   }
 
-  async function button(route, text) {
+  function button(route, text) {
     return page
       .locator(`#view-${route} button`)
       .filter({ hasText: text });
+  }
+
+  function headerGrid(route) {
+    return page.locator(
+      `#view-${route} ` +
+      '.legal-page > .legal-header > ' +
+      '.legal-callout:has(> button)'
+    );
   }
 
   console.log('');
@@ -95,90 +103,70 @@ async function check(name, fn) {
   );
 
   await check(
-    'Netherlands selector has its own active country button',
+    'Netherlands Legal Guide hides the legacy jurisdiction grid',
     async () => {
       await open('en', 'legal-netherlands');
 
-      const b = await button(
-        'legal-netherlands',
-        'Netherlands'
-      );
-
-      if (await b.count() !== 1)
-        throw new Error('Netherlands button not unique');
-
-      if (!(await b.isDisabled()))
-        throw new Error('Netherlands is not active');
+      const grid = headerGrid('legal-netherlands');
+      if (await grid.count() !== 1)
+        throw new Error('Netherlands jurisdiction grid not unique');
+      if (!(await grid.isHidden()))
+        throw new Error('Netherlands jurisdiction grid still visible');
     }
   );
 
   await check(
-    'Belgium is a separate button inside Netherlands guide',
-    async () => {
-      await open('en', 'legal-netherlands');
-
-      const b = await button(
-        'legal-netherlands',
-        'Belgique'
-      );
-
-      if (await b.count() !== 1)
-        throw new Error('Belgium button not unique');
-
-      if (await b.isDisabled())
-        throw new Error('Belgium incorrectly shares NL active state');
-
-      await b.click();
-
-      await page.waitForFunction(() =>
-        document
-          .getElementById('view-legal-belgium')
-          .classList.contains('active')
-      );
-    }
-  );
-
-  await check(
-    'Belgium selector has its own active country button',
+    'Belgium Legal Guide hides the legacy jurisdiction grid',
     async () => {
       await open('fr', 'legal-belgium');
 
-      const b = await button(
-        'legal-belgium',
-        'Belgique'
-      );
-
-      if (await b.count() !== 1)
-        throw new Error('Belgium button not unique');
-
-      if (!(await b.isDisabled()))
-        throw new Error('Belgium is not active');
+      const grid = headerGrid('legal-belgium');
+      if (await grid.count() !== 1)
+        throw new Error('Belgium jurisdiction grid not unique');
+      if (!(await grid.isHidden()))
+        throw new Error('Belgium jurisdiction grid still visible');
     }
   );
 
   await check(
-    'Netherlands is a separate button inside Belgium guide',
+    'Netherlands tourist guide hides Belgium choice and preserves Back to Legal Guide',
     async () => {
-      await open('fr', 'legal-belgium');
+      await open('en', 'tourist-rental-netherlands');
 
-      const b = await button(
-        'legal-belgium',
+      const belgium = await button(
+        'tourist-rental-netherlands',
+        'Belgique'
+      );
+      const back = page.locator(
+        '#view-tourist-rental-netherlands ' +
+        'button[onclick="navigate(\'legal-netherlands\')"]'
+      );
+
+      if (await belgium.count() !== 1 || !(await belgium.isHidden()))
+        throw new Error('Belgium tourist choice must be hidden');
+      if (await back.count() !== 1 || !(await back.isVisible()))
+        throw new Error('Netherlands Back to Legal Guide missing');
+    }
+  );
+
+  await check(
+    'Belgium tourist guide hides Netherlands choice and preserves Back to Legal Guide',
+    async () => {
+      await open('fr', 'tourist-rental-belgium');
+
+      const netherlands = await button(
+        'tourist-rental-belgium',
         'Netherlands'
       );
-
-      if (await b.count() !== 1)
-        throw new Error('Netherlands button not unique');
-
-      if (await b.isDisabled())
-        throw new Error('Netherlands incorrectly shares BE active state');
-
-      await b.click();
-
-      await page.waitForFunction(() =>
-        document
-          .getElementById('view-legal-netherlands')
-          .classList.contains('active')
+      const back = page.locator(
+        '#view-tourist-rental-belgium ' +
+        'button[onclick="navigate(\'legal-belgium\')"]'
       );
+
+      if (await netherlands.count() !== 1 || !(await netherlands.isHidden()))
+        throw new Error('Netherlands tourist choice must be hidden');
+      if (await back.count() !== 1 || !(await back.isVisible()))
+        throw new Error('Belgium Back to Legal Guide missing');
     }
   );
 
