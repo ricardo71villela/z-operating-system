@@ -1,0 +1,59 @@
+name: Z Studio Dual App Theme Artifact
+
+on:
+  push:
+    branches:
+      - feat/zstudio-dual-app-theme-v1
+    paths:
+      - '.github/workflows/zstudio-dual-app-theme-artifact.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/zstudio-dual-app-theme-v1
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Studio browser test runtime
+        run: npm ci --prefix apps/studio/tests
+      - name: Build canonical Studio artifacts
+        run: npm run build --prefix apps/studio
+      - name: Verify dual app theme runtime
+        run: npm run test:app-theme --prefix apps/studio/tests -- ../app/my-studio.html
+      - name: Verify exact generated authority
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const files = [
+            'apps/studio/app/index.html',
+            'apps/studio/app/my-studio.html',
+            'apps/studio/native/www/index.html',
+          ];
+          const bodies = files.map(file => fs.readFileSync(file, 'utf8'));
+          if (new Set(bodies).size !== 1) throw new Error('Studio generated HTML authorities diverged');
+          const html = bodies[0];
+          for (const marker of ['ZSTUDIO_APP_THEME_V1', 'ZSTUDIO_APP_THEME_RUNTIME_V1']) {
+            const count = html.split(marker).length - 1;
+            if (count !== 1) throw new Error(`${marker} count=${count}`);
+          }
+          if (!html.includes('data-zstudio-app-theme')) throw new Error('App theme runtime binding missing');
+          if (!html.includes('zstudio-app-theme-v1')) throw new Error('App theme persistence key missing');
+          console.log('Z_STUDIO_DUAL_APP_THEME_ARTIFACT=PASS');
+          NODE
+      - name: Commit generated artifacts and remove helper
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/studio/app/index.html apps/studio/app/my-studio.html apps/studio/native/www/index.html
+          git rm .github/workflows/zstudio-dual-app-theme-artifact.yml
+          git diff --cached --check
+          git commit -m 'build(zstudio): refresh dual theme artifacts'
+          git push origin HEAD:feat/zstudio-dual-app-theme-v1
