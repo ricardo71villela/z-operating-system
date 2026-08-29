@@ -4,6 +4,6 @@
   "private": true,
   "description": "Z Fashion customer storefront and full customer site preview — static, preview-safe and backend-independent.",
   "scripts": {
-    "test": "node tests/storefront-contract.test.js && node tests/final-polish-contract.test.js && node tests/full-customer-site-contract.test.js && node tests/full-customer-commerce-contract.test.js && node tests/full-customer-account-contract.test.js && node tests/full-customer-completion-contract.test.js && node tests/full-customer-finalization-contract.test.js"
+    "test": "node tests/storefront-contract.test.js && node tests/final-polish-contract.test.js && node tests/full-customer-site-contract.test.js && node tests/full-customer-commerce-contract.test.js && node tests/full-customer-account-contract.test.js && node tests/full-customer-completion-contract.test.js && node tests/full-customer-finalization-contract.test.js && node tests/zos-ecosystem-footer-contract.test.js"
   }
 }
