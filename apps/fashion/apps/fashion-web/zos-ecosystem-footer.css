@@ -1,0 +1,61 @@
+/* ============================================================
+   Z FASHION — ZOS ECOSYSTEM FOOTER
+   Mirrors the validated Z Find ecosystem row while preserving
+   Z Fashion visual authority. Canonical destinations remain unset.
+   ============================================================ */
+
+.zfashion-zos-ecosystem-footer {
+  grid-column: 1 / -1;
+  border-top: 1px solid #333;
+  margin-top: 10px;
+  padding-top: 18px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+  color: #888;
+  font-family: "DM Sans", Arial, sans-serif;
+  font-size: 10px;
+  letter-spacing: .015em;
+  line-height: 1.35;
+}
+
+.zfashion-zos-ecosystem-footer .zos-app-name {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 0;
+  white-space: nowrap;
+}
+
+.zfashion-zos-ecosystem-footer .zos-app-name + .zos-app-name::before {
+  content: "·";
+  color: #555;
+  margin: 0 10px;
+}
+
+.zfashion-zos-ecosystem-footer + .footer-note {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.customer-footer .zfashion-zos-ecosystem-footer {
+  margin-top: 4px;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 980px) {
+  .zfashion-zos-ecosystem-footer {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 680px) {
+  .zfashion-zos-ecosystem-footer {
+    row-gap: 2px;
+  }
+
+  .customer-footer .zfashion-zos-ecosystem-footer {
+    margin-bottom: 30px;
+  }
+}
