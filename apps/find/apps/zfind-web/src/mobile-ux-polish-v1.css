@@ -1,0 +1,525 @@
+/* ============================================================
+   Z FIND — MOBILE UX POLISH V1
+   Mobile-only visual authority. No data, routing, legal, search,
+   marketplace, auth or Supabase behavior is changed here.
+   ============================================================ */
+
+@media (max-width: 900px) {
+  html body .wrap {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  html body header.site {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  html body header.site .wrap.nav-row {
+    min-height: 64px;
+    height: 64px;
+    padding-left: 24px;
+    padding-right: 24px;
+    gap: 10px;
+  }
+
+  html body .menu-toggle,
+  html body .lang-menu-summary,
+  html body header.site .nav-actions .btn-outline {
+    min-height: 44px;
+  }
+
+  html body .menu-toggle {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+  }
+
+  html body .lang-menu-summary {
+    height: 44px;
+    min-width: 60px;
+    border-radius: 10px;
+  }
+
+  html body .mobile-primary-menu {
+    top: calc(72px + env(safe-area-inset-top, 0px));
+    left: 24px;
+    right: 24px;
+    max-height: calc(100dvh - 92px - env(safe-area-inset-top, 0px));
+    padding: 8px;
+    border-radius: 14px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.12);
+  }
+
+  html body .mobile-primary-menu-item {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    padding: 11px 14px;
+  }
+
+  html body .hero {
+    padding-top: 44px;
+    padding-bottom: 44px;
+  }
+
+  html body .hero h1 {
+    max-width: 680px;
+    font-size: 2.4rem;
+    line-height: 1.04;
+    letter-spacing: -0.02em;
+  }
+
+  html body .hero p.lead {
+    margin-top: 18px;
+    line-height: 1.58;
+  }
+
+  html body .market-explorer {
+    margin-top: 24px;
+    padding: 16px;
+    border-radius: 14px;
+    gap: 12px;
+  }
+
+  html body .market-explorer select {
+    min-height: 46px;
+    border-radius: 10px;
+  }
+
+  html body .searchbar {
+    margin-top: 24px;
+    border-radius: 16px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.06);
+  }
+
+  html body .cat-tabs.design-balanced-categories .cat-tab {
+    min-height: 46px;
+    padding: 12px 14px;
+    line-height: 1.25;
+  }
+
+  html body .search-fields.search-fields-balanced {
+    gap: 10px;
+    padding: 14px;
+  }
+
+  html body .search-fields-balanced .transaction-filter-inline {
+    gap: 10px;
+    padding-bottom: 2px;
+  }
+
+  html body .transaction-tab,
+  html body .search-fields input,
+  html body .search-fields select,
+  html body .search-fields button.go,
+  html body #view-search .search-fields .btn-ghost {
+    min-height: 44px;
+  }
+
+  html body .transaction-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  html body .search-fields input,
+  html body .search-fields select {
+    border: 1px solid var(--gray-200);
+    border-radius: 10px;
+    background: #fff;
+  }
+
+  html body .search-fields-balanced .go {
+    border-radius: 10px;
+  }
+
+  html body .principle-strip.design-balanced-principles {
+    margin-top: 40px;
+    gap: 0;
+  }
+
+  html body .principle-strip.design-balanced-principles .p {
+    padding: 22px 0 24px;
+    border-left: 0;
+    border-top: 1px solid var(--gray-200);
+  }
+
+  html body .principle-strip.design-balanced-principles .p:first-child {
+    border-top: 0;
+  }
+
+  html body section.block {
+    padding-top: 52px;
+    padding-bottom: 52px;
+  }
+
+  html body .block-head {
+    margin-bottom: 24px;
+    gap: 14px;
+  }
+
+  html body .block-head h2 {
+    font-size: 1.9rem;
+    line-height: 1.08;
+  }
+
+  html body .tabs-row {
+    margin-bottom: 24px;
+    gap: 8px;
+  }
+
+  html body .pill {
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    padding: 9px 15px;
+    border-radius: 999px;
+  }
+
+  html body .card,
+  html body #view-search .search-result-row.card,
+  html body .sidebar-card,
+  html body .info-card,
+  html body .scenario-card {
+    border-radius: 14px;
+  }
+
+  html body .card .body,
+  html body #view-search .search-result-body {
+    padding: 18px;
+  }
+
+  html body #view-search > .wrap {
+    padding: 34px 24px 56px !important;
+  }
+
+  html body #view-search .searchbar {
+    margin-bottom: 22px !important;
+  }
+
+  html body #view-search .search-results-layout {
+    gap: 18px;
+  }
+
+  html body #view-search .search-result-row.card {
+    overflow: hidden;
+  }
+
+  html body #view-search .search-result-thumb,
+  html body #view-search .search-result-thumb img {
+    height: 210px;
+    min-height: 210px;
+  }
+
+  html body .detail-layout {
+    gap: 28px;
+    padding-top: 34px;
+    padding-bottom: 48px;
+  }
+
+  html body .gallery {
+    height: min(62vw, 390px);
+    margin-bottom: 26px;
+    border-radius: 14px;
+  }
+
+  html body .modal-overlay {
+    padding: 18px;
+  }
+
+  html body .modal {
+    padding: 28px 24px;
+    border-radius: 16px;
+    max-height: calc(100dvh - 36px);
+  }
+
+  html body footer.site {
+    margin-top: 56px;
+    padding-top: 52px;
+    padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+  }
+
+  html body footer.site .cols {
+    gap: 32px;
+  }
+
+  html body footer.site .bottom {
+    margin-top: 32px;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  html body .wrap {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  html body header.site .wrap.nav-row {
+    min-height: 62px;
+    height: 62px;
+    padding-left: 18px;
+    padding-right: 18px;
+    gap: 8px;
+  }
+
+  html body .logo {
+    font-size: 1.5rem;
+    gap: 7px;
+  }
+
+  html body .zf-mark {
+    width: 28px;
+    height: 28px;
+  }
+
+  html body .mobile-primary-menu {
+    top: calc(70px + env(safe-area-inset-top, 0px));
+    left: 18px;
+    right: 18px;
+  }
+
+  html body .hero {
+    padding-top: 34px;
+    padding-bottom: 38px;
+  }
+
+  html body .hero .eyebrow {
+    margin-bottom: 12px;
+  }
+
+  html body .hero h1 {
+    font-size: clamp(2.02rem, 9.1vw, 2.28rem);
+    line-height: 1.02;
+  }
+
+  html body .hero p.lead {
+    margin-top: 16px;
+    font-size: 0.98rem;
+  }
+
+  html body .market-explorer {
+    margin-top: 20px;
+    padding: 14px;
+  }
+
+  html body .searchbar {
+    margin-top: 20px;
+    border-radius: 14px;
+  }
+
+  html body .cat-tabs.design-balanced-categories {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  html body .cat-tabs.design-balanced-categories .cat-tab {
+    min-height: 48px;
+    padding: 11px 10px;
+    font-size: 0.76rem;
+  }
+
+  html body .search-fields.search-fields-balanced {
+    padding: 12px;
+    gap: 9px;
+  }
+
+  html body .search-fields-balanced .transaction-filter-inline {
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+  }
+
+  html body .search-fields-balanced .transaction-tabs {
+    width: 100%;
+  }
+
+  html body .search-fields-balanced > input {
+    flex: 1 1 100%;
+  }
+
+  html body .search-fields-balanced > select {
+    flex: 1 1 calc(50% - 5px);
+    width: calc(50% - 5px);
+  }
+
+  html body .search-fields-balanced .go {
+    flex: 1 1 100%;
+    width: 100%;
+    margin: 0;
+    min-height: 48px;
+  }
+
+  html body .principle-strip.design-balanced-principles {
+    margin-top: 32px;
+  }
+
+  html body section.block {
+    padding-top: 44px;
+    padding-bottom: 44px;
+  }
+
+  html body .block-head {
+    margin-bottom: 20px;
+  }
+
+  html body .block-head h2 {
+    font-size: 1.72rem;
+  }
+
+  html body .grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  html body .card .thumb {
+    height: 220px;
+  }
+
+  html body #view-search > .wrap {
+    padding: 28px 18px 46px !important;
+  }
+
+  html body #view-search .search-fields {
+    gap: 9px;
+    padding: 10px !important;
+  }
+
+  html body #view-search .search-fields input,
+  html body #view-search .search-fields select,
+  html body #view-search .search-fields button.go,
+  html body #view-search .search-fields .btn-ghost {
+    flex: 1 1 100%;
+    width: 100%;
+    margin: 0;
+  }
+
+  html body #view-search .tabs-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    margin-right: -18px;
+    padding-right: 18px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  html body #view-search .tabs-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  html body #view-search .tabs-row .pill {
+    flex: 0 0 auto;
+  }
+
+  html body #view-search .search-result-thumb,
+  html body #view-search .search-result-thumb img {
+    height: 205px;
+    min-height: 205px;
+  }
+
+  html body .detail-hero {
+    padding-top: 38px;
+    padding-bottom: 30px;
+  }
+
+  html body .detail-hero h1 {
+    font-size: 2.1rem;
+    line-height: 1.05;
+  }
+
+  html body .facts-grid {
+    grid-template-columns: repeat(2, 1fr);
+    margin-bottom: 30px;
+  }
+
+  html body .fact:nth-child(3n) {
+    border-right: 1px solid var(--gray-200);
+  }
+
+  html body .fact:nth-child(2n) {
+    border-right: 0;
+  }
+
+  html body .fact {
+    padding: 16px;
+  }
+
+  html body .partner-header {
+    gap: 18px;
+    padding-top: 36px;
+    padding-bottom: 36px;
+  }
+
+  html body footer.site {
+    margin-top: 48px;
+    padding-top: 44px;
+  }
+
+  html body footer.site .cols {
+    grid-template-columns: 1fr;
+    gap: 26px;
+  }
+
+  html body footer.site .bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-top: 28px;
+    padding-top: 18px;
+  }
+
+  html body .legal-page {
+    padding-top: 38px;
+    padding-bottom: 64px;
+  }
+
+  html body .legal-header {
+    margin-bottom: 36px;
+  }
+
+  html body .legal-header h1 {
+    font-size: 2.05rem;
+    line-height: 1.08;
+  }
+
+  html body .legal-card,
+  html body .legal-callout {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 360px) {
+  html body .wrap,
+  html body header.site .wrap.nav-row {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  html body #view-search > .wrap {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  html body .logo {
+    font-size: 1.42rem;
+  }
+
+  html body header.site .nav-actions {
+    gap: 4px;
+  }
+
+  html body .lang-menu-summary {
+    min-width: 54px;
+    padding-left: 7px;
+    padding-right: 7px;
+  }
+
+  html body header.site .nav-actions .btn-outline {
+    padding-left: 9px;
+    padding-right: 9px;
+    letter-spacing: 0.04em;
+  }
+
+  html body .hero h1 {
+    font-size: 1.98rem;
+  }
+}
