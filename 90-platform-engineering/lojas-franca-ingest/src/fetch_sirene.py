@@ -24,10 +24,11 @@ BASE_URL = "https://recherche-entreprises.api.gouv.fr/search"
 PER_PAGE = 25  # limite da API por página
 
 
-def fetch_por_codigo_naf(codigo_naf: str, setor: str, max_paginas: int = 200):
+def fetch_por_codigo_naf(codigo_naf: str, setor: str, max_paginas: int = 500):
     """
     Percorre todas as páginas de resultados para um dado código NAF.
     A API pagina os resultados; paramos quando não há mais 'results'.
+    Lida com erros 429 (rate limit) com espera e nova tentativa.
     """
     resultados = []
     pagina = 1
@@ -39,8 +40,23 @@ def fetch_por_codigo_naf(codigo_naf: str, setor: str, max_paginas: int = 200):
             "page": pagina,
             "per_page": PER_PAGE,
         }
-        resp = requests.get(BASE_URL, params=params, timeout=30)
-        resp.raise_for_status()
+
+        # Nova tentativa com espera crescente em caso de 429
+        max_tentativas = 5
+        for tentativa in range(1, max_tentativas + 1):
+            resp = requests.get(BASE_URL, params=params, timeout=30)
+            if resp.status_code == 429:
+                espera = min(60, 5 * tentativa)  # 5s, 10s, 15s... até 60s
+                print(f"  [{setor}] página {pagina}: 429 recebido, a esperar {espera}s (tentativa {tentativa}/{max_tentativas})")
+                time.sleep(espera)
+                continue
+            resp.raise_for_status()
+            break
+        else:
+            # Esgotámos as tentativas — desistir deste código NAF e continuar para o seguinte
+            print(f"  [{setor}] Demasiados 429 consecutivos — a saltar para o próximo setor.")
+            break
+
         data = resp.json()
 
         empresas = data.get("results", [])
@@ -73,31 +89,43 @@ def fetch_por_codigo_naf(codigo_naf: str, setor: str, max_paginas: int = 200):
             break
 
         pagina += 1
-        time.sleep(0.3)  # cortesia com a API pública
+        time.sleep(1.0)  # pausa de cortesia aumentada, para evitar 429 em volumes grandes
 
     return resultados
 
 
 def main():
-    todos_resultados = []
+    import csv
+    output_path = f"sirene_lojas_{date.today().isoformat()}.csv"
+    fieldnames = ["siret", "siren", "nome", "nome_comercial", "codigo_naf", "setor",
+                  "morada", "codigo_postal", "cidade", "latitude", "longitude",
+                  "ativo", "data_criacao_empresa"]
+
+    total_geral = 0
+    ficheiro_iniciado = False
 
     for codigo_naf, setor in CODIGOS_NAF.items():
         print(f"A obter dados para NAF {codigo_naf} ({setor})...")
         resultados = fetch_por_codigo_naf(codigo_naf, setor)
         print(f"  -> {len(resultados)} lojas encontradas")
-        todos_resultados.extend(resultados)
 
-    print(f"\nTotal geral: {len(todos_resultados)} lojas")
+        if resultados:
+            # Escreve logo a seguir a cada setor, para não perder progresso se outro setor falhar depois
+            modo = "a" if ficheiro_iniciado else "w"
+            with open(output_path, modo, newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                if not ficheiro_iniciado:
+                    writer.writeheader()
+                    ficheiro_iniciado = True
+                writer.writerows(resultados)
 
-    # Guardar em CSV intermédio (o próximo script faz dedupe + load no Postgres)
-    import csv
-    output_path = f"sirene_lojas_{date.today().isoformat()}.csv"
-    if todos_resultados:
-        with open(output_path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=todos_resultados[0].keys())
-            writer.writeheader()
-            writer.writerows(todos_resultados)
+        total_geral += len(resultados)
+
+    print(f"\nTotal geral: {total_geral} lojas")
+    if ficheiro_iniciado:
         print(f"Guardado em {output_path}")
+    else:
+        print("Nenhum resultado obtido — CSV não foi criado.")
 
 
 if __name__ == "__main__":
