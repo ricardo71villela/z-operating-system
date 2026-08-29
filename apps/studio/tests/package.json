@@ -8,6 +8,7 @@
     "test": "electron --no-sandbox --disable-gpu --ozone-platform=headless run-tests.js",
     "test:content-persistence": "node run-content-persistence-contract.js",
     "test:app-theme": "electron --no-sandbox --disable-gpu --ozone-platform=headless run-app-theme-regression.js",
+    "test:app-theme-light-polish": "node run-app-theme-light-polish-regression.js",
     "test:mobile": "electron --no-sandbox --disable-gpu --ozone-platform=headless run-mobile-check.js",
     "test:layout": "electron --no-sandbox --disable-gpu --ozone-platform=headless run-layout-regression.js",
     "test:preview-state": "electron --no-sandbox --disable-gpu --ozone-platform=headless run-preview-state-regression.js",
