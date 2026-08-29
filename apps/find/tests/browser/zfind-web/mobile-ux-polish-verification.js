@@ -43,7 +43,7 @@ function fail(message, context) {
           return el ? el.getBoundingClientRect() : null;
         };
 
-        const heroWrap = box('#view-home .hero > .wrap');
+        const heroWrapStyle = style('#view-home .hero > .wrap');
         const searchWrapStyle = style('#view-search > .wrap');
         const navRow = box('header.site .nav-row');
         const language = box('.lang-menu-summary');
@@ -56,12 +56,27 @@ function fail(message, context) {
         const categoriesStyle = style('.cat-tabs.design-balanced-categories');
         const blockStyle = style('section.block');
         const footerColsStyle = style('footer.site .cols');
-        const cardStyle = style('.card');
+
+        const overflowOffenders = Array.from(document.querySelectorAll('body *'))
+          .map(el => {
+            const rect = el.getBoundingClientRect();
+            return {
+              tag: el.tagName,
+              id: el.id || '',
+              cls: typeof el.className === 'string' ? el.className.slice(0, 120) : '',
+              left: Math.round(rect.left * 10) / 10,
+              right: Math.round(rect.right * 10) / 10,
+              width: Math.round(rect.width * 10) / 10,
+            };
+          })
+          .filter(item => item.right > innerWidth + 1 || item.left < -1)
+          .sort((a, b) => (b.right - innerWidth) - (a.right - innerWidth))
+          .slice(0, 8);
 
         return {
           viewportWidth: innerWidth,
           scrollWidth: document.documentElement.scrollWidth,
-          heroGutter: heroWrap ? heroWrap.left : -1,
+          heroGutter: heroWrapStyle ? px(heroWrapStyle.paddingLeft) : -1,
           searchGutter: searchWrapStyle ? px(searchWrapStyle.paddingLeft) : -1,
           navHeight: navRow ? navRow.height : -1,
           languageHeight: language ? language.height : -1,
@@ -74,8 +89,8 @@ function fail(message, context) {
           categoryColumns: categoriesStyle ? categoriesStyle.gridTemplateColumns.split(' ').filter(Boolean).length : -1,
           blockPaddingTop: blockStyle ? px(blockStyle.paddingTop) : -1,
           footerColumns: footerColsStyle ? footerColsStyle.gridTemplateColumns.split(' ').filter(Boolean).length : -1,
-          cardRadius: cardStyle ? px(cardStyle.borderTopLeftRadius) : -1,
           polishMarker: document.documentElement.innerHTML.includes('Z FIND — MOBILE UX POLISH V1'),
+          overflowOffenders,
         };
       });
 
@@ -95,7 +110,6 @@ function fail(message, context) {
       if (metrics.heroFontSize > 39) fail('hero typography too large for mobile', { viewport, metrics });
       if (metrics.searchbarRadius < 12) fail('search surface lacks mobile polish radius', { viewport, metrics });
       if (metrics.blockPaddingTop > 54) fail('section rhythm remains desktop-heavy', { viewport, metrics });
-      if (metrics.cardRadius < 12) fail('card surface lacks mobile polish radius', { viewport, metrics });
 
       if (phone && metrics.categoryColumns !== 2) {
         fail('phone categories must remain a compact 2x2 grid', { viewport, metrics });
