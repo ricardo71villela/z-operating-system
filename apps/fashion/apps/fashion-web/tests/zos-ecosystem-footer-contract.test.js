@@ -13,7 +13,7 @@ const forbiddenCurrentApp = 'data-zos-app="fashion"';
 for (const document of [homepage, shell]) {
   assert.ok(document.includes('zos-ecosystem-footer.css'), 'ecosystem footer stylesheet must be loaded');
   assert.ok(document.includes('class="zfashion-zos-ecosystem-footer"'), 'ecosystem footer row must be present');
-  assert.ok(document.includes('aria-label="Z Operating System ecosystem"'), 'ecosystem footer must expose an accessible label');
+  assert.ok(document.includes('aria-label="ZOS ecosystem"'), 'ecosystem footer must expose an accessible label');
   assert.ok(!document.includes(forbiddenCurrentApp), 'current Z Fashion app must not list itself as a sibling app');
 
   let lastIndex = -1;
