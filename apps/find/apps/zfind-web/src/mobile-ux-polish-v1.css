@@ -63,6 +63,13 @@
     padding-bottom: 44px;
   }
 
+  /* The Atlantic visual remains part of the tablet identity, but the
+     legacy -120px offset must not enlarge the mobile document width. */
+  html body .hero-atlantic-visual {
+    right: 0;
+    width: min(70vw, 540px);
+  }
+
   html body .hero h1 {
     max-width: 680px;
     font-size: 2.4rem;
