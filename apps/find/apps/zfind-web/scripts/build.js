@@ -70,6 +70,7 @@ function build() {
   const headTop = read('head_top.txt');
   const css = read('css_block.txt');
   const legalGuideReadingSurface = read('legal-guide-reading-surface.css');
+  const mobileUxPolish = read('mobile-ux-polish-v1.css');
   const body = read('body.html');
   const pathD = read('path_data.txt');
   const vendorSupabase = read('vendor-supabase.js');
@@ -121,7 +122,7 @@ function build() {
   );
 
   const html = headTop
-    + '<style>\n' + css + '\n' + legalGuideReadingSurface + '\n</style>\n</head>\n<body>\n'
+    + '<style>\n' + css + '\n' + legalGuideReadingSurface + '\n' + mobileUxPolish + '\n</style>\n</head>\n<body>\n'
     + resolvedBody
     + '\n<script>\n'
     + vendorSupabase + '\n'
@@ -183,6 +184,7 @@ function build() {
   console.log('Six-language UI: fr, en, pt, es, de, it');
   console.log('Hero visual asset: copied to dist/brand/zfind-atlantic-hero.webp');
   console.log('Market map assets: copied to dist/brand/markets');
+  console.log('Mobile UX polish: mobile-ux-polish-v1.css injected');
 
   if (APPROVED_REFERENCE) {
     if (!fs.existsSync(APPROVED_REFERENCE)) {
