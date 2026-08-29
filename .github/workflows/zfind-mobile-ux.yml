@@ -1,0 +1,42 @@
+name: Z Find Mobile UX
+
+on:
+  pull_request:
+    paths:
+      - 'apps/find/apps/zfind-web/src/**'
+      - 'apps/find/apps/zfind-web/scripts/build.js'
+      - 'apps/find/tests/browser/zfind-web/mobile-ux-polish-verification.js'
+      - '.github/workflows/zfind-mobile-ux.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mobile-ux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      SUPABASE_URL: https://example.supabase.co
+      SUPABASE_ANON_KEY: zfind-mobile-ux-ci-public-placeholder
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build Z Find public web
+        run: npm run build:zfind --workspace=z-find-platform
+
+      - name: Verify mobile UX across canonical viewports
+        run: node apps/find/tests/browser/zfind-web/mobile-ux-polish-verification.js
