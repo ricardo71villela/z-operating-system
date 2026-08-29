@@ -1,0 +1,38 @@
+name: Ingestao Lojas Franca
+
+on:
+  schedule:
+    # Corre todas as segundas-feiras às 06:00 UTC
+    - cron: "0 6 * * 1"
+  workflow_dispatch: {}  # permite correr manualmente a partir do separador Actions
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: 90-platform-engineering/lojas-franca-ingest
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependências
+        run: pip install requests psycopg2-binary
+
+      - name: Obter dados da SIRENE
+        run: python src/fetch_sirene.py
+
+      - name: Carregar no Supabase
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: python src/dedupe_and_load.py
+
+      - name: Enriquecer contactos (OpenStreetMap + scraping)
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: python src/enrich_osm.py
