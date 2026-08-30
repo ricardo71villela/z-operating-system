@@ -72,6 +72,7 @@ function build() {
   const legalGuideReadingSurface = read('legal-guide-reading-surface.css');
   const mobileUxPolish = read('mobile-ux-polish-v1.css');
   const mobileUxBalanceV3 = read('mobile-ux-balance-v3.css');
+  const propertyMobileDetailHotfix = read('property-mobile-detail-hotfix-v1.css');
   const listingCompliancePublicCss = read('listing-compliance-public.css');
   const body = read('body.html');
   const pathD = read('path_data.txt');
@@ -102,6 +103,7 @@ function build() {
   const sixLanguageMenu = read('six-language-menu.js');
   const viewmodels = read('viewmodels.js');
   const app = read('app.js');
+  const propertyDetailHotfixService = read('services/property-detail-hotfix.js');
   const internationalWelcomeService = read('services/international-welcome.js');
   const internationalWelcomeRouteSyncService = read('services/international-welcome-route-sync.js');
   const marketRuntimeContextService = read('services/market-runtime-context.js');
@@ -126,7 +128,7 @@ function build() {
   );
 
   const html = headTop
-    + '<style>\n' + css + '\n' + legalGuideReadingSurface + '\n' + mobileUxPolish + '\n' + mobileUxBalanceV3 + '\n' + listingCompliancePublicCss + '\n</style>\n</head>\n<body>\n'
+    + '<style>\n' + css + '\n' + legalGuideReadingSurface + '\n' + mobileUxPolish + '\n' + mobileUxBalanceV3 + '\n' + propertyMobileDetailHotfix + '\n' + listingCompliancePublicCss + '\n</style>\n</head>\n<body>\n'
     + resolvedBody
     + '\n<script>\n'
     + vendorSupabase + '\n'
@@ -156,6 +158,7 @@ function build() {
     + sixLanguageMenu + '\n'
     + viewmodels + '\n'
     + app
+    + '\n' + propertyDetailHotfixService
     + '\n' + internationalWelcomeService
     + '\n' + internationalWelcomeRouteSyncService
     + '\n' + marketRuntimeContextService
@@ -192,6 +195,7 @@ function build() {
   console.log('Market map assets: copied to dist/brand/markets');
   console.log('Mobile UX polish: mobile-ux-polish-v1.css injected');
   console.log('Mobile UX balance: mobile-ux-balance-v3.css injected');
+  console.log('Property mobile detail hotfix: CSS + runtime injected');
   console.log('Public listing compliance: CSS + runtime injected');
   console.log('Website legal runtime: RGPD first layer + cookie policy injected');
 
