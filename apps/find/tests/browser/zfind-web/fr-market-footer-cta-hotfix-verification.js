@@ -49,17 +49,37 @@ async function openMarket(page, locale, marketKey) {
     { waitUntil: 'load' }
   );
   await waitForView(page, 'market');
+  await page.waitForFunction(
+    expected =>
+      window.ZFindServices
+        .marketGuideFooterHotfix
+        .currentMarketKey() === expected,
+    marketKey
+  );
 }
 
-async function clickFooterGuide(page, kind) {
+function footerSelector(kind) {
   const key =
     kind === 'legal'
       ? 'footer.legalGuide'
       : 'footer.alManual';
 
-  await page
-    .locator(`footer.site a[data-i18n="${key}"]`)
-    .click();
+  return `footer.site a[data-i18n="${key}"]`;
+}
+
+async function footerTarget(page, kind) {
+  return page
+    .locator(footerSelector(kind))
+    .evaluate(anchor => ({
+      href: anchor.getAttribute('href'),
+      onclick: anchor.getAttribute('onclick'),
+      route: anchor.getAttribute('data-market-guide-route'),
+      market: anchor.getAttribute('data-market-guide-market')
+    }));
+}
+
+async function tapFooterGuide(page, kind) {
+  await page.locator(footerSelector(kind)).tap();
 }
 
 async function expectHashView(page, locale, route) {
@@ -77,48 +97,171 @@ async function expectHashView(page, locale, route) {
   );
 }
 
+async function expectFooterTarget(
+  page,
+  kind,
+  locale,
+  marketKey,
+  route
+) {
+  const target = await footerTarget(page, kind);
+
+  assert.strictEqual(
+    target.href,
+    `#/${locale}/${route}`,
+    `${marketKey} ${kind} href must be physical-navigation safe`
+  );
+  assert.strictEqual(
+    target.route,
+    route,
+    `${marketKey} ${kind} route marker drift`
+  );
+  assert.strictEqual(
+    target.market,
+    marketKey,
+    `${marketKey} ${kind} market marker drift`
+  );
+  assert.strictEqual(
+    target.onclick,
+    `navigate('${route}');return false;`,
+    `${marketKey} ${kind} inline fallback must match registry route`
+  );
+}
+
 async function run() {
   const browser = await launchBrowser();
 
   try {
-    const page = await browser.newPage({
-      viewport: { width: 390, height: 844 }
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+      deviceScaleFactor: 3
     });
+    const page = await context.newPage();
 
     console.log(
-      '\n=== Z FIND FR MARKET FOOTER + CTA HOTFIX ==='
+      '\n=== Z FIND FR MARKET FOOTER + CTA HOTFIX V2 ==='
     );
 
     await openMarket(page, 'fr', 'FR');
-    await clickFooterGuide(page, 'legal');
+    await expectFooterTarget(
+      page,
+      'legal',
+      'fr',
+      'FR',
+      'legal-fr'
+    );
+    pass(
+      'France footer Legal Guide DOM target is legal-fr before touch'
+    );
+    await tapFooterGuide(page, 'legal');
     await expectHashView(page, 'fr', 'legal-fr');
     pass(
-      'France market footer Legal Guide opens legal-fr'
+      'France market touch navigation opens legal-fr'
     );
 
     await openMarket(page, 'fr', 'FR');
-    await clickFooterGuide(page, 'rental');
+    await expectFooterTarget(
+      page,
+      'rental',
+      'fr',
+      'FR',
+      'tourist-rental-fr'
+    );
+    pass(
+      'France footer rental DOM target is tourist-rental-fr before touch'
+    );
+    await tapFooterGuide(page, 'rental');
     await expectHashView(
       page,
       'fr',
       'tourist-rental-fr'
     );
     pass(
-      'France market footer rental guide opens tourist-rental-fr'
+      'France market touch navigation opens tourist-rental-fr'
     );
 
     await openMarket(page, 'en', 'FR');
-    await clickFooterGuide(page, 'legal');
+    await expectFooterTarget(
+      page,
+      'legal',
+      'en',
+      'FR',
+      'legal-fr'
+    );
+    await tapFooterGuide(page, 'legal');
     await expectHashView(page, 'en', 'legal-fr');
     pass(
-      'France jurisdiction is preserved under English UI locale'
+      'France jurisdiction is preserved under English mobile UI locale'
     );
 
     await openMarket(page, 'fr', 'PT');
-    await clickFooterGuide(page, 'legal');
+    await expectFooterTarget(
+      page,
+      'legal',
+      'fr',
+      'PT',
+      'legal'
+    );
+    await tapFooterGuide(page, 'legal');
     await expectHashView(page, 'fr', 'legal');
     pass(
-      'Portugal jurisdiction is preserved under French UI locale'
+      'Portugal jurisdiction is preserved under French mobile UI locale'
+    );
+
+    await openMarket(page, 'fr', 'FR');
+    await page.evaluate(() => {
+      navigate('property', 'physical-mobile-context-probe');
+    });
+    await page.waitForFunction(() =>
+      location.hash.includes('/fr/property/physical-mobile-context-probe')
+    );
+    await page.evaluate(() =>
+      window.ZFindServices
+        .marketGuideFooterHotfix
+        .syncFooterGuideTargets()
+    );
+    await expectFooterTarget(
+      page,
+      'legal',
+      'fr',
+      'FR',
+      'legal-fr'
+    );
+    await expectFooterTarget(
+      page,
+      'rental',
+      'fr',
+      'FR',
+      'tourist-rental-fr'
+    );
+    pass(
+      'France guide targets survive navigation from market into property detail'
+    );
+
+    await page.reload({ waitUntil: 'load' });
+    await page.evaluate(() =>
+      window.ZFindServices
+        .marketGuideFooterHotfix
+        .syncFooterGuideTargets()
+    );
+    await expectFooterTarget(
+      page,
+      'legal',
+      'fr',
+      'FR',
+      'legal-fr'
+    );
+    await expectFooterTarget(
+      page,
+      'rental',
+      'fr',
+      'FR',
+      'tourist-rental-fr'
+    );
+    pass(
+      'France guide targets survive physical-page reload via stored market context'
     );
 
     await page.goto(
@@ -262,8 +405,10 @@ async function run() {
       );
     }
 
+    await context.close();
+
     console.log(
-      `\nFR MARKET FOOTER + CTA HOTFIX: ` +
+      `\nFR MARKET FOOTER + CTA HOTFIX V2: ` +
       `${passed}/${passed} PASSED`
     );
   } finally {
@@ -273,7 +418,7 @@ async function run() {
 
 run().catch(error => {
   console.error(
-    '\nFR MARKET FOOTER + CTA HOTFIX: FAILED'
+    '\nFR MARKET FOOTER + CTA HOTFIX V2: FAILED'
   );
   console.error(
     error && error.stack

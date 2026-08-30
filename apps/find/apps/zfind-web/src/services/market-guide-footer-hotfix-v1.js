@@ -1,13 +1,17 @@
 /* ============================================================
-   Z FIND — MARKET GUIDE FOOTER + FR CTA HOTFIX V1
+   Z FIND — MARKET GUIDE FOOTER + FR CTA HOTFIX V2
    ============================================================
-   Corrects two public presentation issues without changing legal
+   Corrects public presentation issues without changing legal
    content, listing data, or jurisdiction semantics:
 
    1) Footer Legal Guide / Short-Term Rental links follow the active
       marketplace jurisdiction from Market Registry instead of being
       hard-wired to Portugal.
-   2) The French Property contact CTA uses the approved shorter copy.
+   2) The real anchor href + inline fallback are synchronised, so
+      touch navigation on physical mobile devices does not depend on
+      delegated click interception.
+   3) Safari/iOS page restoration re-synchronises the market links.
+   4) The French Property contact CTA uses the approved shorter copy.
 
    UI locale and legal jurisdiction remain deliberately independent.
    ============================================================ */
@@ -30,6 +34,10 @@
   const MARKET_STORAGE_KEY = 'zfind_market';
   const FRENCH_CONTACT_COPY =
     'CONTACTER POUR CETTE OPPORTUNITÉ';
+
+  const GUIDE_SELECTOR =
+    'footer.site a[data-i18n="footer.legalGuide"], ' +
+    'footer.site a[data-i18n="footer.alManual"]';
 
   function knownMarketKey(value) {
     return (
@@ -54,6 +62,16 @@
       parts: pathPart.split('/').filter(Boolean),
       query: new URLSearchParams(queryPart)
     };
+  }
+
+  function localeFromRoute() {
+    const locale = parsedHash().parts[0];
+    return (
+      typeof locale === 'string' &&
+      locale.length > 0
+    )
+      ? locale
+      : 'fr';
   }
 
   function marketKeyFromQuery(query) {
@@ -175,12 +193,19 @@
       return true;
     }
 
-    const locale = parsedHash().parts[0] || 'fr';
-    root.location.hash = '/' + locale + '/' + route;
+    root.location.hash =
+      '/' + localeFromRoute() + '/' + route;
     return true;
   }
 
   function footerGuideKind(anchor) {
+    const explicit = anchor &&
+      anchor.getAttribute('data-market-guide-kind');
+
+    if (explicit === 'legal' || explicit === 'rental') {
+      return explicit;
+    }
+
     const key = anchor &&
       anchor.getAttribute('data-i18n');
 
@@ -189,17 +214,65 @@
     return null;
   }
 
+  function syncFooterGuideTargets() {
+    const marketKey = currentMarketKey();
+    const market = marketKey
+      ? registry.getMarket(marketKey)
+      : null;
+
+    if (!market) return false;
+
+    const locale = localeFromRoute();
+    let patched = 0;
+
+    document
+      .querySelectorAll(GUIDE_SELECTOR)
+      .forEach(anchor => {
+        const kind = footerGuideKind(anchor);
+        const route =
+          kind === 'legal'
+            ? market.legalRoute
+            : (
+                kind === 'rental'
+                  ? market.touristRentalRoute
+                  : null
+              );
+
+        if (!route) return;
+
+        anchor.setAttribute(
+          'href',
+          '#/' + locale + '/' + route
+        );
+        anchor.setAttribute(
+          'onclick',
+          "navigate('" + route + "');return false;"
+        );
+        anchor.setAttribute(
+          'data-market-guide-kind',
+          kind
+        );
+        anchor.setAttribute(
+          'data-market-guide-route',
+          route
+        );
+        anchor.setAttribute(
+          'data-market-guide-market',
+          marketKey
+        );
+        patched += 1;
+      });
+
+    return patched > 0;
+  }
+
   function onFooterGuideClick(event) {
     const target = event && event.target;
     if (!target || typeof target.closest !== 'function') {
       return;
     }
 
-    const anchor = target.closest(
-      'footer.site a[data-i18n="footer.legalGuide"], ' +
-      'footer.site a[data-i18n="footer.alManual"]'
-    );
-
+    const anchor = target.closest(GUIDE_SELECTOR);
     if (!anchor) return;
 
     const kind = footerGuideKind(anchor);
@@ -228,7 +301,7 @@
   function syncFrenchPropertyCta() {
     patchFrenchContactCopy();
 
-    const locale = parsedHash().parts[0] || '';
+    const locale = localeFromRoute();
     if (locale !== 'fr') return;
 
     document
@@ -249,6 +322,7 @@
   function sync() {
     patchFrenchContactCopy();
     syncMarketContextFromRoute();
+    syncFooterGuideTargets();
     syncFrenchPropertyCta();
   }
 
@@ -273,6 +347,13 @@
     }
   );
 
+  root.addEventListener(
+    'pageshow',
+    function () {
+      root.setTimeout(sync, 0);
+    }
+  );
+
   sync();
 
   services.marketGuideFooterHotfix = Object.freeze({
@@ -280,6 +361,7 @@
     currentMarketKey,
     targetRoute,
     navigateGuide,
+    syncFooterGuideTargets,
     syncFrenchPropertyCta
   });
 })(typeof window !== 'undefined' ? window : this);
