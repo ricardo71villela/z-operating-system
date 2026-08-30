@@ -51,6 +51,9 @@ jobs:
       - name: Verify Search Map Interaction Contract V1
         run: node apps/find/tests/unit/search-map-interaction.test.js
 
+      - name: Verify Search Map Presentation V1
+        run: node apps/find/tests/unit/search-map-presentation.test.js
+
       - name: Verify six-language and SEO contracts
         run: |
           npm run test:public-language-foundation --workspace=z-find-platform
