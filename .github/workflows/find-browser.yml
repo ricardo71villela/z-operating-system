@@ -42,6 +42,9 @@ jobs:
       - name: Verify Search Map Foundation V1
         run: node apps/find/tests/unit/search-map-foundation.test.js
 
+      - name: Verify Search Map Clustering V1
+        run: node apps/find/tests/unit/search-map-clustering.test.js
+
       - name: Verify six-language and SEO contracts
         run: |
           npm run test:public-language-foundation --workspace=z-find-platform
