@@ -56,3 +56,6 @@ jobs:
 
       - name: Run Z Find browser tests
         run: npm run test:browser --workspace=z-find-platform
+
+      - name: Verify public compliance renderer does not self-loop
+        run: node apps/find/tests/browser/zfind-web/public-listing-compliance-render-loop-verification.js
