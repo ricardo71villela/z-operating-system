@@ -104,10 +104,58 @@
       .replace(/'/g,'&#39;');
   }
 
+  function fingerprint(data) {
+    return JSON.stringify([
+      lang(),
+      data && data.jurisdiction_iso,
+      data && data.profile,
+      data && data.facts
+    ]);
+  }
+
+  function isComplianceElement(node) {
+    return Boolean(
+      node &&
+      node.nodeType === 1 &&
+      node.id === BLOCK_ID
+    );
+  }
+
+  function mutationIsComplianceOnly(mutation) {
+    const target = mutation && mutation.target;
+    if (
+      target &&
+      target.nodeType === 1 &&
+      (target.id === BLOCK_ID || (target.closest && target.closest(`#${BLOCK_ID}`)))
+    ) {
+      return true;
+    }
+
+    const changed = [
+      ...Array.from(mutation.addedNodes || []),
+      ...Array.from(mutation.removedNodes || [])
+    ].filter(node => node.nodeType === 1 || node.nodeType === 3);
+
+    return changed.length > 0 && changed.every(isComplianceElement);
+  }
+
   function render(data, targetRoot) {
     const existing = document.getElementById(BLOCK_ID);
+    if (!data || !data.facts || data.jurisdiction_iso !== 'FR') {
+      if (existing) existing.remove();
+      return;
+    }
+
+    const nextFingerprint = fingerprint(data);
+    if (
+      existing &&
+      existing.dataset.complianceFingerprint === nextFingerprint &&
+      targetRoot.contains(existing)
+    ) {
+      return;
+    }
+
     if (existing) existing.remove();
-    if (!data || !data.facts || data.jurisdiction_iso !== 'FR') return;
 
     const c = copy();
     const f = data.facts;
@@ -151,6 +199,7 @@
     const section = document.createElement('section');
     section.id = BLOCK_ID;
     section.className = 'zfind-public-compliance-card';
+    section.dataset.complianceFingerprint = nextFingerprint;
     section.setAttribute('aria-label', c.title);
     section.innerHTML = `
       <div class="zfind-compliance-head">
@@ -202,7 +251,10 @@
       const node = document.getElementById(id);
       if (!node || observedRoots.has(node)) return;
       observedRoots.add(node);
-      new MutationObserver(schedule).observe(node, { childList:true, subtree:true });
+      new MutationObserver(mutations => {
+        if (mutations.length && mutations.every(mutationIsComplianceOnly)) return;
+        schedule();
+      }).observe(node, { childList:true, subtree:true });
     });
   }
 
