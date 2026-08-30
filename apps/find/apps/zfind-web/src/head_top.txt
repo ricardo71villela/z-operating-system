@@ -22,3 +22,106 @@
 <style>
 footer .bottom [data-i18n="footer.location"] { display: none; }
 </style>
+<style id="zfind-mobile-layout-balance-v2">
+/* Z FIND — MOBILE LAYOUT BALANCE V2
+   Final visual-only alignment for Header, mobile menu, Simulator and Market.
+   Important declarations intentionally override later legacy/mobile rules and
+   the Simulator's inline horizontal zero-padding without changing behavior. */
+@media (max-width: 900px) {
+  html body .wrap,
+  html body header.site .wrap.nav-row,
+  html body #view-simulator #simulator-root > .wrap,
+  html body #view-market .market-foundation-section {
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+  }
+
+  html body header.site .wrap.nav-row {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+
+  html body header.site .logo {
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
+  }
+
+  html body header.site .nav-actions {
+    flex: 0 0 auto !important;
+    min-width: 0 !important;
+    margin-left: auto !important;
+    gap: 6px !important;
+  }
+
+  html body .mobile-primary-menu {
+    left: 24px !important;
+    right: 24px !important;
+    width: auto !important;
+  }
+
+  html body #view-simulator #simulator-root > .wrap {
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  html body #view-simulator .sim-tab-btn {
+    min-height: 44px !important;
+  }
+
+  html body #view-market #market-root {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: clip !important;
+  }
+
+  html body #view-market .market-foundation-section {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 640px) {
+  html body .wrap,
+  html body header.site .wrap.nav-row,
+  html body #view-simulator #simulator-root > .wrap,
+  html body #view-market .market-foundation-section {
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+  }
+
+  html body header.site .wrap.nav-row {
+    gap: 8px !important;
+  }
+
+  html body header.site .nav-actions {
+    gap: 5px !important;
+  }
+
+  html body .mobile-primary-menu {
+    left: 18px !important;
+    right: 18px !important;
+  }
+}
+
+@media (max-width: 360px) {
+  html body .wrap,
+  html body header.site .wrap.nav-row,
+  html body #view-simulator #simulator-root > .wrap,
+  html body #view-market .market-foundation-section {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  html body header.site .wrap.nav-row {
+    gap: 5px !important;
+  }
+
+  html body header.site .nav-actions {
+    gap: 3px !important;
+  }
+
+  html body .mobile-primary-menu {
+    left: 16px !important;
+    right: 16px !important;
+  }
+}
+</style>
