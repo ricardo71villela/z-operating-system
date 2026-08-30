@@ -22,6 +22,7 @@ function check(label, condition) {
 
 let featured;
 let registry;
+let searchService;
 
 try {
   featured = require(path.join(
@@ -39,6 +40,15 @@ try {
   ));
 } catch (error) {
   console.error('MARKET_REGISTRY_LOAD_ERROR=' + error.message);
+}
+
+try {
+  searchService = require(path.join(
+    ROOT,
+    'apps/zfind-web/src/services/search.js'
+  ));
+} catch (error) {
+  console.error('SEARCH_SERVICE_LOAD_ERROR=' + error.message);
 }
 
 const app = read('apps/zfind-web/src/app.js');
@@ -118,9 +128,10 @@ if (featured && registry) {
 }
 
 check('search service exposes no-log public inventory read',
+  !!searchService &&
+  typeof searchService.listPublished === 'function' &&
   search.includes('async function listPublished()') &&
-  search.includes("'search.listPublished'") &&
-  search.includes('return { search, listPublished, logSearch };'));
+  search.includes("'search.listPublished'"));
 
 if (search.includes('async function listPublished()')) {
   const start = search.indexOf('async function listPublished()');
