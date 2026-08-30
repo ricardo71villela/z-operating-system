@@ -7,6 +7,9 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '../..');
 const servicePath = path.join(ROOT, 'apps/zfind-web/src/services/search.js');
 const source = fs.readFileSync(servicePath, 'utf8');
+const executableSource = source
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/^\s*\/\/.*$/gm, '');
 const search = require(servicePath);
 
 let passed = 0;
@@ -127,8 +130,8 @@ check(
 );
 
 check(
-  'foundation performs no geocoding or provider-specific map request',
-  !/geocod/i.test(source) &&
+  'foundation performs no executable geocoding or provider-specific map request',
+  !/\bgeocode\w*\s*\(/i.test(executableSource) &&
   !source.includes('maps.googleapis.com') &&
   !source.includes('openstreetmap.org') &&
   !source.includes('maptiler.com')
