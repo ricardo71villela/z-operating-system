@@ -1,0 +1,107 @@
+/* ============================================================
+   Z FIND — PROPERTY MOBILE DETAIL HOTFIX V1
+   Physical-device correction for Property detail only.
+   Keeps the page inside the viewport and gives Property facts a
+   deliberate phone composition without changing data or routing.
+   ============================================================ */
+
+@media (max-width: 640px) {
+  html body #view-property,
+  html body #view-property #property-root,
+  html body #view-property #property-root > .wrap,
+  html body #view-property .detail-hero .wrap,
+  html body #view-property .detail-layout,
+  html body #view-property .detail-layout > div {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  html body #view-property .detail-hero .eyebrow,
+  html body #view-property .detail-hero h1,
+  html body #view-property .detail-hero .loc-row,
+  html body #view-property .detail-hero .loc-row > * {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere;
+  }
+
+  html body #view-property .detail-layout {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 28px !important;
+  }
+
+  html body #view-property .gallery {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: min(68vw, 320px) !important;
+    margin-bottom: 24px !important;
+  }
+
+  html body #view-property .facts-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    border-radius: 14px !important;
+  }
+
+  html body #view-property .facts-grid > .fact {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 16px !important;
+    border-right: 1px solid var(--gray-200) !important;
+  }
+
+  html body #view-property .facts-grid > .fact:nth-child(even) {
+    border-right: 0 !important;
+  }
+
+  html body #view-property .facts-grid > .fact:last-child:nth-child(odd),
+  html body #view-property .facts-grid > .fact:only-child {
+    grid-column: 1 / -1 !important;
+    border-right: 0 !important;
+  }
+
+  html body #view-property .facts-grid .k,
+  html body #view-property .facts-grid .v,
+  html body #view-property .detail-layout p,
+  html body #view-property .section-title {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere;
+  }
+
+  html body #view-property .sidebar-sticky {
+    position: static !important;
+    top: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  html body #view-property .sidebar-card,
+  html body #view-property .info-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  html body #view-property .sim-row,
+  html body #view-property .info-card .row {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    flex-wrap: wrap !important;
+  }
+
+  html body #view-property .sim-row > *,
+  html body #view-property .info-card .row > * {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere;
+  }
+}
