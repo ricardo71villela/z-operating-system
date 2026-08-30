@@ -57,7 +57,12 @@ async function routeNetworkStubs(page) {
       await routeNetworkStubs(page);
       await page.goto(fileUrl, { waitUntil: 'domcontentloaded' });
 
-      const setup = await page.evaluate(() => {
+      // This is a component-level fixture, not a router test. Measure
+      // synchronously in the same browser task in which renderMap()
+      // inserts the map. The production MutationObserver correctly
+      // removes map UI when the actual route is not Property, so an
+      // artificial fixture must not wait across that route cleanup.
+      const result = await page.evaluate(() => {
         document.querySelectorAll('.view').forEach(view => {
           view.classList.remove('active');
         });
@@ -83,39 +88,21 @@ async function routeNetworkStubs(page) {
         `;
 
         const api = window.ZFindServices && window.ZFindServices.propertyMap;
-        if (!api) return { api: false };
+        if (!api) return { setup: { api: false }, metrics: null };
 
         const invalid = api.normalizeCoordinates(95, 3);
-        const missing = api.renderMap({ latitude: null, longitude: null }, { lang: 'fr' });
+        const missingNull = api.normalizeCoordinates(null, null);
+        const missingUndefined = api.normalizeCoordinates(undefined, undefined);
+        const missingEmpty = api.normalizeCoordinates('', '');
+        const missingRendered = api.renderMap(
+          { latitude: null, longitude: null },
+          { lang: 'fr' }
+        );
         const rendered = api.renderMap(
           { latitude: 50.629250, longitude: 3.057256 },
           { lang: 'fr' }
         );
 
-        return {
-          api: true,
-          invalidIsNull: invalid === null,
-          missingRendered: missing,
-          rendered,
-          embed: api.openStreetMapEmbedUrl(50.629250, 3.057256),
-          page: api.openStreetMapPageUrl(50.629250, 3.057256),
-        };
-      });
-
-      if (!setup.api) fail('Property Map API missing from built HTML', { viewport, setup });
-      if (!setup.invalidIsNull) fail('Out-of-range coordinates must be rejected', { viewport, setup });
-      if (setup.missingRendered !== false) fail('Missing coordinates must not render a map', { viewport, setup });
-      if (setup.rendered !== true) fail('Valid coordinates must render a map', { viewport, setup });
-      if (!String(setup.embed).startsWith('https://www.openstreetmap.org/export/embed.html')) {
-        fail('Map embed must use the zero-key OpenStreetMap endpoint', { viewport, setup });
-      }
-      if (!String(setup.page).startsWith('https://www.openstreetmap.org/')) {
-        fail('Map external link must use OpenStreetMap', { viewport, setup });
-      }
-
-      await page.waitForTimeout(80);
-
-      const metrics = await page.evaluate(() => {
         const map = document.getElementById('zfind-property-map-v1');
         const facts = document.getElementById('map-fixture-facts');
         const iframe = map && map.querySelector('iframe');
@@ -125,27 +112,57 @@ async function routeNetworkStubs(page) {
         const factsRect = facts && facts.getBoundingClientRect();
 
         return {
-          exists: Boolean(map),
-          mapLeft: rect && rect.left,
-          mapRight: rect && rect.right,
-          mapWidth: rect && rect.width,
-          factsBottom: factsRect && factsRect.bottom,
-          mapTop: rect && rect.top,
-          iframeSrc: iframe && iframe.getAttribute('src'),
-          iframeLoading: iframe && iframe.getAttribute('loading'),
-          iframeReferrer: iframe && iframe.getAttribute('referrerpolicy'),
-          iframeWidth: iframe && iframe.getBoundingClientRect().width,
-          iframeHeight: iframe && iframe.getBoundingClientRect().height,
-          linkTarget: link && link.getAttribute('target'),
-          linkRel: link && link.getAttribute('rel'),
-          note: note && note.textContent.trim(),
-          scrollWidth: document.documentElement.scrollWidth,
-          bodyScrollWidth: document.body.scrollWidth,
-          sourceMarker: document.documentElement.innerHTML.includes('Z FIND — PROPERTY DETAIL MAP V1'),
+          setup: {
+            api: true,
+            invalidIsNull: invalid === null,
+            nullIsMissing: missingNull === null,
+            undefinedIsMissing: missingUndefined === null,
+            emptyIsMissing: missingEmpty === null,
+            missingRendered,
+            rendered,
+            embed: api.openStreetMapEmbedUrl(50.629250, 3.057256),
+            page: api.openStreetMapPageUrl(50.629250, 3.057256),
+          },
+          metrics: {
+            exists: Boolean(map),
+            mapLeft: rect && rect.left,
+            mapRight: rect && rect.right,
+            mapWidth: rect && rect.width,
+            factsBottom: factsRect && factsRect.bottom,
+            mapTop: rect && rect.top,
+            iframeSrc: iframe && iframe.getAttribute('src'),
+            iframeLoading: iframe && iframe.getAttribute('loading'),
+            iframeReferrer: iframe && iframe.getAttribute('referrerpolicy'),
+            iframeWidth: iframe && iframe.getBoundingClientRect().width,
+            iframeHeight: iframe && iframe.getBoundingClientRect().height,
+            linkTarget: link && link.getAttribute('target'),
+            linkRel: link && link.getAttribute('rel'),
+            note: note && note.textContent.trim(),
+            scrollWidth: document.documentElement.scrollWidth,
+            bodyScrollWidth: document.body.scrollWidth,
+            sourceMarker: document.documentElement.innerHTML.includes('Z FIND — PROPERTY DETAIL MAP V1'),
+          }
         };
       });
 
-      if (!metrics.exists) fail('Property map DOM missing', { viewport, metrics });
+      const setup = result.setup;
+      const metrics = result.metrics;
+
+      if (!setup.api) fail('Property Map API missing from built HTML', { viewport, setup });
+      if (!setup.invalidIsNull) fail('Out-of-range coordinates must be rejected', { viewport, setup });
+      if (!setup.nullIsMissing || !setup.undefinedIsMissing || !setup.emptyIsMissing) {
+        fail('Nullish/empty coordinates must be rejected before numeric coercion', { viewport, setup });
+      }
+      if (setup.missingRendered !== false) fail('Missing coordinates must not render a map', { viewport, setup });
+      if (setup.rendered !== true) fail('Valid coordinates must render a map', { viewport, setup });
+      if (!String(setup.embed).startsWith('https://www.openstreetmap.org/export/embed.html')) {
+        fail('Map embed must use the zero-key OpenStreetMap endpoint', { viewport, setup });
+      }
+      if (!String(setup.page).startsWith('https://www.openstreetmap.org/')) {
+        fail('Map external link must use OpenStreetMap', { viewport, setup });
+      }
+
+      if (!metrics || !metrics.exists) fail('Property map DOM missing', { viewport, metrics });
       if (!metrics.sourceMarker) fail('Property map runtime marker missing', { viewport, metrics });
       if (metrics.mapTop < metrics.factsBottom - 1) fail('Property map must be inserted after facts', { viewport, metrics });
       if (metrics.scrollWidth > viewport.width + 1) fail('Property map causes document overflow', { viewport, metrics });
