@@ -227,6 +227,10 @@
   html body #view-development .units-table {
     display: block !important;
     width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    table-layout: fixed !important;
     margin: 0 !important;
     border-collapse: separate !important;
   }
@@ -234,12 +238,16 @@
   html body #view-development .units-table tbody {
     display: block !important;
     width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
   }
   html body #view-development .units-table thead tr,
   html body #view-development .units-table tbody tr {
     display: grid !important;
     grid-template-columns: .78fr 1fr .62fr 1.18fr !important;
     width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
     align-items: center !important;
   }
   html body #view-development .units-table th:nth-child(1),
