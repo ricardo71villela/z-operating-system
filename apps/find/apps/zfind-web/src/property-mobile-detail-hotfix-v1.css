@@ -104,4 +104,21 @@
     max-width: 100% !important;
     overflow-wrap: anywhere;
   }
+
+  html body #view-property .sidebar-card
+  button.btn.btn-gold[onclick^="openModal("] {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 44px !important;
+    height: auto !important;
+    padding: 13px 10px !important;
+    white-space: normal !important;
+    line-height: 1.25 !important;
+    font-size: 0.82rem !important;
+    letter-spacing: 0.08em !important;
+    text-align: center !important;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
 }

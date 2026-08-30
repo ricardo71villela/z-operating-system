@@ -107,6 +107,7 @@ function build() {
   const internationalWelcomeService = read('services/international-welcome.js');
   const internationalWelcomeRouteSyncService = read('services/international-welcome-route-sync.js');
   const marketRuntimeContextService = read('services/market-runtime-context.js');
+  const marketGuideFooterHotfixService = read('services/market-guide-footer-hotfix-v1.js');
   const zosEcosystemFooterService = read('services/zos-ecosystem-footer.js');
   const publicListingComplianceService = read('services/public-listing-compliance.js');
   const websiteLegalRuntimeService = read('services/website-legal-runtime.js');
@@ -162,6 +163,7 @@ function build() {
     + '\n' + internationalWelcomeService
     + '\n' + internationalWelcomeRouteSyncService
     + '\n' + marketRuntimeContextService
+    + '\n' + marketGuideFooterHotfixService
     + '\n' + zosEcosystemFooterService
     + '\n' + publicListingComplianceService
     + '\n' + websiteLegalRuntimeService
@@ -196,6 +198,7 @@ function build() {
   console.log('Mobile UX polish: mobile-ux-polish-v1.css injected');
   console.log('Mobile UX balance: mobile-ux-balance-v3.css injected');
   console.log('Property mobile detail hotfix: CSS + runtime injected');
+  console.log('Market guide footer + French mobile CTA hotfix: injected');
   console.log('Public listing compliance: CSS + runtime injected');
   console.log('Website legal runtime: RGPD first layer + cookie policy injected');
 
