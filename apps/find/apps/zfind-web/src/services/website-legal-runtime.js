@@ -58,7 +58,7 @@
       consentTitle: 'Consentement',
       consentBody: 'Aucun bandeau de consentement n’est affiché tant qu’aucun traceur non essentiel n’est utilisé. Si Z Find ajoute ultérieurement des traceurs soumis au consentement, ils devront être bloqués jusqu’à votre choix et la présente information sera mise à jour.',
       thirdPartyTitle: 'Infrastructure',
-      thirdPartyBody: 'Le site est hébergé sur Vercel et utilise Supabase pour les services de données et d’authentification. Ces fournisseurs peuvent mettre en œuvre des mécanismes techniques nécessaires à la sécurité, à la livraison du service ou à une session expressément demandée.',
+      thirdPartyBody: 'Le site est hébergé sur Vercel et utilise Supabase pour les services de données et d’authentification. Ces fournisseurs peuvent mettre en œuvre des mécanismes techniques nécessaires à la sécurité, à la livraison du service ou à une session expressément demandée. Lorsqu’une annonce affiche une carte, le navigateur se connecte également à OpenStreetMap afin de charger ce contenu cartographique.',
       contactTitle: 'Question sur vos données ou traceurs',
       back: '← Retour à Z Find',
       rgpd: 'Les données saisies (nom, e-mail ou téléphone, message et, le cas échéant, réponses de qualification) sont utilisées pour traiter cette demande et la transmettre au partenaire qui représente cette opportunité. Pour toute question relative à vos données :'
@@ -72,7 +72,7 @@
       consentTitle: 'Consent',
       consentBody: 'No consent banner is displayed while no non-essential tracker is used. If Z Find later adds trackers requiring consent, they must be blocked until you make a choice and this notice will be updated.',
       thirdPartyTitle: 'Infrastructure',
-      thirdPartyBody: 'The site is hosted on Vercel and uses Supabase for data and authentication services. These providers may use technical mechanisms necessary for security, service delivery or a session you expressly request.',
+      thirdPartyBody: 'The site is hosted on Vercel and uses Supabase for data and authentication services. These providers may use technical mechanisms necessary for security, service delivery or a session you expressly request. When a listing displays a map, the browser also connects to OpenStreetMap to load that map content.',
       contactTitle: 'Questions about your data or trackers',
       back: '← Back to Z Find',
       rgpd: 'The data you enter (name, email or phone, message and, where applicable, qualification answers) is used to process this enquiry and route it to the partner representing this opportunity. For questions about your data:'
@@ -86,7 +86,7 @@
       consentTitle: 'Consentimento',
       consentBody: 'Não é apresentado um banner de consentimento enquanto não forem utilizados rastreadores não essenciais. Se o Z Find vier a adicionar rastreadores sujeitos a consentimento, estes deverão ficar bloqueados até à sua escolha e esta informação será atualizada.',
       thirdPartyTitle: 'Infraestrutura',
-      thirdPartyBody: 'O site é alojado na Vercel e utiliza Supabase para serviços de dados e autenticação. Estes fornecedores podem utilizar mecanismos técnicos necessários à segurança, entrega do serviço ou a uma sessão expressamente solicitada.',
+      thirdPartyBody: 'O site é alojado na Vercel e utiliza Supabase para serviços de dados e autenticação. Estes fornecedores podem utilizar mecanismos técnicos necessários à segurança, entrega do serviço ou a uma sessão expressamente solicitada. Quando um anúncio apresenta um mapa, o navegador também se liga ao OpenStreetMap para carregar esse conteúdo cartográfico.',
       contactTitle: 'Questões sobre os seus dados ou rastreadores',
       back: '← Voltar ao Z Find',
       rgpd: 'Os dados introduzidos (nome, e-mail ou telefone, mensagem e, quando aplicável, respostas de qualificação) são utilizados para tratar este pedido e encaminhá-lo para o parceiro que representa esta oportunidade. Para questões sobre os seus dados:'

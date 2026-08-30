@@ -7,6 +7,7 @@ on:
       - 'apps/find/apps/zfind-web/scripts/build.js'
       - 'apps/find/tests/browser/zfind-web/mobile-ux-polish-verification.js'
       - 'apps/find/tests/browser/zfind-web/property-mobile-detail-hotfix-verification.js'
+      - 'apps/find/tests/browser/zfind-web/property-detail-map-v1-verification.js'
       - '.github/workflows/zfind-mobile-ux.yml'
   workflow_dispatch:
 
@@ -44,3 +45,6 @@ jobs:
 
       - name: Verify Property mobile detail containment
         run: node apps/find/tests/browser/zfind-web/property-mobile-detail-hotfix-verification.js
+
+      - name: Verify Property detail map V1
+        run: node apps/find/tests/browser/zfind-web/property-detail-map-v1-verification.js

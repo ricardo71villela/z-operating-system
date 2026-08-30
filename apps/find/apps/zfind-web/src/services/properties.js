@@ -29,6 +29,11 @@
    full detail page needs both. Extending this ONE function rather
    than creating a second, near-duplicate query — per the mandate to
    reuse existing services and avoid duplicate business logic.
+
+   Property Detail Map V1: latitude/longitude are read ONLY on the
+   detail query. They are nullable, publisher-authored fields already
+   owned by the Property model. No geocoding or inferred coordinates
+   are introduced here: absent coordinates mean no public map.
    ============================================================ */
 
 (function (root, factory) {
@@ -69,6 +74,7 @@ async function getPropertyById(propertyId, locale) {
       .from('properties')
       .select(`
         id, subtype, typology, area_sqm, plot_area_sqm, floor, zone_lite_id, development_id,
+        latitude, longitude,
         zones_lite ( name, city, country_iso ),
         representations!inner (
           id, target_type, status,

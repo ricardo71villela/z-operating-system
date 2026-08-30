@@ -5,6 +5,60 @@
    deliberate phone composition without changing data or routing.
    ============================================================ */
 
+/* Property Detail Map V1 — progressive enhancement. */
+.property-map-v1 {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 30px 0 8px;
+}
+
+.property-map-v1-title {
+  margin-top: 0 !important;
+  margin-bottom: 14px !important;
+}
+
+.property-map-v1-frame-wrap {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--gray-200);
+  border-radius: 16px;
+  background: var(--gray-100, #f5f5f5);
+}
+
+.property-map-v1-frame {
+  display: block;
+  width: 100%;
+  height: 340px;
+  border: 0;
+}
+
+.property-map-v1-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  margin-top: 10px;
+}
+
+.property-map-v1-note {
+  flex: 1 1 auto;
+  margin: 0 !important;
+  color: var(--gray-500) !important;
+  font-size: 0.78rem !important;
+  line-height: 1.5 !important;
+}
+
+.property-map-v1-link {
+  flex: 0 0 auto;
+  color: var(--gray-800, #222);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 @media (max-width: 640px) {
   html body #view-property,
   html body #view-property #property-root,
@@ -103,5 +157,26 @@
     min-width: 0 !important;
     max-width: 100% !important;
     overflow-wrap: anywhere;
+  }
+
+  html body #view-property .property-map-v1,
+  html body #view-property .property-map-v1-frame-wrap,
+  html body #view-property .property-map-v1-frame {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  html body #view-property .property-map-v1 {
+    margin-top: 24px !important;
+  }
+
+  html body #view-property .property-map-v1-frame {
+    height: 260px !important;
+  }
+
+  html body #view-property .property-map-v1-footer {
+    flex-direction: column;
+    gap: 8px;
   }
 }
