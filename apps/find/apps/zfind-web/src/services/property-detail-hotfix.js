@@ -173,7 +173,17 @@
     };
   }
 
+  function coordinatePresent(value) {
+    return value !== null
+      && value !== undefined
+      && String(value).trim() !== '';
+  }
+
   function normalizeCoordinates(latitude, longitude) {
+    if (!coordinatePresent(latitude) || !coordinatePresent(longitude)) {
+      return null;
+    }
+
     const lat = Number(latitude);
     const lon = Number(longitude);
 
