@@ -3,17 +3,13 @@
    Z FIND — DETERMINISTIC BUILD SCRIPT
    ============================================================
    Replaces the ad hoc, manually-run Python concatenation used in
-   every prior phase (see docs/architecture/CHANGE-SUMMARY.md and
-   the Sprint A technical debt register). This script is the single,
-   repeatable, versioned way to produce the distributable prototype
-   from source — run it, do not hand-assemble the HTML again.
+   every prior phase. This script is the single, repeatable, versioned
+   way to produce the distributable prototype from source.
 
-   Sprint 1.1: now also injects the Supabase configuration (Project
-   URL + publishable key) at build time, using the exact same
-   placeholder-substitution + hard-fail discipline already proven for
-   __PATH_D__ (the logo). This build now REQUIRES SUPABASE_URL and
-   SUPABASE_ANON_KEY to be set in the builder's environment — it will
-   refuse to produce output otherwise.
+   Search Map Presentation V1 vendors a pinned MapLibre GL JS build
+   into dist/vendor at build time. Runtime MapLibre JS/CSS therefore
+   loads from the same Z Find origin, while OpenFreeMap is contacted
+   only after explicit Map activation.
 
    Usage: node scripts/build.js
    Output: dist/z-find-prototype.html
@@ -21,6 +17,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { execFileSync } = require('child_process');
 
 const SRC = path.join(__dirname, '..', 'src');
 const PUBLIC = path.join(__dirname, '..', 'public');
@@ -66,6 +63,14 @@ function resolvePlaceholders(text, replacements, sourceLabel) {
   return resolved;
 }
 
+function vendorSearchMapAssets() {
+  execFileSync(
+    process.execPath,
+    [path.join(__dirname, 'vendor-search-map-assets.js')],
+    { stdio: 'inherit' }
+  );
+}
+
 function build() {
   const headTop = read('head_top.txt');
   const css = read('css_block.txt');
@@ -74,6 +79,7 @@ function build() {
   const mobileUxBalanceV3 = read('mobile-ux-balance-v3.css');
   const propertyMobileDetailHotfix = read('property-mobile-detail-hotfix-v1.css');
   const listingCompliancePublicCss = read('listing-compliance-public.css');
+  const searchMapPresentationCss = read('search-map-presentation-v1.css');
   const body = read('body.html');
   const pathD = read('path_data.txt');
   const vendorSupabase = read('vendor-supabase.js');
@@ -90,6 +96,10 @@ function build() {
   const developmentsService = read('services/developments.js');
   const partnersService = read('services/partners.js');
   const searchService = read('services/search.js');
+  const searchMapClusteringService = read('services/search-map-clustering.js');
+  const searchMapViewportService = read('services/search-map-viewport.js');
+  const searchMapInteractionService = read('services/search-map-interaction.js');
+  const searchMapPresentationService = read('services/search-map-presentation.js');
   const authService = read('services/auth.js');
   const identityService = read('services/identity.js');
   const leadsService = read('services/leads.js');
@@ -128,8 +138,12 @@ function build() {
     'config.template.js'
   );
 
+  // Browser runtime assets are emitted before the HTML so local and
+  // preview servers always have the same-origin MapLibre files ready.
+  vendorSearchMapAssets();
+
   const html = headTop
-    + '<style>\n' + css + '\n' + legalGuideReadingSurface + '\n' + mobileUxPolish + '\n' + mobileUxBalanceV3 + '\n' + propertyMobileDetailHotfix + '\n' + listingCompliancePublicCss + '\n</style>\n</head>\n<body>\n'
+    + '<style>\n' + css + '\n' + legalGuideReadingSurface + '\n' + mobileUxPolish + '\n' + mobileUxBalanceV3 + '\n' + propertyMobileDetailHotfix + '\n' + listingCompliancePublicCss + '\n' + searchMapPresentationCss + '\n</style>\n</head>\n<body>\n'
     + resolvedBody
     + '\n<script>\n'
     + vendorSupabase + '\n'
@@ -146,6 +160,10 @@ function build() {
     + developmentsService + '\n'
     + partnersService + '\n'
     + searchService + '\n'
+    + searchMapClusteringService + '\n'
+    + searchMapViewportService + '\n'
+    + searchMapInteractionService + '\n'
+    + searchMapPresentationService + '\n'
     + authService + '\n'
     + identityService + '\n'
     + leadsService + '\n'
@@ -167,6 +185,7 @@ function build() {
     + '\n' + zosEcosystemFooterService
     + '\n' + publicListingComplianceService
     + '\n' + websiteLegalRuntimeService
+    + '\nif (window.ZFindServices && window.ZFindServices.searchMapPresentation) { window.ZFindServices.searchMapPresentation.start(); }\n'
     + '\n</script>\n</body>\n</html>\n';
 
   fs.mkdirSync(DIST, { recursive: true });
@@ -201,6 +220,7 @@ function build() {
   console.log('Market guide footer + French mobile CTA hotfix: injected');
   console.log('Public listing compliance: CSS + runtime injected');
   console.log('Website legal runtime: RGPD first layer + cookie policy injected');
+  console.log('Search Map Presentation V1: validated #91–#94 stack + same-origin MapLibre runtime injected');
 
   if (APPROVED_REFERENCE) {
     if (!fs.existsSync(APPROVED_REFERENCE)) {
