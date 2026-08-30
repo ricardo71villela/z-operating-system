@@ -72,6 +72,7 @@ function build() {
   const legalGuideReadingSurface = read('legal-guide-reading-surface.css');
   const mobileUxPolish = read('mobile-ux-polish-v1.css');
   const mobileUxBalanceV3 = read('mobile-ux-balance-v3.css');
+  const listingCompliancePublicCss = read('listing-compliance-public.css');
   const body = read('body.html');
   const pathD = read('path_data.txt');
   const vendorSupabase = read('vendor-supabase.js');
@@ -105,6 +106,8 @@ function build() {
   const internationalWelcomeRouteSyncService = read('services/international-welcome-route-sync.js');
   const marketRuntimeContextService = read('services/market-runtime-context.js');
   const zosEcosystemFooterService = read('services/zos-ecosystem-footer.js');
+  const publicListingComplianceService = read('services/public-listing-compliance.js');
+  const websiteLegalRuntimeService = read('services/website-legal-runtime.js');
 
   const resolvedBody = resolvePlaceholders(body, { '__PATH_D__': pathD }, 'body.html');
 
@@ -123,7 +126,7 @@ function build() {
   );
 
   const html = headTop
-    + '<style>\n' + css + '\n' + legalGuideReadingSurface + '\n' + mobileUxPolish + '\n' + mobileUxBalanceV3 + '\n</style>\n</head>\n<body>\n'
+    + '<style>\n' + css + '\n' + legalGuideReadingSurface + '\n' + mobileUxPolish + '\n' + mobileUxBalanceV3 + '\n' + listingCompliancePublicCss + '\n</style>\n</head>\n<body>\n'
     + resolvedBody
     + '\n<script>\n'
     + vendorSupabase + '\n'
@@ -157,6 +160,8 @@ function build() {
     + '\n' + internationalWelcomeRouteSyncService
     + '\n' + marketRuntimeContextService
     + '\n' + zosEcosystemFooterService
+    + '\n' + publicListingComplianceService
+    + '\n' + websiteLegalRuntimeService
     + '\n</script>\n</body>\n</html>\n';
 
   fs.mkdirSync(DIST, { recursive: true });
@@ -187,6 +192,8 @@ function build() {
   console.log('Market map assets: copied to dist/brand/markets');
   console.log('Mobile UX polish: mobile-ux-polish-v1.css injected');
   console.log('Mobile UX balance: mobile-ux-balance-v3.css injected');
+  console.log('Public listing compliance: CSS + runtime injected');
+  console.log('Website legal runtime: RGPD first layer + cookie policy injected');
 
   if (APPROVED_REFERENCE) {
     if (!fs.existsSync(APPROVED_REFERENCE)) {
