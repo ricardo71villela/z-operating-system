@@ -83,14 +83,7 @@
   }
 
   function toCircleLongitude(longitude) {
-    const normalized = ((longitude % 360) + 360) % 360;
-    return normalized;
-  }
-
-  function fromCircleLongitude(longitude) {
-    let normalized = ((longitude + 180) % 360 + 360) % 360 - 180;
-    if (normalized === -180 && longitude > 0) normalized = 180;
-    return normalized;
+    return ((longitude % 360) + 360) % 360;
   }
 
   function validPinCoordinates(pins) {
@@ -118,18 +111,25 @@
       return { south, west: longitude, north, east: longitude };
     }
 
+    // Keep original authored longitude beside the circular comparison
+    // value. The circular value is only for gap discovery; endpoints are
+    // returned from the original number so the pin that defines a bound
+    // can never fall outside it because of modulo floating-point noise.
     const longitudes = coordinates
-      .map(point => toCircleLongitude(point.longitude))
-      .sort((a, b) => a - b);
+      .map(point => ({
+        circle: toCircleLongitude(point.longitude),
+        original: point.longitude
+      }))
+      .sort((a, b) => a.circle - b.circle || a.original - b.original);
 
     let largestGap = -1;
     let largestGapIndex = 0;
 
     for (let index = 0; index < longitudes.length; index += 1) {
-      const current = longitudes[index];
+      const current = longitudes[index].circle;
       const next = index === longitudes.length - 1
-        ? longitudes[0] + 360
-        : longitudes[index + 1];
+        ? longitudes[0].circle + 360
+        : longitudes[index + 1].circle;
       const gap = next - current;
 
       if (gap > largestGap) {
@@ -140,8 +140,8 @@
 
     const arcStartIndex = (largestGapIndex + 1) % longitudes.length;
     const arcEndIndex = largestGapIndex;
-    const west = fromCircleLongitude(longitudes[arcStartIndex]);
-    const east = fromCircleLongitude(longitudes[arcEndIndex]);
+    const west = longitudes[arcStartIndex].original;
+    const east = longitudes[arcEndIndex].original;
 
     return { south, west, north, east };
   }
