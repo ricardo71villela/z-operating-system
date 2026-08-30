@@ -39,6 +39,21 @@ jobs:
       - name: Verify Z Find release surface authority
         run: node apps/find/tests/unit/release-surface-authority.test.js
 
+      - name: Verify Search Map Foundation V1
+        run: node apps/find/tests/unit/search-map-foundation.test.js
+
+      - name: Verify Search Map Clustering V1
+        run: node apps/find/tests/unit/search-map-clustering.test.js
+
+      - name: Verify Search Map Viewport V1
+        run: node apps/find/tests/unit/search-map-viewport.test.js
+
+      - name: Verify Search Map Interaction Contract V1
+        run: node apps/find/tests/unit/search-map-interaction.test.js
+
+      - name: Verify Search Map Presentation V1
+        run: node apps/find/tests/unit/search-map-presentation.test.js
+
       - name: Verify six-language and SEO contracts
         run: |
           npm run test:public-language-foundation --workspace=z-find-platform

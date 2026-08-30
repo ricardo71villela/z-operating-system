@@ -23,6 +23,11 @@
    listing_content (for the card title, per locale) and zones_lite
    (for the location label) — neither was needed by any caller before
    the Homepage started consuming this function directly.
+
+   Search Map Foundation V1: published Property reads now also expose
+   publisher-authored latitude/longitude. No coordinate is inferred,
+   geocoded or defaulted. buildMapPins() is a pure projection for a
+   future map/clustering surface and rejects missing/out-of-range data.
    ============================================================ */
 
 (function (root, factory) {
@@ -37,11 +42,53 @@
 const { getSupabaseClient, safeQuery } = supabaseClientModule;
 
 
+function normalizeCoordinatePair(latitude, longitude) {
+  if (
+    latitude == null || longitude == null ||
+    (typeof latitude === 'string' && latitude.trim() === '') ||
+    (typeof longitude === 'string' && longitude.trim() === '')
+  ) {
+    return null;
+  }
+
+  const lat = Number(latitude);
+  const lon = Number(longitude);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+
+  return { latitude: lat, longitude: lon };
+}
+
+
+function buildMapPins(rows) {
+  if (!Array.isArray(rows)) return [];
+
+  return rows.reduce((pins, row) => {
+    if (!row || row.id == null || row.id === '') return pins;
+
+    const point = normalizeCoordinatePair(row.latitude, row.longitude);
+    if (!point) return pins;
+
+    pins.push({
+      id: String(row.id),
+      latitude: point.latitude,
+      longitude: point.longitude,
+      subtype: row.subtype || null,
+      typology: row.typology || null,
+      zoneLiteId: row.zone_lite_id || null
+    });
+
+    return pins;
+  }, []);
+}
+
+
 function publishedPropertyQuery(client) {
   return client
     .from('properties')
     .select(`
-      id, subtype, typology, area_sqm, zone_lite_id,
+      id, subtype, typology, area_sqm, zone_lite_id, latitude, longitude,
       zones_lite ( name, city, country_iso ),
       representations!inner ( target_type, status, listings!inner (
         id, transaction_type, rental_period, price_current, currency_iso, price_is_from, status,
@@ -121,6 +168,12 @@ async function logSearch(filters, resultCount) {
 }
 
 
-return { search, listPublished, logSearch };
+return {
+  search,
+  listPublished,
+  logSearch,
+  normalizeCoordinatePair,
+  buildMapPins
+};
 
 });

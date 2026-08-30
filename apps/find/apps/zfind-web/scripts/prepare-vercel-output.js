@@ -2,26 +2,8 @@
 /* ============================================================
    Z FIND — VERCEL OUTPUT ASSEMBLY
    ============================================================
-   The existing build (npm run build:zfind) produces a single file
-   (dist/z-find-prototype.html) — correct for local testing, but not
-   the directory structure Vercel needs to serve three different
-   things at the right URLs:
-
-   1. The SPA itself — needs to be reachable at "/" AND as a fallback
-      for any path that isn't a real static file (hash-routing lives
-      entirely client-side, so any path Vercel doesn't recognise must
-      still serve the SPA, which then reads the URL fragment).
-   2. Real static SEO pages (dist/seo/{locale}/{kind}/{id}.html) — need
-      to be served at their exact clean URL (e.g. /en/property/xyz,
-      no .html, no hash) so a crawler gets real, indexable HTML.
-   3. Static assets (public/zones/*.jpg, public/brand/*) — served as-is
-      at the root.
-
-   This script copies all three into vercel-output/, which
-   apps/zfind-web/vercel.json points Vercel's build at. Run via
-   `npm run build:vercel` — never part of the plain `build:zfind`
-   (same reasoning as build:seo-pages: this assumes a real deploy
-   target, not every local build).
+   Assembles the SPA, static SEO pages, public assets and build-vendored
+   Search Map assets into vercel-output/.
    ============================================================ */
 
 const fs = require('fs');
@@ -56,10 +38,18 @@ function main() {
   // 2. Static assets (public/zones/*, public/brand/*) at root
   copyRecursive(path.join(ROOT, 'public'), OUT);
 
-  // 3. Real static SEO pages, at their clean URL path (Vercel's
-  // cleanUrls setting in vercel.json strips the .html when matching
-  // an incoming request, e.g. a request for /en/property/xyz matches
-  // this file on disk without needing the extension in the URL).
+  // 3. Build-vendored MapLibre assets. The browser requests these as
+  // /vendor/* from the Z Find origin; no CDN request is made at runtime.
+  const vendorSrc = path.join(ROOT, 'dist', 'vendor');
+  const requiredVendor = ['maplibre-gl.js', 'maplibre-gl.css'];
+  for (const file of requiredVendor) {
+    if (!fs.existsSync(path.join(vendorSrc, file))) {
+      throw new Error(`BUILD FAILED: dist/vendor/${file} missing — Search Map same-origin asset contract would be broken.`);
+    }
+  }
+  copyRecursive(vendorSrc, path.join(OUT, 'vendor'));
+
+  // 4. Real static SEO pages, at their clean URL path.
   const seoSrc = path.join(ROOT, 'dist', 'seo');
 
   if (!fs.existsSync(seoSrc)) {
@@ -69,27 +59,16 @@ function main() {
   }
 
   for (const requiredFile of ['robots.txt', 'sitemap.xml']) {
-    const requiredPath = path.join(
-      seoSrc,
-      requiredFile
-    );
-
+    const requiredPath = path.join(seoSrc, requiredFile);
     if (!fs.existsSync(requiredPath)) {
-      throw new Error(
-        `BUILD FAILED: dist/seo/${requiredFile} is missing.`
-      );
+      throw new Error(`BUILD FAILED: dist/seo/${requiredFile} is missing.`);
     }
   }
 
-  copyRecursive(
-    seoSrc,
-    OUT
-  );
+  copyRecursive(seoSrc, OUT);
 
-  console.log(
-    'Static SEO pages and indexing artifacts included in Vercel output.'
-  );
-
+  console.log('Static SEO pages and indexing artifacts included in Vercel output.');
+  console.log('Same-origin Search Map vendor assets included in Vercel output.');
   console.log('Vercel output assembled at:', OUT);
 }
 
