@@ -12,6 +12,29 @@ const VIEWPORTS = [
   { width: 768, height: 1024 },
 ];
 
+const ROUTE_BALANCE_CASES = [
+  {
+    name: 'simulator-fr',
+    hash: '#/fr/simulator',
+    content: '#view-simulator #simulator-root > .wrap',
+  },
+  {
+    name: 'simulator-en',
+    hash: '#/en/simulator',
+    content: '#view-simulator #simulator-root > .wrap',
+  },
+  {
+    name: 'market-fr',
+    hash: '#/fr/market/FR',
+    content: '#view-market .market-foundation-section',
+  },
+  {
+    name: 'market-en',
+    hash: '#/en/market/FR',
+    content: '#view-market .market-foundation-section',
+  },
+];
+
 const fileUrl = 'file://' + path.resolve(
   __dirname,
   '..', '..', '..',
@@ -21,6 +44,12 @@ const fileUrl = 'file://' + path.resolve(
 function fail(message, context) {
   const suffix = context ? ` :: ${JSON.stringify(context)}` : '';
   throw new Error(message + suffix);
+}
+
+function expectedGutter(width) {
+  if (width <= 360) return 16;
+  if (width <= 640) return 18;
+  return 24;
 }
 
 (async () => {
@@ -90,14 +119,16 @@ function fail(message, context) {
           blockPaddingTop: blockStyle ? px(blockStyle.paddingTop) : -1,
           footerColumns: footerColsStyle ? footerColsStyle.gridTemplateColumns.split(' ').filter(Boolean).length : -1,
           polishMarker: document.documentElement.innerHTML.includes('Z FIND — MOBILE UX POLISH V1'),
+          balanceMarker: document.documentElement.innerHTML.includes('Z FIND — MOBILE LAYOUT BALANCE V2'),
           overflowOffenders,
         };
       });
 
       const phone = viewport.width <= 640;
-      const minGutter = viewport.width <= 360 ? 16 : phone ? 18 : 24;
+      const minGutter = expectedGutter(viewport.width);
 
       if (!metrics.polishMarker) fail('mobile UX polish marker missing', { viewport, metrics });
+      if (!metrics.balanceMarker) fail('mobile layout balance V2 marker missing', { viewport, metrics });
       if (metrics.scrollWidth > viewport.width + 1) fail('horizontal document overflow', { viewport, metrics });
       if (metrics.heroGutter + 0.5 < minGutter) fail('hero gutter below mobile authority', { viewport, metrics });
       if (metrics.searchGutter + 0.5 < minGutter) fail('search gutter below mobile authority', { viewport, metrics });
@@ -129,6 +160,136 @@ function fail(message, context) {
       await page.close();
     }
 
+    let routePasses = 0;
+
+    for (const viewport of VIEWPORTS) {
+      const gutter = expectedGutter(viewport.width);
+
+      for (const routeCase of ROUTE_BALANCE_CASES) {
+        const page = await browser.newPage({ viewport });
+
+        await page.route('https://example.supabase.co/**', request =>
+          request.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: '[]',
+          })
+        );
+
+        await page.goto(fileUrl + routeCase.hash, {
+          waitUntil: 'domcontentloaded',
+        });
+
+        await page.waitForSelector(routeCase.content, {
+          state: 'visible',
+          timeout: 5000,
+        });
+        await page.waitForSelector('#mobile-nav-toggle', {
+          state: 'visible',
+          timeout: 5000,
+        });
+
+        const metrics = await page.evaluate(contentSelector => {
+          const px = value => Number.parseFloat(value || '0');
+          const nav = document.querySelector('header.site .wrap.nav-row');
+          const content = document.querySelector(contentSelector);
+          const logo = document.querySelector('header.site .logo');
+          const actions = document.querySelector('header.site .nav-actions');
+
+          if (!nav || !content || !logo || !actions) {
+            return { missing: true };
+          }
+
+          const navStyle = getComputedStyle(nav);
+          const contentStyle = getComputedStyle(content);
+          const logoRect = logo.getBoundingClientRect();
+          const actionsRect = actions.getBoundingClientRect();
+
+          return {
+            missing: false,
+            scrollWidth: document.documentElement.scrollWidth,
+            navClientWidth: nav.clientWidth,
+            navScrollWidth: nav.scrollWidth,
+            navLeftPadding: px(navStyle.paddingLeft),
+            navRightPadding: px(navStyle.paddingRight),
+            contentLeftPadding: px(contentStyle.paddingLeft),
+            contentRightPadding: px(contentStyle.paddingRight),
+            collision: logoRect.right > actionsRect.left + 1,
+          };
+        }, routeCase.content);
+
+        if (metrics.missing) {
+          fail('route balance surface missing', { viewport, routeCase, metrics });
+        }
+        if (metrics.scrollWidth > viewport.width + 1) {
+          fail('route horizontal document overflow', { viewport, routeCase, metrics });
+        }
+        if (metrics.navScrollWidth > metrics.navClientWidth + 1) {
+          fail('route header overflow', { viewport, routeCase, metrics });
+        }
+        if (metrics.collision) {
+          fail('route header brand/actions collision', { viewport, routeCase, metrics });
+        }
+
+        for (const [name, value] of [
+          ['navLeftPadding', metrics.navLeftPadding],
+          ['navRightPadding', metrics.navRightPadding],
+          ['contentLeftPadding', metrics.contentLeftPadding],
+          ['contentRightPadding', metrics.contentRightPadding],
+        ]) {
+          if (value + 0.5 < gutter) {
+            fail(`${name} below route gutter authority`, {
+              viewport,
+              routeCase,
+              gutter,
+              metrics,
+            });
+          }
+        }
+
+        await page.click('#mobile-nav-toggle');
+        await page.waitForTimeout(25);
+
+        const menu = await page.evaluate(() => {
+          const el = document.querySelector('.mobile-primary-menu');
+          if (!el || el.hidden) return null;
+          const rect = el.getBoundingClientRect();
+          return {
+            left: rect.left,
+            right: innerWidth - rect.right,
+          };
+        });
+
+        if (!menu) {
+          fail('route mobile menu did not open', { viewport, routeCase });
+        }
+        if (
+          Math.abs(menu.left - gutter) > 1 ||
+          Math.abs(menu.right - gutter) > 1
+        ) {
+          fail('route mobile menu gutter mismatch', {
+            viewport,
+            routeCase,
+            gutter,
+            menu,
+          });
+        }
+
+        routePasses += 1;
+        console.log(
+          `PASS Z_FIND_MOBILE_ROUTE_BALANCE route=${routeCase.name} width=${viewport.width} gutter=${gutter}`
+        );
+
+        await page.close();
+      }
+    }
+
+    if (routePasses !== 20) {
+      fail('route balance scenario count mismatch', { routePasses, expected: 20 });
+    }
+
+    console.log('MOBILE_LAYOUT_BALANCE_RUNTIME=20/20');
+    console.log('Z_FIND_MOBILE_LAYOUT_BALANCE_V2=PASS');
     console.log('Z_FIND_MOBILE_UX_POLISH_V1=PASS');
   } finally {
     await browser.close();
