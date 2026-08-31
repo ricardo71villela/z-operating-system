@@ -19,7 +19,7 @@ type CliOptions = {
   manufacturer: string;
   modelSlug?: string;
   modelName?: string;
-  marketCode: string;
+  marketCode?: string;
   generation?: string;
   modelYear?: number;
   minConfidence?: number;
@@ -80,13 +80,17 @@ function parseOptions(): CliOptions {
     console.log(`
 Z Mobility — Manufacturer Ingestion
 
-Complete manufacturer run:
+Global canonical run (default):
   npm run automotive:ingest -- \\
     --manufacturer bmw \\
-    --market PT \\
     [--model-year 2026] \\
     [--min-confidence 0.5] \\
     [--dry-run]
+
+Optional market-enrichment run:
+  npm run automotive:ingest -- \\
+    --manufacturer bmw \\
+    --market PT
 
 Optional single-model diagnostic filter:
     [--model-slug i5] [--model-name "BMW i5"] [--generation G60]
@@ -98,7 +102,7 @@ Optional single-model diagnostic filter:
     manufacturer: requireArgument(args, "--manufacturer").trim().toLowerCase(),
     modelSlug: getArgument(args, "--model-slug")?.trim().toLowerCase(),
     modelName: getArgument(args, "--model-name")?.trim(),
-    marketCode: requireArgument(args, "--market").trim().toUpperCase(),
+    marketCode: getArgument(args, "--market")?.trim().toUpperCase(),
     generation: getArgument(args, "--generation")?.trim(),
     modelYear: parseModelYear(getArgument(args, "--model-year")),
     minConfidence: parseConfidence(getArgument(args, "--min-confidence")),
@@ -111,39 +115,40 @@ async function main(): Promise<void> {
   const registry = new ManufacturerRegistry();
   registerBuiltInManufacturerAdapters(registry);
 
+  const scope = options.marketCode
+    ? { kind: "market" as const, marketCode: options.marketCode }
+    : { kind: "global" as const };
+
   console.log("\n═══════════════════════════════");
   console.log(" Z Mobility Manufacturer CLI");
   console.log("═══════════════════════════════\n");
   console.log(`Manufacturer : ${options.manufacturer}`);
   console.log(`Scope        : ${options.modelName ?? options.modelSlug ?? "complete catalogue"}`);
-  console.log(`Market       : ${options.marketCode}`);
+  console.log(`Ingestion    : ${scope.kind === "global" ? "GLOBAL CANONICAL" : `MARKET ${scope.marketCode}`}`);
   console.log(`Dry Run      : ${options.dryRun}\n`);
+
+  const input = {
+    manufacturer: options.manufacturer,
+    brand: options.manufacturer,
+    brandSlug: options.manufacturer,
+    modelSlug: options.modelSlug,
+    modelName: options.modelName,
+    generation: options.generation ?? null,
+    scope,
+    marketCode: options.marketCode,
+    modelYear: options.modelYear,
+    documentType: "technical_specification" as const,
+    minConfidence: options.minConfidence,
+    dryRun: options.dryRun,
+  };
 
   const result = await runManufacturerPipeline({
     registry,
-    input: {
-      manufacturer: options.manufacturer,
-      brand: options.manufacturer,
-      brandSlug: options.manufacturer,
-      modelSlug: options.modelSlug,
-      modelName: options.modelName,
-      generation: options.generation ?? null,
-      marketCode: options.marketCode,
-      modelYear: options.modelYear,
-      documentType: "technical_specification",
-      minConfidence: options.minConfidence,
-      dryRun: options.dryRun,
-    },
+    input,
   });
 
   if (!options.dryRun && result.records.length > 0) {
-    const manufacturerAdapter = registry.resolve({
-      manufacturer: options.manufacturer,
-      brand: options.manufacturer,
-      brandSlug: options.manufacturer,
-      marketCode: options.marketCode,
-      documentType: "technical_specification",
-    });
+    const manufacturerAdapter = registry.resolve(input);
 
     if (!manufacturerAdapter.sourceCode) {
       throw new Error(
