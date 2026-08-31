@@ -6,6 +6,14 @@ import {
   bmwManufacturerAdapter,
 } from "./bmw";
 
+import {
+  mercedesManufacturerAdapter,
+} from "./mercedes";
+
+import {
+  porscheManufacturerAdapter,
+} from "./porsche";
+
 import type {
   ManufacturerRegistry,
 } from "./registry";
@@ -23,5 +31,13 @@ export function registerBuiltInManufacturerAdapters(
 
   registry.register(
     bmwManufacturerAdapter,
+  );
+
+  registry.register(
+    mercedesManufacturerAdapter,
+  );
+
+  registry.register(
+    porscheManufacturerAdapter,
   );
 }
