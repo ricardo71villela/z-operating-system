@@ -74,6 +74,7 @@ function build() {
   const mobileUxBalanceV3 = read('mobile-ux-balance-v3.css');
   const propertyMobileDetailHotfix = read('property-mobile-detail-hotfix-v1.css');
   const listingCompliancePublicCss = read('listing-compliance-public.css');
+  const searchMapUiCss = read('search-map-ui.css');
   const body = read('body.html');
   const pathD = read('path_data.txt');
   const vendorSupabase = read('vendor-supabase.js');
@@ -83,6 +84,7 @@ function build() {
   const marketRegistryService = read('services/market-registry.js');
   const marketFeaturedService = read('services/market-featured.js');
   const searchPaginationService = read('services/search-pagination.js');
+  const searchMapViewportService = read('services/search-map-viewport.js');
   const marketSearchScopeService = read('services/market-search-scope.js');
   const supabaseClient = read('services/supabaseClient.js');
   const propertiesService = read('services/properties.js');
@@ -111,6 +113,7 @@ function build() {
   const zosEcosystemFooterService = read('services/zos-ecosystem-footer.js');
   const publicListingComplianceService = read('services/public-listing-compliance.js');
   const websiteLegalRuntimeService = read('services/website-legal-runtime.js');
+  const searchMapUiService = read('services/search-map-ui.js');
 
   const resolvedBody = resolvePlaceholders(body, { '__PATH_D__': pathD }, 'body.html');
 
@@ -129,7 +132,7 @@ function build() {
   );
 
   const html = headTop
-    + '<style>\n' + css + '\n' + legalGuideReadingSurface + '\n' + mobileUxPolish + '\n' + mobileUxBalanceV3 + '\n' + propertyMobileDetailHotfix + '\n' + listingCompliancePublicCss + '\n</style>\n</head>\n<body>\n'
+    + '<style>\n' + css + '\n' + legalGuideReadingSurface + '\n' + mobileUxPolish + '\n' + mobileUxBalanceV3 + '\n' + propertyMobileDetailHotfix + '\n' + listingCompliancePublicCss + '\n' + searchMapUiCss + '\n</style>\n</head>\n<body>\n'
     + resolvedBody
     + '\n<script>\n'
     + vendorSupabase + '\n'
@@ -139,6 +142,7 @@ function build() {
     + marketRegistryService + '\n'
     + marketFeaturedService + '\n'
     + searchPaginationService + '\n'
+    + searchMapViewportService + '\n'
     + marketSearchScopeService + '\n'
     + supabaseClient + '\n'
     + propertiesService + '\n'
@@ -167,6 +171,7 @@ function build() {
     + '\n' + zosEcosystemFooterService
     + '\n' + publicListingComplianceService
     + '\n' + websiteLegalRuntimeService
+    + '\n' + searchMapUiService
     + '\n</script>\n</body>\n</html>\n';
 
   fs.mkdirSync(DIST, { recursive: true });
@@ -201,6 +206,7 @@ function build() {
   console.log('Market guide footer + French mobile CTA hotfix: injected');
   console.log('Public listing compliance: CSS + runtime injected');
   console.log('Website legal runtime: RGPD first layer + cookie policy injected');
+  console.log('Search Map UI V1: viewport + responsive OpenStreetMap surface injected');
 
   if (APPROVED_REFERENCE) {
     if (!fs.existsSync(APPROVED_REFERENCE)) {
