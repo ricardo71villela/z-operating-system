@@ -14,6 +14,8 @@ import {
 const BMW_PT_CATALOG_URL =
   "https://www.bmw.pt/pt/all-models.html";
 
+const BMW_DISCOVERY_MARKET_CODE = "PT";
+
 function normalizeUrl(
   href: string,
   baseUrl: string,
@@ -221,7 +223,12 @@ function discoverCatalogSources(
         variantName,
         variantSlug,
         generation: input.generation ?? null,
-        marketCode: input.marketCode,
+        marketCode: BMW_DISCOVERY_MARKET_CODE,
+        ingestionScope: input.scope?.kind ?? (input.marketCode ? "market" : "global"),
+        requestedMarketCode:
+          input.scope?.kind === "market"
+            ? input.scope.marketCode
+            : input.marketCode ?? null,
         modelYear: input.modelYear ?? null,
         catalogUrl: BMW_PT_CATALOG_URL,
       },
@@ -236,6 +243,16 @@ function discoverCatalogSources(
   return [...byUrl.values()].sort((a, b) =>
     a.id.localeCompare(b.id),
   );
+}
+
+function requestedMarketCode(
+  input: ManufacturerPipelineInput,
+): string | null {
+  if (input.scope?.kind === "market") {
+    return input.scope.marketCode.trim().toUpperCase();
+  }
+
+  return input.marketCode?.trim().toUpperCase() ?? null;
 }
 
 export const bmwManufacturerAdapter: ManufacturerAdapter = {
@@ -255,10 +272,10 @@ export const bmwManufacturerAdapter: ManufacturerAdapter = {
       return [...input.sources];
     }
 
-    const marketCode = input.marketCode.trim().toUpperCase();
-    if (marketCode !== "PT") {
+    const marketCode = requestedMarketCode(input);
+    if (marketCode && marketCode !== BMW_DISCOVERY_MARKET_CODE) {
       throw new Error(
-        `BMW catalogue discovery is not configured for market "${marketCode}".`,
+        `BMW market enrichment is not configured for market "${marketCode}". Global canonical ingestion is available without --market.`,
       );
     }
 
