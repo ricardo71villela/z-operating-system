@@ -1,4 +1,8 @@
 import {
+  audiManufacturerAdapter,
+} from "./audi";
+
+import {
   bmwManufacturerAdapter,
 } from "./bmw";
 
@@ -13,6 +17,10 @@ import type {
 export function registerBuiltInManufacturerAdapters(
   registry: ManufacturerRegistry,
 ): void {
+  registry.register(
+    audiManufacturerAdapter,
+  );
+
   registry.register(
     bmwManufacturerAdapter,
   );
