@@ -105,6 +105,37 @@ test(
 );
 
 test(
+  "supports global canonical mapping without a market code",
+  () => {
+    const {
+      marketCode: _marketCode,
+      ...globalOptions
+    } = options;
+
+    const record =
+      mapDetectedVariant(
+        createVariant(),
+        globalOptions,
+      );
+
+    assert.equal(
+      record.marketCode,
+      undefined,
+    );
+
+    assert.equal(
+      record.externalParentId,
+      "audi-a6-c9-2026",
+    );
+
+    assert.equal(
+      record.externalId.includes("undefined"),
+      false,
+    );
+  },
+);
+
+test(
   "preserves technical data",
   () => {
     const record =
