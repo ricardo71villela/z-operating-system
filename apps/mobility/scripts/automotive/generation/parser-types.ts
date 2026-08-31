@@ -225,7 +225,7 @@ export type Electrification =
   brandName: string;
 
   countryCode: string;
-  marketCode: string;
+  marketCode?: string | null;
 
   modelName: string;
   generation: string | null;
