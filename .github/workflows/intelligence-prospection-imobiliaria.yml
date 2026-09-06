@@ -1,7 +1,12 @@
 name: Z Intelligence — Prospection Immobiliere 74200/74500
 
 on:
-  workflow_dispatch: {}  # manual only for now; add a schedule once validated
+  workflow_dispatch: {}
+  schedule:
+    # Semanal : toda segunda-feira às 03:00 UTC (04:00/05:00 em França,
+    # consoante a hora de verão) -- horário de baixo tráfego, fora do
+    # rate-limit de 10 chamadas/s/IP da API DPE ADEME.
+    - cron: "0 3 * * 1"
 
 jobs:
   tests:

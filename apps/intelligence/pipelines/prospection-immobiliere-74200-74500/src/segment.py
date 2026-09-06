@@ -393,7 +393,7 @@ def main():
     sales = pricing.clean_sales(dvf)
     grid, com_med, sect_med = pricing.build_price_grid(sales)
     coefs, coef_lookup = pricing.build_coefficients(sales, dpe)
-    pricing.export(grid, coefs)
+    pricing.export(grid, coefs, sales)
     merged = pricing.add_estimates(merged, grid, com_med, sect_med, coef_lookup)
 
     # Argumentaire d'angariacion : plus-value, comparables, cout du DPE

@@ -39,10 +39,16 @@ BAN_DEPARTEMENT_URL = (
 )
 
 # NOTE (2026-09) : le portail data.gouv publie une fenetre glissante.
-# 2019 et 2020 renvoient desormais 404 (verifie en execution reelle) ;
-# seuls 2021-2024 sont disponibles. Si un lancement futur echoue a
-# nouveau sur l'annee la plus ancienne, retirez-la ici.
-DVF_YEARS = list(range(2021, 2025))
+# 2019 et 2020 renvoyaient 404 lors de la premiere verification (execution
+# reelle) ; 2021-2024 etaient alors disponibles. Le portail semble avoir
+# avance depuis (2025, voire des mises a jour 2026 partielles) -- on tente
+# 2025 ici : ingest_dvf.py ignore silencieusement toute annee indisponible
+# (voir son except requests.RequestException), donc ceci est sans risque.
+# Si un lancement futur echoue a nouveau sur l'annee la plus ancienne,
+# retirez-la ici. NE PAS ajouter l'annee en cours si elle n'est que
+# partiellement publiee : ca fausserait price_index.py (une demi-annee de
+# ventes n'est pas comparable a une annee complete).
+DVF_YEARS = list(range(2021, 2026))
 DVF_URL_TEMPLATE = (
     "https://files.data.gouv.fr/geo-dvf/latest/csv/{year}/departements/"
     + DEPARTEMENT + ".csv.gz"

@@ -2,7 +2,15 @@
 Grille de prix de reference (rue -> commune -> secteur) + coefficients
 d'ajustement pour l'anciennete du bati et la performance energetique.
 
-DEUX PRECAUTIONS METHODOLOGIQUES, qui font toute la difference :
+TROIS PRECAUTIONS METHODOLOGIQUES, qui font toute la difference :
+
+0) INDEXATION TEMPORELLE (voir price_index.py)
+   Le DVF couvre plusieurs annees (2021-2025) : sans ajustement, une vente
+   de 2021 et une vente de 2025 pesent pareil dans le prix de reference,
+   alors qu'on sait par les statistiques de marche elles-memes que les prix
+   ont bouge sur cette fenetre (jusqu'a +23 % ou -14 % selon la commune).
+   clean_sales() ramene donc chaque vente a l'annee la plus recente
+   disponible avant tout calcul de grille ou de coefficient.
 
 1) SHRINKAGE (retrecissement vers la moyenne)
    Une rue avec 2 ventes en 6 ans n'a pas de "prix de marche" fiable : une
@@ -33,6 +41,7 @@ import pandas as pd
 
 from config import ALL_COMMUNES, CODE_POSTAL_BY_INSEE
 from normalize import normalize_voie, normalize_numero
+from price_index import build_price_index, apply_indexation
 
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "output")
 
@@ -80,6 +89,18 @@ def clean_sales(dvf):
         d["k_num"] = d["adresse_numero"].apply(normalize_numero)
 
     d["secteur"] = d["code_commune"].map(CODE_POSTAL_BY_INSEE)
+
+    # Indexation temporelle : prix_m2 est ramene a l'annee la plus recente
+    # du jeu AVANT tout calcul de grille/coefficient en aval. L'original
+    # reste accessible dans prix_m2_brut (trace, jamais affiche comme prix).
+    if "annee_mutation" in d.columns:
+        annee_ref, taux_commune, taux_secteur, taux_global, propre = build_price_index(d)
+        d = apply_indexation(d, annee_ref, taux_commune, taux_global)
+        d.attrs["annee_ref"] = annee_ref
+        d.attrs["taux_commune"] = taux_commune
+        d.attrs["taux_secteur"] = taux_secteur
+        d.attrs["taux_global"] = taux_global
+        d.attrs["communes_avec_taux_propre"] = propre
     return d
 
 
@@ -299,8 +320,18 @@ def add_estimates(df, grid, com_med, sect_med, coefs):
     return df
 
 
-def export(grid, coefs):
+def export(grid, coefs, sales=None):
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+    if sales is not None and "annee_ref" in sales.attrs:
+        annee_ref = sales.attrs.get("annee_ref")
+        taux_commune = sales.attrs.get("taux_commune", {})
+        taux_global = sales.attrs.get("taux_global", 0.0)
+        propre = sales.attrs.get("communes_avec_taux_propre", set())
+        print(f"\n--- Indexation temporelle (annee de référence : {annee_ref}) ---")
+        print(f"Taux annuel global de repli : {taux_global*100:+.1f} %/an")
+        if taux_commune:
+            print(f"Taux propre estimé pour {len(propre)}/{len(ALL_COMMUNES)} communes "
+                  f"(les autres héritent du secteur ou du taux global)")
     if not grid.empty:
         p = os.path.join(OUTPUT_DIR, "grille_prix_rues.csv")
         grid.to_csv(p, index=False)
