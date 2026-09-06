@@ -4,7 +4,7 @@
 Defines the minimum operational contract that every ZOS product or vertical must satisfy inside the `z-operating-system` monorepo. This standard normalizes governance and authority without forcing every product to use the same internal folder topology or technology stack.
 
 ## Scope
-Applies to Z Find, Z Mobility, Z Jobs, Z Studio, Z Fashion, Z Desk and every future ZOS product integrated into this repository.
+Applies to Z Find, Z Mobility, Z Jobs, Z Studio, Z Fashion, Z Desk, Z Intelligence and every future ZOS product integrated into this repository.
 
 ## 1. Product independence
 Each product owns its domain semantics, lifecycle, application experience and product-specific data. Shared ZOS capabilities do not own vertical semantics merely because they are reusable.
@@ -13,7 +13,7 @@ Products may use different internal structures when justified by their runtime s
 
 ## 2. Package namespaces
 - `@zos/*` is reserved for capabilities that are genuinely shared across products and owned by ZOS Core.
-- New product-owned packages, and product packages renamed for architectural reasons, use a product namespace, for example `@zjobs/*`, `@zfind/*`, `@zmobility/*`, `@zstudio/*`, `@zfashion/*`, `@zdesk/*`.
+- New product-owned packages, and product packages renamed for architectural reasons, use a product namespace, for example `@zjobs/*`, `@zfind/*`, `@zmobility/*`, `@zstudio/*`, `@zfashion/*`, `@zdesk/*`, `@zintelligence/*`.
 - A pre-existing unscoped or historical product package identifier may remain stable when renaming it would create unnecessary workspace, deployment, build-cache or external-project risk. Such an identifier must never use the reserved `@zos/*` namespace and its owning product must be explicit in source/documentation.
 - Historical identifiers are compatibility names, not evidence of shared ZOS ownership.
 - A capability is not promoted to `@zos/*` until at least two independent products require the same semantic capability and Governance approves the promotion.
@@ -50,7 +50,7 @@ A shared source fixture does not automatically become an npm workspace package. 
 ## 6. Root quality gates
 The repository root must expose an aggregate gate that covers every active product. A green root CI result must never imply whole-ZOS health while silently excluding an active product.
 
-Product-specific workflows remain allowed and encouraged, but the root gate is the ecosystem-level authority. At the current six-product boundary, the root gate covers Z Find, Z Mobility, Z Jobs, Z Studio, Z Fashion and Z Desk.
+Product-specific workflows remain allowed and encouraged, but the root gate is the ecosystem-level authority. At the current seven-product boundary, the root gate covers Z Find, Z Mobility, Z Jobs, Z Studio, Z Fashion, Z Desk and Z Intelligence. Z Intelligence's gate is scaffold-stage (trivial typecheck/test) until product functionality exists.
 
 The root lockfile and workspace declarations must remain mutually consistent so `npm ci` is deterministic. Products with deliberately independent prefix installs may retain their own dependency installation mode when adding them to root npm workspaces would create unnecessary authority or deployment coupling; root scripts and CI must still invoke their gates explicitly.
 
@@ -72,7 +72,7 @@ Top-level repository documentation must list every active ZOS product and distin
 Operational documentation must describe durable repository/provider authority, not the network limitations or credentials of a particular development assistant or workstation.
 
 ## Status
-Adopted for six-product convergence work; production-neutral.
+Adopted for seven-product convergence work; production-neutral.
 
 ## Last Updated
-2026-08-24
+2026-09-06
