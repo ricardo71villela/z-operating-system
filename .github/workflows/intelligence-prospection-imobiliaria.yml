@@ -4,7 +4,35 @@ on:
   workflow_dispatch: {}  # manual only for now; add a schedule once validated
 
 jobs:
+  tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/intelligence/pipelines/prospection-immobiliere-74200-74500/src
+    steps:
+      - name: Checkout do repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: pip install -r ../requirements.txt
+
+      - name: Auto-testes de normalizacao e scoring
+        run: |
+          python normalize.py
+          python scoring.py
+
+      - name: Testes de pricing e argumentario
+        run: |
+          python test_pricing.py
+          python test_argumentaire.py
+
   ingest:
+    needs: tests
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -21,7 +49,16 @@ jobs:
       - name: Instalar dependencias
         run: pip install -r requirements.txt
 
-      - name: Correr o pipeline (BAN + DVF + DPE + scoring + export)
+      - name: Instalar dependencias nativas do weasyprint (geracao de PDF)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpango-1.0-0 libpangocairo-1.0-0 \
+            libgdk-pixbuf2.0-0 libffi-dev libcairo2 shared-mime-info
+
+      - name: Instalar weasyprint
+        run: pip install weasyprint
+
+      - name: Correr o pipeline (BAN + DVF + DPE + scoring + export + PDFs)
         run: python src/main.py
 
       - name: Publicar resultados como artefacto
