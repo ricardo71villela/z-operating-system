@@ -101,8 +101,17 @@ def _tendances_par_commune(sales):
     """Evolution du prix median par commune entre le debut et la fin de la
     fenetre DVF disponible. Jamais un prix individuel : uniquement des
     medianes de marche, memes garde-fous legaux que add_plus_value.
+
+    IMPORTANT : on mesure ici la tendance sur le prix BRUT (prix_m2_brut),
+    pas sur prix_m2. Depuis l'indexation temporelle (voir price_index.py),
+    prix_m2 est deliberement RAMENE a une annee de reference — c'est-a-dire
+    que la tendance annee/annee y a ete lissee par construction. Mesurer la
+    tendance sur cette colonne reviendrait a chercher un signal que l'etape
+    precedente vient d'effacer. prix_m2_brut, lui, garde le prix reellement
+    observe chaque annee, seul capable de reveler une vraie hausse/baisse.
     """
-    s = sales.dropna(subset=["code_commune", "prix_m2", "annee_mutation"])
+    col = "prix_m2_brut" if "prix_m2_brut" in sales.columns else "prix_m2"
+    s = sales.dropna(subset=["code_commune", col, "annee_mutation"])
     tendances = {}
     for code, g in s.groupby("code_commune"):
         if len(g) < MIN_VENTES_TENDANCE_COMMUNE:
@@ -115,7 +124,7 @@ def _tendances_par_commune(sales):
         rec = g[annees >= an_max - 1]
         if len(anc) < 3 or len(rec) < 3:
             continue
-        med_anc, med_rec = anc["prix_m2"].median(), rec["prix_m2"].median()
+        med_anc, med_rec = anc[col].median(), rec[col].median()
         if not med_anc or med_anc <= 0:
             continue
         pct = (med_rec / med_anc - 1) * 100
@@ -214,7 +223,7 @@ def prepare_comparables(sales):
     """Prepare le referentiel de ventes utilisable comme comparables."""
     s = sales.copy()
     for c in ("latitude", "longitude", "surface_reelle_bati",
-              "valeur_fonciere", "annee_mutation", "prix_m2"):
+              "valeur_fonciere", "annee_mutation", "prix_m2", "prix_m2_brut"):
         if c in s.columns:
             s[c] = pd.to_numeric(s[c], errors="coerce")
     if not {"latitude", "longitude"} <= set(s.columns):
@@ -263,12 +272,18 @@ def find_comparables(row, refs, n=NB_COMPARABLES):
     d = d.sort_values(["annee_mutation", "distance_m"], ascending=[False, True])
     out = []
     for _, r in d.head(n).iterrows():
+        # Un "comparable" doit citer le prix REELLEMENT paye lors de cette
+        # vente (fait notarial verifiable), pas sa version actualisee : on
+        # affiche donc prix_m2_brut quand il existe, jamais prix_m2 indexe.
+        prix_m2_reel = r.get("prix_m2_brut")
+        if pd.isna(prix_m2_reel):
+            prix_m2_reel = r["prix_m2"]
         out.append({
             "annee": int(r["annee_mutation"]) if pd.notna(r.get("annee_mutation")) else None,
             "type": r.get("type_local"),
             "surface": round(float(r["surface_reelle_bati"])) if pd.notna(r.get("surface_reelle_bati")) else None,
             "prix": round(float(r["valeur_fonciere"]), -2) if pd.notna(r.get("valeur_fonciere")) else None,
-            "prix_m2": round(float(r["prix_m2"])),
+            "prix_m2": round(float(prix_m2_reel)),
             "distance_m": round(float(r["distance_m"])),
         })
     return out
