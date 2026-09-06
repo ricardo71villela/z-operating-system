@@ -38,7 +38,11 @@ BAN_DEPARTEMENT_URL = (
     f"adresses-{DEPARTEMENT}.csv.gz"
 )
 
-DVF_YEARS = list(range(2019, 2025))
+# NOTE (2026-09) : le portail data.gouv publie une fenetre glissante.
+# 2019 et 2020 renvoient desormais 404 (verifie en execution reelle) ;
+# seuls 2021-2024 sont disponibles. Si un lancement futur echoue a
+# nouveau sur l'annee la plus ancienne, retirez-la ici.
+DVF_YEARS = list(range(2021, 2025))
 DVF_URL_TEMPLATE = (
     "https://files.data.gouv.fr/geo-dvf/latest/csv/{year}/departements/"
     + DEPARTEMENT + ".csv.gz"
@@ -60,37 +64,62 @@ DPE_SLEEP = 0.15              # respecte la limite de 10 appels/s
 # ------------------------------------------------------------ SEGMENTATION ---
 
 # ---------------------------------------------------------------------------
-# SEUILS DE SEGMENTATION — DERIVES DE LA FENETRE DVF, PAS FIXES EN DUR
+# SEUILS DE SEGMENTATION — DERIVES DE LA FENETRE DVF REELLEMENT ATTEIGNABLE
 #
-# PIEGE HISTORIQUE : le DVF publie ne couvre que les ~5-6 dernieres annees
-# glissantes. Avec des seuils ecrits en dur a 8 et 15 ans, l'anciennete
-# maximale calculable (7 ans) etait INFERIEURE au seuil le plus bas :
-# le segment intermediaire ne recevait jamais aucune adresse, et deux poids
-# de scoring sur quatre etaient inatteignables. Le decoupage affichait trois
-# niveaux alors qu'il n'en produisait que deux.
+# PIEGE HISTORIQUE (v1) : seuils ecrits en dur, superieurs a l'anciennete
+# maximale calculable -> le segment intermediaire ne recevait jamais aucune
+# adresse.
 #
-# Les seuils sont donc calcules a partir de la fenetre reellement disponible.
-# Si data.gouv elargit ou reduit sa fenetre, ils suivent automatiquement.
+# PIEGE HISTORIQUE (v2, reintroduit lors de la correction de la fenetre) :
+# calculer la fenetre comme (annee_courante - annee_DVF_min) ignore le
+# DECALAGE DE PUBLICATION entre aujourd'hui et la derniere annee DVF
+# reellement disponible (~2 ans : en 2026, le DVF le plus recent est 2024).
+# Un bien vendu en 2024 a donc au minimum 2 ans d'anciennete AUJOURD'HUI,
+# jamais moins -> un seuil "POTENTIEL_MOYEN" a 2 ans rend le segment
+# POTENTIEL_FAIBLE structurellement vide (observe en execution reelle).
+#
+# Les seuils sont donc calcules sur la plage d'anciennete REELLEMENT
+# atteignable par une vente du jeu DVF, aujourd'hui :
+#   ANS_MIN_ATTEIGNABLE = annee_courante - max(DVF_YEARS)  (vente la + recente possible)
+#   ANS_MAX_ATTEIGNABLE = annee_courante - min(DVF_YEARS)  (vente la + ancienne du jeu)
+# et positionnes STRICTEMENT au-dessus d'ANS_MIN_ATTEIGNABLE, pour que les
+# trois segments restent atteignables meme avec le decalage de publication.
 import datetime as _dt
 
-FENETRE_DVF_ANS = _dt.date.today().year - min(DVF_YEARS)
+_ANNEE_COURANTE = _dt.date.today().year
+ANS_MIN_ATTEIGNABLE = _ANNEE_COURANTE - max(DVF_YEARS)
+ANS_MAX_ATTEIGNABLE = _ANNEE_COURANTE - min(DVF_YEARS)
+FENETRE_DVF_ANS = ANS_MAX_ATTEIGNABLE - ANS_MIN_ATTEIGNABLE
 
 SEGMENT_THRESHOLDS = {
     # Aucune vente connue, ou vente en tout debut de fenetre
-    "POTENTIEL_ELEVE": max(2, round(FENETRE_DVF_ANS * 0.70)),
-    "POTENTIEL_MOYEN": max(1, round(FENETRE_DVF_ANS * 0.40)),
+    "POTENTIEL_ELEVE": ANS_MIN_ATTEIGNABLE + max(2, round(FENETRE_DVF_ANS * 0.70)),
+    "POTENTIEL_MOYEN": ANS_MIN_ATTEIGNABLE + max(1, round(FENETRE_DVF_ANS * 0.40)),
 }
 
 
 def valider_seuils():
-    """Verifie que chaque seuil reste atteignable dans la fenetre DVF.
+    """Verifie que chaque seuil reste dans la plage reellement atteignable.
 
-    Ce garde-fou empeche le bug historique de revenir silencieusement.
+    Deux garde-fous : POTENTIEL_ELEVE ne doit pas depasser l'anciennete
+    maximale du jeu (piege v1), et POTENTIEL_MOYEN doit rester strictement
+    au-dessus de l'anciennete minimale atteignable aujourd'hui (piege v2 -
+    sinon POTENTIEL_FAIBLE ne recoit jamais aucune adresse a cause du
+    decalage de publication du DVF).
     """
     pbs = []
-    for nom, seuil in SEGMENT_THRESHOLDS.items():
-        if seuil > FENETRE_DVF_ANS:
-            pbs.append(f"{nom} ({seuil} ans) > fenetre DVF ({FENETRE_DVF_ANS} ans)")
+    if SEGMENT_THRESHOLDS["POTENTIEL_ELEVE"] > ANS_MAX_ATTEIGNABLE:
+        pbs.append(
+            f"POTENTIEL_ELEVE ({SEGMENT_THRESHOLDS['POTENTIEL_ELEVE']} ans) "
+            f"> anciennete maximale du jeu DVF ({ANS_MAX_ATTEIGNABLE} ans)"
+        )
+    if SEGMENT_THRESHOLDS["POTENTIEL_MOYEN"] <= ANS_MIN_ATTEIGNABLE:
+        pbs.append(
+            f"POTENTIEL_MOYEN ({SEGMENT_THRESHOLDS['POTENTIEL_MOYEN']} ans) "
+            f"<= anciennete minimale atteignable aujourd'hui "
+            f"({ANS_MIN_ATTEIGNABLE} ans, decalage de publication du DVF) "
+            f"- POTENTIEL_FAIBLE resterait vide"
+        )
     return pbs
 
 # Score de priorité (0-100). Chaque critère ajoute des points.
@@ -116,11 +145,27 @@ SCORING = {
 
     # Maison individuelle : mandat généralement plus rémunérateur
     "type_maison":              10,
-
-    # Grande surface
-    "surface_100m2_plus":       10,
-    "surface_70_100m2":          5,
 }
+
+# ---------------------------------------------------------------------------
+# POINTS DE SURFACE ET DE NOMBRE DE PIECES — BAREME CONTINU
+#
+# PIEGE CORRIGE : les anciens paliers plats (10 pts >=100m2, 5 pts 70-100m2,
+# 0 sinon) donnaient EXACTEMENT le meme score a un 100m2 et a un 300m2, et
+# a un 40m2 et un 69m2. Sur les donnees reelles, la grande majorite des
+# adresses "prioritaires" (score >= 50) se retrouvaient ainsi ecrasees sur
+# une bande de ~13 points (52-63/100), sans ordre interne utile pour savoir
+# par laquelle commencer. Le bareme continu ci-dessous etale ces cas au lieu
+# de les aplatir, sans toucher aux poids categoriels ci-dessus (deja calibres
+# metier).
+SURFACE_PTS_MAX = 12   # points au maximum, atteint a SURFACE_PTS_REF m² et au-dela
+SURFACE_PTS_REF = 160  # m² a partir desquels le maximum est atteint
+
+# Nombre de pieces : signal deja present dans les donnees DVF mais jusqu'ici
+# jamais utilise par le score. Bonus mineur, plafonne.
+PIECES_SEUIL = 3            # a partir de combien de pieces le bonus commence
+PIECES_PTS_PAR_PIECE = 1
+PIECES_PTS_MAX = 4
 
 # Classes DPE considérées comme "passoire thermique"
 PASSOIRES = {"E", "F", "G"}

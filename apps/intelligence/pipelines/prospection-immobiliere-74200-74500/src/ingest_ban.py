@@ -12,11 +12,13 @@ du département 74, ~plusieurs dizaines de Mo compressé).
 """
 import gzip
 import io
+import os
 import sys
 import pandas as pd
 import requests
 
-from config import ALL_COMMUNES, CODE_POSTAL_BY_INSEE, BAN_DEPARTEMENT_URL
+from config import ALL_COMMUNES, CODE_POSTAL_BY_INSEE, BAN_DEPARTEMENT_URL, DEPARTEMENT
+from http_utils import download_bytes_cached
 
 # Colonnes utiles dans l'export BAN (format standard data.gouv.fr)
 BAN_COLUMNS_KEEP = [
@@ -24,13 +26,15 @@ BAN_COLUMNS_KEEP = [
     "code_insee", "nom_commune", "lon", "lat",
 ]
 
+CACHE_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "_cache")
+
 
 def download_ban(url: str = BAN_DEPARTEMENT_URL) -> pd.DataFrame:
-    """Télécharge et charge l'export BAN du département 74."""
+    """Télécharge (ou reprend du cache) et charge l'export BAN du département."""
     print(f"Téléchargement BAN depuis {url} ...")
-    resp = requests.get(url, timeout=120, stream=True)
-    resp.raise_for_status()
-    raw = gzip.decompress(resp.content)
+    cache_path = os.path.join(CACHE_DIR, f"adresses-{DEPARTEMENT}.csv.gz")
+    raw_gz = download_bytes_cached(url, cache_path)
+    raw = gzip.decompress(raw_gz)
     df = pd.read_csv(io.BytesIO(raw), sep=";", dtype=str, low_memory=False)
     print(f"  -> {len(df):,} adresses chargées pour le département 74")
     return df

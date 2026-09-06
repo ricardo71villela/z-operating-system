@@ -238,8 +238,28 @@ EXPORT_COLS = [
 
 # Nombre de fiches PDF generees (les meilleurs scores)
 NB_FICHES_PDF = 50
-# Les comparables sont couteux a calculer : on les limite aux meilleurs scores
-NB_COMPARABLES_CALCULES = 500
+
+# Seuil de score utilise pour la liste prioritaire exportee (doit rester
+# coherent avec le meme seuil utilise dans export()).
+SEUIL_PRIORITAIRE = 50
+
+# ---------------------------------------------------------------------------
+# COMPARABLES : PLANCHER / PLAFOND, PAS UN NOMBRE FIXE
+#
+# PIEGE CORRIGE : un plafond fixe (500) etait applique sur l'univers COMPLET,
+# AVANT le filtrage par score >= SEUIL_PRIORITAIRE, et independamment de la
+# taille reelle de la liste prioritaire exportee. Sur ce jeu de donnees,
+# 2 766 adresses passaient le seuil de score mais seules les 500 premieres
+# (au sens du score global, pas de la liste finale) recevaient des
+# comparables : 87 % des adresses de prospection_prioritaire.csv sortaient
+# donc sans le moindre comparable ni argument chiffre — le principal outil
+# de conviction de la fiche etait absent la plupart du temps.
+#
+# On calcule desormais les comparables pour TOUTES les adresses qui
+# finiront dans la liste prioritaire, avec un plancher (comportement
+# historique minimal) et un plafond de securite (cout de calcul).
+NB_COMPARABLES_PLANCHER = 500
+NB_COMPARABLES_PLAFOND = 8000
 
 
 def export(df):
@@ -267,9 +287,9 @@ def export(df):
     print(f"{'TOTAL':26s} {len(out):>8,} adresses")
 
     # Liste ciblee : les meilleures opportunites, triees
-    top = out[out["score_prospection"] >= 50]
+    top = out[out["score_prospection"] >= SEUIL_PRIORITAIRE]
     top.to_csv(os.path.join(OUTPUT_DIR, "prospection_prioritaire.csv"), index=False)
-    print(f"{'PRIORITAIRE (score >= 50)':26s} {len(top):>8,} adresses")
+    print(f"{'PRIORITAIRE (score >= ' + str(SEUIL_PRIORITAIRE) + ')':26s} {len(top):>8,} adresses")
 
     if "passoire_thermique" in out.columns:
         pas = out[out["passoire_thermique"] == True]  # noqa: E712
@@ -316,12 +336,20 @@ def main():
 
     # Argumentaire d'angariacion : plus-value, comparables, cout du DPE
     print("\n--- Argumentaire d'angariacion ---")
+    n_prioritaires = int((merged["score_prospection"] >= SEUIL_PRIORITAIRE).sum())
+    nb_comparables_a_calculer = min(
+        max(n_prioritaires, NB_COMPARABLES_PLANCHER), NB_COMPARABLES_PLAFOND)
+    if n_prioritaires > NB_COMPARABLES_PLAFOND:
+        print(f"  ATTENTION : {n_prioritaires:,} adresses prioritaires > plafond "
+              f"{NB_COMPARABLES_PLAFOND:,} — seules les {NB_COMPARABLES_PLAFOND:,} "
+              f"meilleures auront des comparables calcules.")
     merged, comps_detail = argumentaire.add_all(
-        merged, sales, coef_lookup, only_top=NB_COMPARABLES_CALCULES)
+        merged, sales, coef_lookup, only_top=nb_comparables_a_calculer)
     n_arg = merged["argument_prudent"].notna().sum() if "argument_prudent" in merged else 0
     n_cmp = (merged["nb_comparables"] > 0).sum() if "nb_comparables" in merged else 0
     print(f"  arguments de valorisation : {n_arg:,}")
-    print(f"  adresses avec comparables : {n_cmp:,}")
+    print(f"  adresses avec comparables : {n_cmp:,} "
+          f"(calcules pour {nb_comparables_a_calculer:,} adresses)")
 
     quality_report(adresses, dvf, dpe, merged)
     out = export(merged)

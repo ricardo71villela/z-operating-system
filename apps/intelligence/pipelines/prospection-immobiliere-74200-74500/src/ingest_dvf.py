@@ -11,11 +11,13 @@ Nécessite une connexion internet (télécharge un fichier par année, 2019-2024
 """
 import gzip
 import io
+import os
 import sys
 import pandas as pd
 import requests
 
-from config import ALL_COMMUNES, DVF_YEARS, DVF_URL_TEMPLATE
+from config import ALL_COMMUNES, DVF_YEARS, DVF_URL_TEMPLATE, DEPARTEMENT
+from http_utils import download_bytes_cached
 
 DVF_COLUMNS_KEEP = [
     "id_mutation", "date_mutation", "nature_mutation", "valeur_fonciere",
@@ -24,13 +26,15 @@ DVF_COLUMNS_KEEP = [
     "nombre_pieces_principales", "longitude", "latitude",
 ]
 
+CACHE_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "_cache")
+
 
 def download_dvf_year(year: int) -> pd.DataFrame:
     url = DVF_URL_TEMPLATE.format(year=year)
     print(f"Téléchargement DVF {year} depuis {url} ...")
-    resp = requests.get(url, timeout=120, stream=True)
-    resp.raise_for_status()
-    raw = gzip.decompress(resp.content)
+    cache_path = os.path.join(CACHE_DIR, f"dvf-{year}-{DEPARTEMENT}.csv.gz")
+    raw_gz = download_bytes_cached(url, cache_path)
+    raw = gzip.decompress(raw_gz)
     df = pd.read_csv(io.BytesIO(raw), dtype=str, low_memory=False)
     print(f"  -> {len(df):,} lignes pour {year} (département 74)")
     return df

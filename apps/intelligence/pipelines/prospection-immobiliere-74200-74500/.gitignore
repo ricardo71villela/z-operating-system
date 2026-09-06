@@ -1,0 +1,9 @@
+# Donnees telechargees et cache HTTP (regenerees par les scripts d'ingestion)
+data/
+
+# Resultats generes par le pipeline (regenerees par main.py)
+output/
+
+# Python
+__pycache__/
+*.pyc

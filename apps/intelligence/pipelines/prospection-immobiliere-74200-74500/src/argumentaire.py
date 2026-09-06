@@ -91,6 +91,74 @@ def add_plus_value(df):
     return df
 
 
+# ----------------------------------------------------- TENDANCE DE MARCHE ---
+
+# Sous ce nombre de ventes, une tendance communale n'est pas jugee fiable.
+MIN_VENTES_TENDANCE_COMMUNE = 8
+
+
+def _tendances_par_commune(sales):
+    """Evolution du prix median par commune entre le debut et la fin de la
+    fenetre DVF disponible. Jamais un prix individuel : uniquement des
+    medianes de marche, memes garde-fous legaux que add_plus_value.
+    """
+    s = sales.dropna(subset=["code_commune", "prix_m2", "annee_mutation"])
+    tendances = {}
+    for code, g in s.groupby("code_commune"):
+        if len(g) < MIN_VENTES_TENDANCE_COMMUNE:
+            continue
+        annees = g["annee_mutation"]
+        an_min, an_max = annees.min(), annees.max()
+        if an_max <= an_min:
+            continue
+        anc = g[annees <= an_min + 1]
+        rec = g[annees >= an_max - 1]
+        if len(anc) < 3 or len(rec) < 3:
+            continue
+        med_anc, med_rec = anc["prix_m2"].median(), rec["prix_m2"].median()
+        if not med_anc or med_anc <= 0:
+            continue
+        pct = (med_rec / med_anc - 1) * 100
+        if pct < 5:
+            continue
+        tendances[code] = (pct, int(an_min))
+    return tendances
+
+
+def add_market_trend_argument(df, sales):
+    """Argument de repli pour les adresses SANS derniere vente connue.
+
+    `add_plus_value` ne peut rien produire pour une adresse "jamais vendue" :
+    il n'y a pas de prix d'achat personnel a comparer. Ce sont pourtant
+    souvent les cibles les PLUS interessantes (score le plus eleve). Ce
+    module calcule a la place une tendance de MARCHE — jamais un prix
+    individuel — a partir des ventes reelles de la commune, et ne l'utilise
+    que quand aucun argument personnel n'a ete produit.
+    """
+    if "argument_prudent" not in df.columns:
+        df["argument_prudent"] = None
+    if "code_insee" not in df.columns or sales.empty:
+        return df
+
+    tendances = _tendances_par_commune(sales)
+    if not tendances:
+        return df
+
+    def repli(row):
+        actuel = row.get("argument_prudent")
+        if pd.notna(actuel):
+            return actuel
+        t = tendances.get(row.get("code_insee"))
+        if not t:
+            return actuel
+        pct, an_min = t
+        return (f"Dans ce secteur, les prix ont progressé d'environ "
+                f"{pct:.0f} % depuis {an_min}.")
+
+    df["argument_prudent"] = df.apply(repli, axis=1)
+    return df
+
+
 # -------------------------------------------------------------- COMPARABLES --
 
 def _haversine_m(lat1, lon1, lat2, lon2):
@@ -238,6 +306,7 @@ def add_cout_passoire(df, coefs):
 
 def add_all(df, sales, coefs, only_top=None):
     df = add_plus_value(df)
+    df = add_market_trend_argument(df, sales)
     df, comps_detail = add_comparables(df, sales, only_top=only_top)
     df = add_cout_passoire(df, coefs)
     return df, comps_detail

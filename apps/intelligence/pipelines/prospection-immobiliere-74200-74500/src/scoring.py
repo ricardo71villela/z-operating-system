@@ -17,7 +17,9 @@ import datetime
 
 import pandas as pd
 
-from config import SCORING, SEGMENT_THRESHOLDS
+from config import (SCORING, SEGMENT_THRESHOLDS, SURFACE_PTS_MAX,
+                    SURFACE_PTS_REF, PIECES_SEUIL, PIECES_PTS_PAR_PIECE,
+                    PIECES_PTS_MAX)
 
 CURRENT_YEAR = datetime.date.today().year
 
@@ -69,14 +71,35 @@ def _pts_type(type_bien):
 
 
 def _pts_surface(surface):
+    """Bareme continu (remplace les anciens paliers plats 70/100 m²).
+
+    Un pallier plat donnait les memes points a un bien de 100 m² et de
+    300 m² : toute la fourchette haute du parc se retrouvait au meme score.
+    Voir la note dans config.py.
+    """
     if pd.isna(surface):
         return 0, None
     s = float(surface)
-    if s >= 100:
-        return SCORING["surface_100m2_plus"], f"grande surface ({s:.0f} m²)"
-    if s >= 70:
-        return SCORING["surface_70_100m2"], f"surface {s:.0f} m²"
-    return 0, None
+    if s <= 0:
+        return 0, None
+    pts = round(min(s, SURFACE_PTS_REF) / SURFACE_PTS_REF * SURFACE_PTS_MAX)
+    if pts <= 0:
+        return 0, None
+    label = f"grande surface ({s:.0f} m²)" if s >= 100 else f"surface {s:.0f} m²"
+    return pts, label
+
+
+def _pts_pieces(nb_pieces):
+    """Bonus mineur sur le nombre de pieces (signal DVF jusqu'ici inutilise)."""
+    if pd.isna(nb_pieces):
+        return 0, None
+    n = float(nb_pieces)
+    if n <= PIECES_SEUIL:
+        return 0, None
+    pts = min(round((n - PIECES_SEUIL) * PIECES_PTS_PAR_PIECE), PIECES_PTS_MAX)
+    if pts <= 0:
+        return 0, None
+    return pts, f"{int(n)} pièces"
 
 
 def compute_score(row):
@@ -99,6 +122,7 @@ def compute_score(row):
         _pts_type(row.get("type_bien") or row.get("type_batiment")),
         _pts_surface(row.get("surface_m2") if not pd.isna(row.get("surface_m2"))
                      else row.get("surface_dpe")),
+        _pts_pieces(row.get("nb_pieces")),
     ):
         total += pts
         if label and pts > 0:
@@ -157,10 +181,12 @@ if __name__ == "__main__":
           "annee_construction": 2015, "type_bien": "Appartement",
           "surface_m2": 55, "surface_dpe": None}, 0, 5),
         ("Vente intermediaire (entre les deux seuils)",
+         # borne haute relevee : le bareme de surface continu (config.py)
+         # ajoute desormais quelques points meme hors des paliers metier
          {"derniere_vente_connue": CURRENT_YEAR - SEGMENT_THRESHOLDS["POTENTIEL_MOYEN"],
           "dpe_classe": "C", "annee_construction": 2005,
           "type_bien": "Appartement", "surface_m2": 55, "surface_dpe": None},
-         20, 20),
+         20, 25),
         ("Adresse sans aucune donnee",
          {"derniere_vente_connue": None, "dpe_classe": None,
           "annee_construction": None, "type_bien": None,

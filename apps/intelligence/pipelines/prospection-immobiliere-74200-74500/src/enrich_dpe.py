@@ -20,9 +20,23 @@ mappe les champs disponibles, au lieu de coder en dur des noms qui peuvent
 casser. Si aucun champ n'est trouve, l'enrichissement est saute proprement
 sans faire echouer le pipeline.
 
+PAGINATION : l'API data-fair de l'ADEME renvoie `next` sous deux formes
+selon le jeu de donnees — soit un simple curseur a repasser en parametre
+`after`, soit une URL complete a appeler telle quelle. Une version
+precedente de ce module s'arretait des qu'elle recevait une URL complete,
+ce qui plafonnait SILENCIEUSEMENT chaque commune a une seule page
+(DPE_PAGE_SIZE resultats) — invisible sauf sur les communes assez grandes
+pour depasser cette taille. `fetch_commune` gere maintenant les deux formes.
+
+CACHE : les lignes brutes recuperees par commune sont mises en cache sur
+disque (data/_cache/dpe/). Un relancement reutilise le cache au lieu de
+retelecharger ~40 communes page par page. Supprimez le dossier de cache,
+ou lancez avec FORCE_REDOWNLOAD=1, pour forcer un nouveau telechargement.
+
 Usage:
     python enrich_dpe.py
 """
+import json
 import os
 import sys
 import time
@@ -35,6 +49,8 @@ from config import (ALL_COMMUNES, DPE_API_BASE, DPE_DATASETS, DPE_PAGE_SIZE,
 from normalize import normalize_voie, normalize_numero
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
+CACHE_DIR = os.path.join(DATA_DIR, "_cache", "dpe")
+FORCE_REDOWNLOAD = os.environ.get("FORCE_REDOWNLOAD") == "1"
 
 # Pour chaque information voulue, les noms de champ possibles selon la
 # version du jeu de donnees. Le premier trouve dans le schema est retenu.
@@ -91,25 +107,40 @@ def build_field_map(schema):
 
 
 def fetch_commune(dataset, field_map, code_insee, nom_commune):
-    """Recupere tous les DPE d'une commune, page par page (pagination 'after')."""
-    url = f"{DPE_API_BASE}/{dataset}/lines"
+    """Recupere tous les DPE d'une commune, page par page.
+
+    Gere les deux formes de pagination `next` de l'API data-fair :
+    un curseur nu (repasse en parametre `after`) ou une URL complete
+    (appelee directement).
+    """
+    cache_path = os.path.join(CACHE_DIR, f"{dataset}_{code_insee}.json")
+    if not FORCE_REDOWNLOAD and os.path.exists(cache_path):
+        with open(cache_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    base_url = f"{DPE_API_BASE}/{dataset}/lines"
     insee_field = field_map.get("code_insee")
     if not insee_field:
         return []
 
     select = sorted(set(field_map.values()))
-    rows, after, pages = [], None, 0
+    rows, pages = [], 0
+    next_url = None
+    next_after = None
 
     while pages < DPE_MAX_PAGES_PER_COMMUNE:
-        params = {
-            "size": DPE_PAGE_SIZE,
-            "select": ",".join(select),
-            "qs": f'{insee_field}:"{code_insee}"',
-        }
-        if after:
-            params["after"] = after
         try:
-            r = requests.get(url, params=params, timeout=60)
+            if next_url:
+                r = requests.get(next_url, timeout=60)
+            else:
+                params = {
+                    "size": DPE_PAGE_SIZE,
+                    "select": ",".join(select),
+                    "qs": f'{insee_field}:"{code_insee}"',
+                }
+                if next_after:
+                    params["after"] = next_after
+                r = requests.get(base_url, params=params, timeout=60)
             r.raise_for_status()
             data = r.json()
         except (requests.RequestException, ValueError) as e:
@@ -120,14 +151,20 @@ def fetch_commune(dataset, field_map, code_insee, nom_commune):
         rows.extend(results)
         pages += 1
 
-        after = data.get("next")
-        if isinstance(after, str) and after.startswith("http"):
-            # certaines versions renvoient une URL complete : on s'arrete la
+        nxt = data.get("next")
+        if not nxt:
             break
-        if not after or len(results) < DPE_PAGE_SIZE:
+        if isinstance(nxt, str) and nxt.startswith("http"):
+            next_url, next_after = nxt, None
+        else:
+            next_url, next_after = None, nxt
+        if len(results) < DPE_PAGE_SIZE:
             break
         time.sleep(DPE_SLEEP)
 
+    os.makedirs(CACHE_DIR, exist_ok=True)
+    with open(cache_path, "w", encoding="utf-8") as f:
+        json.dump(rows, f)
     return rows
 
 
