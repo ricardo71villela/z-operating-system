@@ -34,10 +34,28 @@ SHEET_NAMES = {
 
 # ------------------------------------------------------------- CHARGEMENT ---
 
+def _load_optional_csv(path, label):
+    """Charge un enrichissement optionnel (cadastre/geoRisques/RNB) : un
+    fichier absent ou vide ne doit jamais faire echouer le pipeline."""
+    if not os.path.exists(path):
+        print(f"(Aucune donnée {label} — le pipeline continue sans.)")
+        return pd.DataFrame()
+    try:
+        df = pd.read_csv(path, dtype=str)
+    except pd.errors.EmptyDataError:
+        df = pd.DataFrame()
+    if df.empty:
+        print(f"(Aucune donnée {label} — le pipeline continue sans.)")
+    return df
+
+
 def load_data():
     adr_path = os.path.join(DATA_DIR, "adresses_74200_74500.csv")
     dvf_path = os.path.join(DATA_DIR, "dvf_74200_74500.csv")
     dpe_path = os.path.join(DATA_DIR, "dpe_74200_74500.csv")
+    cadastre_path = os.path.join(DATA_DIR, "cadastre_74200_74500.csv")
+    georisques_path = os.path.join(DATA_DIR, "georisques_74200_74500.csv")
+    rnb_path = os.path.join(DATA_DIR, "rnb_74200_74500.csv")
 
     for p in (adr_path, dvf_path):
         if not os.path.exists(p):
@@ -60,7 +78,11 @@ def load_data():
     if dpe.empty:
         print("(Aucune donnée DPE — le pipeline continue avec BAN + DVF.)")
 
-    return adresses, dvf, dpe
+    cadastre = _load_optional_csv(cadastre_path, "cadastre")
+    georisques = _load_optional_csv(georisques_path, "Géorisques")
+    rnb = _load_optional_csv(rnb_path, "RNB")
+
+    return adresses, dvf, dpe, cadastre, georisques, rnb
 
 
 def add_match_keys(adresses, dvf):
@@ -150,6 +172,41 @@ def merge_dpe(df, dpe):
     return df.merge(d, on=join_keys, how="left", suffixes=("", "_dpe"))
 
 
+def merge_cadastre(df, cadastre):
+    """Ajoute la surface de terrain (parcelle cadastrale)."""
+    if cadastre.empty:
+        df["surface_terrain_m2"] = pd.NA
+        return df
+    c = cadastre.copy()
+    c["surface_terrain_m2"] = pd.to_numeric(c["surface_terrain_m2"], errors="coerce")
+    # Plusieurs lignes cadastre peuvent partager la meme cle (immeuble a
+    # plusieurs lots sur une seule parcelle) : on garde la plus grande
+    # contenance, jamais une moyenne qui n'aurait pas de sens physique.
+    c = (c.groupby(["k_num", "k_voie", "code_insee"], dropna=False)["surface_terrain_m2"]
+         .max().reset_index())
+    return df.merge(c, on=["k_num", "k_voie", "code_insee"], how="left")
+
+
+def merge_georisques(df, georisques):
+    """Ajoute l'information reglementaire (ERP) — PUREMENT INFORMATIVE,
+    jamais utilisee dans le score (voir enrich_georisques.py)."""
+    if georisques.empty or "code_insee" not in df.columns:
+        df["info_erp"] = pd.NA
+        return df
+    g = georisques[["code_insee", "info_erp"]].drop_duplicates(subset=["code_insee"])
+    return df.merge(g, on="code_insee", how="left")
+
+
+def merge_rnb(df, rnb):
+    """Ajoute l'identifiant de batiment RNB (brique de robustesse, pas de
+    critere de score — voir enrich_rnb.py)."""
+    if rnb.empty or "id" not in df.columns:
+        df["rnb_id"] = pd.NA
+        return df
+    r = rnb.rename(columns={"ban_id": "id"})[["id", "rnb_id"]].drop_duplicates(subset=["id"])
+    return df.merge(r, on="id", how="left")
+
+
 # ------------------------------------------------------------- SEGMENTATION -
 
 def add_tiers(df):
@@ -227,11 +284,13 @@ EXPORT_COLS = [
     "prix_derniere_vente", "prix_m2_derniere_vente",
     "dpe_classe", "ges_classe", "passoire_thermique", "annee_construction",
     "surface_dpe",
+    "surface_terrain_m2", "rnb_id",
     "prix_m2_estime", "base_prix_source", "ajustements", "coef_total",
     "valeur_estimee_actuelle", "plus_value_eur", "plus_value_pct",
-    "duree_detention_ans", "argument_prudent",
+    "duree_detention_ans", "argument_prudent", "argument_terrain",
     "comparables", "nb_comparables",
     "echeance_dpe", "decote_dpe_pct", "argument_dpe",
+    "info_erp",
     "lien_google_maps", "lien_street_view", "lien_itineraire",
     "lon", "lat",
 ]
@@ -319,11 +378,14 @@ def main():
     ok, total = self_test()
     print(f"Auto-test normalisation : {ok}/{total} OK\n")
 
-    adresses, dvf, dpe = load_data()
+    adresses, dvf, dpe, cadastre, georisques, rnb = load_data()
     adresses, dvf = add_match_keys(adresses, dvf)
 
     merged = merge_dvf(adresses, dvf)
     merged = merge_dpe(merged, dpe)
+    merged = merge_cadastre(merged, cadastre)
+    merged = merge_georisques(merged, georisques)
+    merged = merge_rnb(merged, rnb)
     merged = add_tiers(merged)
 
     # Grille de prix par rue + coefficients d'ajustement (anciennete, DPE)

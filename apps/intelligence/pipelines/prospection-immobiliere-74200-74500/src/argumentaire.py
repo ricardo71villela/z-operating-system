@@ -159,6 +159,45 @@ def add_market_trend_argument(df, sales):
     return df
 
 
+# ------------------------------------------------------------------ TERRAIN --
+
+# Ratio terrain/bati a partir duquel un grand terrain est juge sous-exploite
+RATIO_TERRAIN_SOUS_EXPLOITE = 4
+SURFACE_TERRAIN_MIN_ARGUMENT = 500
+
+
+def add_terrain_argument(df):
+    """Argument independant : grand terrain (cadastre) sous un bati modeste.
+
+    Reste dans sa propre colonne (argument_terrain), separee de
+    argument_prudent, pour ne jamais melanger un signal de plus-value avec
+    un signal de potentiel foncier — ce sont deux arguments differents.
+    """
+    if "surface_terrain_m2" not in df.columns:
+        df["argument_terrain"] = None
+        return df
+
+    def arg(row):
+        s = row.get("surface_terrain_m2")
+        if pd.isna(s):
+            return None
+        s = float(s)
+        if s < SURFACE_TERRAIN_MIN_ARGUMENT:
+            return None
+        surf_bati = row.get("surface_m2")
+        if pd.isna(surf_bati):
+            surf_bati = row.get("surface_dpe")
+        ratio_ok = (pd.isna(surf_bati) or float(surf_bati) <= 0
+                    or s / float(surf_bati) >= RATIO_TERRAIN_SOUS_EXPLOITE)
+        if not ratio_ok:
+            return None
+        return (f"Terrain de {s:.0f} m² : potentiel de valorisation "
+                f"(extension, division parcellaire) à examiner.")
+
+    df["argument_terrain"] = df.apply(arg, axis=1)
+    return df
+
+
 # -------------------------------------------------------------- COMPARABLES --
 
 def _haversine_m(lat1, lon1, lat2, lon2):
@@ -307,11 +346,13 @@ def add_cout_passoire(df, coefs):
 def add_all(df, sales, coefs, only_top=None):
     df = add_plus_value(df)
     df = add_market_trend_argument(df, sales)
+    df = add_terrain_argument(df)
     df, comps_detail = add_comparables(df, sales, only_top=only_top)
     df = add_cout_passoire(df, coefs)
     return df, comps_detail
 
 
 ARG_COLS = ["valeur_estimee_actuelle", "plus_value_eur", "plus_value_pct",
-            "duree_detention_ans", "argument_prudent", "comparables",
-            "nb_comparables", "echeance_dpe", "decote_dpe_pct", "argument_dpe"]
+            "duree_detention_ans", "argument_prudent", "argument_terrain",
+            "comparables", "nb_comparables", "echeance_dpe", "decote_dpe_pct",
+            "argument_dpe"]

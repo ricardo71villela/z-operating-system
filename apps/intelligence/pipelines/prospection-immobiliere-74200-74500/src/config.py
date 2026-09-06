@@ -133,8 +133,12 @@ SCORING = {
 
     # Passoire thermique : levier de prospection majeur
     # (interdiction de location : G depuis 2025, F en 2028, E en 2034)
-    "dpe_G":                    25,
-    "dpe_F":                    20,
+    # Poids leverement releves (25->28, 20->22) : le DPE est le signal le
+    # mieux documente du jeu (88 % de couverture constatee) et le plus
+    # actionnable (echeance legale connue) — il merite de peser un peu plus
+    # que la seule anciennete du bati, qui mesure en partie le meme phenomene.
+    "dpe_G":                    28,
+    "dpe_F":                    22,
     "dpe_E":                    12,
     "dpe_D":                     5,
 
@@ -145,7 +149,15 @@ SCORING = {
 
     # Maison individuelle : mandat généralement plus rémunérateur
     "type_maison":              10,
+
+    # Terrain (cadastre) : grand terrain sous un bati modeste = potentiel de
+    # valorisation (extension, division parcellaire), signal absent de DVF/DPE.
+    "terrain_grand":            10,   # >= TERRAIN_SEUIL_GRAND m²
+    "terrain_moyen":             5,   # >= TERRAIN_SEUIL_MOYEN m²
 }
+
+TERRAIN_SEUIL_GRAND = 1000
+TERRAIN_SEUIL_MOYEN = 500
 
 # ---------------------------------------------------------------------------
 # POINTS DE SURFACE ET DE NOMBRE DE PIECES — BAREME CONTINU

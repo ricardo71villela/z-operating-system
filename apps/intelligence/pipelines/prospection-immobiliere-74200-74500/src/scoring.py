@@ -19,7 +19,7 @@ import pandas as pd
 
 from config import (SCORING, SEGMENT_THRESHOLDS, SURFACE_PTS_MAX,
                     SURFACE_PTS_REF, PIECES_SEUIL, PIECES_PTS_PAR_PIECE,
-                    PIECES_PTS_MAX)
+                    PIECES_PTS_MAX, TERRAIN_SEUIL_GRAND, TERRAIN_SEUIL_MOYEN)
 
 CURRENT_YEAR = datetime.date.today().year
 
@@ -89,6 +89,19 @@ def _pts_surface(surface):
     return pts, label
 
 
+def _pts_terrain(surface_terrain):
+    """Grand terrain (cadastre) sous un bati modeste : potentiel de
+    valorisation independant des autres criteres (extension, division)."""
+    if pd.isna(surface_terrain):
+        return 0, None
+    s = float(surface_terrain)
+    if s >= TERRAIN_SEUIL_GRAND:
+        return SCORING["terrain_grand"], f"grand terrain ({s:.0f} m²)"
+    if s >= TERRAIN_SEUIL_MOYEN:
+        return SCORING["terrain_moyen"], f"terrain {s:.0f} m²"
+    return 0, None
+
+
 def _pts_pieces(nb_pieces):
     """Bonus mineur sur le nombre de pieces (signal DVF jusqu'ici inutilise)."""
     if pd.isna(nb_pieces):
@@ -123,6 +136,7 @@ def compute_score(row):
         _pts_surface(row.get("surface_m2") if not pd.isna(row.get("surface_m2"))
                      else row.get("surface_dpe")),
         _pts_pieces(row.get("nb_pieces")),
+        _pts_terrain(row.get("surface_terrain_m2")),
     ):
         total += pts
         if label and pts > 0:

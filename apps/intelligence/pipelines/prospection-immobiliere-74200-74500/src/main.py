@@ -8,9 +8,16 @@ Etapes :
   1. BAN  — adresses des 26 communes
   2. DVF  — transactions notariees 2019-2024
   3. DPE  — diagnostics energetiques ADEME (comble les Tier 1)
-  4. Segmentation + scoring + grille de prix par rue
-  5. Statistiques de marche par commune
-  6. Export cartographique (GeoJSON + carte HTML)
+  4. Cadastre — surface de terrain par parcelle (potentiel de valorisation)
+  5. Géorisques — information reglementaire ERP (purement informative)
+  6. RNB — identifiant de batiment (brique de robustesse)
+  7. Segmentation + scoring + grille de prix par rue
+  8. Statistiques de marche par commune
+  9. Export cartographique (GeoJSON + carte HTML)
+
+Les etapes 4-6 sont des enrichissements OPTIONNELS, au meme titre que le
+DPE : un echec ou une indisponibilite de l'une d'elles ne bloque jamais le
+pipeline (voir la meme logique de repli pour l'etape 3).
 """
 import os
 import sys
@@ -21,6 +28,9 @@ import pandas as pd
 import ingest_ban
 import ingest_dvf
 import enrich_dpe
+import enrich_cadastre
+import enrich_georisques
+import enrich_rnb
 import segment
 import market_stats
 import export_map
@@ -35,9 +45,18 @@ def banner(n, total, titre):
     print("=" * 64)
 
 
+def _etape_optionnelle(nom_fichier, fonction, nom_etape):
+    """Lance un enrichissement optionnel sans jamais casser le pipeline."""
+    try:
+        fonction()
+    except Exception as e:
+        print(f"\nEnrichissement {nom_etape} échoué ({e}) — on continue sans.")
+        pd.DataFrame().to_csv(os.path.join(DATA_DIR, nom_fichier), index=False)
+
+
 def run(skip_dpe=False):
     t0 = time.time()
-    total = 6
+    total = 9
 
     banner(1, total, "Ingestion des adresses (BAN)")
     ingest_ban.main()
@@ -57,10 +76,19 @@ def run(skip_dpe=False):
             print(f"\nEnrichissement DPE échoué ({e}) — on continue sans.")
             pd.DataFrame().to_csv(os.path.join(DATA_DIR, "dpe_74200_74500.csv"), index=False)
 
-    banner(4, total, "Segmentation, scoring et grille de prix par rue")
+    banner(4, total, "Cadastre (surface de terrain par parcelle)")
+    _etape_optionnelle("cadastre_74200_74500.csv", enrich_cadastre.main, "cadastre")
+
+    banner(5, total, "Géorisques (information réglementaire ERP)")
+    _etape_optionnelle("georisques_74200_74500.csv", enrich_georisques.main, "Géorisques")
+
+    banner(6, total, "RNB (identifiant de bâtiment)")
+    _etape_optionnelle("rnb_74200_74500.csv", enrich_rnb.main, "RNB")
+
+    banner(7, total, "Segmentation, scoring et grille de prix par rue")
     segment.main()
 
-    banner(5, total, "Statistiques de marché par commune")
+    banner(8, total, "Statistiques de marché par commune")
     try:
         dvf = pd.read_csv(os.path.join(DATA_DIR, "dvf_74200_74500.csv"), dtype=str)
         dvf["annee_mutation"] = pd.to_datetime(dvf["date_mutation"], errors="coerce").dt.year
@@ -68,7 +96,7 @@ def run(skip_dpe=False):
     except Exception as e:
         print(f"Statistiques non calculées ({e}).")
 
-    banner(6, total, "Export cartographique")
+    banner(9, total, "Export cartographique")
     try:
         export_map.export(pd.read_csv(os.path.join(OUTPUT_DIR, "mailing_complet.csv")))
     except Exception as e:
