@@ -2,8 +2,35 @@
 // selos rápidos, e os campos extra (certificado energético, alergénios,
 // tamanhos). Extraído de app/my-studio.html — Phase 2 da auditoria.
 
-const ENERGY_LEVELS = ['A+', 'A', 'B', 'C', 'D', 'E', 'F'];
-const ENERGY_EMOJI = { 'A+':'🟢', 'A':'🟢', 'B':'🟢', 'C':'🟡', 'D':'🟡', 'E':'🟠', 'F':'🔴' };
+// Escala de certificado energético — NÃO é a mesma em todo o lado. Confirmado
+// numa auditoria de internacionalização: Portugal usa A+ a F (sem G); França e
+// Espanha usam A a G (sem A+); a Alemanha vai de A+ a H; a Itália subdivide o
+// topo em A4/A3/A2/A1 antes de B a G. Mostrar a escala errada a um agente
+// imobiliário francês/espanhol/alemão/italiano significa não conseguir
+// representar a classe real do imóvel dele (ex.: "G", muito comum em França
+// e Espanha, nem sequer existia como opção).
+const ENERGY_SCALES = {
+  pt: ['A+', 'A', 'B', 'C', 'D', 'E', 'F'],
+  en: ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
+  fr: ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
+  es: ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
+  de: ['A+', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
+  it: ['A4', 'A3', 'A2', 'A1', 'B', 'C', 'D', 'E', 'F', 'G'],
+};
+function energyLevelsFor(lang) { return ENERGY_SCALES[lang] || ENERGY_SCALES.en; }
+// A cor segue a posição relativa na escala de cada país, não a letra literal
+// (o "A1" italiano e o "A+" alemão são ambos o topo, tal como o "A" simples
+// noutras escalas) — por isso o valor vem de uma função, não de um mapa fixo.
+function energyEmoji(level, lang) {
+  const scale = energyLevelsFor(lang || (typeof state !== 'undefined' ? state.lang : 'en'));
+  const idx = scale.indexOf(level);
+  if (idx < 0) return '';
+  const pct = idx / Math.max(1, scale.length - 1);
+  if (pct <= 0.28) return '🟢';
+  if (pct <= 0.57) return '🟡';
+  if (pct <= 0.8) return '🟠';
+  return '🔴';
+}
 const SIZE_LIST = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 const ALLERGEN_KEYS = ['gluten', 'lactose', 'ovos', 'frutosSecos', 'marisco', 'peixe', 'soja', 'mostarda'];
 const ALLERGEN_ICONS = { gluten:'🌾', lactose:'🥛', ovos:'🥚', frutosSecos:'🥜', marisco:'🦐', peixe:'🐟', soja:'🫘', mostarda:'🌭' };
@@ -19,7 +46,7 @@ function specsLine() {
   const parts = (state.spec || []).filter(s => s.value).map(s => (s.label ? s.label + ': ' : '') + s.value);
   const t = I18N[state.lang] || I18N.pt;
   if (state.category === 'imoveis' && state.energyRating) {
-    parts.push((ENERGY_EMOJI[state.energyRating] || '') + ' ' + t.energyClassLabel + ' ' + state.energyRating);
+    parts.push(energyEmoji(state.energyRating) + ' ' + t.energyClassLabel + ' ' + state.energyRating);
   }
   if (state.category === 'viagens' && state.starRating > 0) {
     parts.push('★'.repeat(state.starRating) + '☆'.repeat(5 - state.starRating));

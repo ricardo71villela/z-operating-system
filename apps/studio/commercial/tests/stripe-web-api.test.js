@@ -100,6 +100,8 @@ test('trial Checkout is subscription mode, exact Price, payment-method-required 
   assert.equal(call.body.get('line_items[0][price]'), 'price_monthly123');
   assert.equal(call.body.get('line_items[0][quantity]'), '1');
   assert.equal(call.body.get('payment_method_collection'), 'always');
+  assert.equal(call.body.get('consent_collection[terms_of_service]'), 'required');
+  assert.ok(call.body.get('custom_text[terms_of_service_acceptance][message]').length > 0);
   assert.equal(call.body.get('subscription_data[trial_period_days]'), '3');
   assert.equal(
     call.body.get('subscription_data[trial_settings][end_behavior][missing_payment_method]'),
@@ -141,6 +143,10 @@ test('non-trial Checkout omits all trial parameters', async () => {
     body.has('subscription_data[trial_settings][end_behavior][missing_payment_method]'),
     false,
   );
+  // Consent to lose the 14-day EU withdrawal right must be requested on
+  // every Checkout Session, trial or not.
+  assert.equal(body.get('consent_collection[terms_of_service]'), 'required');
+  assert.ok(body.get('custom_text[terms_of_service_acceptance][message]').length > 0);
 });
 
 test('retrieve supports idempotent recovery and rejects wrong livemode or retryable provider failures', async () => {

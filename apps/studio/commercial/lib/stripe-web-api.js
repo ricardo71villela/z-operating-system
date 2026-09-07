@@ -341,6 +341,19 @@ export function createStripeWebApi(
       'subscription_data[metadata][zstudio_checkout_intent_id]': intent,
       'subscription_data[metadata][plan_code]': plan,
       'subscription_data[metadata][billing_environment]': environment,
+      // EU Consumer Rights Directive 2011/83/EU art. 16(m): the buyer must
+      // expressly consent to losing the 14-day withdrawal right when a
+      // digital service starts immediately. Stripe's own Terms of Service
+      // checkbox is the express-consent record for this; the linked "Terms
+      // of Service" text comes from the Stripe Dashboard business profile
+      // (Settings -> Public business information), which must have that
+      // URL configured for this to take effect.
+      'consent_collection[terms_of_service]': 'required',
+      'custom_text[terms_of_service_acceptance][message]':
+        'Ao confirmar, aceito os Termos de Serviço e reconheço que o serviço digital tem início imediato, ' +
+        'perdendo por isso o direito de retratação de 14 dias assim que a subscrição for ativada. ' +
+        "(FR) J'accepte les CGU et reconnais que ce service numérique commence immédiatement, " +
+        'ce qui entraîne la perte de mon droit de rétractation de 14 jours dès son activation.',
     };
     if (trialEligible) {
       params['subscription_data[trial_period_days]'] = String(trialDays);

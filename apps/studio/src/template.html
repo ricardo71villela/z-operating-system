@@ -1233,9 +1233,11 @@ input[type=range]::-moz-range-thumb {
           <div style="display:flex;gap:6px;">
             <button class="btn btn-line" style="padding:6px 14px;font-size:0.72rem;" id="btnAICaption" onclick="aiCaption()" data-i18n="aiCaptionBtn">✨ Legenda com IA</button>
             <button class="btn btn-line" style="padding:6px 14px;font-size:0.72rem;" id="btnAICaptionAll" onclick="aiCaptionAllLangs()" data-i18n="aiCaptionAllBtn">🌐 Traduzir para todos os idiomas</button>
+            <button class="btn btn-line" style="padding:6px 14px;font-size:0.72rem;" id="btnAIVariants" onclick="aiCaptionVariants()" data-i18n="aiVariantsBtn">🎯 Hashtags e tons</button>
           </div>
         </div>
         <textarea id="caption"></textarea>
+        <div id="aiVariantsWrap" class="hide" style="margin-top:10px;"></div>
       </div>
     </div>
     </div>
@@ -1248,9 +1250,9 @@ input[type=range]::-moz-range-thumb {
     <span id="footerPoweredBy" data-i18n="poweredByZos">DESENVOLVIDO POR ZOS</span>
   </div>
   <div class="site-footer-legal">
-    <a href="termos-de-servico.html" target="_blank" rel="noopener" data-i18n="footerTerms">Termos de Serviço</a>
+    <a id="footerTermsLink" href="termos-de-servico.html" target="_blank" rel="noopener" data-i18n="footerTerms">Termos de Serviço</a>
     <span class="site-footer-dot">·</span>
-    <a href="politica-privacidade.html" target="_blank" rel="noopener" data-i18n="footerPrivacy">Privacidade</a>
+    <a id="footerPrivacyLink" href="politica-privacidade.html" target="_blank" rel="noopener" data-i18n="footerPrivacy">Privacidade</a>
   </div>
 </footer>
 

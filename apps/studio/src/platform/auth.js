@@ -357,6 +357,7 @@ async function zstudioVerifyOtp() {
     await zstudioEnsureStudioAccount(client);
     zstudioPendingEmail = '';
     zstudioRenderAuthUi();
+    window.zstudioSyncBrandKitsFromCloud?.().catch(() => {});
   } catch (error) {
     zstudioSetAuthStatus(error?.message === 'STUDIO_ACCOUNT_UNAVAILABLE' ? zstudioAuthT('authAccountUnavailable') : zstudioAuthT('authInvalidCode'), true);
   } finally {
@@ -432,11 +433,73 @@ askAI = async function zstudioAuthenticatedAskAI(system, user, maxTokens) {
   }
 };
 
+// ═══════════════════════════════════════════════════════════════
+//  SINCRONIZAÇÃO DE KITS DE MARCA — os kits de marca (nome, cor, site,
+//  telefone, categoria/ficha) passam a ficar também guardados no Supabase,
+//  ligados à conta, para continuar a trabalhar a partir de outro
+//  dispositivo. NUNCA inclui a foto do logótipo — essa continua só no
+//  dispositivo, como sempre foi. Falha sempre em silêncio: sem conta
+//  ou sem rede, os kits continuam a funcionar normalmente só localmente.
+// ═══════════════════════════════════════════════════════════════
+function zstudioBrandKitsRestUrl(query) {
+  return ZSTUDIO_SUPABASE_URL + '/rest/v1/studio_brand_kits' + (query || '');
+}
+async function zstudioBrandKitsHeaders(extra) {
+  const token = await zstudioGetAccessToken({ interactive: false });
+  if (!token) return null;
+  return Object.assign({
+    apikey: ZSTUDIO_SUPABASE_PUBLISHABLE_KEY,
+    Authorization: 'Bearer ' + token,
+    'Content-Type': 'application/json',
+  }, extra || {});
+}
+async function zstudioPullBrandKits() {
+  try {
+    const headers = await zstudioBrandKitsHeaders();
+    if (!headers) return null;
+    const response = await fetch(zstudioBrandKitsRestUrl('?select=name,data'), { headers });
+    if (!response.ok) return null;
+    const rows = await response.json().catch(() => null);
+    if (!Array.isArray(rows)) return null;
+    const kits = {};
+    rows.forEach((row) => { if (row && row.name) kits[row.name] = row.data; });
+    return kits;
+  } catch (_error) { return null; }
+}
+async function zstudioPushBrandKit(name, data) {
+  try {
+    const headers = await zstudioBrandKitsHeaders({ Prefer: 'resolution=merge-duplicates' });
+    if (!headers) return false;
+    const response = await fetch(zstudioBrandKitsRestUrl('?on_conflict=user_id,name'), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ name, data }),
+    });
+    return response.ok;
+  } catch (_error) { return false; }
+}
+async function zstudioDeleteBrandKitRemote(name) {
+  try {
+    const headers = await zstudioBrandKitsHeaders();
+    if (!headers) return false;
+    const response = await fetch(zstudioBrandKitsRestUrl('?name=eq.' + encodeURIComponent(name)), {
+      method: 'DELETE',
+      headers,
+    });
+    return response.ok;
+  } catch (_error) { return false; }
+}
+
 window.ZStudioAuth = Object.freeze({
   open: zstudioOpenAuth,
   close: zstudioCloseAuth,
   getAccessToken: zstudioGetAccessToken,
   signOut: zstudioSignOut,
+  brandKits: Object.freeze({
+    pull: zstudioPullBrandKits,
+    push: zstudioPushBrandKit,
+    remove: zstudioDeleteBrandKitRemote,
+  }),
 });
 
 function zstudioAuthBootstrap() {
@@ -450,6 +513,7 @@ function zstudioAuthBootstrap() {
       if (zstudioAuthSession) {
         try { await zstudioEnsureStudioAccount(client); }
         catch (_error) { zstudioSetAuthStatus(zstudioAuthT('authAccountUnavailable'), true); }
+        window.zstudioSyncBrandKitsFromCloud?.().catch(() => {});
       }
     })
     .catch(() => { zstudioAuthLoadError = true; zstudioRenderAuthUi(); });

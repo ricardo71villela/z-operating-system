@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ZSTUDIO_ANDROID_BACKUP_HARDENING_V1
+  Exclui do backup automático (Android 12+, dataExtractionRules) tudo o que
+  possa conter a sessão do Supabase Auth (persistSession: true) guardada
+  pela WebView — encontrado numa auditoria de segurança (allowBackup=true
+  sem exclusões era um vetor real de exposição do token de sessão via
+  backup para a cloud do Google ou transferência de dispositivo).
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" />
+        <exclude domain="database" />
+        <exclude domain="file" path="app_webview/" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" />
+        <exclude domain="database" />
+        <exclude domain="file" path="app_webview/" />
+    </device-transfer>
+</data-extraction-rules>

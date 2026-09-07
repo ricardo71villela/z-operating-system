@@ -346,7 +346,7 @@ function propagate() {
   if (iconFiles.length) console.log('✅ Copiados', iconFiles.length, 'ícones para app/ e native/www/');
 
   const legalDir = path.join(ROOT, 'legal');
-  for (const f of ['termos-de-servico.html', 'politica-privacidade.html']) {
+  for (const f of ['termos-de-servico.html', 'politica-privacidade.html', 'termos-de-servico-fr.html', 'politica-privacidade-fr.html']) {
     const source = path.join(legalDir, f);
     if (!fs.existsSync(source)) continue;
     copyTextWithIdentity(source, path.join(appDir, f));

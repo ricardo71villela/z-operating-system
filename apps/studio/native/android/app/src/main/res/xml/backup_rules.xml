@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ZSTUDIO_ANDROID_BACKUP_HARDENING_V1
+  Equivalente ao data_extraction_rules.xml para Android < 12 (fullBackupContent,
+  aplicável entre minSdkVersion=24 e a introdução do dataExtractionRules na API 31).
+  Mesma razão: a sessão do Supabase Auth vive na WebView e nunca deve ir para backup.
+-->
+<full-backup-content>
+    <exclude domain="sharedpref" />
+    <exclude domain="database" />
+    <exclude domain="file" path="app_webview/" />
+</full-backup-content>

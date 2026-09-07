@@ -22,10 +22,12 @@ Set only after the production activation gate is authorized:
 - Web build: `ZSTUDIO_COMMERCIAL_BASE_URL=https://<commercial-runtime-origin>`
 
 ## Stripe catalog
-Create exactly three recurring EUR prices matching the source authority:
-- weekly: EUR 5.99
-- monthly: EUR 14.99
-- annual: EUR 119.99
+Create exactly three recurring EUR prices matching the source authority (`commercial/store-products.v1.json`):
+- weekly: EUR 3.99
+- monthly: EUR 9.99
+- annual: EUR 89.99
+
+(Preço revisto em 2026-09-07 para ficar abaixo do Canva Pro/Adobe Express — os Price sandbox antigos a €5.99/€14.99/€119.99 em `docs/stripe-sandbox-state.md` ficam obsoletos e precisam de ser recriados a estes valores.)
 
 Do not encode the lifetime-trial decision in a browser-controlled Stripe parameter. The Checkout server decides whether the exact session receives the 3-day trial after global ZOS preflight.
 

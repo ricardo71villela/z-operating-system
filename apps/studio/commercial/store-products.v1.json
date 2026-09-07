@@ -6,7 +6,7 @@
   "plans": {
     "weekly": {
       "billingCadence": "weekly",
-      "commercialTargetPriceMinor": 599,
+      "commercialTargetPriceMinor": 399,
       "apple": {
         "productId": "com.zoperatingsystem.zstudio.subscription.weekly",
         "subscriptionGroupKey": "zstudio_access",
@@ -27,7 +27,7 @@
     },
     "monthly": {
       "billingCadence": "monthly",
-      "commercialTargetPriceMinor": 1499,
+      "commercialTargetPriceMinor": 999,
       "apple": {
         "productId": "com.zoperatingsystem.zstudio.subscription.monthly",
         "subscriptionGroupKey": "zstudio_access",
@@ -48,7 +48,7 @@
     },
     "annual": {
       "billingCadence": "annual",
-      "commercialTargetPriceMinor": 11999,
+      "commercialTargetPriceMinor": 8999,
       "apple": {
         "productId": "com.zoperatingsystem.zstudio.subscription.annual",
         "subscriptionGroupKey": "zstudio_access",

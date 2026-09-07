@@ -14,29 +14,41 @@
   .placeholder { background: #fde8e8; padding: 1px 5px; border-radius: 3px; font-family: monospace; font-size: 0.9em; }
   ul { padding-left: 1.3em; }
   li { margin-bottom: 0.5em; }
+  a { color: #7a5c2e; }
 </style>
 </head>
 <body>
 
 <div class="draft-notice">
-  <strong>⚠️ Isto é um rascunho, não um documento legal final.</strong>
-  Precisa de revisão por um advogado antes de publicares — sobretudo as secções de responsabilidade, preços e
-  cancelamento, que têm implicações legais diretas. Preenche os campos a <span class="placeholder">vermelho</span>.
+  <strong>⚠️ Revisão jurídica recomendada antes de publicar.</strong>
+  A secção 10 (limitação de responsabilidade) usa uma redação-padrão comum para SaaS de micro-entrepreneur, mas
+  não substitui aconselhamento jurídico. A secção 5 assume que o checkout ainda não captura explicitamente o
+  consentimento de perda do direito de retratação de 14 dias — confirmar isto na implementação real do checkout
+  antes de publicar, e ajustar a secção 5 caso já exista esse passo.
 </div>
 
 <h1>Termos de Serviço</h1>
-<p class="meta">Z Studio · Última atualização: <span class="placeholder">[DATA]</span></p>
+<p class="meta">Z Studio · Última atualização: 7 de setembro de 2026</p>
 
-<h2>1. Aceitação dos termos</h2>
+<h2>1. Aceitação dos termos e quem somos</h2>
 <p>
-  Ao usar o Z Studio, aceitas estes termos. Se não concordares, não deves usar a aplicação. Estes termos são
-  regidos pela lei portuguesa, com foro <span class="placeholder">[COMARCA]</span> para qualquer litígio.
+  O Z Studio é operado por José Ricardo Coelho de Vilela, empresário em nome individual sob o regime de
+  micro-entrepreneur em França, com morada em Rue de la Plaine 204, 74500 Publier, França, SIRET
+  <span class="placeholder">a aguardar atribuição (registo em curso)</span>. Ao usar o Z Studio, aceitas estes
+  termos. Se não concordares, não deves usar a aplicação.
+</p>
+<p>
+  Estes termos são regidos pela lei francesa, com foro nos tribunais franceses competentes para qualquer litígio.
+  Se residires noutro país da União Europeia como consumidor, esta cláusula não te priva das proteções mínimas
+  obrigatórias de proteção do consumidor do teu país de residência, que continuam a aplicar-se nos termos do
+  Regulamento (CE) n.º 593/2008 (Roma I).
 </p>
 
 <h2>2. O que é o Z Studio</h2>
 <p>
   O Z Studio é uma ferramenta para criar conteúdo para redes sociais (posts, stories, carrosséis) a partir de
-  fotos e vídeos próprios, com recorte automático, ficha de produto e legendas geradas por inteligência artificial.
+  fotos e vídeos próprios, com recorte automático, ficha de produto, legendas, hashtags e variantes de tom geradas
+  por inteligência artificial.
 </p>
 
 <h2>3. Quem pode usar</h2>
@@ -45,25 +57,40 @@
   Z Studio em nome de uma empresa, garantes que tens autoridade para a vincular a estes termos.
 </p>
 
-<h2>4. A tua conta e os teus dados</h2>
+<h2>4. A tua conta</h2>
 <p>
-  <span class="placeholder">[Se houver contas de utilizador: descrever registo, password, responsabilidade pela
-  segurança da conta. Se não houver contas — versão atual da app — remover esta secção ou adaptar.]</span>
+  O acesso a funcionalidades pagas requer uma conta, criada com o teu email. Não usamos password — o login é feito
+  por código enviado ao teu email (OTP). És responsável por manter o acesso à tua caixa de correio seguro, já que
+  é o único meio de autenticação da tua conta.
 </p>
 
-<h2>5. Preços e pagamento <span class="placeholder">(preencher quando o modelo estiver definido)</span></h2>
+<h2>5. Preços, pagamento e cancelamento</h2>
 <ul>
-  <li>Plano: <span class="placeholder">[gratuito / assinatura mensal / pagamento único]</span></li>
-  <li>Faturação e renovação automática: <span class="placeholder">[detalhes]</span></li>
-  <li>Política de reembolso: <span class="placeholder">[detalhes — em Portugal/UE aplicam-se regras de direito
-    de resolução em 14 dias para consumidores, salvo exceções para conteúdo digital já consumido]</span></li>
-  <li>Cancelamento: <span class="placeholder">[como e quando]</span></li>
+  <li><strong>Planos disponíveis:</strong> semanal (€3,99), mensal (€9,99) e anual (€89,99), com renovação
+    automática no fim de cada período, até cancelares.</li>
+  <li><strong>Período de teste:</strong> 3 dias gratuitos, disponível uma única vez por pessoa, válido uma vez em
+    todas as plataformas (Web, iOS, Android) — não é possível reiniciar o teste mudando de plataforma ou
+    reinstalando a app.</li>
+  <li><strong>Faturação:</strong> feita através da Stripe (Web/Microsoft), da Apple App Store (iOS) ou da Google
+    Play (Android), consoante onde subscreves. A gestão da subscrição (cancelamento, alteração de plano) faz-se
+    através do canal correspondente a essa plataforma (portal Stripe, definições da conta Apple, ou definições da
+    conta Google Play).</li>
+  <li><strong>Cancelamento:</strong> podes cancelar a qualquer momento; o acesso mantém-se ativo até ao fim do
+    período já pago, sem reembolso proporcional desse período, salvo o disposto abaixo.</li>
+  <li><strong>Direito de retratação (UE):</strong> se subscreveres como consumidor a partir da União Europeia, tens
+    o direito de resolução do contrato no prazo de 14 dias sem necessidade de justificação, nos termos da Diretiva
+    2011/83/UE. Como o Z Studio é um serviço digital com acesso imediato, ao iniciares a utilização paga durante
+    esse prazo de 14 dias reconheces que estás a pedir expressamente o início imediato da prestação do serviço e
+    que, uma vez o serviço integralmente prestado, perdes o direito de retratação nos termos do artigo 16.º,
+    alínea m), dessa diretiva. Fora dessa situação, contacta-nos em <a href="mailto:hello@zstudio.space">hello@zstudio.space</a>
+    dentro do prazo de 14 dias para exercer o direito de retratação.</li>
 </ul>
 
 <h2>6. Propriedade do conteúdo que crias</h2>
 <p>
-  És dono de todas as fotos, vídeos e legendas que criares com o Z Studio. Não reivindicamos nenhum direito sobre
-  o teu conteúdo. És responsável por teres os direitos necessários sobre as fotos e vídeos que carregas.
+  És dono de todas as fotos, vídeos, legendas e demais conteúdo que criares com o Z Studio. Não reivindicamos
+  nenhum direito sobre o teu conteúdo. És responsável por teres os direitos necessários sobre as fotos e vídeos
+  que carregas.
 </p>
 
 <h2>7. Uso aceitável</h2>
@@ -74,10 +101,11 @@
   <li>Usar a ferramenta para gerar spam ou publicidade não solicitada em massa.</li>
 </ul>
 
-<h2>8. Legendas geradas por IA</h2>
+<h2>8. Conteúdo gerado por IA</h2>
 <p>
-  As legendas sugeridas por IA são geradas automaticamente e podem conter imprecisões. És responsável por rever
-  qualquer legenda antes de publicar. Não garantimos que o conteúdo gerado esteja isento de erros.
+  As legendas, hashtags, variantes de tom e traduções sugeridas por IA são geradas automaticamente e podem conter
+  imprecisões. És responsável por rever qualquer conteúdo gerado antes de publicar. Não garantimos que o conteúdo
+  gerado esteja isento de erros.
 </p>
 
 <h2>9. Disponibilidade do serviço</h2>
@@ -88,15 +116,24 @@
 
 <h2>10. Limitação de responsabilidade</h2>
 <p>
-  <span class="placeholder">[Esta secção precisa mesmo de um advogado — a redação certa depende do modelo de
-  negócio e do enquadramento legal aplicável. Não uses um rascunho genérico aqui sem revisão.]</span>
+  Na medida máxima permitida por lei, o Z Studio é fornecido "tal como está", sem garantias de qualquer tipo. A
+  nossa responsabilidade total perante ti, por qualquer causa relacionada com o uso do serviço, está limitada ao
+  montante que pagaste nos 12 meses anteriores ao facto que originou a reclamação. Não somos responsáveis por
+  danos indiretos, lucros cessantes ou perda de dados resultantes do uso ou impossibilidade de uso do serviço,
+  exceto em caso de dolo ou negligência grave, ou noutros casos em que a lei aplicável não permita esta limitação
+  (nomeadamente, esta cláusula não exclui nem limita direitos irrenunciáveis de consumidores ao abrigo do direito
+  da UE ou francês).
 </p>
 
 <h2>11. Alterações a estes termos</h2>
 <p>Podemos atualizar estes termos. Alterações relevantes serão assinaladas na app com antecedência razoável.</p>
 
 <h2>12. Contacto</h2>
-<p><span class="placeholder">[EMAIL DE CONTACTO / MORADA LEGAL]</span></p>
+<p>
+  José Ricardo Coelho de Vilela — Z Studio<br>
+  Rue de la Plaine 204, 74500 Publier, França<br>
+  <a href="mailto:hello@zstudio.space">hello@zstudio.space</a>
+</p>
 
 </body>
 </html>

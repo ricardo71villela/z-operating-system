@@ -193,13 +193,17 @@ async function saveBrandKit() {
   const name = prompt('Nome para este kit de marca (ex.: "Loja Sunset — Calçado"):');
   if (!name) return;
   const kits = (await idbGet('kits').catch(() => null)) || {};
-  kits[name] = { name: state.brand.name, site: state.brand.site, sub: state.brand.sub, phone: state.brand.phone,
+  const kitData = { name: state.brand.name, site: state.brand.site, sub: state.brand.sub, phone: state.brand.phone,
                  accent: state.brand.accent, showWatermark: state.brand.showWatermark, langs: [...state.brand.langs],
                  category: state.category, spec: state.spec.map(s => ({ label: s.label, value: '' })) };
+  kits[name] = kitData;
   await idbSet('kits', kits);
   await refreshBrandKitSelect();
   document.getElementById('brandKitSelect').value = name;
   toast('Kit "' + name + '" guardado');
+  // sincroniza com a conta em segundo plano — nunca bloqueia nem falha visivelmente
+  // sem sessão ativa (ver window.ZStudioAuth em src/platform/auth.js)
+  window.ZStudioAuth?.brandKits?.push?.(name, kitData);
 }
 async function applyBrandKit(name) {
   if (!name) return;
@@ -239,7 +243,27 @@ async function deleteBrandKit() {
   await idbSet('kits', kits);
   await refreshBrandKitSelect();
   toast('Kit apagado');
+  window.ZStudioAuth?.brandKits?.remove?.(name);
 }
+
+// Chamado pelo módulo de autenticação (src/platform/auth.js) sempre que uma sessão
+// é confirmada — login novo ou sessão restaurada ao abrir a app — para trazer os
+// kits de marca guardados no Supabase e fundir com os kits locais deste dispositivo.
+// A nuvem ganha por nome em caso de conflito (é a cópia partilhada entre
+// dispositivos). Nunca falha de forma visível: sem conta/rede, os kits locais
+// continuam a funcionar normalmente, exatamente como antes desta funcionalidade.
+async function syncBrandKitsFromCloud() {
+  try {
+    if (!window.ZStudioAuth?.brandKits?.pull) return;
+    const remote = await window.ZStudioAuth.brandKits.pull();
+    if (!remote) return;
+    const local = (await idbGet('kits').catch(() => null)) || {};
+    const merged = Object.assign({}, local, remote);
+    await idbSet('kits', merged);
+    await refreshBrandKitSelect();
+  } catch (_error) { /* sincronização é um extra, nunca deve bloquear a app */ }
+}
+window.zstudioSyncBrandKitsFromCloud = syncBrandKitsFromCloud;
 
 // [I18N extraído para src/data/i18n.js — ver ficheiro]
 
@@ -255,12 +279,27 @@ function uiT(key) {
   const dict = UI_STRINGS[state.lang] || UI_STRINGS.en;
   return (key in dict) ? dict[key] : (UI_STRINGS.en[key] || '');
 }
+// Documentos legais por idioma — só PT e FR têm tradução própria por agora;
+// os restantes idiomas de UI (en/es/de/it) apontam para a versão PT até existir tradução.
+const LEGAL_DOCS = {
+  terms: { pt: 'termos-de-servico.html', fr: 'termos-de-servico-fr.html' },
+  privacy: { pt: 'politica-privacidade.html', fr: 'politica-privacidade-fr.html' },
+};
+function legalDocHref(kind, lang) {
+  const map = LEGAL_DOCS[kind];
+  return map[lang] || map.pt;
+}
+
 function applyUIStrings() {
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.dataset.i18n;
     const val = uiT(key);
     if (val) el.textContent = val;
   });
+  const termsLink = document.getElementById('footerTermsLink');
+  if (termsLink) termsLink.href = legalDocHref('terms', state.lang);
+  const privacyLink = document.getElementById('footerPrivacyLink');
+  if (privacyLink) privacyLink.href = legalDocHref('privacy', state.lang);
   document.querySelectorAll('[data-i18n-html]').forEach(el => {
     const key = el.dataset.i18nHtml;
     const val = uiT(key);
@@ -1226,8 +1265,8 @@ function renderCategoryExtras() {
 
   if (state.category === 'imoveis') {
     html += `<label class="f" style="margin-top:14px;">${uiT('energyRatingLabel')}</label>
-      <div style="display:flex;flex-wrap:wrap;gap:5px;">${ENERGY_LEVELS.map(l =>
-        `<button type="button" class="chip${state.energyRating === l ? ' active' : ''}" onclick="pickEnergyRating('${l}')">${ENERGY_EMOJI[l]} ${l}</button>`).join('')}</div>`;
+      <div style="display:flex;flex-wrap:wrap;gap:5px;">${energyLevelsFor(state.lang).map(l =>
+        `<button type="button" class="chip${state.energyRating === l ? ' active' : ''}" onclick="pickEnergyRating('${l}')">${energyEmoji(l, state.lang)} ${l}</button>`).join('')}</div>`;
     const areaNum = parseEuroNumber(state.spec[0] && state.spec[0].value);
     const priceNum = parseEuroNumber(state.price);
     if (areaNum > 0 && priceNum > 0) {
@@ -3020,12 +3059,12 @@ function buildCaption() {
 // quando publicado no mesmo domínio). Em contexto Capacitor NÃO existe essa
 // garantia — a app nativa corre de uma origem própria (ex.: capacitor://
 // localhost), por isso precisa de um URL absoluto explícito.
-const AI_API_BASE_URL_NATIVE = 'https://z-studio-platform-seven.vercel.app/api/ai'; // <-- PREENCHER antes de publicar iOS/Android, ex.: 'https://api.oteudominio.com/ai'
 const IS_NATIVE_PLATFORM = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+// URL absoluto do backend de IA — já configurado e em produção (Vercel). É o
+// mesmo em qualquer plataforma: web, iOS e Android usam sempre este URL
+// absoluto, nunca um caminho relativo (necessário em Capacitor, que corre de
+// uma origem própria como capacitor://localhost, sem backend na mesma origem).
 const AI_ENDPOINT = 'https://z-studio-platform-seven.vercel.app/api/ai';
-if (IS_NATIVE_PLATFORM && !AI_API_BASE_URL_NATIVE) {
-  console.warn('[My Studio] AI_API_BASE_URL_NATIVE não está configurado — a app nativa vai tentar um caminho relativo que não existe fora de um browser. Define-o em app/my-studio.html antes de publicar para iOS/Android.');
-}
 
 async function askAI(system, user, maxTokens) {
   const controller = new AbortController();
@@ -3137,6 +3176,113 @@ function copyCaptionLang(l) {
   navigator.clipboard.writeText(el.value).then(() => toast('Copiado (' + (LANG_LABELS[l] || l) + ')')).catch(() => toast('Não foi possível copiar'));
 }
 function closeCaptionAll() { document.getElementById('captionAllOverlay').classList.add('hide'); }
+
+// ═══════════════════════════════════════════════════════════════
+//  IA — hashtags dedicadas + variantes de tom
+//  Um único pedido devolve JSON estruturado: 3 legendas com registos
+//  diferentes (sempre dentro das RULES — nunca hype, nunca factos
+//  inventados) e uma lista de hashtags reutilizável em qualquer uma
+//  delas. Um único pedido em vez de vários poupa quota de IA.
+// ═══════════════════════════════════════════════════════════════
+let aiVariantsState = { hashtags: [], variants: [] };
+
+function capitalizeTone(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+
+async function generateCaptionVariantsFor(lang) {
+  if (!state.title && !state.loc) throw new Error('Escreve pelo menos um título');
+  const specLine = specsLine();
+  const categoryLabel = (CATEGORY_PRESETS[state.category] ? state.category : 'generico');
+  const ctx = `Categoria: ${categoryLabel}\nTítulo: ${state.title}\nLocal: ${state.loc}\nPreço/Valor: ${state.price}`
+    + (specLine ? `\nCaracterísticas: ${specLine}` : '');
+  const link = state.brand.site || '';
+  const system = `${voiceFor(lang)}\n${RULES}\nEscreves legendas de Instagram que fazem parar o scroll sem gritar. Respondes sempre com um único objeto JSON válido, sem texto à volta, sem markdown.`;
+  const user = `${ctx}
+
+Gera três variantes da legenda, cada uma com um registo diferente mas sempre dentro do tom definido (nunca hype):
+- "direto": foca-se no facto mais concreto, frases curtas.
+- "caloroso": mais pessoal e próximo, sem deixar de ser sóbrio.
+- "narrativo": um pequeno momento/cena antes do facto central.
+
+Cada variante: gancho de uma frase + 2 a 4 linhas + fecho com chamada à ação discreta e o link: ${link}. Máximo 700 caracteres por variante. Sem hashtags dentro do texto da legenda.
+
+Gera também 8 a 12 hashtags relevantes, em minúsculas, no idioma ${lang}, sem o símbolo #.
+
+Responde apenas com este JSON, nada mais:
+{"variants":[{"tone":"direto","caption":"..."},{"tone":"caloroso","caption":"..."},{"tone":"narrativo","caption":"..."}],"hashtags":["...","..."]}`;
+  const raw = await askAI(system, user, 1400);
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error('A IA devolveu um formato inesperado — tenta outra vez');
+  }
+  if (!parsed || !Array.isArray(parsed.variants) || !Array.isArray(parsed.hashtags)) {
+    throw new Error('A IA devolveu um formato inesperado — tenta outra vez');
+  }
+  return parsed;
+}
+
+async function aiCaptionVariants() {
+  const btn = document.getElementById('btnAIVariants');
+  const old = btn.textContent; btn.disabled = true; btn.textContent = '…';
+  try {
+    aiVariantsState = await generateCaptionVariantsFor(state.lang);
+    renderAiVariantsPanel();
+  } catch (e) {
+    console.error(e);
+    toast((e.message || 'IA indisponível').slice(0, 80));
+  } finally { btn.disabled = false; btn.textContent = old; }
+}
+
+// Construído por DOM (createElement/textContent), nunca por template string com
+// dados vindos da IA — mesma regra de segurança aplicada à produção em massa.
+function renderAiVariantsPanel() {
+  const wrap = document.getElementById('aiVariantsWrap');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+
+  const variantsRow = document.createElement('div');
+  variantsRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;';
+  (aiVariantsState.variants || []).forEach((v) => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'btn btn-line';
+    chip.style.cssText = 'padding:5px 12px;font-size:0.7rem;';
+    const toneLabel = uiT('tone' + capitalizeTone(v.tone)) || v.tone;
+    chip.textContent = toneLabel + ' — ' + uiT('aiVariantsUseVariant');
+    chip.addEventListener('click', () => {
+      document.getElementById('caption').value = v.caption || '';
+      toast('✨ ' + toneLabel);
+    });
+    variantsRow.appendChild(chip);
+  });
+  wrap.appendChild(variantsRow);
+
+  if ((aiVariantsState.hashtags || []).length) {
+    const hlabel = document.createElement('div');
+    hlabel.style.cssText = 'font-size:0.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;';
+    hlabel.textContent = uiT('aiVariantsHashtagsLabel');
+    wrap.appendChild(hlabel);
+
+    const htext = aiVariantsState.hashtags.map(h => '#' + String(h).replace(/^#/, '')).join(' ');
+    const hbox = document.createElement('div');
+    hbox.style.cssText = 'font-size:0.76rem;line-height:1.5;padding:8px 10px;border:1px solid var(--line);border-radius:2px;margin-bottom:8px;word-break:break-word;';
+    hbox.textContent = htext;
+    wrap.appendChild(hbox);
+
+    const copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'btn btn-line';
+    copyBtn.style.cssText = 'padding:5px 12px;font-size:0.7rem;';
+    copyBtn.textContent = uiT('aiVariantsCopyHashtags');
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(htext).then(() => toast(uiT('aiVariantsCopied'))).catch(() => toast('Não foi possível copiar'));
+    });
+    wrap.appendChild(copyBtn);
+  }
+
+  wrap.classList.remove('hide');
+}
 
 
 // ═══════════════════════════════════════════════════════════════

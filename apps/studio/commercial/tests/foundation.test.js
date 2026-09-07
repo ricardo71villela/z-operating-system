@@ -110,12 +110,12 @@ test('web catalog reuses the frozen EUR prices and 3-day trial without provider 
   assert.deepEqual(resolveWebPlan('weekly'), {
     planCode: 'weekly',
     billingCadence: 'weekly',
-    commercialTargetPriceMinor: 599,
+    commercialTargetPriceMinor: 399,
     currency: 'EUR',
     trialDays: 3,
   });
-  assert.equal(resolveWebPlan('monthly').commercialTargetPriceMinor, 1499);
-  assert.equal(resolveWebPlan('annual').commercialTargetPriceMinor, 11999);
+  assert.equal(resolveWebPlan('monthly').commercialTargetPriceMinor, 999);
+  assert.equal(resolveWebPlan('annual').commercialTargetPriceMinor, 8999);
   assert.throws(() => resolveWebPlan('lifetime'), /WEB_PLAN_NOT_AUTHORIZED/);
 });
 

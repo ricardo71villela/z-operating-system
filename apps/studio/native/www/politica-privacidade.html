@@ -15,25 +15,29 @@
   ul { padding-left: 1.3em; }
   li { margin-bottom: 0.5em; }
   code { background: #f0f0ec; padding: 1px 5px; border-radius: 3px; font-size: 0.9em; }
+  a { color: #7a5c2e; }
 </style>
 </head>
 <body>
 
 <div class="draft-notice">
-  <strong>⚠️ Isto é um rascunho, não um documento legal final.</strong>
-  Foi escrito para descrever com precisão o que a app tecnicamente faz — mas precisa de ser revisto por um advogado
-  antes de ser publicado, sobretudo para confirmar a conformidade com o RGPD e com as regras da App Store/Play Store.
-  Preenche os campos assinalados a <span class="placeholder">vermelho</span> antes de publicar.
+  <strong>⚠️ Revisão jurídica recomendada antes de publicar.</strong>
+  Este documento descreve com precisão o que a app tecnicamente faz e reflete os dados legais fornecidos
+  (micro-entrepreneur em França). Falta ainda: (1) confirmar o número <span class="placeholder">SIRET</span>
+  assim que for atribuído; (2) confirmar se o fluxo de checkout captura explicitamente o consentimento de perda
+  do direito de retratação (ver secção 7); (3) confirmar a região de alojamento dos dados no Supabase para a
+  frase sobre transferências internacionais (secção 3).
 </div>
 
 <h1>Política de Privacidade</h1>
-<p class="meta">Z Studio · Última atualização: <span class="placeholder">[DATA]</span></p>
+<p class="meta">Z Studio · Última atualização: 7 de setembro de 2026</p>
 
 <h2>1. Quem somos</h2>
 <p>
-  O Z Studio é operado por <span class="placeholder">[NOME LEGAL / EMPRESA]</span>, com sede em
-  <span class="placeholder">[MORADA]</span>, contribuinte <span class="placeholder">[NIF]</span>.
-  Para questões sobre privacidade, contacta <span class="placeholder">[EMAIL DE CONTACTO]</span>.
+  O Z Studio é uma marca comercial operada por José Ricardo Coelho de Vilela, empresário em nome individual sob o
+  regime de micro-entrepreneur em França, com morada em Rue de la Plaine 204, 74500 Publier, França, SIRET
+  <span class="placeholder">a aguardar atribuição (registo em curso)</span>. Para questões sobre privacidade,
+  contacta <a href="mailto:hello@zstudio.space">hello@zstudio.space</a>.
 </p>
 
 <h2>2. O que a app faz com os teus dados</h2>
@@ -42,46 +46,71 @@
   <li><strong>Fotos e vídeos que carregas</strong> — nunca saem do teu dispositivo. Ficam guardados localmente no
     teu browser (através de uma tecnologia chamada IndexedDB) e nunca são enviados para nenhum servidor nosso.</li>
   <li><strong>Textos que escreves</strong> (título, preço, localização, características do produto) — também ficam
-    só no teu dispositivo, <em>exceto</em> quando usas explicitamente a funcionalidade "Legenda com IA" ou
-    "Traduzir para todos os idiomas". Nesse caso, esse texto (nunca as fotos) é enviado ao nosso servidor, que o
-    reencaminha para a Anthropic (o fornecedor do modelo de IA que gera a legenda) e devolve o resultado.</li>
-  <li><strong>Definições de marca</strong> (nome, cor, logótipo que carregues, site) — guardadas localmente, da
-    mesma forma.</li>
+    só no teu dispositivo, <em>exceto</em> quando usas explicitamente uma funcionalidade de inteligência artificial
+    ("Legenda com IA", "Variantes de tom e hashtags" ou "Traduzir para todos os idiomas"). Nesse caso, esse texto
+    (nunca as fotos) é enviado ao nosso servidor, que o reencaminha através do Vercel AI Gateway para a Anthropic
+    (o fornecedor do modelo de IA que gera o resultado) e devolve a resposta.</li>
+  <li><strong>Logótipo que carregues</strong> — guardado localmente, da mesma forma, e nunca enviado para nenhum
+    servidor nosso.</li>
+  <li><strong>Restantes definições de marca (kit de marca)</strong> — nome, cor, site, telefone, se mostrar marca
+    de água, idiomas ativos, e os rótulos da categoria/ficha associados a esse kit — ficam guardadas localmente,
+    e, <em>se tiveres sessão iniciada</em>, também na nossa base de dados Supabase, para poderes continuar a
+    trabalhar a partir de outro dispositivo com os mesmos kits de marca. Sem sessão iniciada, ficam só locais,
+    como antes. Nunca inclui o logótipo, que se mantém sempre só no dispositivo.</li>
+  <li><strong>Conta e subscrição</strong> — se criares conta, guardamos o teu email, um identificador de conta e o
+    estado da tua subscrição (plano ativo, datas de renovação/expiração, se estás em período de teste) numa base de
+    dados Supabase. Não guardamos password — o acesso é feito por código enviado ao teu email (OTP). Não guardamos
+    o número do token de compra bruto da Apple/Google/Stripe em armazenamento persistente.</li>
 </ul>
 
 <h2>3. Com quem partilhamos dados</h2>
 <ul>
-  <li><strong>Anthropic</strong> (fornecedor do modelo de IA) — recebe o texto que envias explicitamente para gerar
-    uma legenda. Não recebe fotos. Ver a política de privacidade da Anthropic em
-    <a href="https://www.anthropic.com/legal/privacy">anthropic.com/legal/privacy</a>.</li>
-  <li><strong><span class="placeholder">[FORNECEDOR DE ALOJAMENTO — ex.: Vercel/Netlify]</span></strong> — aloja a
-    aplicação; pode registar informação técnica básica de acesso (endereço IP, data/hora) por razões de segurança.</li>
+  <li><strong>Anthropic</strong> (fornecedor do modelo de IA, via Vercel AI Gateway) — recebe o texto que envias
+    explicitamente para gerar uma legenda, variantes de tom ou tradução. Não recebe fotos. Ver a política de
+    privacidade da Anthropic em <a href="https://www.anthropic.com/legal/privacy">anthropic.com/legal/privacy</a>.</li>
+  <li><strong>Vercel</strong> — aloja a aplicação e o runtime comercial/servidor, e serve de intermediário
+    (AI Gateway) para os pedidos de IA; pode registar informação técnica básica de acesso (endereço IP, data/hora)
+    por razões de segurança. Alguns destes fornecedores podem processar dados fora do Espaço Económico Europeu
+    (nomeadamente nos EUA); nesses casos aplicam-se salvaguardas contratuais RGPD (cláusulas contratuais-tipo).</li>
+  <li><strong>Supabase</strong> — guarda a conta, o estado de subscrição/direito de acesso, autentica o login por
+    código de email e, se tiveres sessão iniciada, os kits de marca (nome, cor, site, telefone, categoria/ficha —
+    nunca o logótipo).</li>
+  <li><strong>Resend</strong> — envia os emails transacionais da app (por exemplo, o código de acesso/login).</li>
+  <li><strong>Stripe, Apple (App Store/StoreKit) e Google (Play Billing)</strong> — processam o pagamento consoante
+    a plataforma usada. Ver secção 4.</li>
   <li>Não vendemos nem partilhamos dados pessoais para fins de publicidade.</li>
 </ul>
 
-<h2>4. Pagamentos <span class="placeholder">(se aplicável)</span></h2>
+<h2>4. Pagamentos</h2>
 <p>
-  Se subscreveres um plano pago, o processamento do pagamento é feito por
-  <span class="placeholder">[Stripe / outro processador]</span>, que trata diretamente os dados do cartão — nunca
-  vemos nem guardamos o número do teu cartão.
+  Se subscreveres um plano pago, o processamento do pagamento é feito por Stripe (Web/Microsoft), pela Apple
+  através do App Store (iOS) ou pela Google através do Google Play (Android), consoante a plataforma onde
+  subscreves. Estes processadores tratam diretamente os dados do cartão/conta de pagamento — nunca vemos nem
+  guardamos o número do teu cartão. Recebemos apenas a confirmação da subscrição e o seu estado (ativo, em teste,
+  cancelado, etc.).
 </p>
 
 <h2>5. Quanto tempo guardamos os dados</h2>
 <p>
-  As fotos, textos e definições de marca ficam guardados no teu dispositivo até os apagares — através do botão
+  As fotos, o logótipo e os textos ficam guardados no teu dispositivo até os apagares — através do botão
   "Limpar rascunho" dentro da app, ou ao limpar os dados de navegação do teu browser. Não temos acesso a esses
-  dados e, por isso, não os podemos apagar por ti remotamente.
+  dados e, por isso, não os podemos apagar por ti remotamente. Os dados de conta, subscrição e os kits de marca
+  sincronizados (email, estado de subscrição, kits de marca) são mantidos enquanto a conta existir; ao pedires o
+  encerramento da conta, apagamo-los, exceto o mínimo que sejamos legalmente obrigados a reter (por exemplo, para
+  efeitos fiscais/contabilísticos).
 </p>
 
 <h2>6. Os teus direitos</h2>
 <p>Ao abrigo do RGPD, tens direito a:</p>
 <ul>
-  <li><strong>Acesso e portabilidade</strong> — os teus dados já estão acessíveis a qualquer momento no teu próprio
-    dispositivo.</li>
-  <li><strong>Apagamento</strong> — usa o botão "Limpar rascunho" ou limpa os dados do site no teu browser.</li>
-  <li><strong>Informação</strong> — contacta-nos em <span class="placeholder">[EMAIL]</span> para qualquer dúvida.</li>
-  <li><strong>Reclamação</strong> — podes apresentar queixa junto da Comissão Nacional de Proteção de Dados (CNPD),
-    em <a href="https://www.cnpd.pt">cnpd.pt</a>.</li>
+  <li><strong>Acesso e portabilidade</strong> — os teus dados de criação já estão acessíveis a qualquer momento no
+    teu próprio dispositivo; os dados de conta podem ser pedidos em <a href="mailto:hello@zstudio.space">hello@zstudio.space</a>.</li>
+  <li><strong>Apagamento</strong> — usa o botão "Limpar rascunho" para os dados locais, ou pede o encerramento da
+    conta para os dados de subscrição.</li>
+  <li><strong>Retificação e oposição</strong> — contacta-nos em <a href="mailto:hello@zstudio.space">hello@zstudio.space</a>.</li>
+  <li><strong>Reclamação</strong> — sendo o Z Studio operado a partir de França, podes apresentar queixa junto da
+    CNIL (Commission Nationale de l'Informatique et des Libertés), em <a href="https://www.cnil.fr">cnil.fr</a>, ou
+    junto da autoridade de proteção de dados do teu próprio país de residência na UE.</li>
 </ul>
 
 <h2>7. Menores</h2>

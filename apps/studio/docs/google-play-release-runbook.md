@@ -12,7 +12,7 @@ Este runbook não autoriza deployment, mutação Supabase live nem publicação 
 - trial offer id: `trial-3d`
 - trial: 3 dias
 - moeda comercial alvo: EUR
-- preços alvo: weekly €5.99; monthly €14.99; annual €119.99
+- preços alvo: weekly €3.99; monthly €9.99; annual €89.99 (revisto em 2026-09-07 para ficar abaixo do Canva Pro/Adobe Express)
 - trial Z Studio: uma utilização lifetime global por pessoa em produção, transversal a Web/Apple/Google
 - Play Console não é autoridade para a elegibilidade global do trial; o servidor ZOS decide se envia `use_trial_offer=true`
 

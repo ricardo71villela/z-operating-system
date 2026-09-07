@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Politique de confidentialité — Z Studio</title>
+<style>
+  body { font-family: Georgia, serif; max-width: 720px; margin: 0 auto; padding: 40px 24px 80px; line-height: 1.7; color: #1a1a1a; background: #fdfdfb; }
+  h1 { font-size: 1.7rem; margin-bottom: 4px; }
+  h2 { font-size: 1.15rem; margin-top: 2.2em; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+  .meta { color: #666; font-size: 0.9rem; margin-bottom: 2em; }
+  .draft-notice { background: #fff3cd; border: 1px solid #e0c46c; border-radius: 6px; padding: 16px 20px; font-family: -apple-system, sans-serif; font-size: 0.92rem; margin-bottom: 2.5em; }
+  .draft-notice strong { display: block; margin-bottom: 6px; }
+  .placeholder { background: #fde8e8; padding: 1px 5px; border-radius: 3px; font-family: monospace; font-size: 0.9em; }
+  ul { padding-left: 1.3em; }
+  li { margin-bottom: 0.5em; }
+  code { background: #f0f0ec; padding: 1px 5px; border-radius: 3px; font-size: 0.9em; }
+  a { color: #7a5c2e; }
+</style>
+</head>
+<body>
+
+<div class="draft-notice">
+  <strong>⚠️ Relecture juridique recommandée avant publication.</strong>
+  Ce document reflète les informations légales fournies (micro-entrepreneur en France). Reste à confirmer :
+  (1) le numéro <span class="placeholder">SIRET</span> dès son attribution ; (2) si le parcours de paiement
+  recueille explicitement le consentement à la perte du droit de rétractation (voir section 7 des CGU) ; (3) la
+  région d'hébergement des données Supabase, pour préciser la phrase sur les transferts internationaux (section 3).
+</div>
+
+<h1>Politique de confidentialité</h1>
+<p class="meta">Z Studio · Dernière mise à jour : 7 septembre 2026</p>
+
+<h2>1. Qui sommes-nous</h2>
+<p>
+  Z Studio est une marque commerciale exploitée par José Ricardo Coelho de Vilela, entrepreneur individuel sous le
+  régime de micro-entrepreneur, domicilié au Rue de la Plaine 204, 74500 Publier, France, SIRET
+  <span class="placeholder">en cours d'attribution (immatriculation en cours)</span>. Pour toute question relative
+  à la confidentialité, contactez <a href="mailto:hello@zstudio.space">hello@zstudio.space</a>.
+</p>
+
+<h2>2. Ce que l'application fait de vos données</h2>
+<p>Z Studio a été conçu pour conserver le minimum de données en dehors de votre appareil. Concrètement :</p>
+<ul>
+  <li><strong>Photos et vidéos que vous importez</strong> — ne quittent jamais votre appareil. Elles sont
+    conservées localement dans votre navigateur (via une technologie appelée IndexedDB) et ne sont jamais
+    transmises à l'un de nos serveurs.</li>
+  <li><strong>Textes que vous saisissez</strong> (titre, prix, localisation, caractéristiques du produit) —
+    restent également uniquement sur votre appareil, <em>sauf</em> lorsque vous utilisez explicitement une
+    fonctionnalité d'intelligence artificielle (« Légende IA », « Variantes de ton et hashtags » ou
+    « Traduire dans toutes les langues »). Dans ce cas, ce texte (jamais les photos) est envoyé à notre serveur,
+    qui le retransmet via Vercel AI Gateway à Anthropic (le fournisseur du modèle d'IA qui génère le résultat) et
+    vous renvoie la réponse.</li>
+  <li><strong>Logo que vous importez</strong> — conservé localement, de la même manière, et jamais transmis à l'un
+    de nos serveurs.</li>
+  <li><strong>Autres paramètres de marque (kit de marque)</strong> — nom, couleur, site web, téléphone, affichage
+    du filigrane, langues actives, et les libellés de catégorie/fiche associés à ce kit — restent conservés
+    localement, et, <em>si vous êtes connecté</em>, également dans notre base de données Supabase, pour continuer
+    à travailler depuis un autre appareil avec les mêmes kits de marque. Sans connexion, ils restent uniquement
+    locaux, comme avant. N'inclut jamais le logo, qui reste toujours uniquement sur l'appareil.</li>
+  <li><strong>Compte et abonnement</strong> — si vous créez un compte, nous conservons votre email, un identifiant
+    de compte et l'état de votre abonnement (offre active, dates de renouvellement/expiration, période d'essai en
+    cours) dans une base de données Supabase. Nous ne conservons aucun mot de passe — l'accès se fait par un code
+    envoyé à votre email (OTP). Nous ne conservons pas le jeton d'achat brut Apple/Google/Stripe dans un
+    stockage persistant.</li>
+</ul>
+
+<h2>3. Avec qui partageons-nous des données</h2>
+<ul>
+  <li><strong>Anthropic</strong> (fournisseur du modèle d'IA, via Vercel AI Gateway) — reçoit le texte que vous
+    envoyez explicitement pour générer une légende, des variantes de ton ou une traduction. Ne reçoit jamais de
+    photos. Voir la politique de confidentialité d'Anthropic sur
+    <a href="https://www.anthropic.com/legal/privacy">anthropic.com/legal/privacy</a>.</li>
+  <li><strong>Vercel</strong> — héberge l'application et le runtime commercial/serveur, et sert d'intermédiaire
+    (AI Gateway) pour les requêtes d'IA ; peut enregistrer des informations techniques d'accès de base (adresse
+    IP, date/heure) à des fins de sécurité. Certains de ces prestataires peuvent traiter des données en dehors de
+    l'Espace économique européen (notamment aux États-Unis) ; dans ce cas, des garanties contractuelles RGPD
+    s'appliquent (clauses contractuelles types).</li>
+  <li><strong>Supabase</strong> — conserve le compte, l'état de l'abonnement/droit d'accès, authentifie la
+    connexion par code email et, si vous êtes connecté, les kits de marque (nom, couleur, site, téléphone,
+    catégorie/fiche — jamais le logo).</li>
+  <li><strong>Resend</strong> — envoie les emails transactionnels de l'application (par exemple, le code de
+    connexion).</li>
+  <li><strong>Stripe, Apple (App Store/StoreKit) et Google (Play Billing)</strong> — traitent le paiement selon la
+    plateforme utilisée. Voir section 4.</li>
+  <li>Nous ne vendons ni ne partageons de données personnelles à des fins publicitaires.</li>
+</ul>
+
+<h2>4. Paiements</h2>
+<p>
+  Si vous souscrivez une offre payante, le paiement est traité par Stripe (Web/Microsoft), par Apple via l'App
+  Store (iOS) ou par Google via Google Play (Android), selon la plateforme utilisée. Ces prestataires traitent
+  directement les données de carte/moyen de paiement — nous ne voyons ni ne conservons jamais votre numéro de
+  carte. Nous recevons uniquement la confirmation de l'abonnement et son statut (actif, en essai, annulé, etc.).
+</p>
+
+<h2>5. Durée de conservation des données</h2>
+<p>
+  Les photos, le logo et les textes restent sur votre appareil jusqu'à ce que vous les supprimiez — via le
+  bouton « Effacer le brouillon » dans l'application, ou en effaçant les données de navigation de votre navigateur.
+  Nous n'avons pas accès à ces données et ne pouvons donc pas les supprimer à votre place à distance. Les données
+  de compte, d'abonnement et les kits de marque synchronisés (email, statut d'abonnement, kits de marque) sont
+  conservées tant que le compte existe ; sur demande de clôture du compte, nous les supprimons, sauf le minimum que
+  nous serions légalement tenus de conserver (par exemple à des fins fiscales/comptables).
+</p>
+
+<h2>6. Vos droits</h2>
+<p>En vertu du RGPD, vous disposez des droits suivants :</p>
+<ul>
+  <li><strong>Accès et portabilité</strong> — vos données de création sont déjà accessibles à tout moment sur
+    votre propre appareil ; les données de compte peuvent être demandées à
+    <a href="mailto:hello@zstudio.space">hello@zstudio.space</a>.</li>
+  <li><strong>Suppression</strong> — utilisez le bouton « Effacer le brouillon » pour les données locales, ou
+    demandez la clôture du compte pour les données d'abonnement.</li>
+  <li><strong>Rectification et opposition</strong> — contactez-nous à
+    <a href="mailto:hello@zstudio.space">hello@zstudio.space</a>.</li>
+  <li><strong>Réclamation</strong> — Z Studio étant exploité depuis la France, vous pouvez déposer une réclamation
+    auprès de la CNIL (Commission Nationale de l'Informatique et des Libertés), sur
+    <a href="https://www.cnil.fr">cnil.fr</a>, ou auprès de l'autorité de protection des données de votre propre
+    pays de résidence dans l'UE.</li>
+</ul>
+
+<h2>7. Mineurs</h2>
+<p>Z Studio est destiné aux utilisateurs âgés de 18 ans ou plus, ou de l'âge minimum de consentement numérique dans votre pays.</p>
+
+<h2>8. Modifications de cette politique</h2>
+<p>Nous pouvons mettre à jour cette politique. Les modifications importantes seront signalées dans l'application.</p>
+
+</body>
+</html>

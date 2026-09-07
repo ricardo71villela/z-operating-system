@@ -461,6 +461,26 @@ try {
     pickEnergyRating('B'); // clicar outra vez desmarca
     await sleep(50);
     assert('clicar na mesma classe outra vez desmarca', state.energyRating === '');
+
+    // escala de certificado energético não é igual em todo o lado — confirmado
+    // numa auditoria de internacionalização (PT=A+..F, FR/ES=A..G, DE=A+..H,
+    // IT=A4..G). Mostrar a escala errada impede representar a classe real.
+    assert('escala PT vai de A+ a F, sem G', energyLevelsFor('pt').includes('A+') && !energyLevelsFor('pt').includes('G'));
+    assert('escala FR vai de A a G, sem A+', energyLevelsFor('fr').includes('G') && !energyLevelsFor('fr').includes('A+'));
+    assert('escala ES vai de A a G, sem A+', energyLevelsFor('es').includes('G') && !energyLevelsFor('es').includes('A+'));
+    assert('escala DE vai de A+ a H', energyLevelsFor('de').includes('A+') && energyLevelsFor('de').includes('H'));
+    assert('escala IT subdivide o topo em A4/A3/A2/A1', energyLevelsFor('it').includes('A4') && energyLevelsFor('it').includes('A1'));
+    const prevLangEnergy = state.lang;
+    state.lang = 'fr';
+    renderCategoryExtras();
+    await sleep(50);
+    const extrasHtmlFr = document.getElementById('categoryExtras').innerHTML;
+    assert('interface em francês mostra a classe G como opção', extrasHtmlFr.includes("pickEnergyRating('G')"), extrasHtmlFr);
+    assert('interface em francês não mostra A+ (não existe em França)', !extrasHtmlFr.includes('A+'), extrasHtmlFr);
+    state.lang = prevLangEnergy;
+    renderCategoryExtras();
+    await sleep(50);
+
     pickEnergyRating('A+');
 
     onSpecChange(0, '120'); // área interior = campo 0
@@ -682,8 +702,7 @@ try {
     // ENDPOINT DE IA SPLIT-BACKEND — Web e native usam a autoridade absoluta
     // validada pelo release contract; não há fallback relativo neste build.
     assert('IS_NATIVE_PLATFORM existe e é falso neste teste (Chromium comum, não Capacitor)', IS_NATIVE_PLATFORM === false);
-    assert('sem Capacitor, o endpoint usa o backend AI split', AI_ENDPOINT === 'https://z-studio-platform-seven.vercel.app/api/ai', AI_ENDPOINT);
-    assert('a constante nativa aponta para o mesmo backend AI split', AI_API_BASE_URL_NATIVE === AI_ENDPOINT, AI_API_BASE_URL_NATIVE);
+    assert('o endpoint de IA usa sempre o backend AI split (mesmo URL absoluto em web e nativo)', AI_ENDPOINT === 'https://z-studio-platform-seven.vercel.app/api/ai', AI_ENDPOINT);
     // simula contexto nativo para confirmar que a deteção permanece independente do URL
     window.Capacitor = { isNativePlatform: () => true };
     const wouldBeNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
@@ -1039,6 +1058,32 @@ try {
     await aiCaption();
     assert('legenda com IA falha graciosamente sem backend', true);
     assert('botão de IA volta a ficar ativo', document.getElementById('btnAICaption').disabled === false);
+
+    await aiCaptionVariants();
+    assert('hashtags/variantes de tom falha graciosamente sem backend', true);
+    assert('botão de hashtags/tons volta a ficar ativo', document.getElementById('btnAIVariants').disabled === false);
+    assert('painel de variantes continua escondido sem backend', document.getElementById('aiVariantsWrap').classList.contains('hide'));
+
+    // simula uma resposta bem formada da IA, sem depender de rede/backend real
+    const originalAskAI = window.askAI;
+    window.askAI = async () => JSON.stringify({
+      variants: [
+        { tone: 'direto', caption: 'Legenda direta de teste.' },
+        { tone: 'caloroso', caption: 'Legenda calorosa de teste.' },
+        { tone: 'narrativo', caption: 'Legenda narrativa de teste.' },
+      ],
+      hashtags: ['teste', 'zstudio'],
+    });
+    try {
+      state.title = 'Título de teste';
+      await aiCaptionVariants(); await sleep(50);
+      assert('painel de variantes aparece com resposta válida', !document.getElementById('aiVariantsWrap').classList.contains('hide'));
+      const chips = document.querySelectorAll('#aiVariantsWrap button');
+      assert('mostra um botão por variante + copiar hashtags', chips.length === 4);
+      chips[0].click();
+      assert('clicar numa variante substitui a legenda', document.getElementById('caption').value === 'Legenda direta de teste.');
+      assert('hashtags mostradas sem repetir #', document.getElementById('aiVariantsWrap').textContent.includes('#teste #zstudio'));
+    } finally { window.askAI = originalAskAI; }
   } catch (e) { assert('BLOCO 15 (IA sem backend) não rebentou', false, e.message + ' | ' + e.stack); }
 
   try {
@@ -1076,6 +1121,32 @@ try {
   } catch (e) { assert('BLOCO 19 (tradução real da interface) não rebentou', false, e.message + ' | ' + e.stack); }
 
   try {
+    // os links de rodapé para os documentos legais têm de apontar para a versão do
+    // idioma certo (PT/FR traduzidos; outros idiomas caem para PT até haver tradução)
+    setLang('pt');
+    await sleep(50);
+    const termsPt = document.getElementById('footerTermsLink').getAttribute('href');
+    const privacyPt = document.getElementById('footerPrivacyLink').getAttribute('href');
+    assert('rodapé em português aponta para termos-de-servico.html', termsPt === 'termos-de-servico.html', termsPt);
+    assert('rodapé em português aponta para politica-privacidade.html', privacyPt === 'politica-privacidade.html', privacyPt);
+
+    setLang('fr');
+    await sleep(50);
+    const termsFr = document.getElementById('footerTermsLink').getAttribute('href');
+    const privacyFr = document.getElementById('footerPrivacyLink').getAttribute('href');
+    assert('rodapé em francês aponta para termos-de-servico-fr.html', termsFr === 'termos-de-servico-fr.html', termsFr);
+    assert('rodapé em francês aponta para politica-privacidade-fr.html', privacyFr === 'politica-privacidade-fr.html', privacyFr);
+
+    setLang('en');
+    await sleep(50);
+    const termsEn = document.getElementById('footerTermsLink').getAttribute('href');
+    assert('rodapé em inglês cai para a versão em português (ainda sem tradução própria)', termsEn === 'termos-de-servico.html', termsEn);
+
+    setLang('pt');
+    await sleep(50);
+  } catch (e) { assert('BLOCO 20 (rodapé legal muda de idioma) não rebentou', false, e.message + ' | ' + e.stack); }
+
+  try {
     // produção em massa: título/preço diferentes por foto (catálogo, não só o mesmo item)
     openBulk(); await sleep(100);
     const ids = Object.keys(bulkState.itemData);
@@ -1106,6 +1177,38 @@ try {
     await deleteBrandKit(); await sleep(100);
     window.confirm = originalConfirm;
   } catch (e) { assert('BLOCO 21 (kit de marca com categoria) não rebentou', false, e.message + ' | ' + e.stack); }
+
+  try {
+    // sincronização de kits de marca com a conta (Supabase) — sem sessão ativa
+    // (como nos testes, ninguém tem sessão iniciada), tudo isto tem de continuar a
+    // funcionar só localmente, sem lançar exceções nem bloquear guardar/apagar.
+    assert('window.ZStudioAuth expõe brandKits.push/pull/remove',
+      typeof window.ZStudioAuth?.brandKits?.push === 'function' &&
+      typeof window.ZStudioAuth?.brandKits?.pull === 'function' &&
+      typeof window.ZStudioAuth?.brandKits?.remove === 'function', typeof window.ZStudioAuth);
+
+    const originalPrompt2 = window.prompt;
+    window.prompt = () => 'Kit Sincronização Teste';
+    await saveBrandKit(); await sleep(150); // não deve lançar mesmo sem sessão (push falha em silêncio)
+    window.prompt = originalPrompt2;
+    assert('guardar kit sem sessão não lança exceção', true, '');
+
+    const kitsAfterSave = (await idbGet('kits').catch(() => null)) || {};
+    assert('kit ficou guardado localmente apesar de push falhar em silêncio',
+      !!kitsAfterSave['Kit Sincronização Teste'], JSON.stringify(Object.keys(kitsAfterSave)));
+
+    await syncBrandKitsFromCloud(); await sleep(100); // pull sem sessão devolve null → não mexe nos kits locais
+    const kitsAfterSync = (await idbGet('kits').catch(() => null)) || {};
+    assert('sincronizar sem sessão não apaga nem corrompe os kits locais',
+      !!kitsAfterSync['Kit Sincronização Teste'], JSON.stringify(Object.keys(kitsAfterSync)));
+
+    const originalConfirm2 = window.confirm;
+    window.confirm = () => true;
+    document.getElementById('brandKitSelect').value = 'Kit Sincronização Teste';
+    await deleteBrandKit(); await sleep(100); // não deve lançar mesmo sem sessão (remove falha em silêncio)
+    window.confirm = originalConfirm2;
+    assert('apagar kit sem sessão não lança exceção', true, '');
+  } catch (e) { assert('BLOCO 22 (sincronização de kits de marca) não rebentou', false, e.message + ' | ' + e.stack); }
 
   try {
     // divs clicáveis (painéis) têm de responder ao teclado, não só ao rato

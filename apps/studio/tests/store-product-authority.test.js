@@ -35,19 +35,19 @@ function exactKeys(value, expected) {
 
 const expectedPlans = {
   weekly: {
-    priceMinor: 599,
+    priceMinor: 399,
     appleProductId:
       'com.zoperatingsystem.zstudio.subscription.weekly',
     googleBasePlanId: 'weekly'
   },
   monthly: {
-    priceMinor: 1499,
+    priceMinor: 999,
     appleProductId:
       'com.zoperatingsystem.zstudio.subscription.monthly',
     googleBasePlanId: 'monthly'
   },
   annual: {
-    priceMinor: 11999,
+    priceMinor: 8999,
     appleProductId:
       'com.zoperatingsystem.zstudio.subscription.annual',
     googleBasePlanId: 'annual'
