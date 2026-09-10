@@ -12,12 +12,9 @@ Gerado a partir do pipeline em
 Os dados (BAN, DVF, DPE ADEME, Cadastre, Géorisques, RNB) estão incorporados
 diretamente no HTML (blobs base64) — não há chamadas a APIs em runtime.
 
-**Estado desta exportação:** reflete a correção da cobertura de terreno
-(cadastre, 85,5%→99,9%). A correção da cobertura de DPE (repli spatial com
-filtro de precisão de geocodificação) foi implementada no pipeline mas ainda
-não foi re-executada de ponta a ponta nesta exportação — ver
-`claude/auditoria-radar-leman-2026-09-07.md` no projeto ZOS para o estado
-detalhado.
+**Estado desta exportação:** ver `claude/auditoria-radar-leman-2026-09-07.md`
+no projeto ZOS para o estado detalhado e o histórico de correções (terreno,
+DPE, janela DVF, limiares de prioridade, andar/complemento para apartamentos).
 
 ## Deploy no Vercel
 
@@ -32,3 +29,22 @@ Esta pasta não tem build step. No Vercel:
 Para atualizar o site depois de uma nova execução do pipeline, basta
 substituir este `index.html` e fazer `git push` — o Vercel fará redeploy
 automaticamente.
+
+## Domínio próprio: radar-immobilier.online
+
+Domínio já comprado (10/set). Para o ligar ao projeto Vercel:
+
+1. No dashboard Vercel, abrir o projeto do Radar Léman → **Settings → Domains**.
+2. Adicionar `radar-immobilier.online` (e, se quiseres, `www.radar-immobilier.online`).
+3. O Vercel mostra os registos DNS a criar no sítio onde o domínio foi
+   comprado — normalmente um registo `A` (para o domínio de raiz) a apontar
+   para `76.76.21.21`, e/ou um `CNAME` (para `www`) a apontar para
+   `cname.vercel-dns.com`. Os valores exatos aparecem sempre no ecrã do
+   Vercel no momento de adicionar o domínio — usar esses, não os daqui.
+4. Depois de criar os registos no painel do registador do domínio, o Vercel
+   valida automaticamente (pode demorar de minutos a algumas horas,
+   conforme a propagação DNS) e emite o certificado HTTPS sozinho.
+
+Até o domínio próprio estar validado, o site continua acessível em
+`https://radar-leman.vercel.app/` — os dois endereços passam a apontar para
+o mesmo deploy depois do passo 4.
