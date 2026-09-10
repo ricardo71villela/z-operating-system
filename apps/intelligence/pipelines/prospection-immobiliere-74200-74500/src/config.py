@@ -48,7 +48,13 @@ BAN_DEPARTEMENT_URL = (
 # retirez-la ici. NE PAS ajouter l'annee en cours si elle n'est que
 # partiellement publiee : ca fausserait price_index.py (une demi-annee de
 # ventes n'est pas comparable a une annee complete).
-DVF_YEARS = list(range(2021, 2026))
+#
+# MISE A JOUR (2026-09-10) : fenetre elargie de 2021-2025 a 2019-2025 sur
+# demande explicite (davantage de biens recemment en vente a capter, avec
+# terrain + surface desormais fiables pour les identifier). Sans risque :
+# si 2019/2020 sont encore indisponibles, ingest_dvf.py les ignore
+# silencieusement et on retombe sur la fenetre precedente.
+DVF_YEARS = list(range(2019, 2026))
 DVF_URL_TEMPLATE = (
     "https://files.data.gouv.fr/geo-dvf/latest/csv/{year}/departements/"
     + DEPARTEMENT + ".csv.gz"
@@ -84,27 +90,46 @@ DPE_SLEEP = 0.15              # respecte la limite de 10 appels/s
 # jamais moins -> un seuil "POTENTIEL_MOYEN" a 2 ans rend le segment
 # POTENTIEL_FAIBLE structurellement vide (observe en execution reelle).
 #
-# Les seuils sont donc calcules sur la plage d'anciennete REELLEMENT
-# atteignable par une vente du jeu DVF, aujourd'hui :
-#   ANS_MIN_ATTEIGNABLE = annee_courante - max(DVF_YEARS)  (vente la + recente possible)
-#   ANS_MAX_ATTEIGNABLE = annee_courante - min(DVF_YEARS)  (vente la + ancienne du jeu)
-# et positionnes STRICTEMENT au-dessus d'ANS_MIN_ATTEIGNABLE, pour que les
-# trois segments restent atteignables meme avec le decalage de publication.
+# PIEGE HISTORIQUE (v3, decouvert 2026-09-10) : calculer ANS_MIN/MAX_ATTEIGNABLE
+# a partir de DVF_YEARS (la plage QU'ON TENTE de telecharger) plutot que des
+# annees REELLEMENT obtenues echoue silencieusement des que ingest_dvf.py
+# ignore une annee indisponible (ce qu'il fait deliberement, sans jamais
+# arreter le pipeline — voir son except requests.RequestException). Exemple
+# concret : DVF_YEARS = 2019-2025, mais 2019/2020 renvoient 404 en pratique
+# -> les seuils seraient calcules sur une fenetre de 7 ans qui n'existe pas
+# reellement dans dvf_74200_74500.csv (5 ans obtenus), biaisant TOUS les
+# seuils vers le haut sans qu'aucune alerte ne se declenche (valider_seuils
+# comparait la meme hypothese fausse des deux cotes).
+#
+# CORRECTION : les seuils ne sont plus des constantes calculees a l'import
+# de ce module (donc AVANT tout telechargement reel), mais une FONCTION que
+# segment.py appelle APRES avoir charge dvf_74200_74500.csv, avec les
+# annees min/max REELLEMENT presentes dans le fichier (dvf["annee_mutation"]).
+# DVF_YEARS reste la plage tentee (utile a ingest_dvf.py et a la documentation)
+# mais n'entre plus dans le calcul des seuils.
 import datetime as _dt
 
 _ANNEE_COURANTE = _dt.date.today().year
-ANS_MIN_ATTEIGNABLE = _ANNEE_COURANTE - max(DVF_YEARS)
-ANS_MAX_ATTEIGNABLE = _ANNEE_COURANTE - min(DVF_YEARS)
-FENETRE_DVF_ANS = ANS_MAX_ATTEIGNABLE - ANS_MIN_ATTEIGNABLE
-
-SEGMENT_THRESHOLDS = {
-    # Aucune vente connue, ou vente en tout debut de fenetre
-    "POTENTIEL_ELEVE": ANS_MIN_ATTEIGNABLE + max(2, round(FENETRE_DVF_ANS * 0.70)),
-    "POTENTIEL_MOYEN": ANS_MIN_ATTEIGNABLE + max(1, round(FENETRE_DVF_ANS * 0.40)),
-}
 
 
-def valider_seuils():
+def compute_segment_thresholds(annee_dvf_min_reelle, annee_dvf_max_reelle):
+    """Calcule les seuils de segmentation a partir des annees REELLEMENT
+    presentes dans le DVF charge (pas de la plage seulement tentee au
+    telechargement — voir piege v3 ci-dessus).
+
+    Retourne (seuils: dict, ans_min_atteignable: int, ans_max_atteignable: int).
+    """
+    ans_min = _ANNEE_COURANTE - annee_dvf_max_reelle
+    ans_max = _ANNEE_COURANTE - annee_dvf_min_reelle
+    fenetre = ans_max - ans_min
+    seuils = {
+        "POTENTIEL_ELEVE": ans_min + max(2, round(fenetre * 0.70)),
+        "POTENTIEL_MOYEN": ans_min + max(1, round(fenetre * 0.40)),
+    }
+    return seuils, ans_min, ans_max
+
+
+def valider_seuils(seuils, ans_min_atteignable, ans_max_atteignable):
     """Verifie que chaque seuil reste dans la plage reellement atteignable.
 
     Deux garde-fous : POTENTIEL_ELEVE ne doit pas depasser l'anciennete
@@ -114,16 +139,16 @@ def valider_seuils():
     decalage de publication du DVF).
     """
     pbs = []
-    if SEGMENT_THRESHOLDS["POTENTIEL_ELEVE"] > ANS_MAX_ATTEIGNABLE:
+    if seuils["POTENTIEL_ELEVE"] > ans_max_atteignable:
         pbs.append(
-            f"POTENTIEL_ELEVE ({SEGMENT_THRESHOLDS['POTENTIEL_ELEVE']} ans) "
-            f"> anciennete maximale du jeu DVF ({ANS_MAX_ATTEIGNABLE} ans)"
+            f"POTENTIEL_ELEVE ({seuils['POTENTIEL_ELEVE']} ans) "
+            f"> anciennete maximale du jeu DVF ({ans_max_atteignable} ans)"
         )
-    if SEGMENT_THRESHOLDS["POTENTIEL_MOYEN"] <= ANS_MIN_ATTEIGNABLE:
+    if seuils["POTENTIEL_MOYEN"] <= ans_min_atteignable:
         pbs.append(
-            f"POTENTIEL_MOYEN ({SEGMENT_THRESHOLDS['POTENTIEL_MOYEN']} ans) "
+            f"POTENTIEL_MOYEN ({seuils['POTENTIEL_MOYEN']} ans) "
             f"<= anciennete minimale atteignable aujourd'hui "
-            f"({ANS_MIN_ATTEIGNABLE} ans, decalage de publication du DVF) "
+            f"({ans_min_atteignable} ans, decalage de publication du DVF) "
             f"- POTENTIEL_FAIBLE resterait vide"
         )
     return pbs
@@ -152,6 +177,12 @@ SCORING = {
     "construit_avant_1948":     15,
     "construit_1948_1974":      10,
     "construit_1975_1999":       5,
+    # MISE A JOUR (2026-09-10) : nouvel echelon 2000-2016 sur demande
+    # explicite ("tous les biens construits jusqu'a 2016 inclus"). Avant
+    # cette mise a jour, tout bati >= 2000 recevait 0 point d'anciennete —
+    # ce nouvel echelon comble l'ecart avec un bonus modeste (moins que
+    # 1975-1999, coherent avec la decroissance des paliers precedents).
+    "construit_2000_2016":       2,
 
     # Maison individuelle : mandat généralement plus rémunérateur
     "type_maison":              10,
@@ -164,6 +195,77 @@ SCORING = {
 
 TERRAIN_SEUIL_GRAND = 1000
 TERRAIN_SEUIL_MOYEN = 500
+
+# ---------------------------------------------------------------------------
+# PLAFOND DE PLAUSIBILITE DU TERRAIN — audit critique 2026-09-07
+#
+# BUG CORRIGE : le bonus de terrain et l'argument de vente associe
+# ("potentiel de valorisation, extension, division parcellaire") etaient
+# jusqu'ici attribues des qu'une parcelle cadastrale faisait >= 500 m²,
+# SANS VERIFIER LE TYPE DE BIEN NI PLAFONNER LA TAILLE. Consequence
+# constatee sur les donnees reelles : 142 appartements recevaient l'argument
+# "votre terrain a un potentiel d'extension" — non-sens juridique pour une
+# partie commune de copropriete — et des parcelles de plusieurs DIZAINES
+# D'HECTARES (jusqu'a 227 ha sur une seule adresse a Novel) etaient
+# attribuees a une seule morada, resultat quasi certain d'un point BAN
+# tombant dans une parcelle agricole/forestiere/d'alpage indivise en zone de
+# montagne, pas dans le jardin prive de quelqu'un. Le bonus contaminait
+# 85 % de la liste prioritaire (voir _pts_terrain dans scoring.py et
+# add_terrain_argument dans argumentaire.py).
+#
+# Double garde-fou desormais applique aux DEUX endroits (score ET argument) :
+#   1. Reserve aux MAISONS (type_bien) — jamais aux appartements ni aux
+#      biens de type inconnu, qui n'ont individuellement aucun droit sur le
+#      terrain meme s'il est grand.
+#   2. Plafonne a TERRAIN_SURFACE_PLAUSIBLE_MAX : au-dela, la parcelle est
+#      presque toujours collective/agricole/d'alpage, pas un jardin prive —
+#      l'attribuer a une seule adresse est un artefact du rapprochement
+#      point-dans-polygone (cadastre.data.gouv.fr), pas un vrai signal.
+TERRAIN_SURFACE_PLAUSIBLE_MAX = 5000
+
+# ---------------------------------------------------------------------------
+# PLAGE DE PLAUSIBILITE DU PRIX AU M² — audit critique 2026-09-07
+#
+# BUG CORRIGE : le prix de derniere vente affiche par morada (segment.py)
+# n'avait aucun filtre de plausibilite, contrairement a la grille de prix
+# (pricing.py) et aux statistiques de marche (market_stats.py) qui, elles,
+# excluaient deja les valeurs hors de cette plage. Consequence constatee :
+# 233 moradas affichaient une mais-value implausible (jusqu'a +880 % ou
+# -94 % en 3-5 ans) — cause probable : ventes en nue-propriete entre
+# proches (prix tres inferieur au marche, le vendeur gardant l'usufruit),
+# mutations multi-lots mal ventilees, ou erreurs de saisie DVF (ex. une
+# maison de 64 m² "vendue" 4 700 000 € = 73 438 €/m²).
+#
+# Ces bornes sont maintenant PARTAGEES entre market_stats.py, pricing.py et
+# segment.py (au lieu d'etre dupliquees localement dans chacun), pour que
+# le prix par morada individuelle suive exactement la meme regle que les
+# agregats.
+PRIX_M2_PLAUSIBLE_MIN = 500
+PRIX_M2_PLAUSIBLE_MAX = 20000
+
+# ---------------------------------------------------------------------------
+# PLAFOND DE PLAUSIBILITE DE LA MAIS-VALUE — audit critique 2026-09-07
+#
+# BUG RESIDUEL apres le filtre de prix ci-dessus : un prix de vente peut
+# etre individuellement plausible (ex. 1 307 €/m², une decote normale pour
+# un bien a renover ou une vente familiale) et pourtant produire une
+# mais-value calculee absurde une fois compare a l'estimation actuelle —
+# ex. +280 % en 4 ans, ce qu'aucun marche immobilier local ne fait. Le
+# filtre de PRIX (borne le prix lui-meme) et celui-ci (borne la
+# PROGRESSION calculee) attrapent donc deux manifestations differentes du
+# meme risque : un ecart de prix qui, individuellement, passe sous le
+# radar d'un simple plancher/plafond en €/m².
+#
+# Sur une fenetre DVF de quelques annees, meme un marche tres dynamique
+# n'ajoute normalement pas plus de 100-150 % de valeur, et un bien ne perd
+# pas plus de 50-60 % hors sinistre/travaux majeurs (non documentes ici).
+# Au-dela, on n'affiche plus l'argument de plus-value PERSONNELLE (il
+# retombe alors automatiquement sur l'argument de TENDANCE DE MARCHE
+# collective, deja prevu par argumentaire.py::add_market_trend_argument) —
+# mais on garde valeur_estimee_actuelle, qui ne depend pas du prix d'achat
+# et reste un fait independant.
+PLUS_VALUE_PCT_PLAUSIBLE_MAX = 150
+PLUS_VALUE_PCT_PLAUSIBLE_MIN = -60
 
 # ---------------------------------------------------------------------------
 # POINTS DE SURFACE ET DE NOMBRE DE PIECES — BAREME CONTINU
@@ -187,3 +289,21 @@ PIECES_PTS_MAX = 4
 
 # Classes DPE considérées comme "passoire thermique"
 PASSOIRES = {"E", "F", "G"}
+
+# ---------------------------------------------------------------------------
+# RAPPROCHEMENT SPATIAL (REPLI) — voir segment.py::spatial_fallback_match
+#
+# Certaines communes rurales ont renumerote leur voirie (numerotation
+# metrique / adressage rural) depuis les ventes DVF historiques : le nom de
+# voie normalise concorde toujours, mais le numero de rue a change pour la
+# meme maison, et le rapprochement par cle (numero, voie) echoue alors meme
+# que la vente existe (constate a 0,1% d'appariement sur Anthy-sur-Leman,
+# contre 5-24% ailleurs, alors que 938 ventes DVF y sont bien enregistrees).
+#
+# SPATIAL_MATCH_RADIUS_M borne le repli par proximite geographique : au-dela
+# de cette distance entre l'adresse BAN et la mutation DVF la plus proche
+# (meme commune), on considere qu'il s'agit probablement d'un autre
+# batiment et on laisse le champ vide plutot que de risquer un faux
+# rapprochement. 40 m couvre une renumerotation de voirie sans confondre
+# deux parcelles voisines distinctes.
+SPATIAL_MATCH_RADIUS_M = 40

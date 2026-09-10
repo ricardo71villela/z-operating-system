@@ -14,16 +14,20 @@ import os
 import numpy as np
 import pandas as pd
 
-from config import ALL_COMMUNES, CODE_POSTAL_BY_INSEE
+from config import (ALL_COMMUNES, CODE_POSTAL_BY_INSEE,
+                    PRIX_M2_PLAUSIBLE_MIN, PRIX_M2_PLAUSIBLE_MAX)
 from price_index import build_price_index, apply_indexation
 
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "output")
 
 # Bornes de plausibilite : ecarte les mutations aberrantes (viager, lots
 # multiples mal ventiles, cessions a l'euro symbolique) qui faussent les
-# moyennes sur les petites communes.
-PRIX_M2_MIN = 500
-PRIX_M2_MAX = 20000
+# moyennes sur les petites communes. Partagees avec pricing.py et
+# segment.py (config.py) pour que l'agrege et le prix par morada
+# individuelle suivent exactement la meme regle — voir la note dans
+# config.py (audit critique 2026-09-07).
+PRIX_M2_MIN = PRIX_M2_PLAUSIBLE_MIN
+PRIX_M2_MAX = PRIX_M2_PLAUSIBLE_MAX
 SURFACE_MIN = 9
 
 

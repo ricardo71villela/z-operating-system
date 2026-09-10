@@ -39,7 +39,8 @@ import os
 import numpy as np
 import pandas as pd
 
-from config import ALL_COMMUNES, CODE_POSTAL_BY_INSEE
+from config import (ALL_COMMUNES, CODE_POSTAL_BY_INSEE,
+                    PRIX_M2_PLAUSIBLE_MIN, PRIX_M2_PLAUSIBLE_MAX)
 from normalize import normalize_voie, normalize_numero
 from price_index import build_price_index, apply_indexation
 
@@ -54,7 +55,10 @@ MIN_SALES_FOR_COEF = 15
 # En dessous, une rue n'est pas publiee comme reference autonome
 MIN_SALES_STREET_DISPLAY = 3
 
-PRIX_M2_MIN, PRIX_M2_MAX, SURFACE_MIN = 500, 20000, 9
+# Bornes partagees avec market_stats.py et segment.py (config.py) — voir la
+# note dans config.py (audit critique 2026-09-07).
+PRIX_M2_MIN, PRIX_M2_MAX = PRIX_M2_PLAUSIBLE_MIN, PRIX_M2_PLAUSIBLE_MAX
+SURFACE_MIN = 9
 
 PERIODES = [
     ("avant_1948",  -np.inf, 1948),

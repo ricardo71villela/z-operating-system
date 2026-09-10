@@ -32,6 +32,9 @@ import math
 import numpy as np
 import pandas as pd
 
+from config import (TERRAIN_SURFACE_PLAUSIBLE_MAX,
+                    PLUS_VALUE_PCT_PLAUSIBLE_MAX, PLUS_VALUE_PCT_PLAUSIBLE_MIN)
+
 CURRENT_YEAR = datetime.date.today().year
 
 # Calendrier d'interdiction de mise en location (loi Climat et Resilience)
@@ -73,8 +76,24 @@ def add_plus_value(df):
 
     ecart = valeur_now - prix_achat
     valide = prix_achat.notna() & valeur_now.notna() & (prix_achat > 0)
-    df["plus_value_eur"] = ecart.where(valide).round(-2)
-    df["plus_value_pct"] = ((ecart / prix_achat * 100).where(valide)).round(1)
+    pct_brut = (ecart / prix_achat * 100).where(valide)
+
+    # Garde-fou (audit 2026-09-07) : un prix de vente peut etre
+    # individuellement plausible et pourtant produire une progression
+    # absurde une fois compare a l'estimation actuelle (ex. +280 % en 4
+    # ans — aucun marche local ne fait ca). On n'affiche alors PAS la
+    # mais-value personnelle : add_market_trend_argument (appele juste
+    # apres) prendra le relais avec un argument de tendance collective.
+    plausible = pct_brut.between(PLUS_VALUE_PCT_PLAUSIBLE_MIN, PLUS_VALUE_PCT_PLAUSIBLE_MAX)
+    n_implausible = int((valide & ~plausible).sum())
+    if n_implausible:
+        print(f"  Mais-value écartée (progression hors plage "
+              f"{PLUS_VALUE_PCT_PLAUSIBLE_MIN:+d} % / {PLUS_VALUE_PCT_PLAUSIBLE_MAX:+d} %, "
+              f"malgré un prix de vente individuellement plausible) : "
+              f"{n_implausible:,} adresses — repli sur la tendance de marché collective.")
+
+    df["plus_value_eur"] = ecart.where(valide & plausible).round(-2)
+    df["plus_value_pct"] = pct_brut.where(valide & plausible).round(1)
     df["duree_detention_ans"] = (CURRENT_YEAR - annee).where(annee.notna())
 
     def argument(r):
@@ -181,17 +200,30 @@ def add_terrain_argument(df):
     Reste dans sa propre colonne (argument_terrain), separee de
     argument_prudent, pour ne jamais melanger un signal de plus-value avec
     un signal de potentiel foncier — ce sont deux arguments differents.
+
+    BUG CORRIGE (audit 2026-09-07) : cet argument etait genere pour
+    N'IMPORTE QUEL type de bien — y compris 142 appartements reels du jeu
+    de donnees ("votre terrain de 1 484 m² a un potentiel d'extension ou de
+    division parcellaire" n'a aucun sens pour un copropriétaire : c'est une
+    partie commune, pas un droit individuel) — et sans plafond de taille,
+    produisant des textes absurdes du type "terrain de 227,8 hectares" sur
+    des parcelles agricoles/d'alpage indivises en zone de montagne. Reserve
+    desormais aux maisons, avec le meme plafond de plausibilite que le
+    bonus de score correspondant (scoring.py::_pts_terrain).
     """
     if "surface_terrain_m2" not in df.columns:
         df["argument_terrain"] = None
         return df
 
     def arg(row):
+        tb = row.get("type_bien")
+        if not (isinstance(tb, str) and tb.strip().lower().startswith("maison")):
+            return None  # copropriete ou type inconnu : aucun droit individuel sur le terrain
         s = row.get("surface_terrain_m2")
         if pd.isna(s):
             return None
         s = float(s)
-        if s < SURFACE_TERRAIN_MIN_ARGUMENT:
+        if s < SURFACE_TERRAIN_MIN_ARGUMENT or s > TERRAIN_SURFACE_PLAUSIBLE_MAX:
             return None
         surf_bati = row.get("surface_m2")
         if pd.isna(surf_bati):

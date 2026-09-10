@@ -52,8 +52,30 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 CACHE_DIR = os.path.join(DATA_DIR, "_cache", "dpe")
 FORCE_REDOWNLOAD = os.environ.get("FORCE_REDOWNLOAD") == "1"
 
+# Nombre de lignes d'echantillon pour la decouverte de schema (voir
+# discover_dataset) : assez pour qu'un champ optionnel/souvent nul (ex.
+# complement_adresse_logement) ait une vraie chance d'apparaitre au moins
+# une fois, sans alourdir sensiblement l'appel initial.
+DPE_SCHEMA_SAMPLE_SIZE = 50
+
 # Pour chaque information voulue, les noms de champ possibles selon la
 # version du jeu de donnees. Le premier trouve dans le schema est retenu.
+#
+# "geopoint" (audit 2026-09-07, suite) : verifie en direct sur l'API ADEME
+# (jeu "dpe03existant") que le champ `_geopoint` ("lat,lon") EXISTE bel et
+# bien et est rempli pour la quasi-totalite des DPE (100 % a Anthy-sur-Leman,
+# 95 % a Meillerie sur un echantillon de 314 et 121 DPE respectivement) — ce
+# n'est PAS une limitation de la source, contrairement a ce qui avait ete
+# suppose au debut de cette investigation : c'est notre propre `select` qui
+# ne demandait jamais ce champ. Meme la ligne qui echoue au rapprochement
+# BAN par adresse (`statut_geocodage` = "non geocodee") porte le plus
+# souvent un `_geopoint` valide (geocodage a la voie/commune) : cela permet
+# un repli spatial pour le DPE, identique dans son principe a celui deja en
+# place pour le DVF (segment.spatial_fallback_match) et le cadastre
+# (enrich_cadastre.match_addresses), au lieu de dependre uniquement du nom
+# de voie normalise (fragile en cas de renumerotation ou de renommage — ex.
+# "Rue Nationale" a Meillerie, absente de la BAN actuelle qui utilise
+# "Route de Meillerie").
 FIELD_CANDIDATES = {
     "dpe_classe": ["etiquette_dpe", "classe_consommation_energie",
                    "classe_estimation_ges", "etiquette_DPE"],
@@ -70,15 +92,41 @@ FIELD_CANDIDATES = {
                    "code_insee", "commune_ban"],
     "date_dpe": ["date_etablissement_dpe", "date_visite_diagnostiqueur",
                  "date_reception_dpe"],
+    "geopoint": ["_geopoint"],
+    "statut_geocodage": ["statut_geocodage"],
+    # AJOUT (2026-09-10, demande explicite) : pour un appartement, il n'existe
+    # aucun equivalent au "terrain" d'une maison (la parcelle est collective,
+    # pas de m² individualise) — le repere qui permet de reconnaitre le meme
+    # bien dans une annonce concurrente en manque donc. Verifie en direct sur
+    # l'API ADEME que ces deux champs existent et sont parfois renseignes :
+    # l'etage rapproche l'appartement d'un repere physique, et le complement
+    # d'adresse porte souvent le nom du lot/de la residence (ex. "Villa n°10")
+    # — meme role que le nom de residence dans une annonce. Purement informatif,
+    # jamais utilise dans le score (comme info_erp/rnb_id).
+    "andar_apartamento": ["numero_etage_appartement"],
+    "complemento_morada": ["complement_adresse_logement"],
 }
 
 
 def discover_dataset():
-    """Trouve le premier jeu de donnees DPE qui repond, et lit son schema."""
+    """Trouve le premier jeu de donnees DPE qui repond, et lit son schema.
+
+    BUG CORRIGE (2026-09-10) : le schema etait deduit d'UNE SEULE ligne
+    d'echantillon (`size=1`). L'API data-fair de l'ADEME omet les champs
+    a valeur nulle du JSON plutot que de les renvoyer vides — un champ
+    optionnel et souvent absent (ex. `complement_adresse_logement`, rempli
+    seulement pour certains lots/residences) a donc de fortes chances de
+    manquer sur une seule ligne tiree au hasard, meme s'il existe bel et
+    bien dans le jeu de donnees. Constate en reel : `andar_apartamento`
+    (`numero_etage_appartement`, quasi toujours present, meme a 0) passait,
+    mais `complemento_morada` (`complement_adresse_logement`) disparaissait
+    systematiquement de la sortie. Corrige en prenant l'UNION des cles sur
+    DPE_SCHEMA_SAMPLE_SIZE lignes au lieu d'une seule — un champ optionnel
+    n'a plus besoin d'etre present sur CETTE ligne precise pour etre detecte."""
     for ds in DPE_DATASETS:
         url = f"{DPE_API_BASE}/{ds}/lines"
         try:
-            r = requests.get(url, params={"size": 1}, timeout=30)
+            r = requests.get(url, params={"size": DPE_SCHEMA_SAMPLE_SIZE}, timeout=30)
             if r.status_code != 200:
                 print(f"  {ds}: HTTP {r.status_code} — ignore")
                 continue
@@ -87,8 +135,11 @@ def discover_dataset():
             if not results:
                 print(f"  {ds}: repond mais aucune ligne — ignore")
                 continue
-            schema = set(results[0].keys())
-            print(f"  OK -> jeu de donnees '{ds}' ({len(schema)} champs)")
+            schema = set()
+            for row in results:
+                schema |= set(row.keys())
+            print(f"  OK -> jeu de donnees '{ds}' ({len(schema)} champs, "
+                  f"union sur {len(results)} lignes d'echantillon)")
             return ds, schema
         except (requests.RequestException, ValueError) as e:
             print(f"  {ds}: injoignable ({e}) — ignore")
@@ -214,9 +265,45 @@ def normalize_dpe_frame(rows, field_map):
     if "surface_dpe" in df.columns:
         df["surface_dpe"] = pd.to_numeric(df["surface_dpe"], errors="coerce")
 
+    if "andar_apartamento" in df.columns:
+        df["andar_apartamento"] = pd.to_numeric(df["andar_apartamento"], errors="coerce")
+    if "complemento_morada" in df.columns:
+        df["complemento_morada"] = df["complemento_morada"].astype(str).str.strip()
+        df.loc[df["complemento_morada"].isin(["", "nan", "None"]), "complemento_morada"] = None
+
     if "dpe_classe" in df.columns:
         df["dpe_classe"] = df["dpe_classe"].astype(str).str.strip().str.upper().str[:1]
         df.loc[~df["dpe_classe"].isin(list("ABCDEFG")), "dpe_classe"] = None
+
+    # `_geopoint` est une chaine "lat,lon" (voir note sur FIELD_CANDIDATES) ;
+    # on l'eclate en deux colonnes numeriques exploitables par le repli
+    # spatial de segment.py, sur le meme modele que lon/lat dans le DVF.
+    #
+    # BUG CORRIGE (audit 2026-09-07, 2e passe) : un `_geopoint` existe MEME
+    # quand `statut_geocodage` indique un echec du geocodage precis a
+    # l'adresse ("... aucune correspondance trouvee") — ADEME retombe alors
+    # sur un geocodeur d'appoint, bien moins precis (mesure sur les DPE deja
+    # apparies par cle exacte : parmi ceux-la, 55 % ont un `_geopoint`
+    # pratiquement confondu avec l'adresse BAN, mais 45 % s'en ecartent de
+    # dizaines a plusieurs centaines de metres). Utiliser ces points non
+    # geocodes "a l'adresse" comme candidats du repli spatial ferait porter
+    # la classe DPE d'un batiment a un voisin totalement different dans les
+    # zones denses (jusqu'a 23 adresses distinctes rattachees au meme point
+    # dans les tests). On ne garde donc comme candidats que les DPE dont le
+    # geocodage est explicitement precis ; l'API n'expose que deux valeurs
+    # pour ce champ (verifie en direct sur l'ensemble du jeu de donnees).
+    if "geopoint" in df.columns:
+        coords = df["geopoint"].astype(str).str.split(",", n=1, expand=True)
+        if coords.shape[1] == 2:
+            df["lat_dpe"] = pd.to_numeric(coords[0], errors="coerce")
+            df["lon_dpe"] = pd.to_numeric(coords[1], errors="coerce")
+        df = df.drop(columns=["geopoint"])
+
+    if "statut_geocodage" in df.columns and {"lat_dpe", "lon_dpe"} <= set(df.columns):
+        precis = df["statut_geocodage"].astype(str).str.contains(
+            "à l'adresse", case=False, na=False)
+        df.loc[~precis, ["lat_dpe", "lon_dpe"]] = pd.NA
+        df = df.drop(columns=["statut_geocodage"])
 
     return df
 

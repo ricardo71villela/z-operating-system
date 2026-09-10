@@ -18,8 +18,7 @@ import os
 
 import pandas as pd
 
-from config import (ALL_COMMUNES, SEGMENT_THRESHOLDS, FENETRE_DVF_ANS,
-                    valider_seuils)
+from config import ALL_COMMUNES, valider_seuils
 
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "output")
 
@@ -47,7 +46,11 @@ def _verdict(titre, valeur, seuils, interpretations, unite=""):
     return etat
 
 
-def run(df_adr, df_dvf, df_dpe, merged, out, grid, coefs):
+def run(df_adr, df_dvf, df_dpe, merged, out, grid, coefs,
+        seuils, ans_min_atteignable, ans_max_atteignable):
+    """seuils/ans_min_atteignable/ans_max_atteignable : calcules par
+    segment.py sur les annees DVF REELLEMENT obtenues (pas seulement
+    tentees) — voir config.compute_segment_thresholds, piege v3."""
     VERDICTS.clear()
     _ligne("=" * 70)
     _ligne("DIAGNOSTIC DU PREMIER LANCEMENT — À LIRE EN PREMIER")
@@ -57,15 +60,16 @@ def run(df_adr, df_dvf, df_dpe, merged, out, grid, coefs):
     # ---------------------------------------------------------- COHERENCE ---
     _ligne("--- 0. Cohérence de la configuration ---")
     _ligne()
-    pbs = valider_seuils()
+    fenetre_dvf_ans = ans_max_atteignable - ans_min_atteignable
+    pbs = valider_seuils(seuils, ans_min_atteignable, ans_max_atteignable)
     if pbs:
         _ligne("[PROBLEME] Des seuils dépassent la fenêtre DVF disponible :")
         for p in pbs:
             _ligne(f"           {p}")
         _ligne("           Des segments ne recevront jamais aucune adresse.")
     else:
-        _ligne(f"[OK      ] Fenêtre DVF : {FENETRE_DVF_ANS} ans ; "
-               f"seuils {SEGMENT_THRESHOLDS} — tous atteignables.")
+        _ligne(f"[OK      ] Fenêtre DVF réellement obtenue : {fenetre_dvf_ans} ans ; "
+               f"seuils {seuils} — tous atteignables.")
     _ligne()
 
     # ------------------------------------------------- 1. RAPPROCHEMENT ----

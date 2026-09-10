@@ -2,11 +2,15 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "outputDirectory": "public",
   "rewrites": [
+    { "source": "/api/chunk", "destination": "/api/chunk" },
     { "source": "/(.*)", "destination": "/api/index" }
   ],
   "functions": {
     "api/index.js": {
-      "includeFiles": "private/**"
+      "includeFiles": "private/chunks/**"
+    },
+    "api/chunk.js": {
+      "includeFiles": "private/chunks/**"
     }
   }
 }
