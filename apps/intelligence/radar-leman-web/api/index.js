@@ -18,29 +18,21 @@
 // seguintes (HTTP Basic Auth funciona assim), por isso cada pedaco continua
 // protegido, nao so o primeiro.
 //
+// PORQUE require() E NAO fs.readFileSync: os pedacos (private/chunks/chunk-N.js)
+// sao modulos JS importados com require(), nao ficheiros lidos do disco em
+// runtime — assim ficam garantidamente dentro do bundle da funcao, o que
+// "includeFiles" no vercel.json nao garantia neste monorepo.
+//
 // A password fica na variavel de ambiente RADAR_PASSWORD (Vercel -> Settings ->
 // Environment Variables), nunca escrita neste ficheiro nem no repositorio git.
 
-const fs = require('fs');
-const path = require('path');
 const { checkAuth } = require('./_auth');
+const chunks = require('../private/chunks/index.js');
 
 module.exports = (req, res) => {
   if (!checkAuth(req, res)) return;
 
-  const manifestPath = path.join(process.cwd(), 'private', 'chunks', 'manifest.json');
-  let manifest;
-  try {
-    manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-  } catch {
-    res.statusCode = 500;
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.end(
-      'Nao encontrei private/chunks/manifest.json.\n' +
-      'Corre "node scripts/split-dashboard.js" e faz git push outra vez.'
-    );
-    return;
-  }
+  const count = chunks.length;
 
   const bootstrap = `<!doctype html>
 <html lang="fr">
@@ -66,7 +58,7 @@ module.exports = (req, res) => {
 </div>
 <script>
 (async () => {
-  const COUNT = ${manifest.count};
+  const COUNT = ${count};
   const fill = document.getElementById('fill');
   const pct = document.getElementById('pct');
   const err = document.getElementById('err');

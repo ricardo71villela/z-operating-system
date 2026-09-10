@@ -4,13 +4,5 @@
   "rewrites": [
     { "source": "/api/chunk", "destination": "/api/chunk" },
     { "source": "/(.*)", "destination": "/api/index" }
-  ],
-  "functions": {
-    "api/index.js": {
-      "includeFiles": "private/chunks/**"
-    },
-    "api/chunk.js": {
-      "includeFiles": "private/chunks/**"
-    }
-  }
+  ]
 }
