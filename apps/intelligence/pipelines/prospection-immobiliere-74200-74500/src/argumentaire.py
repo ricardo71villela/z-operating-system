@@ -32,7 +32,7 @@ import math
 import numpy as np
 import pandas as pd
 
-from config import (TERRAIN_SURFACE_PLAUSIBLE_MAX,
+from config import (TERRAIN_SURFACE_PLAUSIBLE_MAX, PARCELA_PARTILHADA_SEUIL,
                     PLUS_VALUE_PCT_PLAUSIBLE_MAX, PLUS_VALUE_PCT_PLAUSIBLE_MIN)
 
 CURRENT_YEAR = datetime.date.today().year
@@ -210,6 +210,15 @@ def add_terrain_argument(df):
     des parcelles agricoles/d'alpage indivises en zone de montagne. Reserve
     desormais aux maisons, avec le meme plafond de plausibilite que le
     bonus de score correspondant (scoring.py::_pts_terrain).
+
+    BUG CORRIGE #2 (audit 2026-09-11) : meme reserve aux maisons et
+    plafonnee, une parcelle cadastrale INDIVISE partagee par plusieurs
+    maisons d'un lotissement/copropriete horizontale (ex. 13 maisons
+    distinctes a Thonon-les-Bains matchees a la meme parcelle de 3134 m²)
+    recevait encore le texte en entier pour CHACUNE — alors que le terrain
+    est deja construit par les autres maisons du meme ensemble et
+    indivisement partage entre elles. Voir PARCELA_PARTILHADA_SEUIL
+    (config.py) et le meme garde-fou dans scoring.py::_pts_terrain.
     """
     if "surface_terrain_m2" not in df.columns:
         df["argument_terrain"] = None
@@ -225,6 +234,9 @@ def add_terrain_argument(df):
         s = float(s)
         if s < SURFACE_TERRAIN_MIN_ARGUMENT or s > TERRAIN_SURFACE_PLAUSIBLE_MAX:
             return None
+        n_part = row.get("n_enderecos_parcela")
+        if pd.notna(n_part) and float(n_part) >= PARCELA_PARTILHADA_SEUIL:
+            return None  # parcelle partagee (lotissement/copropriete horizontale)
         surf_bati = row.get("surface_m2")
         if pd.isna(surf_bati):
             surf_bati = row.get("surface_dpe")

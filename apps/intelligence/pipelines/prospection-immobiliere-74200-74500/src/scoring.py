@@ -20,7 +20,7 @@ import pandas as pd
 from config import (SCORING, SURFACE_PTS_MAX,
                     SURFACE_PTS_REF, PIECES_SEUIL, PIECES_PTS_PAR_PIECE,
                     PIECES_PTS_MAX, TERRAIN_SEUIL_GRAND, TERRAIN_SEUIL_MOYEN,
-                    TERRAIN_SURFACE_PLAUSIBLE_MAX)
+                    TERRAIN_SURFACE_PLAUSIBLE_MAX, PARCELA_PARTILHADA_SEUIL)
 
 CURRENT_YEAR = datetime.date.today().year
 
@@ -98,7 +98,7 @@ def _pts_surface(surface):
     return pts, label
 
 
-def _pts_terrain(surface_terrain, type_bien):
+def _pts_terrain(surface_terrain, type_bien, n_enderecos_parcela=None):
     """Grand terrain (cadastre) sous un bati modeste : potentiel de
     valorisation independant des autres criteres (extension, division).
 
@@ -111,13 +111,27 @@ def _pts_terrain(surface_terrain, type_bien):
     morada (quasi certainement une parcelle agricole/d'alpage indivise en
     zone de montagne, pas un jardin prive — voir config.py). Double
     garde-fou desormais : reserve aux maisons, et plafonne a une taille de
-    parcelle individuelle plausible."""
+    parcelle individuelle plausible.
+
+    BUG CORRIGE #2 (audit 2026-09-11) : meme avec ces deux garde-fous, une
+    parcelle cadastrale INDIVISE partagee par plusieurs maisons d'un
+    lotissement/copropriete horizontale (ex. 13 maisons distinctes matchees
+    a la meme parcelle de 3134 m² a Thonon-les-Bains) recevait encore le
+    bonus en entier a CHACUNE d'elles — alors qu'aucune n'a individuellement
+    le droit d'etendre ou de diviser ce terrain deja construit et partage.
+    Troisieme garde-fou : n_enderecos_parcela (calcule par
+    enrich_cadastre.py) compte les adresses BAN distinctes rattachees a la
+    meme parcelle ; des qu'il atteint PARCELA_PARTILHADA_SEUIL, le bonus est
+    supprime (voir config.py)."""
     if pd.isna(surface_terrain):
         return 0, None
     if not (isinstance(type_bien, str) and type_bien.strip().lower().startswith("maison")):
         return 0, None
     s = float(surface_terrain)
     if s > TERRAIN_SURFACE_PLAUSIBLE_MAX:
+        return 0, None
+    if n_enderecos_parcela is not None and pd.notna(n_enderecos_parcela) \
+            and float(n_enderecos_parcela) >= PARCELA_PARTILHADA_SEUIL:
         return 0, None
     if s >= TERRAIN_SEUIL_GRAND:
         return SCORING["terrain_grand"], f"grand terrain ({s:.0f} m²)"
@@ -163,7 +177,8 @@ def compute_score(row, seuils):
         _pts_surface(row.get("surface_m2") if not pd.isna(row.get("surface_m2"))
                      else row.get("surface_dpe")),
         _pts_pieces(row.get("nb_pieces")),
-        _pts_terrain(row.get("surface_terrain_m2"), row.get("type_bien") or row.get("type_batiment")),
+        _pts_terrain(row.get("surface_terrain_m2"), row.get("type_bien") or row.get("type_batiment"),
+                     row.get("n_enderecos_parcela")),
     ):
         total += pts
         if label and pts > 0:

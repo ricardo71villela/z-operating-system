@@ -355,12 +355,26 @@ def filter_implausible_price(out, price_min=PRIX_M2_PLAUSIBLE_MIN,
 
 
 def merge_dpe(df, dpe):
-    """Ajoute classe DPE, annee de construction et surface issues de l'ADEME.
+    """Ajoute classe DPE, annee de construction, surface ET type de batiment
+    issus de l'ADEME. C'est ce qui remplit les Tier 1, invisibles dans le DVF.
 
-    C'est ce qui remplit les Tier 1, invisibles dans le DVF."""
+    BUG CORRIGE (audit 2026-09-11) : `type_batiment` est bien recupere par
+    enrich_dpe.py (voir FIELD_CANDIDATES) mais n'etait JAMAIS inclus dans ce
+    `keep` — donc jamais fusionne dans le dataframe scoré, alors que
+    scoring.py::_pts_type et compute_score utilisent deja
+    `row.get("type_bien") or row.get("type_batiment")` comme filet de
+    securite pour les adresses "jamais vendues" (aucun type_bien, puisque
+    type_bien vient uniquement du DVF). Ce filet ne s'est donc JAMAIS
+    declenche : verifie sur les donnees reelles, les 11 032 adresses
+    "jamais vendues" de la liste prioritaire (55,5 % du total) ont TOUTES
+    type_bien vide, y compris celles qui sont clairement des maisons —
+    aucune ne pouvait donc recevoir le bonus "type_maison" NI le bonus/
+    argument de terrain (tous deux reserves aux maisons, voir
+    scoring.py::_pts_terrain), qui ne beneficiaient donc en pratique QUE des
+    maisons deja vendues au moins une fois."""
     if dpe.empty or not {"k_num", "k_voie"} <= set(dpe.columns):
         for c in ("dpe_classe", "ges_classe", "annee_construction",
-                  "surface_dpe", "date_dpe"):
+                  "surface_dpe", "date_dpe", "type_batiment"):
             df[c] = pd.NA
         return df
 
@@ -371,7 +385,7 @@ def merge_dpe(df, dpe):
 
     keep = [c for c in ["k_num", "k_voie", "code_insee", "dpe_classe", "ges_classe",
                         "annee_construction", "surface_dpe", "date_dpe",
-                        "andar_apartamento", "complemento_morada"]
+                        "andar_apartamento", "complemento_morada", "type_batiment"]
             if c in d.columns]
     d = d[keep]
 
@@ -447,7 +461,7 @@ def _dpe_points(dpe):
 
     keep = [c for c in ["code_insee", "lon_dpe", "lat_dpe", "dpe_classe", "ges_classe",
                         "annee_construction", "surface_dpe", "date_dpe",
-                        "andar_apartamento", "complemento_morada"]
+                        "andar_apartamento", "complemento_morada", "type_batiment"]
             if c in d.columns]
     return d[keep]
 
@@ -460,6 +474,7 @@ _DPE_DETAIL_TO_TARGET = {
     "date_dpe": "date_dpe",
     "andar_apartamento": "andar_apartamento",
     "complemento_morada": "complemento_morada",
+    "type_batiment": "type_batiment",
 }
 
 
@@ -520,16 +535,30 @@ def spatial_fallback_dpe(out, dpe, radius_m=DPE_SPATIAL_MATCH_RADIUS_M):
 
 
 def merge_cadastre(df, cadastre):
-    """Ajoute la surface de terrain (parcelle cadastrale)."""
+    """Ajoute la surface de terrain (parcelle cadastrale) et le nombre
+    d'adresses BAN distinctes rattachees a la MEME parcelle
+    (n_enderecos_parcela) — signal de parcelle collective indivise
+    (lotissement / copropriete horizontale), voir audit 2026-09-11 :
+    scoring.py::_pts_terrain et argumentaire.py::add_terrain_argument
+    suppriment le bonus/argument de terrain quand ce nombre est >= 2."""
     if cadastre.empty:
         df["surface_terrain_m2"] = pd.NA
+        df["n_enderecos_parcela"] = pd.NA
         return df
     c = cadastre.copy()
     c["surface_terrain_m2"] = pd.to_numeric(c["surface_terrain_m2"], errors="coerce")
+    if "n_enderecos_parcela" in c.columns:
+        c["n_enderecos_parcela"] = pd.to_numeric(c["n_enderecos_parcela"], errors="coerce")
+    else:
+        # Compatibilite avec un cadastre_74200_74500.csv genere par une
+        # ancienne version d'enrich_cadastre.py (avant l'audit 2026-09-11).
+        c["n_enderecos_parcela"] = pd.NA
     # Plusieurs lignes cadastre peuvent partager la meme cle (immeuble a
     # plusieurs lots sur une seule parcelle) : on garde la plus grande
-    # contenance, jamais une moyenne qui n'aurait pas de sens physique.
-    c = (c.groupby(["k_num", "k_voie", "code_insee"], dropna=False)["surface_terrain_m2"]
+    # contenance et le plus grand n_enderecos_parcela, jamais une moyenne
+    # qui n'aurait pas de sens physique.
+    c = (c.groupby(["k_num", "k_voie", "code_insee"], dropna=False)
+         [["surface_terrain_m2", "n_enderecos_parcela"]]
          .max().reset_index())
     return df.merge(c, on=["k_num", "k_voie", "code_insee"], how="left")
 
@@ -659,7 +688,7 @@ EXPORT_COLS = [
     "dpe_classe", "ges_classe", "methode_dpe", "passoire_thermique", "annee_construction",
     "surface_dpe",
     "andar_apartamento", "complemento_morada",
-    "surface_terrain_m2", "rnb_id",
+    "surface_terrain_m2", "n_enderecos_parcela", "rnb_id",
     "prix_m2_estime", "base_prix_source", "ajustements", "coef_total",
     "valeur_estimee_actuelle", "plus_value_eur", "plus_value_pct",
     "duree_detention_ans", "argument_prudent", "argument_terrain",
@@ -803,6 +832,22 @@ def main():
     merged = filter_implausible_price(merged)
     merged = merge_dpe(merged, dpe)
     merged = spatial_fallback_dpe(merged, dpe)
+
+    # BUG CORRIGE (audit 2026-09-11) : type_bien ne venait QUE du DVF — vide
+    # pour toute adresse "jamais vendue" (55,5 % de la liste prioritaire),
+    # meme quand le DPE de l'ADEME identifie clairement une "maison" ou un
+    # "appartement" (type_batiment, desormais fusionne par merge_dpe/
+    # spatial_fallback_dpe ci-dessus). scoring.py sait deja retomber sur
+    # type_batiment en interne (row.get("type_bien") or row.get("type_batiment"))
+    # mais la colonne EXPORTEE/affichee (type_bien) restait vide malgre tout,
+    # incoherente avec un bonus/argument de terrain qui, lui, s'appliquait
+    # correctement en coulisses. On reporte donc le meme filet de securite
+    # sur la colonne affichee, avec la premiere lettre en majuscule pour
+    # rester coherent avec le format "Maison"/"Appartement" du DVF.
+    if "type_batiment" in merged.columns:
+        repli_type = merged["type_batiment"].astype(str).str.strip().str.capitalize()
+        repli_type = repli_type.where(merged["type_batiment"].notna())
+        merged["type_bien"] = merged["type_bien"].fillna(repli_type)
     merged = merge_cadastre(merged, cadastre)
     merged = merge_georisques(merged, georisques)
     merged = merge_rnb(merged, rnb)

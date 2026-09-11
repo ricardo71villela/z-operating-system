@@ -57,7 +57,35 @@ CADASTRE_URL_TEMPLATE = (
     "https://cadastre.data.gouv.fr/bundler/cadastre-etalab/communes/{code}/geojson/parcelles"
 )
 FORCE_REDOWNLOAD = os.environ.get("FORCE_REDOWNLOAD") == "1"
-OUT_COLUMNS = ["k_num", "k_voie", "code_insee", "surface_terrain_m2"]
+OUT_COLUMNS = ["k_num", "k_voie", "code_insee", "surface_terrain_m2",
+               "parcela_id", "n_enderecos_parcela"]
+
+# ---------------------------------------------------------------------------
+# PARCELLE PARTAGEE (lotissement / copropriete horizontale) — audit 2026-09-11
+#
+# BUG CORRIGE (scoring.py::_pts_terrain, argumentaire.py::add_terrain_argument) :
+# meme apres les garde-fous du 07/09 (reserve aux maisons, plafonne a 5000 m2),
+# le bonus de terrain et l'argument de vente etaient encore attribues
+# PLEINEMENT a chaque adresse individuelle d'un lotissement ou d'une
+# copropriete horizontale ou le terrain reste, au cadastre, UNE SEULE
+# parcelle indivise partagee entre plusieurs maisons deja construites.
+# Exemple reel verifie (Thonon-les-Bains, "Presqu'ile la Lagune") : 13
+# maisons distinctes (77 m2 chacune), a des adresses differentes, matchees
+# TOUTES a la meme parcelle cadastrale 74281000AE0105 (3134 m2) — chacune
+# recevait l'argument "terrain de 3134 m2, potentiel d'extension/division"
+# alors que le terrain est deja entierement occupe par les 13 autres maisons
+# et indivisement partage entre leurs 13 proprietaires (aucun droit
+# individuel a l'etendre ou le diviser). Verifie a l'echelle du secteur
+# complet (26 communes, point-dans-polygone reel) : parmi les adresses qui
+# recevaient encore le bonus/argument apres les garde-fous du 07/09, 15,3 %
+# partagent leur parcelle avec au moins une autre adresse (jusqu'a 18
+# adresses sur une seule parcelle a Thonon-les-Bains).
+#
+# CORRECTION : on calcule ici, pour chaque parcelle, le nombre d'adresses
+# BAN distinctes qui s'y rattachent (n_enderecos_parcela). scoring.py et
+# argumentaire.py suppriment desormais le bonus/argument des que ce nombre
+# atteint PARCELA_PARTILHADA_SEUIL (voir config.py).
+from config import PARCELA_PARTILHADA_SEUIL
 
 
 def fetch_commune_geojson(code_insee):
@@ -92,16 +120,21 @@ def match_addresses(adresses_sub, geojson):
     quand aucune parcelle ne contient le point exactement (voir note
     "Repli de proximite" en tete de fichier).
 
-    Renvoie (dict {index_ligne: contenance_m2}, nb_recuperes_par_repli).
+    Renvoie (dict {index_ligne: (contenance_m2, parcela_id)}, nb_recuperes_par_repli).
+    parcela_id est l'identifiant cadastral officiel (ex. "74281000AE0105") —
+    utilise ensuite pour detecter les parcelles partagees par plusieurs
+    adresses (voir PARCELA_PARTILHADA_SEUIL ci-dessus).
     """
     feats = geojson.get("features", [])
-    geoms, contenances = [], []
+    geoms, contenances, parcela_ids = [], [], []
     for feat in feats:
         try:
             geoms.append(shape(feat["geometry"]))
         except Exception:
             continue
-        contenances.append((feat.get("properties") or {}).get("contenance"))
+        props = feat.get("properties") or {}
+        contenances.append(props.get("contenance"))
+        parcela_ids.append(props.get("id"))
 
     if not geoms:
         return {}, 0
@@ -120,7 +153,7 @@ def match_addresses(adresses_sub, geojson):
         for j in tree.query(pt):
             if geoms[j].contains(pt):
                 if contenances[j]:
-                    out[i] = contenances[j]
+                    out[i] = (contenances[j], parcela_ids[j])
                 found = True
                 break
         if not found:
@@ -144,7 +177,7 @@ def match_addresses(adresses_sub, geojson):
             if best_d is None or d < best_d:
                 best_d, best_j = d, j
         if best_j is not None and best_d <= FALLBACK_MAX_M and contenances[best_j]:
-            out[i] = contenances[best_j]
+            out[i] = (contenances[best_j], parcela_ids[best_j])
             n_repli += 1
 
     return out, n_repli
@@ -179,18 +212,38 @@ def main():
         sub = adresses[adresses["code_insee"] == code]
         matches, n_repli = match_addresses(sub, geojson)
         total_repli += n_repli
-        for i, contenance in matches.items():
+        for i, (contenance, parcela_id) in matches.items():
             all_rows.append({
                 "k_num": normalize_numero(adresses.loc[i, "numero"]),
                 "k_voie": normalize_voie(adresses.loc[i, "nom_voie"]),
                 "code_insee": code,
                 "surface_terrain_m2": contenance,
+                "parcela_id": parcela_id,
             })
         repli_txt = f" (dont {n_repli:,} par repli <= {FALLBACK_MAX_M} m)" if n_repli else ""
         print(f"  {nom:26s} {len(matches):>6,} / {len(sub):,} adresses rattachées{repli_txt}")
         time.sleep(0.05)
 
-    df = pd.DataFrame(all_rows, columns=OUT_COLUMNS)
+    df = pd.DataFrame(all_rows, columns=["k_num", "k_voie", "code_insee",
+                                          "surface_terrain_m2", "parcela_id"])
+
+    # NOUVEAU (audit 2026-09-11) : nombre d'adresses BAN distinctes rattachees
+    # a la MEME parcelle cadastrale — signal de lotissement / copropriete
+    # horizontale (voir PARCELA_PARTILHADA_SEUIL ci-dessus). Une adresse seule
+    # sur sa parcelle (valeur 1) est un jardin prive classique ; >= 2 signifie
+    # que le terrain est deja indivisement partage entre plusieurs maisons.
+    if not df.empty:
+        n_par_parcela = (
+            df.dropna(subset=["parcela_id"])
+              .drop_duplicates(subset=["code_insee", "k_num", "k_voie", "parcela_id"])
+              .groupby(["code_insee", "parcela_id"]).size()
+              .rename("n_enderecos_parcela").reset_index()
+        )
+        df = df.merge(n_par_parcela, on=["code_insee", "parcela_id"], how="left")
+    else:
+        df["n_enderecos_parcela"] = pd.Series(dtype="float64")
+
+    df = df[OUT_COLUMNS]
     # Meme immeuble = meme parcelle : plusieurs adresses peuvent partager la
     # meme contenance, c'est attendu (ex. appartements du meme batiment).
     out = os.path.join(DATA_DIR, "cadastre_74200_74500.csv")
@@ -199,6 +252,11 @@ def main():
     if total_repli:
         print(f"  dont {total_repli:,} récupérées par repli de proximité "
               f"(<= {FALLBACK_MAX_M} m, imprécision de géocodage — voir audit 2026-09-07)")
+    partilhadas = int((df["n_enderecos_parcela"] >= PARCELA_PARTILHADA_SEUIL).sum())
+    if partilhadas:
+        print(f"  dont {partilhadas:,} sur une parcelle partagée avec au moins une autre "
+              f"adresse (lotissement/copropriété horizontale — voir audit 2026-09-11 ; "
+              f"le bonus de score et l'argument de terrain sont supprimés pour celles-ci)")
 
 
 if __name__ == "__main__":

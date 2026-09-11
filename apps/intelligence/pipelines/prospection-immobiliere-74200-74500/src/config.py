@@ -224,6 +224,37 @@ TERRAIN_SEUIL_MOYEN = 500
 TERRAIN_SURFACE_PLAUSIBLE_MAX = 5000
 
 # ---------------------------------------------------------------------------
+# PARCELLE PARTAGEE (lotissement / copropriete horizontale) — audit 2026-09-11
+#
+# BUG CORRIGE (scoring.py::_pts_terrain, argumentaire.py::add_terrain_argument) :
+# meme apres les garde-fous ci-dessus (reserve aux maisons, plafonne a
+# 5000 m2), le bonus de terrain et l'argument de vente etaient encore
+# attribues PLEINEMENT a chaque adresse individuelle d'un lotissement ou
+# d'une copropriete horizontale ou le terrain reste, au cadastre, UNE SEULE
+# parcelle indivise partagee entre plusieurs maisons deja construites.
+# Exemple reel verifie (Thonon-les-Bains, "Presqu'ile la Lagune") : 13
+# maisons distinctes (77 m2 chacune), a des adresses differentes, matchees
+# TOUTES a la meme parcelle cadastrale 74281000AE0105 (3134 m2) — chacune
+# recevait l'argument "terrain de 3134 m2, potentiel d'extension/division"
+# alors que le terrain est deja entierement occupe par les 13 autres maisons
+# et indivisement partage entre leurs 13 proprietaires (aucun droit
+# individuel a l'etendre ou le diviser). Verifie a l'echelle du secteur
+# complet (26 communes, point-dans-polygone reel sur les 26 fichiers
+# cadastre) : parmi les adresses qui recevaient encore le bonus/argument
+# apres les garde-fous du 07/09, 15,3 % partagent leur parcelle avec au
+# moins une autre adresse (jusqu'a 18 adresses sur une seule parcelle a
+# Thonon-les-Bains, 17 a Evian-les-Bains).
+#
+# CORRECTION : enrich_cadastre.py calcule desormais, pour chaque parcelle,
+# le nombre d'adresses BAN distinctes qui s'y rattachent
+# (n_enderecos_parcela). Des que ce nombre atteint ce seuil, la parcelle
+# n'est plus consideree comme un jardin prive librement valorisable par une
+# seule adresse — le bonus de score ET l'argument de vente sont tous deux
+# supprimes, memes garde-fous appliques aux deux endroits que pour les
+# corrections du 07/09.
+PARCELA_PARTILHADA_SEUIL = 2
+
+# ---------------------------------------------------------------------------
 # PLAGE DE PLAUSIBILITE DU PRIX AU M² — audit critique 2026-09-07
 #
 # BUG CORRIGE : le prix de derniere vente affiche par morada (segment.py)
