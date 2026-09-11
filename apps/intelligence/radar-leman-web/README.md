@@ -1,23 +1,26 @@
-# Radar Léman / Radar Immobilier — site protegido por password
+# Radar Léman / ImmoRadar — site protegido por password
 
 Dashboard "Radar Léman" — análise de prospeção imobiliária para os concelhos
 de Thonon-les-Bains / Évian-les-Bains (74200 / 74500). Desde 10/set, o acesso
 exige password (ver secção "Proteção por password" abaixo) — deixou de ser
 um site estático simples, por isso a estrutura da pasta mudou.
 
-## Estrutura (10/set — protegido por password, em pedaços)
+## Estrutura (11/set — protegido por password, em pedaços, com fichas PDF)
 
 ```
 radar-leman-web/
   private/
     dashboard.html          <- o dashboard gerado pelo pipeline (nunca servido diretamente)
     chunks/                 <- dashboard.html dividido em pedaços < 4,5 MB (gerado, ver abaixo)
+    fichas/                 <- fichas PDF individuais em base64, agrupadas em pedaços (gerado, ver abaixo)
   api/
     _auth.js                <- valida a password (partilhado, não é uma rota)
     index.js                <- Vercel Function: valida a password, devolve a página que monta o dashboard
     chunk.js                <- Vercel Function: devolve um pedaço de dashboard.html, também com password
+    ficha.js                 <- Vercel Function: devolve uma ficha PDF individual (?n=0..1667), também com password
   scripts/
     split-dashboard.js      <- gera private/chunks/ a partir de private/dashboard.html
+    split-fichas.py         <- gera private/fichas/ a partir de uma pasta de PDFs (ver abaixo)
   public/.gitkeep            <- pasta de saída estática, propositadamente vazia
   vercel.json                 <- liga tudo: todos os pedidos passam pelas funções
 ```
@@ -32,7 +35,8 @@ chamadas a APIs em runtime.
 
 **Estado desta exportação:** ver `claude/auditoria-radar-leman-2026-09-07.md`
 no projeto ZOS para o estado detalhado e o histórico de correções (terreno,
-DPE, janela DVF, limiares de prioridade, andar/complemento para apartamentos).
+DPE, janela DVF, limiares de prioridade, andar/complemento para apartamentos,
+fichas PDF).
 
 ## Proteção por password (10/set, corrigida a 10/set — ver "Porquê em pedaços")
 
@@ -57,7 +61,7 @@ limite. `api/index.js` devolve uma página pequena que, já autenticada, pede
 cada pedaço a `api/chunk.js` (o browser reenvia a password automaticamente
 nesses pedidos — assim funciona o HTTP Basic Auth) e remonta o dashboard
 completo no ecrã. Cada pedaço continua protegido pela mesma password, não só
-o primeiro pedido.
+o primeiro pedido. As fichas PDF (secção seguinte) usam o mesmo mecanismo.
 
 **Como ativar, no dashboard Vercel:**
 
@@ -92,6 +96,48 @@ git push
 `scripts/split-dashboard.js` não tem dependências (Node puro) — corre com
 qualquer Node instalado na máquina.
 
+## Fichas PDF individuais (11/set)
+
+Cada morada de Prioridade A tem um link "Télécharger la fiche PDF" no
+dashboard (dentro do detalhe de cada linha da tabela), que abre
+`/api/ficha?n=<índice>` — a mesma password do dashboard aplica-se, pedido a
+pedido. O `<índice>` (0 a 1667, ordenado por score decrescente) fica
+embutido no próprio `private/dashboard.html`, como uma coluna extra
+(`fichaIdx`) nas linhas de Prioridade A — as de Prioridade B não têm fiche
+gerada ainda, por isso não mostram o link.
+
+As fichas em si (geradas por
+`apps/intelligence/pipelines/prospection-immobiliere-74200-74500/src/fiche_pdf.py`)
+são convertidas para base64 e agrupadas em `private/fichas/shard-N.js`
+(~50 fichas por pedaço, module.exports = array de strings base64), com
+`private/fichas/index.js` a juntar tudo num único array indexado 0..1667.
+`api/ficha.js` decodifica a ficha pedida e devolve-a como `application/pdf`
+— cada resposta é uma única ficha (~20-30 KB), bem abaixo do limite de
+4,5 MB da Vercel, por isso não precisa de paginação como o dashboard.
+
+**Dados da agência ainda por preencher**: as fichas atuais têm
+`[Votre agence]` / `[téléphone]` / `[email]` / `[adresse]` como marcador em
+`fiche_pdf.py::CABINET` — a atualizar quando o Ricardo confirmar os dados
+reais da DECORDIER IMMOBILIER (só editar esse dicionário e regerar, ver
+abaixo — não precisa de tocar em mais nada).
+
+**Como regerar** (nova password/agência, ou para gerar a Prioridade B):
+
+1. Editar `CABINET` em `fiche_pdf.py` (nome, telefone, email, morada), ou
+   ajustar o filtro de prioridade em `scripts/split-fichas.py` para incluir
+   a banda B.
+2. Correr `fiche_pdf.py` sobre `output/prospection_prioritaire.csv` (precisa
+   de WeasyPrint + `pango` instalados — no Mac isto ficou bloqueado pelo
+   macOS 12 já não ser suportado pelo Homebrew; a alternativa usada foi
+   correr num ambiente Linux, ex. `apt install` dos pacotes pango e
+   `pip install weasyprint`).
+3. `python3 scripts/split-fichas.py` (lê a pasta de PDFs gerados, escreve
+   `private/fichas/`).
+4. Se o número de fichas mudou, também é preciso voltar a embutir a coluna
+   `fichaIdx` no `private/dashboard.html` (mapeamento morada → índice) e
+   regenerar `private/chunks/` com `node scripts/split-dashboard.js`.
+5. `git add -A && git commit -m "..." && git push`.
+
 ## Deploy no Vercel
 
 Esta pasta não tem build step tradicional (as "funções" são só JavaScript,
@@ -112,22 +158,13 @@ sem compilação). No Vercel:
 O `index.html` antigo, na raiz desta pasta, já não é usado e já foi removido
 do repositório.
 
-## Domínio próprio: radar-immobilier.online
+## Domínio próprio: immoradar.online
 
-Domínio já comprado (10/set). Para o ligar ao projeto Vercel:
+Domínio comprado na amen.fr e ligado ao projeto Vercel (11/set) — DNS
+validado, HTTPS emitido automaticamente pela Vercel. O site responde nos
+dois endereços: `https://immoradar.online/` e `https://radar-leman.vercel.app/`.
 
-1. No dashboard Vercel, abrir o projeto do Radar Léman (não o
-   `z-studio-web`) → **Settings → Domains**.
-2. Adicionar `radar-immobilier.online` (e, se quiseres, `www.radar-immobilier.online`).
-3. O Vercel mostra os registos DNS a criar no sítio onde o domínio foi
-   comprado — normalmente um registo `A` (para o domínio de raiz) a apontar
-   para `76.76.21.21`, e/ou um `CNAME` (para `www`) a apontar para
-   `cname.vercel-dns.com`. Os valores exatos aparecem sempre no ecrã do
-   Vercel no momento de adicionar o domínio — usar esses, não os daqui.
-4. Depois de criar os registos no painel do registador do domínio, o Vercel
-   valida automaticamente (pode demorar de minutos a algumas horas,
-   conforme a propagação DNS) e emite o certificado HTTPS sozinho.
-
-Até o domínio próprio estar validado, o site continua acessível em
-`https://radar-leman.vercel.app/` — os dois endereços passam a apontar para
-o mesmo deploy depois do passo 4.
+(Nota: um domínio `radar-immobilier.online` tinha sido considerado antes e
+chegou a ser adicionado ao projeto Vercel por preparação, mas nunca foi
+comprado — pode aparecer como "Invalid Configuration" em Settings → Domains
+até ser removido de lá; não afeta o funcionamento do site.)
