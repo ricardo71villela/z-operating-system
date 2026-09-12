@@ -1,5 +1,5 @@
 // Gerado por scripts/split-fichas.py — nao editar a mao.
-// Ordem: n=0 e a ficha de maior score de Prioridade A, n=2026 a de menor.
+// Ordem: n=0 e a ficha de maior score de Prioridade A, n=2334 a de menor.
 module.exports = [
   ...require('./shard-0.js'),
   ...require('./shard-1.js'),
@@ -42,4 +42,10 @@ module.exports = [
   ...require('./shard-38.js'),
   ...require('./shard-39.js'),
   ...require('./shard-40.js'),
+  ...require('./shard-41.js'),
+  ...require('./shard-42.js'),
+  ...require('./shard-43.js'),
+  ...require('./shard-44.js'),
+  ...require('./shard-45.js'),
+  ...require('./shard-46.js'),
 ];

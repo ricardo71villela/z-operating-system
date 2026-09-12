@@ -1,4 +1,4 @@
-// Gerado por scripts/split-dashboard.js — não editar à mão.
+// Gerado por scripts/split-dashboard.js — nao editar a mao.
 module.exports = [
   require('./chunk-0.js'),
   require('./chunk-1.js'),
