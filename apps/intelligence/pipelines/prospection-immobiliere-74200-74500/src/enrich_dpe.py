@@ -52,6 +52,40 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 CACHE_DIR = os.path.join(DATA_DIR, "_cache", "dpe")
 FORCE_REDOWNLOAD = os.environ.get("FORCE_REDOWNLOAD") == "1"
 
+# Nombre de lignes d'echantillon pour la decouverte de schema (voir
+# discover_dataset) : assez pour qu'un champ optionnel/souvent nul (ex.
+# complement_adresse_logement) ait une vraie chance d'apparaitre au moins
+# une fois, sans alourdir sensiblement l'appel initial.
+#
+# BUG CORRIGE (audit 2026-09-12) : cet echantillon etait tire SANS AUCUN
+# FILTRE sur le jeu de donnees national entier (des millions de lignes,
+# 400+ champs possibles selon la doc ADEME) — un champ pourtant bien REEL
+# et bien rempli pour notre zone (verifie en direct : `surface_habitable_logement`
+# present et renseigne, 23 a 103,5 m², sur un echantillon reel filtre a
+# Thonon-les-Bains) pouvait simplement ne pas figurer dans un tirage de 50
+# lignes au hasard a l'echelle nationale, et etait alors marque a tort
+# "absent du jeu de donnees" — silencieusement, sans aucune erreur visible.
+# C'est ce qui avait fait conclure, a tort, que `dpe03existant` n'avait
+# aucun champ de surface (voir audit 2026-09-11) alors que le champ existe
+# et est exploitable pour notre secteur. Corrige avec deux filets : (1)
+# discover_dataset() essaie d'abord un echantillon FILTRE sur une commune
+# reelle et importante du secteur (voir SCHEMA_SAMPLE_INSEE) ; (2) a defaut
+# (champ INSEE introuvable dans ce jeu, ou requete rejetee), la taille de
+# l'echantillon national de repli est elle-meme agrandie (500 au lieu de 50)
+# pour reduire encore le risque de rater un champ par malchance.
+DPE_SCHEMA_SAMPLE_SIZE = 500
+
+# Commune reelle et importante du secteur (Thonon-les-Bains, ~14 000 DPE —
+# assez pour qu'un champ meme partiellement rempli ait une vraie chance
+# d'apparaitre) utilisee pour biaiser l'echantillonnage du schema vers des
+# donnees representatives de notre zone plutot qu'un tirage national au
+# hasard. Le nom du champ INSEE variant selon le jeu de donnees (comme pour
+# "code_insee" dans FIELD_CANDIDATES ci-dessous), plusieurs noms possibles
+# sont essayes dans l'ordre.
+SCHEMA_SAMPLE_INSEE = "74281"
+SCHEMA_SAMPLE_INSEE_FIELDS = ["code_insee_ban", "code_insee_commune_actualise",
+                              "code_insee", "commune_ban"]
+
 # Pour chaque information voulue, les noms de champ possibles selon la
 # version du jeu de donnees. Le premier trouve dans le schema est retenu.
 #
@@ -88,28 +122,134 @@ FIELD_CANDIDATES = {
                  "date_reception_dpe"],
     "geopoint": ["_geopoint"],
     "statut_geocodage": ["statut_geocodage"],
+    # AJOUT (2026-09-10, demande explicite) : pour un appartement, il n'existe
+    # aucun equivalent au "terrain" d'une maison (la parcelle est collective,
+    # pas de m² individualise) — le repere qui permet de reconnaitre le meme
+    # bien dans une annonce concurrente en manque donc. Verifie en direct sur
+    # l'API ADEME que ces deux champs existent et sont parfois renseignes :
+    # l'etage rapproche l'appartement d'un repere physique, et le complement
+    # d'adresse porte souvent le nom du lot/de la residence (ex. "Villa n°10")
+    # — meme role que le nom de residence dans une annonce. Purement informatif,
+    # jamais utilise dans le score (comme info_erp/rnb_id).
+    "andar_apartamento": ["numero_etage_appartement"],
+    "complemento_morada": ["complement_adresse_logement"],
+    # AJOUT (audit 2026-09-12) : le DPE porte lui-meme l'identifiant du
+    # batiment RNB (`id_rnb`), verifie present et renseigne pour la
+    # majorite des lignes d'un echantillon reel a Thonon-les-Bains. C'est
+    # une seconde voie, independante de celle deja utilisee par
+    # enrich_rnb.py (morada BAN -> ban_id -> rnb_id), vers le meme
+    # identifiant de batiment — utile pour croiser/completer les deux
+    # sources, et pour compter combien d'appartements DPE distincts
+    # partagent un meme id_rnb (indice de la taille reelle d'une
+    # copropriete). Purement informatif, jamais utilise dans le score.
+    "id_rnb_dpe": ["id_rnb"],
 }
 
 
 def discover_dataset():
-    """Trouve le premier jeu de donnees DPE qui repond, et lit son schema."""
+    """Trouve un jeu de donnees DPE qui repond ET couvre les champs essentiels,
+    et lit son schema.
+
+    BUG CORRIGE (2026-09-10) : le schema etait deduit d'UNE SEULE ligne
+    d'echantillon (`size=1`). L'API data-fair de l'ADEME omet les champs
+    a valeur nulle du JSON plutot que de les renvoyer vides — un champ
+    optionnel et souvent absent (ex. `complement_adresse_logement`, rempli
+    seulement pour certains lots/residences) a donc de fortes chances de
+    manquer sur une seule ligne tiree au hasard, meme s'il existe bel et
+    bien dans le jeu de donnees. Constate en reel : `andar_apartamento`
+    (`numero_etage_appartement`, quasi toujours present, meme a 0) passait,
+    mais `complemento_morada` (`complement_adresse_logement`) disparaissait
+    systematiquement de la sortie. Corrige en prenant l'UNION des cles sur
+    DPE_SCHEMA_SAMPLE_SIZE lignes au lieu d'une seule — un champ optionnel
+    n'a plus besoin d'etre present sur CETTE ligne precise pour etre detecte.
+
+    BUG CORRIGE #2 (audit 2026-09-11) : cette fonction s'arretait au PREMIER
+    jeu de donnees qui repondait avec au moins une ligne, sans jamais
+    verifier qu'il couvrait les champs dont le pipeline a besoin. Constate en
+    reel : le premier de DPE_DATASETS ('dpe-v2-logements-existants', le jeu
+    "principal") etait indisponible au moment du dernier run, et le
+    pipeline retombait sur 'dpe03existant' — qui repond bien, mais dont le
+    schema (verifie en direct : 13 champs seulement) NE CONTIENT AUCUN champ
+    de surface (ni `surface_habitable_logement`, ni `surface_habitable`, ni
+    `surface_thermique_lot`) ni `complement_adresse_logement`. Consequence
+    directe, verifiee sur les donnees reelles : `surface_dpe` restait vide
+    pour 100 % des adresses "jamais vendues" (aucune vente DVF connue) —
+    55,5 % de toute la liste prioritaire (11 032 sur 19 895 moradas) — sans
+    aucun message d'erreur visible, le pipeline continuant silencieusement
+    avec un champ manquant plutot que de le signaler ou d'essayer un autre
+    jeu de donnees. Corrige : on essaie maintenant TOUS les jeux de
+    DPE_DATASETS qui repondent, et on retient le PREMIER a la fois valide et
+    couvrant `surface_dpe` — le premier jeu simplement responsif sert
+    seulement de dernier recours si aucun ne couvre ce champ, avec un
+    avertissement explicite (au lieu d'un silence).
+
+    BUG CORRIGE #3 (audit 2026-09-12) : meme apres la correction precedente,
+    l'echantillon utilise pour juger si un jeu "couvre" `surface_dpe` etait
+    tire SANS FILTRE sur le jeu national entier — voir le commentaire sur
+    DPE_SCHEMA_SAMPLE_SIZE plus haut pour le detail. Verifie en direct sur
+    l'API ADEME (requete filtree sur Thonon-les-Bains, code_insee_ban
+    "74281") : `surface_habitable_logement` est bel et bien present dans
+    'dpe03existant', rempli sur 100 % d'un echantillon reel (23 a 103,5 m²).
+    Corrige en essayant d'abord un echantillon filtre sur une commune
+    reelle du secteur (_sample_rows ci-dessous), avec repli sur un
+    echantillon national elargi seulement si ce filtre echoue completement."""
+
+    def _sample_rows(ds_url):
+        """Renvoie (lignes, filtre_utilise_ou_None). Essaie d'abord un
+        echantillon filtre sur SCHEMA_SAMPLE_INSEE (plusieurs noms de champ
+        INSEE possibles), puis, a defaut, un echantillon national elargi."""
+        for insee_field in SCHEMA_SAMPLE_INSEE_FIELDS:
+            try:
+                r = requests.get(ds_url, params={
+                    "size": DPE_SCHEMA_SAMPLE_SIZE,
+                    "qs": f'{insee_field}:"{SCHEMA_SAMPLE_INSEE}"',
+                }, timeout=30)
+                if r.status_code != 200:
+                    continue
+                rows = (r.json().get("results")) or []
+                if rows:
+                    return rows, insee_field
+            except (requests.RequestException, ValueError):
+                continue
+        # Repli : aucun filtre par commune n'a fonctionne (nom de champ
+        # INSEE different dans ce jeu, ou requete rejetee) — echantillon
+        # national, mais elargi (voir DPE_SCHEMA_SAMPLE_SIZE).
+        r = requests.get(ds_url, params={"size": DPE_SCHEMA_SAMPLE_SIZE}, timeout=30)
+        r.raise_for_status()
+        return (r.json().get("results")) or [], None
+
+    fallback = None  # (dataset, schema) du premier jeu responsif, meme sans surface
     for ds in DPE_DATASETS:
         url = f"{DPE_API_BASE}/{ds}/lines"
         try:
-            r = requests.get(url, params={"size": 1}, timeout=30)
-            if r.status_code != 200:
-                print(f"  {ds}: HTTP {r.status_code} — ignore")
+            r_check = requests.get(url, params={"size": 1}, timeout=30)
+            if r_check.status_code != 200:
+                print(f"  {ds}: HTTP {r_check.status_code} — ignore")
                 continue
-            data = r.json()
-            results = data.get("results") or []
+            results, filtre = _sample_rows(url)
             if not results:
                 print(f"  {ds}: repond mais aucune ligne — ignore")
                 continue
-            schema = set(results[0].keys())
-            print(f"  OK -> jeu de donnees '{ds}' ({len(schema)} champs)")
-            return ds, schema
+            schema = set()
+            for row in results:
+                schema |= set(row.keys())
+            has_surface = any(c in schema for c in FIELD_CANDIDATES["surface_dpe"])
+            desc_filtre = f"filtre sur Thonon-les-Bains via {filtre}" if filtre else "national, sans filtre"
+            print(f"  {ds}: repond, {len(schema)} champs (union sur {len(results)} lignes, {desc_filtre})"
+                  f"{'' if has_surface else ' — AUCUN champ de surface (surface_dpe restera vide)'}")
+            if fallback is None:
+                fallback = (ds, schema)
+            if has_surface:
+                print(f"  OK -> jeu de donnees retenu : '{ds}' (couvre surface_dpe)")
+                return ds, schema
         except (requests.RequestException, ValueError) as e:
             print(f"  {ds}: injoignable ({e}) — ignore")
+    if fallback:
+        print(f"  ATTENTION : aucun jeu de donnees DPE avec un champ de surface "
+              f"trouve parmi {DPE_DATASETS} — utilisation de '{fallback[0]}' en "
+              f"dernier recours (surface_dpe restera vide pour toutes les adresses "
+              f"'jamais vendues' — voir audit 2026-09-11/12 dans le projet ZOS).")
+        return fallback
     return None, set()
 
 
@@ -231,6 +371,19 @@ def normalize_dpe_frame(rows, field_map):
 
     if "surface_dpe" in df.columns:
         df["surface_dpe"] = pd.to_numeric(df["surface_dpe"], errors="coerce")
+
+    if "type_batiment" in df.columns:
+        df["type_batiment"] = df["type_batiment"].astype(str).str.strip().str.lower()
+        df.loc[df["type_batiment"].isin(["", "nan", "none"]), "type_batiment"] = None
+
+    if "andar_apartamento" in df.columns:
+        df["andar_apartamento"] = pd.to_numeric(df["andar_apartamento"], errors="coerce")
+    if "complemento_morada" in df.columns:
+        df["complemento_morada"] = df["complemento_morada"].astype(str).str.strip()
+        df.loc[df["complemento_morada"].isin(["", "nan", "None"]), "complemento_morada"] = None
+    if "id_rnb_dpe" in df.columns:
+        df["id_rnb_dpe"] = df["id_rnb_dpe"].astype(str).str.strip()
+        df.loc[df["id_rnb_dpe"].isin(["", "nan", "None"]), "id_rnb_dpe"] = None
 
     if "dpe_classe" in df.columns:
         df["dpe_classe"] = df["dpe_classe"].astype(str).str.strip().str.upper().str[:1]

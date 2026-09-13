@@ -374,7 +374,7 @@ def merge_dpe(df, dpe):
     maisons deja vendues au moins une fois."""
     if dpe.empty or not {"k_num", "k_voie"} <= set(dpe.columns):
         for c in ("dpe_classe", "ges_classe", "annee_construction",
-                  "surface_dpe", "date_dpe", "type_batiment"):
+                  "surface_dpe", "date_dpe", "type_batiment", "id_rnb_dpe"):
             df[c] = pd.NA
         return df
 
@@ -385,7 +385,8 @@ def merge_dpe(df, dpe):
 
     keep = [c for c in ["k_num", "k_voie", "code_insee", "dpe_classe", "ges_classe",
                         "annee_construction", "surface_dpe", "date_dpe",
-                        "andar_apartamento", "complemento_morada", "type_batiment"]
+                        "andar_apartamento", "complemento_morada", "type_batiment",
+                        "id_rnb_dpe"]
             if c in d.columns]
     d = d[keep]
 
@@ -461,7 +462,8 @@ def _dpe_points(dpe):
 
     keep = [c for c in ["code_insee", "lon_dpe", "lat_dpe", "dpe_classe", "ges_classe",
                         "annee_construction", "surface_dpe", "date_dpe",
-                        "andar_apartamento", "complemento_morada", "type_batiment"]
+                        "andar_apartamento", "complemento_morada", "type_batiment",
+                        "id_rnb_dpe"]
             if c in d.columns]
     return d[keep]
 
@@ -475,6 +477,7 @@ _DPE_DETAIL_TO_TARGET = {
     "andar_apartamento": "andar_apartamento",
     "complemento_morada": "complemento_morada",
     "type_batiment": "type_batiment",
+    "id_rnb_dpe": "id_rnb_dpe",
 }
 
 
@@ -574,13 +577,32 @@ def merge_georisques(df, georisques):
 
 
 def merge_rnb(df, rnb):
-    """Ajoute l'identifiant de batiment RNB (brique de robustesse, pas de
-    critere de score — voir enrich_rnb.py)."""
+    """Ajoute l'identifiant de batiment RNB, et le nombre de moradas BAN
+    distinctes rattachees au meme batiment (n_apartamentos_predio).
+
+    AJOUT (audit 2026-09-12) : meme principe que n_enderecos_parcela pour le
+    terrain partage (enrich_cadastre.py) — sauf qu'ici le regroupement se
+    fait par batiment (rnb_id) plutot que par parcelle cadastrale. Utile
+    pour distinguer un petit immeuble d'une grande copropriete. Purement
+    informatif, jamais utilise dans le score (comme rnb_id lui-meme)."""
     if rnb.empty or "id" not in df.columns:
         df["rnb_id"] = pd.NA
+        df["n_apartamentos_predio"] = pd.NA
         return df
     r = rnb.rename(columns={"ban_id": "id"})[["id", "rnb_id"]].drop_duplicates(subset=["id"])
-    return df.merge(r, on="id", how="left")
+    df = df.merge(r, on="id", how="left")
+
+    if not df.empty:
+        n_por_predio = (
+            df.dropna(subset=["rnb_id"])
+              .drop_duplicates(subset=["id"])
+              .groupby("rnb_id").size()
+              .rename("n_apartamentos_predio").reset_index()
+        )
+        df = df.merge(n_por_predio, on="rnb_id", how="left")
+    else:
+        df["n_apartamentos_predio"] = pd.Series(dtype="float64")
+    return df
 
 
 # ------------------------------------------------------------- SEGMENTATION -
@@ -679,6 +701,18 @@ def quality_report(adresses, dvf, dpe, merged):
 # do DPE da ADEME quando preenchidos, dao um substituto parcial: o andar e o
 # nome/numero do lote ou residencia (ex. "Villa n°10"), que tambem costumam
 # aparecer num anuncio. Puramente informativo — nunca entra no score.
+#
+# 'n_apartamentos_predio' (audit 2026-09-12) : mesmo principio de
+# 'n_enderecos_parcela' (terreno partilhado), mas para o predio em vez da
+# parcela — conta quantas moradas BAN distintas partilham o mesmo rnb_id
+# (Repertorio Nacional de Edificios). Ajuda a distinguir um pequeno predio
+# de 3 fracoes de uma grande copropriedade de 40 — util para o agente
+# reconhecer/descrever o imovel, mas puramente informativo, nunca entra no
+# score (ver merge_rnb).
+# 'id_rnb_dpe' : o proprio DPE da ADEME traz um id_rnb (via enrich_dpe.py),
+# uma segunda via, independente da primeira (morada BAN -> ban_id -> rnb_id
+# via enrich_rnb.py), para o mesmo identificador de predio — util para
+# cruzar/completar as duas fontes no futuro. Tambem puramente informativo.
 
 EXPORT_COLS = [
     "adresse_complete", "nom_commune_ref", "code_postal_secteur",
@@ -687,8 +721,8 @@ EXPORT_COLS = [
     "prix_derniere_vente", "prix_m2_derniere_vente", "prix_ecarte",
     "dpe_classe", "ges_classe", "methode_dpe", "passoire_thermique", "annee_construction",
     "surface_dpe",
-    "andar_apartamento", "complemento_morada",
-    "surface_terrain_m2", "n_enderecos_parcela", "rnb_id",
+    "andar_apartamento", "complemento_morada", "id_rnb_dpe",
+    "surface_terrain_m2", "n_enderecos_parcela", "rnb_id", "n_apartamentos_predio",
     "prix_m2_estime", "base_prix_source", "ajustements", "coef_total",
     "valeur_estimee_actuelle", "plus_value_eur", "plus_value_pct",
     "duree_detention_ans", "argument_prudent", "argument_terrain",

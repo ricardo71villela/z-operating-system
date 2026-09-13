@@ -528,6 +528,82 @@ EXCLUIDOS_COLUMNS = [
     "parcela_id", "code_insee", "commune", "area_m2", "motivo_exclusao", "lon", "lat",
 ]
 
+# ---------------------------------------------------------------------------
+# RETOMADA POR COMUNA (auditoria 2026-09-12, mesmo princípio já usado em
+# gen_fiches_b_resume.py) -- esta correção acrescenta uma consulta WFS por
+# comuna e, quando ENABLE_POI_CHECK está ativo, mais uma chamada de API por
+# candidato sobrevivente, o que torna a execução total mais longa que a
+# versão anterior (que já levou ~4h30 nas 26 comunas). Uma comuna demora de
+# minutos a mais de meia hora consoante o número de parcelas -- interromper
+# a meio (Mac que dorme, rede que cai, terminal fechado) sem nenhum registo
+# intermédio faria perder TODO o trabalho já feito, como já aconteceu antes
+# com a geração das fichas B. Em vez disso, cada comuna processada com
+# sucesso grava o seu resultado parcial em disco; ao recomeçar, uma comuna
+# já concluída é lida diretamente do disco (sem nenhuma chamada de API) em
+# vez de reprocessada. Apagar a pasta abaixo (ou lançar com
+# FORCE_REDOWNLOAD=1) força o reprocessamento completo de todas as comunas.
+# ---------------------------------------------------------------------------
+PROGRESSO_DIR = os.path.join(DATA_DIR, "_cache", "terrenos_livres_progresso")
+
+
+def _progresso_paths(code_insee):
+    return (
+        os.path.join(PROGRESSO_DIR, f"{code_insee}_livres.csv"),
+        os.path.join(PROGRESSO_DIR, f"{code_insee}_excluidos.csv"),
+    )
+
+
+def processar_comuna(code, nome, session):
+    """Processa uma comuna do zero (todas as chamadas de API) e devolve
+    (rows_livres, rows_excluidos, n_candidatas, n_excluidas_bdtopo) --
+    NUNCA lê nem escreve o cache de retomada (isso é feito por quem chama,
+    ver main())."""
+    rows_livres = []
+    rows_excluidos = []
+    candidatas, excluidas_bdtopo = find_parcelas_livres(code, session)
+    for e in excluidas_bdtopo:
+        rows_excluidos.append({
+            "parcela_id": e["parcela_id"], "code_insee": code, "commune": nome,
+            "area_m2": e["area_m2"], "motivo_exclusao": e["motivo_exclusao"],
+            "lon": round(e["lon"], 6), "lat": round(e["lat"], 6),
+        })
+
+    for c in candidatas:
+        typezone, libelle, libelong = consultar_zona_plu(c["lon"], c["lat"], session)
+        time.sleep(GPU_SLEEP)
+        if typezone is None:
+            continue
+        if typezone not in GPU_ZONAS_INCLUIDAS:
+            continue
+        excluir_libelong, kw = libelong_indica_exclusao(libelong)
+        if excluir_libelong:
+            rows_excluidos.append({
+                "parcela_id": c["parcela_id"], "code_insee": code, "commune": nome,
+                "area_m2": c["area_m2"],
+                "motivo_exclusao": f"zona PLU '{libelong}' (palavra-chave: {kw})",
+                "lon": round(c["lon"], 6), "lat": round(c["lat"], 6),
+            })
+            continue
+
+        poi_alerta = None
+        if ENABLE_POI_CHECK:
+            poi_alerta = consultar_poi_alerta(c["lon"], c["lat"], session)
+            time.sleep(GPU_SLEEP)
+
+        rows_livres.append({
+            "parcela_id": c["parcela_id"],
+            "code_insee": code,
+            "commune": nome,
+            "area_m2": c["area_m2"],
+            "zona_plu": typezone,
+            "zona_libelle": libelle,
+            "poi_alerta": poi_alerta,
+            "lon": round(c["lon"], 6),
+            "lat": round(c["lat"], 6),
+            "link_mapa": f"https://www.google.com/maps?q={c['lat']:.6f},{c['lon']:.6f}",
+        })
+    return rows_livres, rows_excluidos, len(candidatas), len(excluidas_bdtopo)
+
 
 def main():
     if not HAS_SHAPELY:
@@ -537,66 +613,34 @@ def main():
             os.path.join(OUTPUT_DIR, "terrenos_livres_potencial.csv"), index=False)
         return
 
+    os.makedirs(PROGRESSO_DIR, exist_ok=True)
     session = build_session()
     all_rows = []
     excluidos_rows = []
-    n_sem_plu = 0
     n_excl_bdtopo = 0
     n_excl_libelong = 0
     print(f"Procura de terrenos livres (>= {TERRENO_LIVRE_SURFACE_MIN} m², "
           f"zona {'/'.join(sorted(GPU_ZONAS_INCLUIDAS))}) em "
           f"{len(ALL_COMMUNES)} comunas...")
     for code, nome in ALL_COMMUNES.items():
-        candidatas, excluidas_bdtopo = find_parcelas_livres(code, session)
-        for e in excluidas_bdtopo:
-            excluidos_rows.append({
-                "parcela_id": e["parcela_id"], "code_insee": code, "commune": nome,
-                "area_m2": e["area_m2"], "motivo_exclusao": e["motivo_exclusao"],
-                "lon": round(e["lon"], 6), "lat": round(e["lat"], 6),
-            })
-        n_excl_bdtopo += len(excluidas_bdtopo)
+        path_livres, path_excl = _progresso_paths(code)
+        if not FORCE_REDOWNLOAD and os.path.exists(path_livres) and os.path.exists(path_excl):
+            rows_livres = pd.read_csv(path_livres).to_dict("records") if os.path.getsize(path_livres) else []
+            rows_excluidos = pd.read_csv(path_excl).to_dict("records") if os.path.getsize(path_excl) else []
+            print(f"  {nome:26s} {len(rows_livres):>4} terreno(s) livre(s) "
+                  f"(retomado do disco, sem nova chamada de API)")
+        else:
+            rows_livres, rows_excluidos, n_cand, n_excl_bd = processar_comuna(code, nome, session)
+            pd.DataFrame(rows_livres, columns=OUT_COLUMNS).to_csv(path_livres, index=False)
+            pd.DataFrame(rows_excluidos, columns=EXCLUIDOS_COLUMNS).to_csv(path_excl, index=False)
+            print(f"  {nome:26s} {len(rows_livres):>4} terreno(s) livre(s) em zona "
+                  f"construtível (de {n_cand} candidatas sem edifício, "
+                  f"{n_excl_bd} excluída(s) por BD TOPO)")
 
-        n_zona_ok = 0
-        for c in candidatas:
-            typezone, libelle, libelong = consultar_zona_plu(c["lon"], c["lat"], session)
-            time.sleep(GPU_SLEEP)
-            if typezone is None:
-                n_sem_plu += 1
-                continue
-            if typezone not in GPU_ZONAS_INCLUIDAS:
-                continue
-            excluir_libelong, kw = libelong_indica_exclusao(libelong)
-            if excluir_libelong:
-                n_excl_libelong += 1
-                excluidos_rows.append({
-                    "parcela_id": c["parcela_id"], "code_insee": code, "commune": nome,
-                    "area_m2": c["area_m2"],
-                    "motivo_exclusao": f"zona PLU '{libelong}' (palavra-chave: {kw})",
-                    "lon": round(c["lon"], 6), "lat": round(c["lat"], 6),
-                })
-                continue
-
-            poi_alerta = None
-            if ENABLE_POI_CHECK:
-                poi_alerta = consultar_poi_alerta(c["lon"], c["lat"], session)
-                time.sleep(GPU_SLEEP)
-
-            n_zona_ok += 1
-            all_rows.append({
-                "parcela_id": c["parcela_id"],
-                "code_insee": code,
-                "commune": nome,
-                "area_m2": c["area_m2"],
-                "zona_plu": typezone,
-                "zona_libelle": libelle,
-                "poi_alerta": poi_alerta,
-                "lon": round(c["lon"], 6),
-                "lat": round(c["lat"], 6),
-                "link_mapa": f"https://www.google.com/maps?q={c['lat']:.6f},{c['lon']:.6f}",
-            })
-        print(f"  {nome:26s} {n_zona_ok:>4} terreno(s) livre(s) em zona "
-              f"construtível (de {len(candidatas)} candidatas sem edifício, "
-              f"{len(excluidas_bdtopo)} excluída(s) por BD TOPO)")
+        all_rows.extend(rows_livres)
+        excluidos_rows.extend(rows_excluidos)
+        n_excl_bdtopo += sum(1 for r in rows_excluidos if str(r.get("motivo_exclusao", "")).startswith("BD TOPO"))
+        n_excl_libelong += sum(1 for r in rows_excluidos if str(r.get("motivo_exclusao", "")).startswith("zona PLU"))
 
     df = pd.DataFrame(all_rows, columns=OUT_COLUMNS)
     if not df.empty:
@@ -616,10 +660,10 @@ def main():
           f"[escolas/desporto/saúde/culto/indústria/cemitérios/etc.], "
           f"{n_excl_libelong:,} excluídos pela descrição da zona PLU "
           f"-> auditoria completa em {out_excl})")
-    if n_sem_plu:
-        print(f"  ({n_sem_plu:,} parcelas sem edifício ficaram sem zona PLU "
-              f"conhecida na API GPU e foram excluídas -- comuna sem PLU "
-              f"aprovado, ou zona não mapeada)")
+    print("  (parcelas sem edifício e sem zona PLU conhecida na API GPU "
+          "continuam excluídas por omissão -- comuna sem PLU aprovado, ou "
+          "zona não mapeada; não contabilizadas à parte nesta versão por "
+          "causa da retomada por comuna)")
     print("\nESTA LISTA NÃO TEM DADOS DE PROPRIETÁRIO (não existem em dados "
           "abertos para parcelas não construídas). Para cada parcela de "
           "interesse, pede um extrato da matriz cadastral na câmara "
