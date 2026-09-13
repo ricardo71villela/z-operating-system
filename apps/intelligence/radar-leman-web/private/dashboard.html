@@ -432,13 +432,13 @@
     <select id="communeSelect"><option value="">Toutes les communes</option></select>
     <label class="toggle" id="passoireLabel"><input type="checkbox" id="passoireToggle"> Passoires thermiques uniquement (E·F·G)</label>
     <label class="toggle" id="terrenoLabel"><input type="checkbox" id="terrenoToggle"> Terrain ≥ 1000 m²</label>
-    <button class="route-btn" id="routeToggleBtn" type="button">🗺️ Roteiro do dia</button>
+    <button class="route-btn" id="routeToggleBtn" type="button">🗺️ Itinéraire du jour</button>
     <span class="count-badge" id="countBadge"></span>
   </div>
 </div>
 
 <div class="route-panel" id="routePanel" hidden>
-  <h3>Roteiro de prospection du jour</h3>
+  <h3>Itinéraire de prospection du jour</h3>
   <p class="route-sub">Regroupe les adresses de plus fort potentiel d'une commune et propose un ordre de visite efficace (plus proche voisin, à vol d'oiseau) — un point de départ pour organiser ta tournée, pas un GPS.</p>
   <div class="route-controls">
     <select id="routeCommune"><option value="">— Choisir une commune —</option></select>
@@ -452,9 +452,9 @@
       <option value="15">15 arrêts</option>
       <option value="20">20 arrêts</option>
     </select>
-    <button class="route-generate" id="routeGenerateBtn" type="button">Générer le roteiro</button>
+    <button class="route-generate" id="routeGenerateBtn" type="button">Générer l'itinéraire</button>
   </div>
-  <div id="routeResult"><p class="route-empty">Choisis une commune puis clique sur « Générer le roteiro ».</p></div>
+  <div id="routeResult"><p class="route-empty">Choisis une commune puis clique sur « Générer l'itinéraire ».</p></div>
 </div>
 
 <div class="layout">
@@ -851,7 +851,7 @@ function generateRoute(){
   const resultEl = document.getElementById('routeResult');
 
   if(!commune){
-    resultEl.innerHTML = '<p class="route-empty">Choisis une commune pour générer un roteiro.</p>';
+    resultEl.innerHTML = '<p class="route-empty">Choisis une commune pour générer un itinéraire.</p>';
     return;
   }
 
