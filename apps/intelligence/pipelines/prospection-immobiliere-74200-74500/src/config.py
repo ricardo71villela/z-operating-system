@@ -54,7 +54,14 @@ BAN_DEPARTEMENT_URL = (
 # terrain + surface desormais fiables pour les identifier). Sans risque :
 # si 2019/2020 sont encore indisponibles, ingest_dvf.py les ignore
 # silencieusement et on retombe sur la fenetre precedente.
-DVF_YEARS = list(range(2019, 2026))
+#
+# MISE A JOUR (2026-09-17) : fenetre re-elargie de 2019-2025 a 2014-2025
+# (davantage d'historique de ventes). Sans risque additionnel grace au piege
+# v3 corrige ci-dessous : les seuils de segmentation sont calcules sur les
+# annees REELLEMENT obtenues dans dvf_74200_74500.csv, jamais sur DVF_YEARS
+# lui-meme — si 2014-2018 s'averent indisponibles, ingest_dvf.py les ignore
+# silencieusement et on retombe exactement sur la fenetre precedente.
+DVF_YEARS = list(range(2014, 2026))
 DVF_URL_TEMPLATE = (
     "https://files.data.gouv.fr/geo-dvf/latest/csv/{year}/departements/"
     + DEPARTEMENT + ".csv.gz"

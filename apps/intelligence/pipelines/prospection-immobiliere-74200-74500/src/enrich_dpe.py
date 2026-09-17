@@ -143,6 +143,21 @@ FIELD_CANDIDATES = {
     # partagent un meme id_rnb (indice de la taille reelle d'une
     # copropriete). Purement informatif, jamais utilise dans le score.
     "id_rnb_dpe": ["id_rnb"],
+    # AJOUT (2026-09-17, demande explicite : "campos extra de DPE para
+    # apartamentos") : quatre arguments de vente supplementaires, verifies
+    # en direct sur l'API ADEME (echantillon du secteur, ~95-100% de
+    # remplissage) : `logement_traversant` (double exposition, un critere
+    # recherche en appartement), `hauteur_sous_plafond` (plafond haut),
+    # `qualite_isolation_enveloppe` (qualite de l'isolation) et
+    # `type_generateur_chauffage_principal` (type de chauffage). Un
+    # cinquieme champ envisage, `numero_dpe_immeuble_associe` (lien vers le
+    # DPE collectif de l'immeuble), a ete ecarte : verifie vide a 100% sur
+    # le meme echantillon, donc sans interet. Purement informatifs, jamais
+    # utilises dans le score (comme andar_apartamento/complemento_morada).
+    "logement_traversant": ["logement_traversant"],
+    "hauteur_sous_plafond": ["hauteur_sous_plafond"],
+    "qualite_isolation": ["qualite_isolation_enveloppe"],
+    "type_chauffage": ["type_generateur_chauffage_principal"],
 }
 
 
@@ -384,6 +399,29 @@ def normalize_dpe_frame(rows, field_map):
     if "id_rnb_dpe" in df.columns:
         df["id_rnb_dpe"] = df["id_rnb_dpe"].astype(str).str.strip()
         df.loc[df["id_rnb_dpe"].isin(["", "nan", "None"]), "id_rnb_dpe"] = None
+
+    # `logement_traversant` : verifie en direct (cache reel Thonon-les-Bains,
+    # audit 2026-09-17) que l'API le renvoie en 0/1 NUMERIQUE, pas en texte
+    # "oui"/"non" comme suppose initialement — le premier essai (`.map` sur
+    # "oui"/"non"/"true"/"false") laissait donc le champ 100% vide malgre
+    # 7 160 valeurs reelles sur 14 173 lignes pour cette seule commune.
+    # Corrige en gerant les deux formes : texte ET 0/1 numerique.
+    # `hauteur_sous_plafond` un nombre (metres) ; les deux derniers sont du
+    # texte libre, juste nettoyes des valeurs vides/nulles habituelles.
+    if "logement_traversant" in df.columns:
+        _lt = df["logement_traversant"].astype(str).str.strip().str.lower()
+        df["logement_traversant"] = _lt.map({
+            "oui": True, "non": False, "true": True, "false": False,
+            "1": True, "0": False, "1.0": True, "0.0": False,
+        })
+    if "hauteur_sous_plafond" in df.columns:
+        df["hauteur_sous_plafond"] = pd.to_numeric(df["hauteur_sous_plafond"], errors="coerce")
+    if "qualite_isolation" in df.columns:
+        df["qualite_isolation"] = df["qualite_isolation"].astype(str).str.strip()
+        df.loc[df["qualite_isolation"].isin(["", "nan", "None"]), "qualite_isolation"] = None
+    if "type_chauffage" in df.columns:
+        df["type_chauffage"] = df["type_chauffage"].astype(str).str.strip()
+        df.loc[df["type_chauffage"].isin(["", "nan", "None"]), "type_chauffage"] = None
 
     if "dpe_classe" in df.columns:
         df["dpe_classe"] = df["dpe_classe"].astype(str).str.strip().str.upper().str[:1]

@@ -374,7 +374,9 @@ def merge_dpe(df, dpe):
     maisons deja vendues au moins une fois."""
     if dpe.empty or not {"k_num", "k_voie"} <= set(dpe.columns):
         for c in ("dpe_classe", "ges_classe", "annee_construction",
-                  "surface_dpe", "date_dpe", "type_batiment", "id_rnb_dpe"):
+                  "surface_dpe", "date_dpe", "type_batiment", "id_rnb_dpe",
+                  "logement_traversant", "hauteur_sous_plafond",
+                  "qualite_isolation", "type_chauffage"):
             df[c] = pd.NA
         return df
 
@@ -386,7 +388,8 @@ def merge_dpe(df, dpe):
     keep = [c for c in ["k_num", "k_voie", "code_insee", "dpe_classe", "ges_classe",
                         "annee_construction", "surface_dpe", "date_dpe",
                         "andar_apartamento", "complemento_morada", "type_batiment",
-                        "id_rnb_dpe"]
+                        "id_rnb_dpe", "logement_traversant", "hauteur_sous_plafond",
+                        "qualite_isolation", "type_chauffage"]
             if c in d.columns]
     d = d[keep]
 
@@ -463,7 +466,8 @@ def _dpe_points(dpe):
     keep = [c for c in ["code_insee", "lon_dpe", "lat_dpe", "dpe_classe", "ges_classe",
                         "annee_construction", "surface_dpe", "date_dpe",
                         "andar_apartamento", "complemento_morada", "type_batiment",
-                        "id_rnb_dpe"]
+                        "id_rnb_dpe", "logement_traversant", "hauteur_sous_plafond",
+                        "qualite_isolation", "type_chauffage"]
             if c in d.columns]
     return d[keep]
 
@@ -478,6 +482,10 @@ _DPE_DETAIL_TO_TARGET = {
     "complemento_morada": "complemento_morada",
     "type_batiment": "type_batiment",
     "id_rnb_dpe": "id_rnb_dpe",
+    "logement_traversant": "logement_traversant",
+    "hauteur_sous_plafond": "hauteur_sous_plafond",
+    "qualite_isolation": "qualite_isolation",
+    "type_chauffage": "type_chauffage",
 }
 
 
@@ -713,6 +721,11 @@ def quality_report(adresses, dvf, dpe, merged):
 # uma segunda via, independente da primeira (morada BAN -> ban_id -> rnb_id
 # via enrich_rnb.py), para o mesmo identificador de predio — util para
 # cruzar/completar as duas fontes no futuro. Tambem puramente informativo.
+#
+# 'logement_traversant' / 'hauteur_sous_plafond' / 'qualite_isolation' /
+# 'type_chauffage' (2026-09-17) : quatro argumentos de venda extra vindos do
+# DPE, uteis sobretudo para apartamentos (que nao tem terreno como
+# argumento). Puramente informativos, nunca entram no score.
 
 EXPORT_COLS = [
     "adresse_complete", "nom_commune_ref", "code_postal_secteur",
@@ -722,6 +735,7 @@ EXPORT_COLS = [
     "dpe_classe", "ges_classe", "methode_dpe", "passoire_thermique", "annee_construction",
     "surface_dpe",
     "andar_apartamento", "complemento_morada", "id_rnb_dpe",
+    "logement_traversant", "hauteur_sous_plafond", "qualite_isolation", "type_chauffage",
     "surface_terrain_m2", "n_enderecos_parcela", "rnb_id", "n_apartamentos_predio",
     "prix_m2_estime", "base_prix_source", "ajustements", "coef_total",
     "valeur_estimee_actuelle", "plus_value_eur", "plus_value_pct",
