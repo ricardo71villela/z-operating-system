@@ -1,6 +1,7 @@
 // Gerado por scripts/split-fichas.py — nao editar a mao.
 // Ordem: n=0 e a ficha de maior score de Prioridade A, n=2334 a de menor
 // Prioridade A; n=2335 a de maior score de Prioridade B, n=18616 a de menor.
+// n=18617 a n=23366: moradas restantes do universo completo (17/set), por score decrescente.
 module.exports = [
   ...require('./shard-0.js'),
   ...require('./shard-1.js'),
@@ -375,4 +376,20 @@ module.exports = [
   ...require('./shard-370.js'),
   ...require('./shard-371.js'),
   ...require('./shard-372.js'),
+  ...require('./shard-373.js'),
+  ...require('./shard-374.js'),
+  ...require('./shard-375.js'),
+  ...require('./shard-376.js'),
+  ...require('./shard-377.js'),
+  ...require('./shard-378.js'),
+  ...require('./shard-379.js'),
+  ...require('./shard-380.js'),
+  ...require('./shard-381.js'),
+  ...require('./shard-382.js'),
+  ...require('./shard-383.js'),
+  ...require('./shard-384.js'),
+  ...require('./shard-385.js'),
+  ...require('./shard-386.js'),
+  ...require('./shard-387.js'),
+  ...require('./shard-388.js'),
 ];
