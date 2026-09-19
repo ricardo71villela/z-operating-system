@@ -49,12 +49,16 @@ jobs:
             app/manifest.webmanifest \
             app/sw.js \
             app/politica-privacidade.html \
+            app/politica-privacidade-fr.html \
             app/termos-de-servico.html \
+            app/termos-de-servico-fr.html \
             native/www/index.html \
             native/www/manifest.webmanifest \
             native/www/sw.js \
             native/www/politica-privacidade.html \
-            native/www/termos-de-servico.html
+            native/www/politica-privacidade-fr.html \
+            native/www/termos-de-servico.html \
+            native/www/termos-de-servico-fr.html
           echo "COMMITTED_WEB_AUTHORITY=PASS"
 
           npm run build >/tmp/zstudio-second-build.log
@@ -142,33 +146,8 @@ jobs:
         run: |
           grep -Fq "const AI_ENDPOINT = 'https://z-studio-platform-seven.vercel.app/api/ai';" src/main.js
           echo "AI_SPLIT_BACKEND_CONTRACT=PASS"
-      - name: Run functional tests with exact transitional assertions allowance
-        shell: bash
-        run: |
-          set +e
-          npm test 2>&1 | tee functional-test.log
-          TEST_RC=${PIPESTATUS[0]}
-          set -e
-          if [ "$TEST_RC" -eq 0 ]; then
-            echo "FUNCTIONAL_CONTRACT=PASS"
-            exit 0
-          fi
-          FAIL_COUNT="$(grep -c '^❌ ' functional-test.log || true)"
-          if [ "$FAIL_COUNT" = "3" ] \
-            && grep -Fq 'RESULTADO: 207 passaram, 3 falharam, 0 ignorados (de 210)' functional-test.log \
-            && grep -Fq '❌ marca por defeito é My Studio' functional-test.log \
-            && grep -Fq '❌ sem "Z Studio" residual (nome antigo do produto)' functional-test.log \
-            && grep -Fq '❌ sem Capacitor, o endpoint usa o caminho relativo normal' functional-test.log \
-            && grep -Fq 'https://z-studio-platform-seven.vercel.app/api/ai' functional-test.log; then
-            echo "KNOWN_LEGACY_BRAND_ASSERTIONS=ACKNOWLEDGED_FOR_A1_2A"
-            echo "KNOWN_LEGACY_AI_ENDPOINT_ASSERTION=ACKNOWLEDGED"
-            echo "CURRENT_Z_STUDIO_IDENTITY_CONTRACT=PASS"
-            echo "CURRENT_AI_ARCHITECTURE_CONTRACT=PASS"
-            echo "FUNCTIONAL_CONTRACT=PASS_WITH_EXACT_TEMPORARY_TRANSITION_ALLOWANCE"
-            exit 0
-          fi
-          echo "FUNCTIONAL_CONTRACT=FAIL"
-          exit "$TEST_RC"
+      - name: Run functional tests
+        run: npm test
       - name: Run renderer layout regression contract
         run: npm run test:layout
 
