@@ -24,9 +24,65 @@ const addressDomain = require('../../../packages/fashion-domain/src/address');
 const commissionDomain = require('../../../packages/fashion-domain/src/commission');
 const { buildListingCards } = require('../../../packages/fashion-domain/src/catalog-listing');
 const db = require('./db');
+const { resolveAuthenticatedUserId } = require('./auth');
 
 const usingPostgres = !!process.env.DATABASE_URL;
 const pool = usingPostgres ? db.createPool() : null;
+
+/**
+ * Authorizes a partner-scoped request. On success, returns partnerId
+ * unchanged so callers can write `if (!(await authorizePartnerRequest(...)))
+ * return;` at the top of a handler without restructuring it. On
+ * failure it has already written the HTTP response (401/403) and
+ * returns null.
+ *
+ * Deliberately a no-op — same behavior as before this existed — in
+ * two cases, both intentional, not oversights:
+ *   - in-memory mode (!usingPostgres): every existing test runs this
+ *     way, with no Authorization header at all.
+ *   - Postgres mode without Supabase Auth configured yet
+ *     (resolveAuthenticatedUserId returns undefined): usingPostgres
+ *     alone doesn't imply auth.users exists to check against — see
+ *     db.js's own header comment about local/CI Postgres mirrors.
+ *
+ * Once SUPABASE_URL/key ARE set, this becomes the real gate: no
+ * Authorization header, an invalid/expired token, or an authenticated
+ * person who simply doesn't manage this Partner are all rejected.
+ * Until the onboarding flow starts calling
+ * platform_internal.link_fashion_partner_organisation() (a separate,
+ * later piece of work), every Partner has zero linked organisations —
+ * so turning Supabase Auth on here before that flow exists means
+ * every partner-scoped request gets rejected with 403. That is the
+ * correct fail-closed behavior, not a bug — do not treat a wave of
+ * 403s right after enabling Supabase Auth as this code being broken.
+ *
+ * handleTransition (approve/reject/suspend a Partner) is deliberately
+ * NOT gated by this function — that is an admin/moderation action,
+ * never something a Partner does about itself, and ZOS has no admin-
+ * role model yet to gate it against. Gating it with this function
+ * would incorrectly require the Partner to already manage itself in
+ * order to be approved in the first place. Left open pending real
+ * admin authorization — a known, stated gap, not a silent one.
+ */
+async function authorizePartnerRequest(req, res, partnerId) {
+  if (!usingPostgres) return partnerId;
+
+  const authUserId = await resolveAuthenticatedUserId(req.headers['authorization']);
+  if (authUserId === undefined) return partnerId;
+
+  if (authUserId === null) {
+    sendJson(res, 401, { error: 'authentication required' });
+    return null;
+  }
+
+  const allowedPartnerIds = await db.resolveFashionPartnerIdsForAuthUser(pool, authUserId);
+  if (!allowedPartnerIds.includes(partnerId)) {
+    sendJson(res, 403, { error: `not authorized to manage partner ${partnerId}` });
+    return null;
+  }
+
+  return partnerId;
+}
 
 // In-memory fallback store — only reachable when usingPostgres is false.
 const memory = {
@@ -138,6 +194,7 @@ async function assertProductOwnership(partnerId, productId) {
 }
 
 async function handleStockUpdate(req, res, partnerId, productId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
   const body = await readBody(req);
   try {
     await assertProductOwnership(partnerId, productId);
@@ -157,6 +214,7 @@ async function handleStockUpdate(req, res, partnerId, productId) {
 }
 
 async function handleGetStock(req, res, partnerId, productId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
   try {
     await assertProductOwnership(partnerId, productId);
 
@@ -193,6 +251,7 @@ async function handleGetStock(req, res, partnerId, productId) {
  * pretended solved either.
  */
 async function handleBulkStockUpdate(req, res, partnerId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
   const body = await readBody(req);
   if (!Array.isArray(body.updates)) {
     return sendJson(res, 400, { error: 'updates must be an array of { productId, quantityAvailable, observedAt }' });
@@ -239,6 +298,7 @@ async function handleBulkStockUpdate(req, res, partnerId) {
 }
 
 async function handleCreateBrand(req, res, partnerId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
   const body = await readBody(req);
   try {
     if (usingPostgres) {
@@ -255,6 +315,7 @@ async function handleCreateBrand(req, res, partnerId) {
 }
 
 async function handleCreateProduct(req, res, partnerId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
   const body = await readBody(req);
   try {
     if (usingPostgres) {
@@ -295,6 +356,7 @@ async function handleCreateProduct(req, res, partnerId) {
 }
 
 async function handleListProducts(req, res, partnerId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
   try {
     if (usingPostgres) {
       const products = await db.listProductsForPartner(pool, partnerId);
@@ -344,6 +406,7 @@ async function handleCreateShipment(req, res) {
 }
 
 async function handleListShipments(req, res, partnerId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
   try {
     if (usingPostgres) {
       const shipments = await db.listShipmentsForPartner(pool, partnerId);
@@ -396,6 +459,7 @@ async function handleCreateReturn(req, res) {
 }
 
 async function handleListReturns(req, res, partnerId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
   try {
     if (usingPostgres) {
       const returns = await db.listReturnsForPartner(pool, partnerId);
@@ -752,6 +816,7 @@ async function handleSetDefaultClientAddress(req, res, clientId, addressId) {
  * happened yet.
  */
 async function handleGetPartnerCommission(req, res, partnerId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
   try {
     const partner = usingPostgres ? await db.getPartner(pool, partnerId) : memory.partners.get(partnerId);
     if (!partner) return sendJson(res, 404, { error: `no partner with id ${partnerId}` });
@@ -780,6 +845,7 @@ async function handleGetPartnerCommission(req, res, partnerId) {
 }
 
 async function handleUpsertCornerConfig(req, res, partnerId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
   const body = await readBody(req);
   try {
     if (usingPostgres) {

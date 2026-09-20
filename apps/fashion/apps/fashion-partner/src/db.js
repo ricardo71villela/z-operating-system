@@ -111,6 +111,28 @@ async function getPartner(pool, partnerId) {
   return result.rows[0] ? toDomainShape(result.rows[0]) : null;
 }
 
+/** Resolves which fashion.partners this authenticated Supabase user
+ *  may manage, via the shared ZOS model: auth user -> zos.persons ->
+ *  zos.memberships (active) -> zos.organisations -> zos.registry_bindings
+ *  (domain_code='fashion', local_entity_type='partner') -> partner id.
+ *  Wraps platform_internal.fashion_partner_ids_for_auth_user()
+ *  (infrastructure/supabase/migrations/
+ *  20260920120000_zos_fashion_partner_identity_bridge_v1.sql).
+ *
+ *  This is not optional application-level polish — this server's
+ *  DATABASE_URL connection is privileged and goes straight to
+ *  Postgres, bypassing PostgREST, so the RLS policy on
+ *  fashion.partners never runs for it. Authorization for every
+ *  partner-scoped endpoint depends on this function actually being
+ *  called, not on any policy alone. */
+async function resolveFashionPartnerIdsForAuthUser(pool, authUserId) {
+  const result = await pool.query(
+    `select partner_id from platform_internal.fashion_partner_ids_for_auth_user($1)`,
+    [authUserId]
+  );
+  return result.rows.map((r) => r.partner_id);
+}
+
 function toDomainShape(row) {
   return {
     id: row.id,
@@ -599,6 +621,7 @@ function toAddressDomainShape(row) {
 
 module.exports = {
   createPool, insertPartner, updatePartnerStatus, getPartner,
+  resolveFashionPartnerIdsForAuthUser,
   insertBrand, getBrand, insertProduct, listProductsForPartner, listAllProducts, getProduct,
   insertShipment, listShipmentsForPartner, updateShipmentStatus,
   insertReturn, listReturnsForPartner, updateReturnStatus,
