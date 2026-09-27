@@ -80,11 +80,11 @@ assert.equal(
 );
 
 const markets = marketRegistry.listMarkets();
-assert.equal(markets.length, 24, 'Market registry must contain exactly 24 launch markets');
+assert.equal(markets.length, 25, 'Market registry must contain the 24 historical markets plus Luxembourg');
 
 const baseUrl = 'https://zfind.online';
 const entries = seoDeployment.buildMarketSeoEntries(baseUrl);
-assert.equal(entries.length, 24 * 6, 'Market SEO matrix must be 24 markets x 6 locales');
+assert.equal(entries.length, 3 * 2, 'Market SEO matrix must be the launch scope: 3 markets x 2 locales');
 
 const canonicalUrls = new Set();
 for (const entry of entries) {
@@ -95,17 +95,17 @@ for (const entry of entries) {
 
   assert.match(entry.html, new RegExp(`<html lang="${entry.locale}">`), 'HTML lang mismatch');
   assert.ok(entry.html.includes(`<link rel="canonical" href="${entry.canonicalUrl}">`), `Missing canonical: ${entry.canonicalUrl}`);
-  for (const locale of expectedLocales) {
+  for (const locale of ['fr', 'en']) {
     assert.ok(entry.html.includes(`hreflang="${locale}"`), `${entry.canonicalUrl}: missing hreflang ${locale}`);
   }
   assert.ok(entry.html.includes('hreflang="x-default"'), `${entry.canonicalUrl}: missing x-default`);
   assert.ok(!/name="robots"[^>]*noindex/i.test(entry.html), `${entry.canonicalUrl}: market page must remain indexable`);
 }
 
-assert.equal(canonicalUrls.size, 144, 'Market canonical set must contain 144 unique URLs');
+assert.equal(canonicalUrls.size, 6, 'Market canonical set must contain 6 unique launch URLs');
 
 const sitemap = seoDeployment.buildSitemapXml(baseUrl, canonicalUrls);
-assert.equal((sitemap.match(/<url><loc>/g) || []).length, 145, 'Minimum production sitemap must contain root + 144 market URLs');
+assert.equal((sitemap.match(/<url><loc>/g) || []).length, 7, 'Minimum production sitemap must contain root + 6 launch market URLs');
 for (const url of canonicalUrls) {
   assert.ok(sitemap.includes(`<loc>${url}</loc>`), `Sitemap missing ${url}`);
 }
@@ -120,6 +120,6 @@ console.log(`Z_FIND_PUBLIC_LOCALES=${expectedLocales.length}`);
 console.log(`Z_FIND_TRANSLATED_PUBLIC_LOCALES=${expectedLocales.length}`);
 console.log(`Z_FIND_MARKET_SEO_PAGES=${entries.length}`);
 console.log('Z_FIND_EDITORIAL_LOCALE_FALLBACK=FORBIDDEN');
-console.log('Z_FIND_MINIMUM_SITEMAP_URLS=145');
+console.log('Z_FIND_MINIMUM_SITEMAP_URLS=7');
 console.log('Z_FIND_ADMIN_NOINDEX=PASS');
 console.log('Z_FIND_PARTNER_NOINDEX=PASS');

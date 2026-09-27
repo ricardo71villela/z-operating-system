@@ -196,18 +196,18 @@ async function run() {
       'France jurisdiction is preserved under English mobile UI locale'
     );
 
-    await openMarket(page, 'fr', 'PT');
+    await openMarket(page, 'fr', 'BE');
     await expectFooterTarget(
       page,
       'legal',
       'fr',
-      'PT',
-      'legal'
+      'BE',
+      'legal-belgium'
     );
     await tapFooterGuide(page, 'legal');
-    await expectHashView(page, 'fr', 'legal');
+    await expectHashView(page, 'fr', 'legal-belgium');
     pass(
-      'Portugal jurisdiction is preserved under French mobile UI locale'
+      'Belgium jurisdiction is preserved under French mobile UI locale'
     );
 
     await openMarket(page, 'fr', 'FR');

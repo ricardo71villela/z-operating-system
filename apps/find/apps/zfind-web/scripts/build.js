@@ -76,6 +76,8 @@ function build() {
   const propertyMobileDetailHotfix = read('property-mobile-detail-hotfix-v1.css');
   const listingCompliancePublicCss = read('listing-compliance-public.css');
   const searchMapUiCss = read('search-map-ui.css');
+  const marketPricesCss = read('market-prices.css');
+  const marketPricesService = read('services/market-prices.js');
   const body = read('body.html');
   const pathD = read('path_data.txt');
   const vendorSupabase = read('vendor-supabase.js');
@@ -149,7 +151,7 @@ function build() {
   );
 
   const html = headTop
-    + '<style>\n' + css + '\n' + legalGuideReadingSurface + '\n' + mobileUxPolish + '\n' + mobileUxBalanceV3 + '\n' + propertyMobileDetailHotfix + '\n' + listingCompliancePublicCss + '\n' + searchMapUiCss + '\n</style>\n</head>\n<body>\n'
+    + '<style>\n' + css + '\n' + legalGuideReadingSurface + '\n' + mobileUxPolish + '\n' + mobileUxBalanceV3 + '\n' + propertyMobileDetailHotfix + '\n' + listingCompliancePublicCss + '\n' + searchMapUiCss + '\n' + marketPricesCss + '\n</style>\n</head>\n<body>\n'
     + resolvedBody
     + '\n<script>\n'
     + vendorSupabase + '\n'
@@ -163,6 +165,7 @@ function build() {
     + searchPaginationService + '\n'
     + searchMapViewportService + '\n'
     + marketSearchScopeService + '\n'
+    + marketPricesService + '\n'
     + supabaseClient + '\n'
     + propertiesService + '\n'
     + publicVerificationService + '\n'
@@ -221,6 +224,7 @@ function build() {
     '— hidden guides:', publicSurface.report.removedGuides.length);
   console.log('Hero visual asset: copied to dist/brand/zfind-atlantic-hero.webp');
   console.log('Market map assets: copied to dist/brand/markets');
+  console.log('Market prices: service + CSS injected (data served from public/market-data)');
   console.log('Mobile UX polish: mobile-ux-polish-v1.css injected');
   console.log('Mobile UX balance: mobile-ux-balance-v3.css injected');
   console.log('Property mobile detail hotfix: CSS + runtime injected');

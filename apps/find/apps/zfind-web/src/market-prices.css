@@ -1,0 +1,27 @@
+/* Z FIND — market prices section (FR / BE / LU market pages) */
+.market-prices{display:flex;flex-direction:column;gap:14px;}
+.market-prices .mp-lead{margin:0;color:var(--gray-700);max-width:760px;line-height:1.5;}
+.market-prices .mp-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;}
+.market-prices .mp-summary > div{border:1px solid var(--gray-200);border-radius:var(--radius);background:var(--white);padding:14px 16px;display:flex;flex-direction:column;gap:4px;}
+.market-prices .mp-summary span{font-size:.8rem;color:var(--gray-500);text-transform:uppercase;letter-spacing:.04em;}
+.market-prices .mp-summary strong{font-size:1.4rem;color:var(--gray-900);}
+.market-prices .mp-controls{display:flex;flex-wrap:wrap;gap:10px;}
+.market-prices .mp-controls select,
+.market-prices .mp-controls input{flex:1 1 240px;min-width:0;padding:10px 12px;border:1px solid var(--gray-300);border-radius:var(--radius);background:var(--white);font:inherit;color:var(--gray-900);}
+.market-prices .mp-controls input:disabled{background:var(--gray-50);color:var(--gray-400);}
+.market-prices [data-mp-results]{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.market-prices .mp-table{width:100%;border-collapse:collapse;font-size:.92rem;background:var(--white);}
+.market-prices .mp-table th{text-align:left;font-weight:600;color:var(--gray-500);font-size:.78rem;text-transform:uppercase;letter-spacing:.03em;padding:8px 10px;border-bottom:1px solid var(--gray-200);white-space:nowrap;}
+.market-prices .mp-table td{padding:9px 10px;border-bottom:1px solid var(--gray-100);vertical-align:top;}
+.market-prices .mp-table .mp-num{white-space:nowrap;}
+.market-prices .mp-table .mp-num small{display:block;color:var(--gray-500);font-size:.75rem;}
+.market-prices .mp-table .mp-empty{color:var(--gray-400);}
+.market-prices .mp-table .mp-total td{background:var(--gold-pale);font-weight:600;}
+.market-prices .mp-subtitle{margin:10px 0 0;font-size:1rem;color:var(--gray-900);}
+.market-prices .mp-note,.market-prices .mp-source{margin:0;font-size:.8rem;color:var(--gray-500);}
+.market-prices .mp-loading,.market-prices .mp-error{margin:0;color:var(--gray-500);}
+@media (max-width: 640px){
+  .market-prices .mp-table{font-size:.85rem;}
+  .market-prices .mp-table th,.market-prices .mp-table td{padding:8px 6px;}
+  .market-prices .mp-summary strong{font-size:1.2rem;}
+}
