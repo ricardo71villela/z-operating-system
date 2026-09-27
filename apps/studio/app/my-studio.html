@@ -3,7 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="description" content="Z Studio — cria posts, stories e carrosséis para redes sociais a partir das tuas fotos, com recorte inteligente, ficha de produto por categoria e legendas por IA em 6 idiomas.">
+<meta name="description" content="Z Studio transforme vos photos en posts, stories et carrousels prêts à publier : recadrage intelligent, fiche produit par catégorie et légendes IA en 6 langues.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Z Studio">
+<meta property="og:title" content="Z Studio — Vos photos deviennent des posts prêts à publier">
+<meta property="og:description" content="Ajoutez une photo, un titre et un prix : Z Studio crée le visuel et la légende, en 6 langues.">
+<meta property="og:image" content="https://zstudio.space/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <!--
   CSP com uma limitação conhecida e documentada: 'unsafe-inline' em script-src
   continua necessário porque a app usa ~95 atributos onclick/oninput/onchange
@@ -44,7 +52,7 @@
   base-uri 'self';
   form-action 'self';
 ">
-<title>Z Studio — Conteúdo para Redes Sociais</title>
+<title>Z Studio — Posts pour les réseaux sociaux à partir de vos photos</title>
 <!-- PWA / iOS standalone -->
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -939,6 +947,26 @@ input[type=range]::-moz-range-thumb {
   }
 }
 
+
+/* ZSTUDIO_FIRST_SCREEN_V1 — promessa clara + guia de 3 passos enquanto a pré-visualização está vazia */
+.zs-welcome { padding:4px 0 22px; margin-bottom:18px; border-bottom:1px solid var(--border); }
+.zs-welcome-title { font-family:'Cormorant Garamond', Georgia, serif; font-weight:500; font-size:1.7rem; line-height:1.15; color:var(--text); margin:0 0 10px; letter-spacing:0; text-transform:none; }
+.zs-welcome-sub { font-size:0.92rem; line-height:1.5; color:var(--text2); margin:0 0 16px; }
+.zs-welcome-cta { display:inline-flex; align-items:center; justify-content:center; min-height:46px; padding:0 22px; border:0; border-radius:6px; background:var(--content-accent); color:#0A0A0A; font-size:0.95rem; font-weight:600; letter-spacing:0.01em; text-transform:none; cursor:pointer; }
+.zs-welcome-cta:hover { filter:brightness(1.08); }
+.zs-welcome-cta:focus-visible { outline:2px solid var(--text); outline-offset:3px; }
+html:not([data-zstudio-preview-state="empty"]) .zs-welcome { display:none; }
+.zs-empty-guide { position:absolute; left:50%; bottom:12%; transform:translateX(-50%); margin:0; padding:0; list-style:none; display:grid; gap:12px; width:min(78%, 320px); pointer-events:none; }
+.zs-empty-guide li { display:flex; align-items:center; gap:12px; font-size:0.95rem; color:var(--text); }
+.zs-empty-guide em { font-style:normal; }
+.zs-empty-guide span { flex:0 0 28px; height:28px; border-radius:50%; border:1px solid var(--content-accent); color:var(--content-accent); display:inline-flex; align-items:center; justify-content:center; font-size:0.8rem; }
+html:not([data-zstudio-preview-state="empty"]) .zs-empty-guide { display:none; }
+@media (max-width: 767px) {
+  .zs-welcome-title { font-size:1.55rem; }
+  .zs-welcome-cta { width:100%; }
+  .zs-empty-guide { display:none; }
+}
+html[data-zstudio-app-theme="light"] .zs-welcome-cta { color:#FFFFFF; background:#8B6B3A; }
 
 /* ZSTUDIO_LAPTOP_BRAND_HEADER_V1
    Desktop brand authority:
@@ -3813,6 +3841,12 @@ html[data-zstudio-app-theme="light"] .site-footer-dot {
 <div class="layout">
   <aside class="controls">
 
+    <section class="zs-welcome" id="zsWelcome" aria-labelledby="zsWelcomeTitle">
+      <h1 class="zs-welcome-title" id="zsWelcomeTitle" data-i18n="welcomeTitle">Turn your photos into ready-to-post content</h1>
+      <p class="zs-welcome-sub" data-i18n="welcomeSub">Add a photo, a title and a price — Z Studio builds the visual and the caption, in 6 languages.</p>
+      <button type="button" class="zs-welcome-cta" onclick="document.getElementById('uploadInput').click()" data-i18n="welcomeCta">Choose a photo</button>
+    </section>
+
     <div class="step" id="brandStep">
       <div class="step-label" style="cursor:pointer;" role="button" tabindex="0" onclick="toggleBrandPanel()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleBrandPanel();}" data-i18n="brandStepLabel">⚙ Marca &amp; Idiomas</div>
       <div id="brandPanel" class="hide">
@@ -3963,7 +3997,13 @@ html[data-zstudio-app-theme="light"] .site-footer-dot {
 
   <main class="stage">
     <div class="stage-glow" aria-hidden="true"></div>
-    <div class="canvas-frame"><canvas id="preview" width="1080" height="1350"></canvas></div>
+    <div class="canvas-frame"><canvas id="preview" width="1080" height="1350"></canvas>
+      <ol class="zs-empty-guide" aria-hidden="true">
+        <li><span>1</span><em data-i18n="guideStep1">Add a photo or video</em></li>
+        <li><span>2</span><em data-i18n="guideStep2">Title, price and location</em></li>
+        <li><span>3</span><em data-i18n="guideStep3">Download the post and caption</em></li>
+      </ol>
+    </div>
     <div class="slide-nav" id="slideNav">
       <button onclick="stepSlide(-1)" aria-label="Slide anterior" data-i18n-aria="prevSlideLabel">‹</button>
       <span id="slideCounter">1 / 1</span>
@@ -4056,9 +4096,9 @@ const I18N = {
         collageHint:'Tick at least 2 photos with the ✓ circle in the grid to use Collage',
         before:'Before', after:'After', beforeAfterHint:'Tick 2 photos with the ✓ circle — the first is "before", the second is "after"', energyClassLabel:'Class', sizesLabel:'Size' },
   fr: { cta:'📩 Contactez-nous — lien en bio', swipe:'glissez  →',
-        emptyHint1:'Ta photo apparaît ici', emptyHint2:'Charge une photo pour commencer', poweredBy:'DÉVELOPPÉ PAR',
-        collageHint:'Coche au moins 2 photos avec le cercle ✓ dans la grille pour utiliser le Collage',
-        before:'Avant', after:'Après', beforeAfterHint:'Coche 2 photos avec le cercle ✓ — la première est l\u2019\u00abavant\u00bb, la seconde l\u2019\u00abaprès\u00bb', energyClassLabel:'Classe', sizesLabel:'Taille' },
+        emptyHint1:'Votre photo apparaît ici', emptyHint2:'Chargez une photo pour commencer', poweredBy:'DÉVELOPPÉ PAR',
+        collageHint:'Cochez au moins 2 photos avec le cercle ✓ dans la grille pour utiliser le Collage',
+        before:'Avant', after:'Après', beforeAfterHint:'Cochez 2 photos avec le cercle ✓ — la première est l\u2019\u00abavant\u00bb, la seconde l\u2019\u00abaprès\u00bb', energyClassLabel:'Classe', sizesLabel:'Taille' },
   es: { cta:'📩 Contáctanos — link en la bio', swipe:'desliza  →',
         emptyHint1:'Tu foto aparece aquí', emptyHint2:'Sube una foto para empezar', poweredBy:'DESARROLLADO POR',
         collageHint:'Marca al menos 2 fotos con el círculo ✓ en la cuadrícula para usar el Colage',
@@ -4179,7 +4219,8 @@ const UI_STRINGS = {
     videoBtn: '🎬 Vídeo', videoBtnTitle: 'Vídeo curto para Stories, Reels e TikTok', videoRecordingLabel: '⏺ A gravar…',
     videoNeedsPhotoMsg: 'Carrega uma foto primeiro para gerar o vídeo', videoUnsupportedMsg: 'O teu browser não suporta gravação de vídeo — tenta noutro browser ou dispositivo',
     videoErrorMsg: 'Não foi possível gerar o vídeo. Tenta outra vez.',
-    footerTerms: 'Termos de Serviço', footerPrivacy: 'Privacidade'
+    footerTerms: 'Termos de Serviço', footerPrivacy: 'Privacidade',
+    welcomeTitle: 'As tuas fotos transformam-se em posts prontos a publicar', welcomeSub: 'Junta uma foto, um título e um preço — o Z Studio cria o visual e a legenda, em 6 idiomas.', welcomeCta: 'Escolher uma foto', guideStep1: 'Junta uma foto ou vídeo', guideStep2: 'Título, preço e local', guideStep3: 'Descarrega o post e a legenda'
   },
 
   en: {
@@ -4288,7 +4329,8 @@ const UI_STRINGS = {
     videoBtn: '🎬 Video', videoBtnTitle: 'Short video for Stories, Reels and TikTok', videoRecordingLabel: '⏺ Recording…',
     videoNeedsPhotoMsg: 'Upload a photo first to generate the video', videoUnsupportedMsg: 'Your browser doesn’t support video recording — try another browser or device',
     videoErrorMsg: 'Could not generate the video. Try again.',
-    footerTerms: 'Terms of Service', footerPrivacy: 'Privacy'
+    footerTerms: 'Terms of Service', footerPrivacy: 'Privacy',
+    welcomeTitle: 'Turn your photos into ready-to-post content', welcomeSub: 'Add a photo, a title and a price — Z Studio builds the visual and the caption, in 6 languages.', welcomeCta: 'Choose a photo', guideStep1: 'Add a photo or video', guideStep2: 'Title, price and location', guideStep3: 'Download the post and caption'
   },
 
   fr: {
@@ -4305,21 +4347,21 @@ const UI_STRINGS = {
     brandLogoHint: 'Un PNG à fond transparent fonctionne mieux. Sans logo, l\u2019initiale du nom de la marque est utilisée.',
     brandWatermarkLabel: 'Afficher le logo / filigrane sur les images',
     brandLangsLabel: 'Langues actives',
-    brandLangsHint: 'Le PT est toujours actif. Active les langues dont tu as besoin — seules celles-ci apparaissent dans le sélecteur en haut. La légende IA est rédigée dans la langue choisie.',
+    brandLangsHint: 'Le PT est toujours actif. Activez les langues dont vous avez besoin — seules celles-ci apparaissent dans le sélecteur en haut. La légende IA est rédigée dans la langue choisie.',
     brandKitsLabel: 'Kits de marque enregistrés',
     brandKitNone: '— aucun —',
     brandKitSave: '💾 Enregistrer le kit actuel',
     brandKitDelete: '🗑 Supprimer',
-    brandKitHint: 'Utile pour qui gère plusieurs marques ou clients dans la même appli — enregistre et change de configuration en un clic.',
+    brandKitHint: 'Utile pour qui gère plusieurs marques ou clients dans la même appli — enregistrez et changez de configuration en un clic.',
 
     mediaStepLabel: '1 · Photos & Vidéos',
     uploadLabel: 'Photos et vidéos — téléphone, appareil photo, dossier ou disque synchronisé',
-    dropZoneHtml: '📷 Glisse des fichiers ici ou clique pour choisir<br><span style="font-size:0.68rem;color:var(--text3);">photos et vidéos — on extrait automatiquement une image de toute vidéo</span>',
+    dropZoneHtml: '📷 Glissez des fichiers ici ou cliquez pour choisir<br><span style="font-size:0.68rem;color:var(--text3);">photos et vidéos — on extrait automatiquement une image de toute vidéo</span>',
     folderBtn: '📁 Choisir un dossier (Google Drive, Dropbox, OneDrive… synchronisés sur cet ordinateur)',
-    folderHint: 'Fonctionne avec n\u2019importe quel dossier local — y compris ceux que Google Drive/Dropbox/OneDrive synchronisent sur ton ordinateur. Ne se connecte jamais directement à un compte cloud ; disponible sur Chrome/Edge, pas sur Safari/Firefox.',
+    folderHint: 'Fonctionne avec n\u2019importe quel dossier local — y compris ceux que Google Drive/Dropbox/OneDrive synchronisent sur votre ordinateur. Ne se connecte jamais directement à un compte cloud ; disponible sur Chrome/Edge, pas sur Safari/Firefox.',
     clearDraftBtn: '🗑 Effacer le brouillon',
     advancedToggle: '⚙ Voir le format, le modèle et plus d\u2019options',
-    photoGridHint: 'Clique sur une photo = couverture · cercle ✓ = inclure dans le carrousel · glisse pour réorganiser (sur ordinateur).',
+    photoGridHint: 'Cliquez sur une photo = couverture · cercle ✓ = inclure dans le carrousel · glissez pour réorganiser (sur ordinateur).',
     smartCropLabel: 'Recadrage intelligent automatique',
     filterLabel: 'Filtre de l\u2019image',
     filterAuto: 'Automatique (léger)', filterNone: 'Original — sans filtre', filterVivid: 'Vif',
@@ -4342,10 +4384,10 @@ const UI_STRINGS = {
     categoryLabel: 'Catégorie — pré-remplit la fiche ci-dessous',
     catGenerico: 'Générique', catImoveis: 'Immobilier', catCarros: 'Voitures', catViagens: 'Voyages',
     catModa: 'Mode & Chaussures', catCosmetica: 'Cosmétique & Beauté', catCasa: 'Maison & Jardin', catGastronomia: 'Gastronomie', catDesporto: 'Sport & Fitness', catServicos: 'Services Professionnels', catEventos: 'Événements',
-    categoryHint: 'Universel : utilise une catégorie prête ou écris tes propres libellés — pour l\u2019immobilier, les voitures, les voyages, la cosmétique, la mode, ou tout ce dont tu as besoin.',
+    categoryHint: 'Universel : utilisez une catégorie prête ou écrivez vos propres libellés — pour l\u2019immobilier, les voitures, les voyages, la cosmétique, la mode, ou tout ce dont vous avez besoin.',
     specLabelPh: 'Libellé', specValuePh: 'Valeur',
     showSpecLabel: 'Afficher cette fiche sur la publication',
-    textHint: 'Pré-rempli automatiquement dans la langue active — modifie librement avant d\u2019exporter.',
+    textHint: 'Pré-rempli automatiquement dans la langue active — modifiez librement avant d\u2019exporter.',
 
     headerTagline: 'Contenu pour les réseaux sociaux',
     bulkBtn: '📦 Production en masse',
@@ -4371,12 +4413,12 @@ const UI_STRINGS = {
 
     bulkKicker: 'Production en masse',
     bulkTitle: 'Générer plusieurs publications à la fois',
-    bulkDesc: 'Choisis les photos déjà chargées. Z Studio génère une couverture pour chacune — avec recadrage intelligent et optimisation automatique de l\u2019image — et livre le tout dans un seul fichier ZIP.',
+    bulkDesc: 'Choisissez les photos déjà chargées. Z Studio génère une couverture pour chacune — avec recadrage intelligent et optimisation automatique de l\u2019image — et livre le tout dans un seul fichier ZIP.',
     bulkFormatLabel: 'Format', bulkTemplateLabel: 'Modèle', bulkFmtSquare: 'Carré', bulkFmtStory: 'Story 9:16',
     bulkSelectAll: 'Tout sélectionner', bulkCountSuffix: 'sélectionné(s)',
     bulkGenerateBtn: '↓ Générer le ZIP',
-    bulkEmptyMsg: 'Rien à générer pour l\u2019instant — charge des photos d\u2019abord.',
-    bulkPerItemHint: 'Tu peux définir un titre et un prix différents pour chaque photo — utile pour un catalogue avec plusieurs produits, pas seulement le même produit sous différents angles.',
+    bulkEmptyMsg: 'Rien à générer pour l\u2019instant — chargez des photos d\u2019abord.',
+    bulkPerItemHint: 'Vous pouvez définir un titre et un prix différents pour chaque photo — utile pour un catalogue avec plusieurs produits, pas seulement le même produit sous différents angles.',
     bulkPhotoLabel: 'Photo',
 
     slideGridTitle: 'Toutes les diapositives',
@@ -4392,12 +4434,13 @@ const UI_STRINGS = {
     financeEstimate: 'Estimation', financeMonthAbbrev: 'mois', financeUseInBadge: 'Utiliser dans le badge',
     financeFromBadgePrefix: 'À partir de',
     cropAdjustLabel: 'Ajuster le cadrage (photo de couverture)', cropAdjustReset: 'Réinitialiser',
-    cropAdjustHint: 'Utilise ceci si le recadrage automatique ne choisit pas bien — fais glisser les curseurs jusqu\u2019à ce que la photo te convienne.',
+    cropAdjustHint: 'Utilisez ceci si le recadrage automatique ne choisit pas bien — faites glisser les curseurs jusqu\u2019à ce que la photo vous convienne.',
     cropZoomLabel: 'Zoom', cropPanXLabel: 'Position horizontale', cropPanYLabel: 'Position verticale',
     videoBtn: '🎬 Vidéo', videoBtnTitle: 'Courte vidéo pour Stories, Reels et TikTok', videoRecordingLabel: '⏺ Enregistrement…',
-    videoNeedsPhotoMsg: 'Charge une photo avant de générer la vidéo', videoUnsupportedMsg: 'Ton navigateur ne prend pas en charge l’enregistrement vidéo — essaie un autre navigateur ou appareil',
-    videoErrorMsg: 'Impossible de générer la vidéo. Réessaie.',
-    footerTerms: 'Conditions d\u2019utilisation', footerPrivacy: 'Confidentialité'
+    videoNeedsPhotoMsg: 'Chargez une photo avant de générer la vidéo', videoUnsupportedMsg: 'Votre navigateur ne prend pas en charge l’enregistrement vidéo — essayez un autre navigateur ou appareil',
+    videoErrorMsg: 'Impossible de générer la vidéo. Réessayez.',
+    footerTerms: 'Conditions d\u2019utilisation', footerPrivacy: 'Confidentialité',
+    welcomeTitle: 'Vos photos deviennent des posts prêts à publier', welcomeSub: 'Ajoutez une photo, un titre et un prix — Z Studio crée le visuel et la légende, en 6 langues.', welcomeCta: 'Choisir une photo', guideStep1: 'Ajoutez une photo ou une vidéo', guideStep2: 'Titre, prix et lieu', guideStep3: 'Téléchargez le post et la légende'
   },
 
   es: {
@@ -4506,7 +4549,8 @@ const UI_STRINGS = {
     videoBtn: '🎬 Vídeo', videoBtnTitle: 'Vídeo corto para Stories, Reels y TikTok', videoRecordingLabel: '⏺ Grabando…',
     videoNeedsPhotoMsg: 'Sube una foto primero para generar el vídeo', videoUnsupportedMsg: 'Tu navegador no admite grabación de vídeo — prueba con otro navegador o dispositivo',
     videoErrorMsg: 'No se pudo generar el vídeo. Inténtalo de nuevo.',
-    footerTerms: 'Términos de Servicio', footerPrivacy: 'Privacidad'
+    footerTerms: 'Términos de Servicio', footerPrivacy: 'Privacidad',
+    welcomeTitle: 'Tus fotos se convierten en posts listos para publicar', welcomeSub: 'Añade una foto, un título y un precio — Z Studio crea el visual y el texto, en 6 idiomas.', welcomeCta: 'Elegir una foto', guideStep1: 'Añade una foto o un vídeo', guideStep2: 'Título, precio y ubicación', guideStep3: 'Descarga el post y el texto'
   },
 
   de: {
@@ -4615,7 +4659,8 @@ const UI_STRINGS = {
     videoBtn: '🎬 Video', videoBtnTitle: 'Kurzvideo für Stories, Reels und TikTok', videoRecordingLabel: '⏺ Aufnahme läuft…',
     videoNeedsPhotoMsg: 'Lade zuerst ein Foto hoch, um das Video zu erstellen', videoUnsupportedMsg: 'Dein Browser unterstützt keine Videoaufnahme — versuche einen anderen Browser oder ein anderes Gerät',
     videoErrorMsg: 'Video konnte nicht erstellt werden. Versuche es erneut.',
-    footerTerms: 'Nutzungsbedingungen', footerPrivacy: 'Datenschutz'
+    footerTerms: 'Nutzungsbedingungen', footerPrivacy: 'Datenschutz',
+    welcomeTitle: 'Aus deinen Fotos werden fertige Posts', welcomeSub: 'Foto, Titel und Preis hinzufügen — Z Studio erstellt Visual und Bildunterschrift, in 6 Sprachen.', welcomeCta: 'Foto auswählen', guideStep1: 'Foto oder Video hinzufügen', guideStep2: 'Titel, Preis und Ort', guideStep3: 'Post und Bildunterschrift herunterladen'
   },
 
   it: {
@@ -4724,7 +4769,8 @@ const UI_STRINGS = {
     videoBtn: '🎬 Video', videoBtnTitle: 'Video breve per Stories, Reels e TikTok', videoRecordingLabel: '⏺ Registrazione…',
     videoNeedsPhotoMsg: 'Carica prima una foto per generare il video', videoUnsupportedMsg: 'Il tuo browser non supporta la registrazione video — prova un altro browser o dispositivo',
     videoErrorMsg: 'Impossibile generare il video. Riprova.',
-    footerTerms: 'Termini di Servizio', footerPrivacy: 'Privacy'
+    footerTerms: 'Termini di Servizio', footerPrivacy: 'Privacy',
+    welcomeTitle: 'Le tue foto diventano post pronti da pubblicare', welcomeSub: 'Aggiungi una foto, un titolo e un prezzo — Z Studio crea l’immagine e la didascalia, in 6 lingue.', welcomeCta: 'Scegli una foto', guideStep1: 'Aggiungi una foto o un video', guideStep2: 'Titolo, prezzo e luogo', guideStep3: 'Scarica il post e la didascalia'
   }
 };
 
@@ -9625,6 +9671,19 @@ document.getElementById('fPrice').addEventListener('input', pushHistory);
 document.getElementById('fLoc').addEventListener('input', pushHistory);
 document.getElementById('fBadge').addEventListener('input', pushHistory);
 document.getElementById('caption').addEventListener('input', pushHistory);
+// Primeiro arranque: o estado de origem continua 'en', mas se o navegador pedir
+// um idioma suportado (ex.: FR em França), a interface abre nesse idioma.
+// Quem já tem rascunho guardado mantém o idioma escolhido (loadDraftIfAny corre depois).
+(function applyBrowserUiLang() {
+  const wanted = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ''])
+    .map(tag => String(tag || '').toLowerCase().split('-')[0]);
+  const match = wanted.find(code => SUPPORTED_UI_LANGS.includes(code));
+  if (!match || match === state.lang) return;
+  state.lang = match;
+  const switchEl = document.getElementById('langSwitch');
+  if (switchEl) switchEl.value = match;
+  document.documentElement.lang = match;
+})();
 refreshBrandKitSelect();
 applyUIStrings(); // traduz a interface logo no arranque, antes de qualquer interação
 

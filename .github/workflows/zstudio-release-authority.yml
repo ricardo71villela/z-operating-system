@@ -78,7 +78,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq '<title>Z Studio — Conteúdo para Redes Sociais</title>' app/index.html
+          grep -Fq '<title>Z Studio — Posts pour les réseaux sociaux à partir de vos photos</title>' app/index.html
           grep -Fq 'Z Studio ·' app/index.html
           grep -Fq 'Z STUDIO' app/index.html
           ! grep -Fq 'My Studio' app/index.html

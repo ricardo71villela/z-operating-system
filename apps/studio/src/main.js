@@ -3821,6 +3821,19 @@ document.getElementById('fPrice').addEventListener('input', pushHistory);
 document.getElementById('fLoc').addEventListener('input', pushHistory);
 document.getElementById('fBadge').addEventListener('input', pushHistory);
 document.getElementById('caption').addEventListener('input', pushHistory);
+// Primeiro arranque: o estado de origem continua 'en', mas se o navegador pedir
+// um idioma suportado (ex.: FR em França), a interface abre nesse idioma.
+// Quem já tem rascunho guardado mantém o idioma escolhido (loadDraftIfAny corre depois).
+(function applyBrowserUiLang() {
+  const wanted = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ''])
+    .map(tag => String(tag || '').toLowerCase().split('-')[0]);
+  const match = wanted.find(code => SUPPORTED_UI_LANGS.includes(code));
+  if (!match || match === state.lang) return;
+  state.lang = match;
+  const switchEl = document.getElementById('langSwitch');
+  if (switchEl) switchEl.value = match;
+  document.documentElement.lang = match;
+})();
 refreshBrandKitSelect();
 applyUIStrings(); // traduz a interface logo no arranque, antes de qualquer interação
 
