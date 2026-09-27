@@ -82,6 +82,12 @@ check(
 );
 
 check(
+  'first run follows a supported browser language before the draft restore',
+  main.includes('function applyBrowserUiLang()') &&
+  main.indexOf('function applyBrowserUiLang()') < main.lastIndexOf('loadAll();')
+);
+
+check(
   'invalid language falls back to English',
   main.includes(
     "l = SUPPORTED_UI_LANGS.includes(l) ? l : 'en';"

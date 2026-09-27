@@ -140,7 +140,8 @@ const UI_STRINGS = {
     videoBtn: '🎬 Vídeo', videoBtnTitle: 'Vídeo curto para Stories, Reels e TikTok', videoRecordingLabel: '⏺ A gravar…',
     videoNeedsPhotoMsg: 'Carrega uma foto primeiro para gerar o vídeo', videoUnsupportedMsg: 'O teu browser não suporta gravação de vídeo — tenta noutro browser ou dispositivo',
     videoErrorMsg: 'Não foi possível gerar o vídeo. Tenta outra vez.',
-    footerTerms: 'Termos de Serviço', footerPrivacy: 'Privacidade'
+    footerTerms: 'Termos de Serviço', footerPrivacy: 'Privacidade',
+    welcomeTitle: 'As tuas fotos transformam-se em posts prontos a publicar', welcomeSub: 'Junta uma foto, um título e um preço — o Z Studio cria o visual e a legenda, em 6 idiomas.', welcomeCta: 'Escolher uma foto', guideStep1: 'Junta uma foto ou vídeo', guideStep2: 'Título, preço e local', guideStep3: 'Descarrega o post e a legenda'
   },
 
   en: {
@@ -249,7 +250,8 @@ const UI_STRINGS = {
     videoBtn: '🎬 Video', videoBtnTitle: 'Short video for Stories, Reels and TikTok', videoRecordingLabel: '⏺ Recording…',
     videoNeedsPhotoMsg: 'Upload a photo first to generate the video', videoUnsupportedMsg: 'Your browser doesn’t support video recording — try another browser or device',
     videoErrorMsg: 'Could not generate the video. Try again.',
-    footerTerms: 'Terms of Service', footerPrivacy: 'Privacy'
+    footerTerms: 'Terms of Service', footerPrivacy: 'Privacy',
+    welcomeTitle: 'Turn your photos into ready-to-post content', welcomeSub: 'Add a photo, a title and a price — Z Studio builds the visual and the caption, in 6 languages.', welcomeCta: 'Choose a photo', guideStep1: 'Add a photo or video', guideStep2: 'Title, price and location', guideStep3: 'Download the post and caption'
   },
 
   fr: {
@@ -358,7 +360,8 @@ const UI_STRINGS = {
     videoBtn: '🎬 Vidéo', videoBtnTitle: 'Courte vidéo pour Stories, Reels et TikTok', videoRecordingLabel: '⏺ Enregistrement…',
     videoNeedsPhotoMsg: 'Charge une photo avant de générer la vidéo', videoUnsupportedMsg: 'Ton navigateur ne prend pas en charge l’enregistrement vidéo — essaie un autre navigateur ou appareil',
     videoErrorMsg: 'Impossible de générer la vidéo. Réessaie.',
-    footerTerms: 'Conditions d\u2019utilisation', footerPrivacy: 'Confidentialité'
+    footerTerms: 'Conditions d\u2019utilisation', footerPrivacy: 'Confidentialité',
+    welcomeTitle: 'Tes photos deviennent des posts prêts à publier', welcomeSub: 'Ajoute une photo, un titre et un prix — Z Studio crée le visuel et la légende, en 6 langues.', welcomeCta: 'Choisir une photo', guideStep1: 'Ajoute une photo ou une vidéo', guideStep2: 'Titre, prix et lieu', guideStep3: 'Télécharge le post et la légende'
   },
 
   es: {
@@ -467,7 +470,8 @@ const UI_STRINGS = {
     videoBtn: '🎬 Vídeo', videoBtnTitle: 'Vídeo corto para Stories, Reels y TikTok', videoRecordingLabel: '⏺ Grabando…',
     videoNeedsPhotoMsg: 'Sube una foto primero para generar el vídeo', videoUnsupportedMsg: 'Tu navegador no admite grabación de vídeo — prueba con otro navegador o dispositivo',
     videoErrorMsg: 'No se pudo generar el vídeo. Inténtalo de nuevo.',
-    footerTerms: 'Términos de Servicio', footerPrivacy: 'Privacidad'
+    footerTerms: 'Términos de Servicio', footerPrivacy: 'Privacidad',
+    welcomeTitle: 'Tus fotos se convierten en posts listos para publicar', welcomeSub: 'Añade una foto, un título y un precio — Z Studio crea el visual y el texto, en 6 idiomas.', welcomeCta: 'Elegir una foto', guideStep1: 'Añade una foto o un vídeo', guideStep2: 'Título, precio y ubicación', guideStep3: 'Descarga el post y el texto'
   },
 
   de: {
@@ -576,7 +580,8 @@ const UI_STRINGS = {
     videoBtn: '🎬 Video', videoBtnTitle: 'Kurzvideo für Stories, Reels und TikTok', videoRecordingLabel: '⏺ Aufnahme läuft…',
     videoNeedsPhotoMsg: 'Lade zuerst ein Foto hoch, um das Video zu erstellen', videoUnsupportedMsg: 'Dein Browser unterstützt keine Videoaufnahme — versuche einen anderen Browser oder ein anderes Gerät',
     videoErrorMsg: 'Video konnte nicht erstellt werden. Versuche es erneut.',
-    footerTerms: 'Nutzungsbedingungen', footerPrivacy: 'Datenschutz'
+    footerTerms: 'Nutzungsbedingungen', footerPrivacy: 'Datenschutz',
+    welcomeTitle: 'Aus deinen Fotos werden fertige Posts', welcomeSub: 'Foto, Titel und Preis hinzufügen — Z Studio erstellt Visual und Bildunterschrift, in 6 Sprachen.', welcomeCta: 'Foto auswählen', guideStep1: 'Foto oder Video hinzufügen', guideStep2: 'Titel, Preis und Ort', guideStep3: 'Post und Bildunterschrift herunterladen'
   },
 
   it: {
@@ -685,6 +690,7 @@ const UI_STRINGS = {
     videoBtn: '🎬 Video', videoBtnTitle: 'Video breve per Stories, Reels e TikTok', videoRecordingLabel: '⏺ Registrazione…',
     videoNeedsPhotoMsg: 'Carica prima una foto per generare il video', videoUnsupportedMsg: 'Il tuo browser non supporta la registrazione video — prova un altro browser o dispositivo',
     videoErrorMsg: 'Impossibile generare il video. Riprova.',
-    footerTerms: 'Termini di Servizio', footerPrivacy: 'Privacy'
+    footerTerms: 'Termini di Servizio', footerPrivacy: 'Privacy',
+    welcomeTitle: 'Le tue foto diventano post pronti da pubblicare', welcomeSub: 'Aggiungi una foto, un titolo e un prezzo — Z Studio crea l’immagine e la didascalia, in 6 lingue.', welcomeCta: 'Scegli una foto', guideStep1: 'Aggiungi una foto o un video', guideStep2: 'Titolo, prezzo e luogo', guideStep3: 'Scarica il post e la didascalia'
   }
 };
