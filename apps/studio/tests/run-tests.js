@@ -309,7 +309,7 @@ try {
 
     // exportar em PNG com a colagem ativa não pode rebentar (drawListing agora é assíncrona)
     window.__downloads = [];
-    await downloadPNG(); await sleep(250);
+    await downloadPNG(); await waitFor(() => window.__downloads.some(d => d.filename.endsWith('.png')), 8000);
     assert('descarregar PNG funciona com a colagem ativa', window.__downloads.some(d => d.filename.endsWith('.png')));
 
     // repõe tudo exatamente como estava — os testes seguintes não podem notar que isto correu
@@ -448,7 +448,7 @@ try {
     assert('antes/depois com 2 fotos desenha conteúdo real', coloredPixels > 0, coloredPixels);
 
     window.__downloads = [];
-    await downloadPNG(); await sleep(250);
+    await downloadPNG(); await waitFor(() => window.__downloads.some(d => d.filename.endsWith('.png')), 8000);
     assert('descarregar PNG funciona com antes/depois ativo', window.__downloads.some(d => d.filename.endsWith('.png')));
 
     state.photos = snap.photos; state.photoFiles = snap.photoFiles;
@@ -1007,7 +1007,7 @@ try {
 
   try {
     window.__downloads = [];
-    await downloadPNG(); await sleep(200);
+    await downloadPNG(); await waitFor(() => window.__downloads.some(d => d.filename.endsWith('.png')), 8000);
     assert('descarregar PNG despoleta um download', window.__downloads.some(d => d.filename.endsWith('.png')));
   } catch (e) { assert('BLOCO 10 (download PNG) não rebentou', false, e.message + ' | ' + e.stack); }
 
@@ -1017,17 +1017,17 @@ try {
       if (state.photos.length >= 2) toggleCarPhoto(encodeURI(state.photos[1]));
       buildSlides(0); await sleep(100);
       window.__downloads = [];
-      await downloadCarousel(); await waitFor(zipReady);
+      await downloadCarousel(); await waitFor(zipReady, 20000);
       assert('carrossel completo gera um .zip com conteúdo', window.__downloads.some(d => d.filename.endsWith('.zip') && d.size > 0), JSON.stringify({downloads: window.__downloads, photos: state.photos.length, carPhotos: (state.carPhotos || []).length, img: !!state.img}));
       window.__downloads = [];
-      await downloadAllFormats(); await waitFor(zipReady);
+      await downloadAllFormats(); await waitFor(zipReady, 20000);
       assert('"todos os formatos" gera um .zip com conteúdo', window.__downloads.some(d => d.filename.endsWith('.zip') && d.size > 0));
 
       // produção em massa — agora só a partir de fotos carregadas
       openBulk(); await sleep(100);
       toggleBulkAll(true); await sleep(50);
       window.__downloads = [];
-      await runBulkGenerate(); await waitFor(zipReady);
+      await runBulkGenerate(); await waitFor(zipReady, 20000);
       assert('produção em massa (upload-only) gera um .zip', window.__downloads.some(d => d.filename.endsWith('.zip') && d.size > 0), JSON.stringify({downloads: window.__downloads, photos: state.photos.length}));
       closeBulk();
     } catch (e) { assert('BLOCO 11 (exportações ZIP + produção em massa) não rebentou', false, e.message + ' | ' + e.stack); }
@@ -1052,7 +1052,7 @@ try {
 
   try {
     window.__downloads = [];
-    await sharePNG(); await sleep(200);
+    await sharePNG(); await waitFor(() => window.__downloads.some(d => d.filename.endsWith('.png')), 8000);
     if (!navigator.share) assert('sharePNG cai para download sem Web Share', window.__downloads.some(d => d.filename.endsWith('.png')));
     else assert('sharePNG não lançou exceção com Web Share', true);
   } catch (e) { assert('BLOCO 14 (partilha) não rebentou', false, e.message + ' | ' + e.stack); }
