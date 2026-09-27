@@ -79,6 +79,9 @@ try {
   const waitFor = async (cond, ms = 8000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { try { if (cond()) return true; } catch (e) {} await sleep(50); } return !!cond(); };
   const zipReady = () => window.__downloads.some(d => d.filename.endsWith('.zip') && d.size > 0);
   await sleep(400);
+  // Espera o arranque (restauro do rascunho) terminar antes de começar — em runners lentos
+  // o estado 'loading' ainda está ativo e altera o que é desenhado e exportado.
+  await waitFor(() => document.documentElement.getAttribute('data-zstudio-preview-state') !== 'loading', 20000);
 
   try {
     assert('app arrancou sem exceções (state existe)', typeof state === 'object' && state !== null);

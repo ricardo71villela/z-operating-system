@@ -104,6 +104,18 @@ const CONTRACT = String.raw`
 (async () => {
   await document.fonts.ready;
 
+  // Espera o arranque da app (restauro do rascunho) terminar: enquanto o estado
+  // da pré-visualização é 'loading', o canvas mostra "Restoring…" em vez das dicas.
+  {
+    const t0 = Date.now();
+    while (
+      document.documentElement.getAttribute('data-zstudio-preview-state') === 'loading' &&
+      Date.now() - t0 < 20000
+    ) {
+      await new Promise(r => setTimeout(r, 50));
+    }
+  }
+
   const results = [];
 
   const check =
