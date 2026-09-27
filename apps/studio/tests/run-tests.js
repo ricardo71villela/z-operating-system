@@ -20,6 +20,9 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 const { app, BrowserWindow } = require('electron');
+// O idioma do sistema do runner (ex.: fr_FR) não deve decidir o first-run testado aqui:
+// a app segue o idioma do navegador, por isso fixamos en-US para um resultado determinista.
+app.commandLine.appendSwitch('lang', 'en-US');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
