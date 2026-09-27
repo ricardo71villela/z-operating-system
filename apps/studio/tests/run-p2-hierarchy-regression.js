@@ -442,23 +442,36 @@ const CONTRACT = String.raw`
     check(
       'P2 empty ' +
       format +
-      ' primary alpha 0.78',
+      ' primary alpha 0.95',
       !!primary &&
       Math.abs(
         primary.alpha -
-        0.78
+        0.95
       ) < 0.001,
       primary
+    );
+
+    // Legibilidade no telemóvel: o canvas de 1080px é mostrado a ~0,28×,
+    // por isso as dicas precisam de ≥44px/≥34px no canvas (≈12px/≈9px no ecrã).
+    check(
+      'P2 empty ' +
+      format +
+      ' dicas legíveis no telemóvel',
+      !!primary && !!secondary &&
+      primary.fontPx >= 44 &&
+      secondary.fontPx >= 34 &&
+      primary.fontPx > secondary.fontPx,
+      { primary: primary && primary.fontPx, secondary: secondary && secondary.fontPx }
     );
 
     check(
       'P2 empty ' +
       format +
-      ' secondary alpha 0.52',
+      ' secondary alpha 0.78',
       !!secondary &&
       Math.abs(
         secondary.alpha -
-        0.52
+        0.78
       ) < 0.001,
       secondary
     );

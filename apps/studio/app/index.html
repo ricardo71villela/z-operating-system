@@ -399,6 +399,11 @@ input[type=range]::-moz-range-thumb {
 .caption-box textarea { min-height:190px; resize:vertical; font-size:0.82rem; line-height:1.65; }
 .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--surface-2); border:1px solid var(--gold); color:var(--gold); padding:10px 20px; font-size:0.78rem; border-radius:2px; box-shadow:0 12px 30px rgba(0,0,0,0.4), 0 4px 14px rgba(var(--gold-rgb),0.15); transition:transform .35s cubic-bezier(.2,.8,.2,1), border-color .3s ease, color .3s ease; z-index:99; }
 .toast.show { transform:translateX(-50%) translateY(0); }
+/* O toast escondido ficava 80px abaixo do fundo do ecrã; em telemóveis com barra de
+   navegação dinâmica (ou em capturas de página inteira) aparecia como um retângulo vazio.
+   Fora de .show fica transparente (continua acessível ao aria-live) e não interativo. */
+.toast:not(.show) { opacity:0; pointer-events:none; transition:transform .35s cubic-bezier(.2,.8,.2,1), opacity .2s ease; }
+.toast.show { opacity:1; transition:transform .35s cubic-bezier(.2,.8,.2,1), opacity .2s ease, border-color .3s ease, color .3s ease; }
 .hide { display:none !important; }
 
 /* ZSTUDIO_UX_FOUNDATION_POLISH_V1
@@ -3210,6 +3215,30 @@ html[data-zstudio-app-theme="light"] .zs-welcome-cta { color:#FFFFFF; background
 
   header .lang-switch::after {
     right: 9px;
+  }
+}
+
+/* ZSTUDIO_MOBILE_THEME_TOGGLE_PLACEMENT_V1
+   The app-theme toggle is injected into .header-actions after the utility-row
+   contract was written, so on phones it fell onto an orphan second row.
+   It now sits in the identity bar (top-right), leaving the Bulk + account/language
+   row exactly as contracted. */
+@media (max-width: 620px) {
+  header {
+    position: relative;
+  }
+  header .header-actions > #btnAppTheme {
+    position: absolute !important;
+    top: 21px;   /* centrado verticalmente com o logótipo (barra de identidade de 66px) */
+    right: 20px; /* alinhado com a margem direita da linha Connexion/idioma */
+    margin: 0 !important;
+    z-index: 2;
+  }
+}
+@media (max-width: 360px) {
+  header .header-actions > #btnAppTheme {
+    top: 19px;
+    right: 22px;
   }
 }
 
@@ -7379,12 +7408,12 @@ function drawPlaceholderArt(ctx, W, H, P) {
 
   ctx.save();
   ctx.textAlign = 'center';
-  ctx.fillStyle = P.gold; ctx.globalAlpha = 0.82;
-  ctx.font = `400 ${Math.round(W * 0.026)}px "DM Sans", sans-serif`;
+  ctx.fillStyle = P.gold; ctx.globalAlpha = 0.95;
+  ctx.font = `500 ${Math.round(W * 0.042)}px "DM Sans", sans-serif`;
   ctx.fillText(t.emptyHint1, cx, cy + s * 1.9);
-  ctx.globalAlpha = 0.60;
-  ctx.font = `300 ${Math.round(W * 0.0175)}px "DM Sans", sans-serif`;
-  ctx.fillText(t.emptyHint2, cx, cy + s * 1.9 + Math.round(W * 0.034));
+  ctx.globalAlpha = 0.78;
+  ctx.font = `400 ${Math.round(W * 0.032)}px "DM Sans", sans-serif`;
+  ctx.fillText(t.emptyHint2, cx, cy + s * 1.9 + Math.round(W * 0.056));
   ctx.restore();
 }
 // Faixa de texto sólida usada pela Colagem e pelo Antes/Depois — mesma
@@ -10609,12 +10638,14 @@ window.addEventListener('load', startStudioAssistantAndIcons, { once:true });
       ctx.save();
       ctx.textAlign = 'center';
       ctx.fillStyle = P.gold;
-      ctx.globalAlpha = 0.78;
-      ctx.font = `400 ${Math.max(18, Math.round(W * 0.024))}px "DM Sans", sans-serif`;
+      // Legibilidade: o canvas de 1080px é mostrado a ~300px no telemóvel (≈0,28×),
+      // por isso as dicas precisam de ~0,042W/0,032W para ficarem ≥12px/≥9px no ecrã.
+      ctx.globalAlpha = 0.95;
+      ctx.font = `500 ${Math.max(22, Math.round(W * 0.042))}px "DM Sans", sans-serif`;
       ctx.fillText(t.emptyHint1, cx, firstLineY);
-      ctx.globalAlpha = 0.52;
-      ctx.font = `300 ${Math.max(13, Math.round(W * 0.0155))}px "DM Sans", sans-serif`;
-      ctx.fillText(t.emptyHint2, cx, firstLineY + Math.max(28, Math.round(W * 0.031)));
+      ctx.globalAlpha = 0.78;
+      ctx.font = `400 ${Math.max(16, Math.round(W * 0.032))}px "DM Sans", sans-serif`;
+      ctx.fillText(t.emptyHint2, cx, firstLineY + Math.max(34, Math.round(W * 0.056)));
       ctx.restore();
     };
 

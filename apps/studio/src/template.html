@@ -399,6 +399,11 @@ input[type=range]::-moz-range-thumb {
 .caption-box textarea { min-height:190px; resize:vertical; font-size:0.82rem; line-height:1.65; }
 .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--surface-2); border:1px solid var(--gold); color:var(--gold); padding:10px 20px; font-size:0.78rem; border-radius:2px; box-shadow:0 12px 30px rgba(0,0,0,0.4), 0 4px 14px rgba(var(--gold-rgb),0.15); transition:transform .35s cubic-bezier(.2,.8,.2,1), border-color .3s ease, color .3s ease; z-index:99; }
 .toast.show { transform:translateX(-50%) translateY(0); }
+/* O toast escondido ficava 80px abaixo do fundo do ecrã; em telemóveis com barra de
+   navegação dinâmica (ou em capturas de página inteira) aparecia como um retângulo vazio.
+   Fora de .show fica transparente (continua acessível ao aria-live) e não interativo. */
+.toast:not(.show) { opacity:0; pointer-events:none; transition:transform .35s cubic-bezier(.2,.8,.2,1), opacity .2s ease; }
+.toast.show { opacity:1; transition:transform .35s cubic-bezier(.2,.8,.2,1), opacity .2s ease, border-color .3s ease, color .3s ease; }
 .hide { display:none !important; }
 
 /* ZSTUDIO_UX_FOUNDATION_POLISH_V1
