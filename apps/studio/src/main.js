@@ -1529,12 +1529,12 @@ function drawPlaceholderArt(ctx, W, H, P) {
 
   ctx.save();
   ctx.textAlign = 'center';
-  ctx.fillStyle = P.gold; ctx.globalAlpha = 0.95;
-  ctx.font = `500 ${Math.round(W * 0.042)}px "DM Sans", sans-serif`;
+  ctx.fillStyle = P.gold; ctx.globalAlpha = 0.82;
+  ctx.font = `400 ${Math.round(W * 0.026)}px "DM Sans", sans-serif`;
   ctx.fillText(t.emptyHint1, cx, cy + s * 1.9);
-  ctx.globalAlpha = 0.78;
-  ctx.font = `400 ${Math.round(W * 0.032)}px "DM Sans", sans-serif`;
-  ctx.fillText(t.emptyHint2, cx, cy + s * 1.9 + Math.round(W * 0.056));
+  ctx.globalAlpha = 0.60;
+  ctx.font = `300 ${Math.round(W * 0.0175)}px "DM Sans", sans-serif`;
+  ctx.fillText(t.emptyHint2, cx, cy + s * 1.9 + Math.round(W * 0.034));
   ctx.restore();
 }
 // Faixa de texto sólida usada pela Colagem e pelo Antes/Depois — mesma

@@ -56,14 +56,12 @@
       ctx.save();
       ctx.textAlign = 'center';
       ctx.fillStyle = P.gold;
-      // Legibilidade: o canvas de 1080px é mostrado a ~300px no telemóvel (≈0,28×),
-      // por isso as dicas precisam de ~0,042W/0,032W para ficarem ≥12px/≥9px no ecrã.
-      ctx.globalAlpha = 0.95;
-      ctx.font = `500 ${Math.max(22, Math.round(W * 0.042))}px "DM Sans", sans-serif`;
-      ctx.fillText(t.emptyHint1, cx, firstLineY);
       ctx.globalAlpha = 0.78;
-      ctx.font = `400 ${Math.max(16, Math.round(W * 0.032))}px "DM Sans", sans-serif`;
-      ctx.fillText(t.emptyHint2, cx, firstLineY + Math.max(34, Math.round(W * 0.056)));
+      ctx.font = `400 ${Math.max(18, Math.round(W * 0.024))}px "DM Sans", sans-serif`;
+      ctx.fillText(t.emptyHint1, cx, firstLineY);
+      ctx.globalAlpha = 0.52;
+      ctx.font = `300 ${Math.max(13, Math.round(W * 0.0155))}px "DM Sans", sans-serif`;
+      ctx.fillText(t.emptyHint2, cx, firstLineY + Math.max(28, Math.round(W * 0.031)));
       ctx.restore();
     };
 
