@@ -882,7 +882,7 @@ try {
     const originalConfirm = window.confirm; window.confirm = () => true;
     await clearDraft(); await sleep(50);
     window.confirm = originalConfirm;
-    assert('limpar rascunho repõe classe energética', state.energyRating === '');
+    assert('limpar rascunho repõe classe energética', state.energyRating === '', JSON.stringify({energy: state.energyRating, lang: state.lang, preview: document.documentElement.getAttribute('data-zstudio-preview-state'), cloudUser: !!(typeof zstudioCloudSession !== 'undefined' && zstudioCloudSession && zstudioCloudSession.user)}));
     assert('limpar rascunho repõe estrelas', state.starRating === 0);
     assert('limpar rascunho repõe alergénios', state.allergens.length === 0);
     assert('limpar rascunho repõe tamanhos', state.sizes.length === 0);
@@ -1018,7 +1018,7 @@ try {
       buildSlides(0); await sleep(100);
       window.__downloads = [];
       await downloadCarousel(); await waitFor(zipReady);
-      assert('carrossel completo gera um .zip com conteúdo', window.__downloads.some(d => d.filename.endsWith('.zip') && d.size > 0));
+      assert('carrossel completo gera um .zip com conteúdo', window.__downloads.some(d => d.filename.endsWith('.zip') && d.size > 0), JSON.stringify({downloads: window.__downloads, photos: state.photos.length, carPhotos: (state.carPhotos || []).length, img: !!state.img}));
       window.__downloads = [];
       await downloadAllFormats(); await waitFor(zipReady);
       assert('"todos os formatos" gera um .zip com conteúdo', window.__downloads.some(d => d.filename.endsWith('.zip') && d.size > 0));
@@ -1028,7 +1028,7 @@ try {
       toggleBulkAll(true); await sleep(50);
       window.__downloads = [];
       await runBulkGenerate(); await waitFor(zipReady);
-      assert('produção em massa (upload-only) gera um .zip', window.__downloads.some(d => d.filename.endsWith('.zip') && d.size > 0));
+      assert('produção em massa (upload-only) gera um .zip', window.__downloads.some(d => d.filename.endsWith('.zip') && d.size > 0), JSON.stringify({downloads: window.__downloads, photos: state.photos.length}));
       closeBulk();
     } catch (e) { assert('BLOCO 11 (exportações ZIP + produção em massa) não rebentou', false, e.message + ' | ' + e.stack); }
   } else { skip('BLOCO 11 (exportações ZIP)', 'JSZip não carregou'); }
