@@ -74,6 +74,10 @@ try {
   const assert = (name, cond, extra) => results.push({ name, pass: !!cond, extra: (extra===undefined?null:extra) });
   const skip = (name, reason) => results.push({ name, pass: true, extra: '(ignorado: ' + reason + ')' });
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  // Espera por uma condição em vez de um tempo fixo — os runners de CI são mais lentos
+  // (IndexedDB, geração de ZIP) e um sleep fixo tornava estes testes instáveis.
+  const waitFor = async (cond, ms = 8000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { try { if (cond()) return true; } catch (e) {} await sleep(50); } return !!cond(); };
+  const zipReady = () => window.__downloads.some(d => d.filename.endsWith('.zip') && d.size > 0);
   await sleep(400);
 
   try {
@@ -876,7 +880,7 @@ try {
     const photoSnapP = { photos: state.photos.slice(), photoFiles: state.photoFiles.slice() };
     state.energyRating = 'A'; state.starRating = 3; state.allergens = ['soja']; state.sizes = ['S'];
     const originalConfirm = window.confirm; window.confirm = () => true;
-    clearDraft(); await sleep(200);
+    await clearDraft(); await sleep(50);
     window.confirm = originalConfirm;
     assert('limpar rascunho repõe classe energética', state.energyRating === '');
     assert('limpar rascunho repõe estrelas', state.starRating === 0);
@@ -1013,17 +1017,17 @@ try {
       if (state.photos.length >= 2) toggleCarPhoto(encodeURI(state.photos[1]));
       buildSlides(0); await sleep(100);
       window.__downloads = [];
-      await downloadCarousel(); await sleep(400);
+      await downloadCarousel(); await waitFor(zipReady);
       assert('carrossel completo gera um .zip com conteúdo', window.__downloads.some(d => d.filename.endsWith('.zip') && d.size > 0));
       window.__downloads = [];
-      await downloadAllFormats(); await sleep(600);
+      await downloadAllFormats(); await waitFor(zipReady);
       assert('"todos os formatos" gera um .zip com conteúdo', window.__downloads.some(d => d.filename.endsWith('.zip') && d.size > 0));
 
       // produção em massa — agora só a partir de fotos carregadas
       openBulk(); await sleep(100);
       toggleBulkAll(true); await sleep(50);
       window.__downloads = [];
-      await runBulkGenerate(); await sleep(600);
+      await runBulkGenerate(); await waitFor(zipReady);
       assert('produção em massa (upload-only) gera um .zip', window.__downloads.some(d => d.filename.endsWith('.zip') && d.size > 0));
       closeBulk();
     } catch (e) { assert('BLOCO 11 (exportações ZIP + produção em massa) não rebentou', false, e.message + ' | ' + e.stack); }
