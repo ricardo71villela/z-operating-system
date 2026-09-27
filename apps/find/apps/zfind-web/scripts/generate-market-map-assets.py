@@ -33,7 +33,7 @@ SOURCE_BLOBS = {
 
 SOVEREIGN_MARKETS = [
     'PT','ES','FR','DE','IT','IE','NL','BE','US','CA','MX','BR','AR',
-    'CL','DO','PL','GR','HR','CY'
+    'CL','DO','PL','GR','HR','CY','LU'
 ]
 
 UK_MARKETS = {
@@ -332,13 +332,13 @@ _MAP_V4_R2_EXPECTED_MARKETS = [
     "PT","ES","FR","DE","IT","IE",
     "GB-ENG","GB-SCT","GB-WLS","GB-NIR",
     "NL","BE","US","CA","MX","BR","AR","CL",
-    "DO","PL","GR","HR","CY","AE-DU",
+    "DO","PL","GR","HR","CY","AE-DU","LU",
 ]
 
 _MAP_V4_R2_SOVEREIGN_MARKETS = {
     "PT","ES","FR","DE","IT","IE",
     "NL","BE","US","CA","MX","BR","AR","CL",
-    "DO","PL","GR","HR","CY",
+    "DO","PL","GR","HR","CY","LU",
 }
 
 _MAP_V4_R2_UK_MARKETS = {

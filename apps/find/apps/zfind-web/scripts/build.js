@@ -21,6 +21,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { buildPublicBody } = require('./launch-surface');
 
 const SRC = path.join(__dirname, '..', 'src');
 const PUBLIC = path.join(__dirname, '..', 'public');
@@ -115,7 +116,23 @@ function build() {
   const websiteLegalRuntimeService = read('services/website-legal-runtime.js');
   const searchMapUiService = read('services/search-map-ui.js');
 
-  const resolvedBody = resolvePlaceholders(body, { '__PATH_D__': pathD }, 'body.html');
+  const launchScopeService = read('services/launch-scope.js');
+
+  // Launch scope: publish only the launch markets' guides, with
+  // reader-facing wording (see scripts/launch-surface.js).
+  const launchScope = require(path.join(SRC, 'services', 'launch-scope.js'));
+  const marketRegistryModule = require(path.join(SRC, 'services', 'market-registry.js'));
+  const surfaceScope = process.env.ZFIND_LAUNCH_SCOPE === 'all' ? 'all' : 'launch';
+  const publicSurface = buildPublicBody(body, {
+    scope: surfaceScope,
+    publicGuideRoutes: launchScope.publicGuideRoutes(marketRegistryModule.listMarkets()),
+    defaultGuideRoutes: {
+      legal: marketRegistryModule.getMarket(launchScope.DEFAULT_MARKET_KEY).legalRoute,
+      rental: marketRegistryModule.getMarket(launchScope.DEFAULT_MARKET_KEY).touristRentalRoute
+    }
+  });
+
+  const resolvedBody = resolvePlaceholders(publicSurface.html, { '__PATH_D__': pathD }, 'body.html');
 
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
@@ -139,6 +156,8 @@ function build() {
     + resolvedConfig + '\n'
     + publicLocalesService + '\n'
     + publicRoutesService + '\n'
+    + 'window.ZFIND_LAUNCH_SCOPE_MODE = ' + JSON.stringify(surfaceScope) + ';\n'
+    + launchScopeService + '\n'
     + marketRegistryService + '\n'
     + marketFeaturedService + '\n'
     + searchPaginationService + '\n'
@@ -198,6 +217,8 @@ function build() {
   console.log('Logo path placeholder: resolved, 0 remaining');
   console.log('Supabase config placeholders: resolved, 0 remaining');
   console.log('Six-language UI: fr, en, pt, es, de, it');
+  console.log('Launch surface:', surfaceScope, '— public guides:', publicSurface.report.keptGuides.join(', ') || 'none',
+    '— hidden guides:', publicSurface.report.removedGuides.length);
   console.log('Hero visual asset: copied to dist/brand/zfind-atlantic-hero.webp');
   console.log('Market map assets: copied to dist/brand/markets');
   console.log('Mobile UX polish: mobile-ux-polish-v1.css injected');

@@ -38,8 +38,8 @@ en: {
     thinInventory:'Z Find is actively adding opportunities in this zone.',
   },
   hero: {
-    eyebrow:'International real-estate portal',
-    titleLine1:'Explore real-estate opportunities across', titleLineEm:'selected international markets.',
+    eyebrow:'Real-estate portal · France · Belgium · Luxembourg',
+    titleLine1:'Explore real-estate opportunities in', titleLineEm:'France, Belgium and Luxembourg.',
     lead:'Search properties, developments and land with less duplication, clearer market context and direct access to the partners representing them.',
     p1title:'More opportunities.\nLess duplication.', p1body:'One real-world asset, one canonical record — however many partners represent it.',
     p2title:'More information.\nLess noise.', p2body:'Market context, planning facts and estimates, clearly labelled — not five inconsistent copies of the same listing.',
@@ -304,8 +304,8 @@ fr: {
     thinInventory:'Z Find ajoute activement des opportunités dans cette zone.',
   },
   hero: {
-    eyebrow:'Portail immobilier international',
-    titleLine1:"Explorez des opportunités immobilières sur", titleLineEm:'des marchés internationaux sélectionnés.',
+    eyebrow:'Portail immobilier · France · Belgique · Luxembourg',
+    titleLine1:"Explorez des opportunités immobilières en", titleLineEm:'France, en Belgique et au Luxembourg.',
     lead:'Recherchez des biens, programmes et terrains avec moins de doublons, plus de contexte de marché et un accès direct aux partenaires qui les représentent.',
     p1title:"Plus d'opportunités.\nMoins de duplication.", p1body:"Un actif réel, une fiche canonique unique — quel que soit le nombre de partenaires qui le représentent.",
     p2title:"Plus d'information.\nMoins de bruit.", p2body:"Contexte de marché, faits d'urbanisme et estimations, clairement identifiés — pas cinq copies incohérentes de la même annonce.",

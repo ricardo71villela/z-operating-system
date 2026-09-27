@@ -17,6 +17,7 @@ const path = require('path');
 
 const DIST_SEO_DIR = path.join(__dirname, '..', 'dist', 'seo');
 const marketRegistry = require('../src/services/market-registry.js');
+const launchScope = require('../src/services/launch-scope.js');
 const seoGenerator = require('../src/services/seo-page-generator.js');
 
 const PERSISTED_LOCALE_BY_PUBLIC = Object.freeze({
@@ -76,8 +77,13 @@ function contentForPublicLocale(contentRows, publicLocale) {
   return rows.find(row => accepted.includes(row.locale)) || null;
 }
 
+function launchCountry(countryIso) {
+  // Launch scope: SEO pages only for listings located in public markets.
+  return !!countryIso && launchScope.isLaunchMarketKey(String(countryIso).toUpperCase());
+}
+
 function genuineEditorialLocales(contentRows) {
-  return seoGenerator.LOCALES.filter(locale => {
+  return seoGenerator.LOCALES.filter(launchScope.isLaunchLocale).filter(locale => {
     const content = contentForPublicLocale(contentRows, locale);
     return !!(content && String(content.title || '').trim() && String(content.description || '').trim());
   });
@@ -87,12 +93,16 @@ function buildMarketSeoEntries(baseUrl) {
   const base = normalizeBaseUrl(baseUrl);
   const entries = [];
 
-  for (const market of marketRegistry.listMarkets()) {
+  // Launch scope: only the public markets (FR/BE/LU) in the public locales (fr/en).
+  const launchMarkets = launchScope.filterMarkets(marketRegistry.listMarkets());
+  const launchLocales = marketRegistry.MARKET_LOCALES.filter(launchScope.isLaunchLocale);
+
+  for (const market of launchMarkets) {
     const pathByLocale = Object.fromEntries(
-      marketRegistry.MARKET_LOCALES.map(locale => [locale, marketRegistry.marketPath(market.key, locale)])
+      launchLocales.map(locale => [locale, marketRegistry.marketPath(market.key, locale)])
     );
 
-    for (const locale of marketRegistry.MARKET_LOCALES) {
+    for (const locale of launchLocales) {
       const copy = marketRegistry.marketPresentation(market.key, locale);
       const publicPath = pathByLocale[locale];
       const canonicalUrl = base + publicPath;
@@ -118,8 +128,11 @@ function buildMarketSeoEntries(baseUrl) {
         seoTitle: copy.seoTitle,
         seoDescription: copy.seoDescription,
         interactiveSpaPath: `/#/${locale}/market/${market.key}`,
-        legalSpaPath: `/#/${locale}/${market.legalRoute}`,
-        touristRentalSpaPath: `/#/${locale}/${market.touristRentalRoute}`
+        legalSpaPath: market.legalRoute ? `/#/${locale}/${market.legalRoute}` : null,
+        touristRentalSpaPath: market.touristRentalRoute ? `/#/${locale}/${market.touristRentalRoute}` : null,
+        guidesPendingLabel: locale === 'fr'
+          ? 'Le guide juridique de ce marché est en préparation.'
+          : 'The legal guide for this market is in preparation.'
       });
 
       entries.push({
@@ -200,6 +213,7 @@ async function main() {
       if (!availableLocales.length) continue;
 
       const zone = row.zones_lite || {};
+      if (!launchCountry(zone.country_iso)) continue;
       const mediaRows = kind === 'development'
         ? (row.development_media || (listing.listing_media || []))
         : (listing.listing_media || []);
@@ -259,9 +273,11 @@ async function main() {
 
   for (const zoneId of Object.keys(zonesById)) {
     const { zone, prices, samples } = zonesById[zoneId];
+    if (!launchCountry(zone.country_iso)) continue;
     const avgPrice = prices.length ? prices.reduce((a,b) => a + b, 0) / prices.length : 0;
 
-    for (const locale of seoGenerator.LOCALES) {
+    const zoneLocales = seoGenerator.LOCALES.filter(launchScope.isLaunchLocale);
+    for (const locale of zoneLocales) {
       const localizedSamples = samples.flatMap(sample => {
         const content = contentForPublicLocale(sample.contentRows, locale);
         return content && content.title
@@ -280,7 +296,8 @@ async function main() {
         avgPrice,
         currencyIso: 'EUR',
         sampleListings: localizedSamples,
-        imageUrl: zoneImages.getZoneImagePath(zone.name)
+        imageUrl: zoneImages.getZoneImagePath(zone.name),
+        availableLocales: zoneLocales
       });
       const outPath = path.join(DIST_SEO_DIR, locale, 'zone', `${zoneId}.html`);
       fs.mkdirSync(path.dirname(outPath), { recursive: true });

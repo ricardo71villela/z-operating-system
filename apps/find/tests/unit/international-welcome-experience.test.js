@@ -165,8 +165,8 @@ check(
 const markets = marketRegistry.listMarkets();
 
 check(
-  'market registry retains the complete approved international set',
-  markets.length === 24
+  'market registry retains the complete approved international set (+ Luxembourg)',
+  markets.length === 25
 );
 
 check(

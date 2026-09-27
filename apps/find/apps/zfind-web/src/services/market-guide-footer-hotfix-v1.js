@@ -39,11 +39,20 @@
     'footer.site a[data-i18n="footer.legalGuide"], ' +
     'footer.site a[data-i18n="footer.alManual"]';
 
+  const launchScope = services.launchScope || null;
+
+  function publicMarkets() {
+    return launchScope
+      ? launchScope.filterMarkets(registry.listMarkets())
+      : registry.listMarkets();
+  }
+
   function knownMarketKey(value) {
     return (
       typeof value === 'string' &&
       value.length > 0 &&
-      !!registry.getMarket(value)
+      !!registry.getMarket(value) &&
+      (!launchScope || launchScope.isLaunchMarketKey(value))
     );
   }
 
@@ -105,7 +114,7 @@
     }
 
     const jurisdictionMarket =
-      registry.listMarkets().find(market =>
+      publicMarkets().find(market =>
         market &&
         (
           market.legalRoute === view ||
@@ -145,9 +154,12 @@
   }
 
   function fallbackMarketKey() {
-    if (knownMarketKey('PT')) return 'PT';
+    const preferred = launchScope && launchScope.MODE === 'launch'
+      ? launchScope.DEFAULT_MARKET_KEY
+      : 'PT';
+    if (knownMarketKey(preferred)) return preferred;
 
-    const first = registry.listMarkets()[0];
+    const first = publicMarkets()[0];
     return first && knownMarketKey(first.key)
       ? first.key
       : null;

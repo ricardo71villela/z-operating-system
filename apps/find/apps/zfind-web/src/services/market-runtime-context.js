@@ -43,8 +43,18 @@
     it: label => `Il simulatore dei costi di acquisto per ${label} sarà disponibile quando saranno convalidate le regole fiscali specifiche del paese. Le regole fiscali portoghesi non vengono mai applicate a ${label}.`
   });
 
+  const launchScope = services.launchScope || null;
+
+  function publicMarkets() {
+    return launchScope
+      ? launchScope.filterMarkets(registry.listMarkets())
+      : registry.listMarkets();
+  }
+
   function knownMarketKey(marketKey) {
-    return typeof marketKey === 'string' && !!registry.getMarket(marketKey);
+    return typeof marketKey === 'string' &&
+      !!registry.getMarket(marketKey) &&
+      (!launchScope || launchScope.isLaunchMarketKey(marketKey));
   }
 
   function marketKeyFromHash() {
@@ -109,7 +119,7 @@
   }
 
   function countryMarketForIso(countryIso) {
-    return registry.listMarkets().find(market =>
+    return publicMarkets().find(market =>
       market &&
       market.geography &&
       market.geography.kind === 'country' &&
@@ -135,7 +145,7 @@
     const seen = new Set();
     const supported = supportedSimulatorCountries();
 
-    registry.listMarkets().forEach(market => {
+    publicMarkets().forEach(market => {
       if (
         !market ||
         !market.geography ||

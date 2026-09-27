@@ -329,6 +329,15 @@
       { fr:'Belgique', en:'Belgium', pt:'Bélgica', es:'Bélgica', de:'Belgien', it:'Belgio' },
       { fr:'belgique', en:'belgium', pt:'belgica', es:'belgica', de:'belgien', it:'belgio' }
     ),
+    market(
+      'LU',
+      { kind:'country', code:'LU' },
+      { kind:'country_iso', value:'LU' },
+      null,
+      null,
+      { fr:'Luxembourg', en:'Luxembourg', pt:'Luxemburgo', es:'Luxemburgo', de:'Luxemburg', it:'Lussemburgo' },
+      { fr:'luxembourg', en:'luxembourg', pt:'luxemburgo', es:'luxemburgo', de:'luxemburg', it:'lussemburgo' }
+    ),
 
     market(
       'US',
