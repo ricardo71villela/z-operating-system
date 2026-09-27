@@ -3606,7 +3606,7 @@ async function sharePNG() {
       await navigator.share({ files: [file], title: state.title || 'My Studio', text: (document.getElementById('caption').value || '').slice(0, 200) });
     } else {
       toast('Este browser não suporta partilha direta — a descarregar.');
-      downloadPNG();
+      await downloadPNG(); // espera o download terminar antes de devolver
     }
   } catch (e) {
     if (e.name !== 'AbortError') { console.error(e); toast('Não foi possível partilhar.'); }
