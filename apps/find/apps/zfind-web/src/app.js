@@ -715,6 +715,13 @@ function setHomeStatus(kind, titleKey, bodyKey) {
 }
 
 // Official price statistics (DVF / Statbel / Observatoire de l'Habitat).
+function renderMarketDivisions(market) {
+  const root = document.getElementById('market-divisions-root');
+  const service = window.ZFindServices && window.ZFindServices.marketDivisions;
+  if (!root || !service) return;
+  service.render(root, market.key, state.lang);
+}
+
 function renderMarketPrices(market) {
   const root = document.getElementById('market-prices-root');
   const service = window.ZFindServices && window.ZFindServices.marketPrices;
@@ -1063,6 +1070,12 @@ function renderMarket(marketKey) {
       </section>
 
       <section
+        class="wrap market-foundation-section market-divisions-section"
+        id="market-divisions-root"
+        data-market-key="${market.key}"
+      ></section>
+
+      <section
         class="wrap market-foundation-section market-prices-section"
         id="market-prices-root"
         data-market-key="${market.key}"
@@ -1084,6 +1097,7 @@ function renderMarket(marketKey) {
 
   renderMarketFeatured(market);
   renderMarketSearch(market);
+  renderMarketDivisions(market);
   renderMarketPrices(market);
 }
 

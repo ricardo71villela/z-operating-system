@@ -78,6 +78,8 @@ function build() {
   const searchMapUiCss = read('search-map-ui.css');
   const marketPricesCss = read('market-prices.css');
   const marketPricesService = read('services/market-prices.js');
+  const marketDivisionsCss = read('market-divisions.css');
+  const marketDivisionsService = read('services/market-divisions.js');
   const body = read('body.html');
   const pathD = read('path_data.txt');
   const vendorSupabase = read('vendor-supabase.js');
@@ -152,7 +154,7 @@ function build() {
   );
 
   const html = headTop
-    + '<style>\n' + css + '\n' + legalGuideReadingSurface + '\n' + mobileUxPolish + '\n' + mobileUxBalanceV3 + '\n' + propertyMobileDetailHotfix + '\n' + listingCompliancePublicCss + '\n' + searchMapUiCss + '\n' + marketPricesCss + '\n</style>\n</head>\n<body>\n'
+    + '<style>\n' + css + '\n' + legalGuideReadingSurface + '\n' + mobileUxPolish + '\n' + mobileUxBalanceV3 + '\n' + propertyMobileDetailHotfix + '\n' + listingCompliancePublicCss + '\n' + searchMapUiCss + '\n' + marketPricesCss + '\n' + marketDivisionsCss + '\n</style>\n</head>\n<body>\n'
     + resolvedBody
     + '\n<script>\n'
     + vendorSupabase + '\n'
@@ -167,6 +169,7 @@ function build() {
     + searchMapViewportService + '\n'
     + marketSearchScopeService + '\n'
     + marketPricesService + '\n'
+    + marketDivisionsService + '\n'
     + supabaseClient + '\n'
     + propertiesService + '\n'
     + publicVerificationService + '\n'
