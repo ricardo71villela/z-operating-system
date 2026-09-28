@@ -9,6 +9,8 @@
 
   for (const locale of translated) {
     const button = panel.querySelector(`button[data-lang="${locale}"]`);
+    // Launch builds leave non-launch locales out of the published HTML.
+    if (!button && launchScope && !launchScope.isLaunchLocale(locale)) continue;
     if (!button) throw new Error(`Z Find language menu missing ${locale}.`);
     button.disabled = false;
     button.removeAttribute('disabled');

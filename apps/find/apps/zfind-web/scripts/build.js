@@ -127,6 +127,7 @@ function build() {
   const surfaceScope = process.env.ZFIND_LAUNCH_SCOPE === 'all' ? 'all' : 'launch';
   const publicSurface = buildPublicBody(body, {
     scope: surfaceScope,
+    launchLocales: launchScope.LAUNCH_LOCALES,
     publicGuideRoutes: launchScope.publicGuideRoutes(marketRegistryModule.listMarkets()),
     defaultGuideRoutes: {
       legal: marketRegistryModule.getMarket(launchScope.DEFAULT_MARKET_KEY).legalRoute,

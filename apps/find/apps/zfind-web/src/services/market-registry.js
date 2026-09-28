@@ -39,11 +39,23 @@
     publicLocales.PUBLIC_LOCALES.slice()
   );
 
+  // French place preposition: "en France", "au Luxembourg", "aux Pays-Bas", "à Chypre".
+  const FR_PREPOSITION = Object.freeze({
+    'Brésil': 'au', 'Canada': 'au', 'Chili': 'au', 'Luxembourg': 'au', 'Mexique': 'au',
+    'Pays de Galles': 'au', 'Portugal': 'au',
+    'États-Unis': 'aux', 'Pays-Bas': 'aux',
+    'Chypre': 'à', 'Dubaï': 'à'
+  });
+
+  function inFrench(label) {
+    return `${FR_PREPOSITION[label] || 'en'} ${label}`;
+  }
+
   const COPY = Object.freeze({
     fr: Object.freeze({
       heroEyebrow: 'Marché immobilier international',
       heroTitle: label => `Explorez les opportunités immobilières — ${label}`,
-      heroLead: label => `Découvrez biens, programmes neufs et terrains sur Z Find pour ${label}, avec une lecture claire du marché et un accès direct aux partenaires qui les représentent.`,
+      heroLead: label => `Découvrez biens, programmes neufs et terrains ${inFrench(label)} sur Z Find, avec une lecture claire du marché et un accès direct aux partenaires qui les représentent.`,
       featuredTitle: 'À la une cette semaine',
       featuredIntro: 'Jusqu’à six opportunités publiées mises en avant sur ce marché. L’attribution commerciale des emplacements sera activée dans une phase dédiée.',
       featuredBadge: 'À la une',
@@ -62,7 +74,7 @@
       openInteractive: 'Explorer le marketplace',
       mapOmissionNote: 'Les territoires non continentaux ne sont pas représentés sur cette carte.',
       seoTitle: label => `Immobilier — ${label} | Z Find`,
-      seoDescription: label => `Biens, programmes neufs, terrains et informations de marché pour ${label}. Explorez le marketplace immobilier international Z Find.`
+      seoDescription: label => `Biens, programmes neufs, terrains et informations de marché ${inFrench(label)}. Explorez le marketplace immobilier international Z Find.`
     }),
 
     en: Object.freeze({

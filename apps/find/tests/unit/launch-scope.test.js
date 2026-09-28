@@ -71,7 +71,23 @@ check('static footer guide links default to the French guides',
   launch.html.includes(`onclick="navigate('legal-fr');return false;" data-i18n="footer.legalGuide"`) &&
   launch.html.includes(`onclick="navigate('tourist-rental-fr');return false;" data-i18n="footer.alManual"`));
 
+check('published HTML keeps only the fr/en language buttons',
+  launch.html.includes('data-lang="fr"') && launch.html.includes('data-lang="en"') &&
+  !['pt', 'es', 'de', 'it'].some(l => launch.html.includes(`data-lang="${l}"`)) &&
+  !launch.html.includes('Português') && !launch.html.includes('Bientôt'));
+const menuRuntime = fs.readFileSync(path.join(WEB, 'src', 'six-language-menu.js'), 'utf8');
+check('language menu runtime skips locales left out of the launch build',
+  menuRuntime.includes('!launchScope.isLaunchLocale(locale)) continue;'));
+
+const registrySrc = fs.readFileSync(path.join(WEB, 'src', 'services', 'market-registry.js'), 'utf8');
+check('French market copy uses the right place preposition',
+  !registrySrc.includes('sur Z Find pour ${label}') &&
+  !registrySrc.includes('informations de marché pour ${label}') &&
+  registrySrc.includes("'Luxembourg': 'au'") && registrySrc.includes("return `${FR_PREPOSITION[label] || 'en'} ${label}`;"));
+
 const all = buildPublicBody(body, { scope: 'all', publicGuideRoutes: routes });
+check('ZFIND_LAUNCH_SCOPE=all keeps every language button',
+  ['fr', 'en', 'pt', 'es', 'de', 'it'].every(l => all.html.includes(`data-lang="${l}"`)));
 check('ZFIND_LAUNCH_SCOPE=all rebuilds every jurisdiction, still without internal markers',
   all.html.includes('id="view-legal-es"') && all.html.includes('id="view-legal"') &&
   !all.html.includes('LEGAL_STATUS') && !all.html.includes('Regra de produto para o Z Find'));

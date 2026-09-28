@@ -155,6 +155,14 @@ function removeLinksTo(html, hiddenRoutes) {
   return out;
 }
 
+/* Language menu: buttons of locales outside the launch are left out of the
+   published HTML (the source keeps all six; the runtime skips missing ones). */
+function removeNonLaunchLanguageButtons(html, options) {
+  const launchLocales = (options && options.launchLocales) || ['fr', 'en'];
+  return html.replace(/[ \t]*<button type="button" data-lang="([a-z]{2})"[^>]*>[\s\S]*?<\/button>\n?/g,
+    (button, locale) => (launchLocales.includes(locale) ? button : ''));
+}
+
 /**
  * @param {string} body            source body.html
  * @param {object} options
@@ -197,11 +205,13 @@ function buildPublicBody(body, options) {
     return part.html;
   }).join('');
 
-  if (/LEGAL_STATUS|Master [A-Z]{2}(?:-[A-Z]{2,3})? ·|Regra de produto para o Z Find/.test(html)) {
+  const publicHtml = scope === 'launch' ? removeNonLaunchLanguageButtons(html, options) : html;
+
+  if (/LEGAL_STATUS|Master [A-Z]{2}(?:-[A-Z]{2,3})? ·|Regra de produto para o Z Find/.test(publicHtml)) {
     throw new Error('LAUNCH SURFACE: internal editorial markers remain in the public HTML.');
   }
 
-  return { html, report };
+  return { html: publicHtml, report };
 }
 
 module.exports = { buildPublicBody, splitViews, isGuideView };
