@@ -31,6 +31,61 @@ if (!MARKET_REGISTRY_SERVICE) {
   throw new Error('Z Find market registry unavailable.');
 }
 
+// LAUNCH SCOPE — only France, Belgique and Luxembourg (fr/en) are public.
+// Other markets stay in the registry but are not listed nor rendered.
+const LAUNCH_SCOPE_SERVICE =
+  window.ZFindServices && window.ZFindServices.launchScope;
+
+if (!LAUNCH_SCOPE_SERVICE) {
+  throw new Error('Z Find launch scope unavailable.');
+}
+
+function publicMarkets() {
+  return LAUNCH_SCOPE_SERVICE.filterMarkets(
+    MARKET_REGISTRY_SERVICE.listMarkets()
+  );
+}
+
+function getPublicMarket(marketKey) {
+  const market = MARKET_REGISTRY_SERVICE.getMarket(marketKey);
+  return market && LAUNCH_SCOPE_SERVICE.isLaunchMarketKey(market.key)
+    ? market
+    : null;
+}
+
+const MARKET_GUIDES_PENDING = Object.freeze({
+  fr: 'Le guide juridique de ce marché est en préparation.',
+  en: 'The legal guide for this market is in preparation.',
+  pt: 'O guia jurídico deste mercado está em preparação.',
+  es: 'La guía jurídica de este mercado está en preparación.',
+  de: 'Der Rechtsleitfaden für diesen Markt ist in Vorbereitung.',
+  it: 'La guida giuridica di questo mercato è in preparazione.'
+});
+
+function marketGuideButtonsHTML(market, copy) {
+  const buttons = [];
+  if (market.legalRoute) {
+    buttons.push(`
+              <button
+                class="btn btn-outline"
+                type="button"
+                onclick="navigate('${market.legalRoute}')"
+              >${copy.legalLabel}</button>`);
+  }
+  if (market.touristRentalRoute) {
+    buttons.push(`
+              <button
+                class="btn btn-outline"
+                type="button"
+                onclick="navigate('${market.touristRentalRoute}')"
+              >${copy.rentalLabel}</button>`);
+  }
+  if (!buttons.length) {
+    return `<p class="market-guides-pending">${MARKET_GUIDES_PENDING[state.lang] || MARKET_GUIDES_PENDING.en}</p>`;
+  }
+  return buttons.join('');
+}
+
 const FEATURED_MARKET_SERVICE =
   window.ZFindServices && window.ZFindServices.marketFeatured;
 
@@ -240,7 +295,7 @@ function marketSortLocale(lang) {
 
 function syncMarketSelects() {
   const currentKey =
-    state.view === 'market' && MARKET_REGISTRY_SERVICE.getMarket(state.id)
+    state.view === 'market' && getPublicMarket(state.id)
       ? state.id
       : '';
 
@@ -254,8 +309,7 @@ function syncMarketSelects() {
       placeholder.textContent = t(state.lang, 'market.choose');
       select.appendChild(placeholder);
 
-      MARKET_REGISTRY_SERVICE
-        .listMarkets()
+      publicMarkets()
         .map(market => ({
           market,
           label: MARKET_REGISTRY_SERVICE.marketLabel(
@@ -285,7 +339,7 @@ function syncMarketSelects() {
 
 function navigateMarket(marketKey) {
   if (!marketKey) return;
-  if (!MARKET_REGISTRY_SERVICE.getMarket(marketKey)) return;
+  if (!getPublicMarket(marketKey)) return;
 
   // Entering a market intentionally starts a market context from zero;
   // arbitrary query state from the prior page must not leak across markets.
@@ -324,15 +378,19 @@ function parseHash() {
   const [pathPart, queryPart] = full.split('?');
   const parts = pathPart.split('/').filter(Boolean);
   let lang = parts[0];
-  if (!SUPPORTED_LANGS.includes(lang)) {
+  if (!SUPPORTED_LANGS.includes(lang) || !LAUNCH_SCOPE_SERVICE.isLaunchLocale(lang)) {
+    // Launch scope: only fr/en are public. A hidden locale in the URL
+    // (/pt/, /es/, /de/, /it/) is replaced by the stored or default locale.
+    const hiddenLocale = SUPPORTED_LANGS.includes(lang);
     const storedLang =
       localStorage.getItem('zfind_lang');
 
     lang =
-      SUPPORTED_LANGS.includes(storedLang)
+      SUPPORTED_LANGS.includes(storedLang) && LAUNCH_SCOPE_SERVICE.isLaunchLocale(storedLang)
         ? storedLang
         : DEFAULT_LANG;
-    location.hash = '/' + lang + (parts.length ? '/'+parts.join('/') : '/home') + (queryPart ? '?'+queryPart : '');
+    const rest = hiddenLocale ? parts.slice(1) : parts;
+    location.hash = '/' + lang + (rest.length ? '/'+rest.join('/') : '/home') + (queryPart ? '?'+queryPart : '');
     return; // hashchange will re-fire parseHash
   }
   const view = parts[1] || 'home';
@@ -656,6 +714,14 @@ function setHomeStatus(kind, titleKey, bodyKey) {
   }
 }
 
+// Official price statistics (DVF / Statbel / Observatoire de l'Habitat).
+function renderMarketPrices(market) {
+  const root = document.getElementById('market-prices-root');
+  const service = window.ZFindServices && window.ZFindServices.marketPrices;
+  if (!root || !service) return;
+  service.render(root, market.key, state.lang);
+}
+
 function renderMarketSearch(market) {
   const root = document.getElementById('market-search-root');
   if (!root) return;
@@ -900,7 +966,7 @@ function renderMarket(marketKey) {
   const root = document.getElementById('market-root');
   if (!root) return;
 
-  const market = MARKET_REGISTRY_SERVICE.getMarket(marketKey);
+  const market = getPublicMarket(marketKey);
 
   if (!market) {
     root.innerHTML = `
@@ -938,18 +1004,7 @@ function renderMarket(marketKey) {
             <h1>${copy.heroTitle}</h1>
             <p class="lead">${copy.heroLead}</p>
 
-            <div class="market-foundation-actions">
-              <button
-                class="btn btn-outline"
-                type="button"
-                onclick="navigate('${market.legalRoute}')"
-              >${copy.legalLabel}</button>
-
-              <button
-                class="btn btn-outline"
-                type="button"
-                onclick="navigate('${market.touristRentalRoute}')"
-              >${copy.rentalLabel}</button>
+            <div class="market-foundation-actions">${marketGuideButtonsHTML(market, copy)}
             </div>
           </div>
 
@@ -1007,6 +1062,12 @@ function renderMarket(marketKey) {
         ></div>
       </section>
 
+      <section
+        class="wrap market-foundation-section market-prices-section"
+        id="market-prices-root"
+        data-market-key="${market.key}"
+      ></section>
+
       <section class="wrap market-foundation-section market-guide-links">
         <div class="block-head">
           <div>
@@ -1015,18 +1076,7 @@ function renderMarket(marketKey) {
           </div>
         </div>
 
-        <div class="market-foundation-actions">
-          <button
-            class="btn btn-outline"
-            type="button"
-            onclick="navigate('${market.legalRoute}')"
-          >${copy.legalLabel}</button>
-
-          <button
-            class="btn btn-outline"
-            type="button"
-            onclick="navigate('${market.touristRentalRoute}')"
-          >${copy.rentalLabel}</button>
+        <div class="market-foundation-actions">${marketGuideButtonsHTML(market, copy)}
         </div>
       </section>
     </div>
@@ -1034,6 +1084,7 @@ function renderMarket(marketKey) {
 
   renderMarketFeatured(market);
   renderMarketSearch(market);
+  renderMarketPrices(market);
 }
 
 async function renderHome() {

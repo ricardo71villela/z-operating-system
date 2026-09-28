@@ -27,6 +27,19 @@
 
   const document = root.document;
   const STORAGE_KEY = 'zfind_welcome_locale';
+  const launchScope = services.launchScope || null;
+
+  function publicLocaleList() {
+    return launchScope
+      ? publicLocales.PUBLIC_LOCALES.filter(launchScope.isLaunchLocale)
+      : publicLocales.PUBLIC_LOCALES;
+  }
+
+  function publicMarketList() {
+    return launchScope
+      ? launchScope.filterMarkets(marketRegistry.listMarkets())
+      : marketRegistry.listMarkets();
+  }
 
   const LOCALE_LABELS = Object.freeze({
     fr: 'Français',
@@ -339,7 +352,7 @@
     row.setAttribute('role', 'group');
     row.setAttribute('aria-label', copy().language);
 
-    for (const locale of publicLocales.PUBLIC_LOCALES) {
+    for (const locale of publicLocaleList()) {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'zfind-welcome-language';
@@ -471,7 +484,7 @@
     grid.setAttribute('role', 'group');
     grid.setAttribute('aria-label', copy().market);
 
-    for (const market of marketRegistry.listMarkets()) {
+    for (const market of publicMarketList()) {
       grid.appendChild(marketCard(market));
     }
 

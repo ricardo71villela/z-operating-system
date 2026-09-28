@@ -50,7 +50,7 @@ const rows = [
 assert(seo.contentForPublicLocale(rows, 'es').title === 'Apartamento en Oporto', 'Spanish uses exact Spanish content');
 assert(seo.contentForPublicLocale(rows, 'it') === null, 'Italian never falls back to English when missing');
 assert(seo.contentForPublicLocale([{ locale:'pt-PT', title:'Imóvel', description:'Descrição' }], 'pt').title === 'Imóvel', 'public /pt/ maps to persisted pt-PT');
-assert(JSON.stringify(seo.genuineEditorialLocales(rows)) === JSON.stringify(['fr','en','es']), 'only locales with genuine title + description are indexable');
+assert(JSON.stringify(seo.genuineEditorialLocales(rows)) === JSON.stringify(['fr','en']), 'only launch locales with genuine title + description are indexable');
 
 const esOnlyHtml = generator.buildListingPage({
   kind:'property', baseUrl:'https://zfind.online', locale:'es', availableLocales:['fr','en','es'], id:'p1',
@@ -68,14 +68,17 @@ const itZone = generator.buildZonePage({ baseUrl:'https://zfind.online', locale:
 assert(deZone.includes('Immobilien | Z Find') && deZone.includes('ergänzt derzeit aktiv'), 'German zone SEO is genuinely localized');
 assert(itZone.includes('Immobiliare | Z Find') && itZone.includes('sta aggiungendo attivamente'), 'Italian zone SEO is genuinely localized');
 
-console.log('\n=== 6. deterministic 24-market × 6-language SEO floor ===');
+console.log('\n=== 6. deterministic launch-scope market SEO (3 markets × 2 locales) ===');
 const marketEntries = seo.buildMarketSeoEntries('https://zfind.online');
-assert(marketEntries.length === 144, '24 markets × 6 locales produce exactly 144 deterministic market pages');
-for (const locale of ['fr','en','pt','es','de','it']) {
-  assert(marketEntries.filter(entry => entry.locale === locale).length === 24, `${locale}: 24 market pages`);
+assert(marketEntries.length === 6, 'France, Belgique, Luxembourg × fr/en produce exactly 6 market pages');
+for (const locale of ['fr','en']) {
+  assert(marketEntries.filter(entry => entry.locale === locale).length === 3, `${locale}: 3 market pages`);
 }
+assert(JSON.stringify([...new Set(marketEntries.map(entry => entry.marketKey))].sort()) === JSON.stringify(['BE','FR','LU']), 'only launch markets are published');
 assert(marketEntries.every(entry => entry.html.includes('hreflang="x-default"')), 'every market page has x-default');
-assert(marketEntries.every(entry => ['fr','en','pt','es','de','it'].every(locale => entry.html.includes(`hreflang="${locale}"`))), 'every market page has complete six-way hreflang');
+assert(marketEntries.every(entry => ['fr','en'].every(locale => entry.html.includes(`hreflang="${locale}"`))), 'every market page has fr/en hreflang');
+assert(marketEntries.every(entry => ['pt','es','de','it'].every(locale => !entry.html.includes(`hreflang="${locale}"`))), 'hidden locales are not advertised');
+assert(marketEntries.filter(entry => entry.marketKey === 'LU').every(entry => !entry.html.includes('/#/' + entry.locale + '/null')), 'Luxembourg page has no broken guide link');
 
 console.log('\n=== 7. Vercel deployment is fail-fast ===');
 const vercelPath = path.join(ROOT, 'apps/zfind-web/vercel.json');

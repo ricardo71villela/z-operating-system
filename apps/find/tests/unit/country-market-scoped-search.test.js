@@ -59,8 +59,8 @@ if (scope && registry) {
   const supported = resolved.filter(([,r]) => r.supported);
   const unavailable = resolved.filter(([,r]) => !r.supported);
 
-  check('all 24 markets now have an authoritative searchable scope',
-    supported.length === 24 &&
+  check('all 25 markets now have an authoritative searchable scope',
+    supported.length === 25 &&
     unavailable.length === 0);
 
   const sovereign = resolved.filter(
@@ -70,8 +70,8 @@ if (scope && registry) {
     ([,r]) => r.supported && r.kind === 'exact_market'
   );
 
-  check('exactly 19 sovereign markets remain country-ISO scoped',
-    sovereign.length === 19 &&
+  check('exactly 20 sovereign markets (19 + Luxembourg) are country-ISO scoped',
+    sovereign.length === 20 &&
     sovereign.every(([,r]) =>
       /^[A-Z]{2}$/.test(r.countryIso)
     ));

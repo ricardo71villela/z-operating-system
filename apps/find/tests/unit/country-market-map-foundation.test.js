@@ -40,7 +40,7 @@ function check(label, condition) {
 
 const markets = registry.listMarkets();
 
-check('exact 24 markets retained', markets.length === 24);
+check('exact 25 markets retained (24 + Luxembourg)', markets.length === 25);
 
 check('every market exposes one deterministic SVG asset path',
   markets.every(m =>
@@ -49,9 +49,9 @@ check('every market exposes one deterministic SVG asset path',
   ));
 
 check('all market map asset paths are unique',
-  new Set(markets.map(m => m.mapAsset)).size === 24);
+  new Set(markets.map(m => m.mapAsset)).size === 25);
 
-check('all 24 exact SVG assets exist',
+check('all 25 exact SVG assets exist',
   fs.existsSync(mapDir) &&
   markets.every(m => fs.existsSync(path.join(
     ROOT,

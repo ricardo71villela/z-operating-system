@@ -61,7 +61,9 @@ function hreflangLinks(baseUrl, pathForLocale, availableLocales) {
   return alternates.map(l => `<link rel="alternate" hreflang="${l}" href="${baseUrl}${pathForLocale(l)}">`).join('\n  ') + `\n  <link rel="alternate" hreflang="x-default" href="${baseUrl}${pathForLocale(xDefault)}">`;
 }
 function marketHreflangLinks(baseUrl, pathByLocale) {
-  return MARKET_LOCALES.map(locale => {
+  // Alternates follow the locales actually published for the market
+  // (launch scope: fr/en), in the canonical locale order.
+  return MARKET_LOCALES.filter(locale => Object.prototype.hasOwnProperty.call(pathByLocale, locale)).map(locale => {
     const path = pathByLocale[locale];
     if (!path) throw new Error(`Market SEO requires an exact ${locale} alternate path.`);
     return `<link rel="alternate" hreflang="${locale}" href="${baseUrl}${path}">`;
@@ -88,7 +90,7 @@ function siteHeader(base, ctaHref, ctaLabel) {
 </header>`;
 }
 
-function buildMarketPage({ baseUrl, locale, marketKey, marketLabel, publicPath, pathByLocale, heroEyebrow, heroTitle, heroLead, featuredTitle, featuredIntro, searchTitle, searchIntro, guidesTitle, guidesIntro, legalLabel, rentalLabel, openInteractive, seoTitle, seoDescription, interactiveSpaPath, legalSpaPath, touristRentalSpaPath }) {
+function buildMarketPage({ baseUrl, locale, marketKey, marketLabel, publicPath, pathByLocale, heroEyebrow, heroTitle, heroLead, featuredTitle, featuredIntro, searchTitle, searchIntro, guidesTitle, guidesIntro, legalLabel, rentalLabel, openInteractive, seoTitle, seoDescription, interactiveSpaPath, legalSpaPath, touristRentalSpaPath, guidesPendingLabel }) {
   const base = requireBaseUrl(baseUrl);
   requireLocale(locale);
   if (!publicPath || pathByLocale[locale] !== publicPath) throw new Error('Market SEO public path mismatch.');
@@ -127,7 +129,7 @@ ${siteHeader(base, interactiveUrl, openInteractive)}
     <div class="zf-seo-section-grid">
       <section class="zf-seo-card"><h2>${escapeHtml(featuredTitle)}</h2><p>${escapeHtml(featuredIntro)}</p></section>
       <section class="zf-seo-card"><h2>${escapeHtml(searchTitle)}</h2><p>${escapeHtml(searchIntro)}</p></section>
-      <section class="zf-seo-card"><h2>${escapeHtml(guidesTitle)}</h2><p>${escapeHtml(guidesIntro)}</p><p><a href="${base}${legalSpaPath}">${escapeHtml(legalLabel)}</a> · <a href="${base}${touristRentalSpaPath}">${escapeHtml(rentalLabel)}</a></p></section>
+      <section class="zf-seo-card"><h2>${escapeHtml(guidesTitle)}</h2><p>${escapeHtml(guidesIntro)}</p><p>${[legalSpaPath ? `<a href="${base}${legalSpaPath}">${escapeHtml(legalLabel)}</a>` : '', touristRentalSpaPath ? `<a href="${base}${touristRentalSpaPath}">${escapeHtml(rentalLabel)}</a>` : ''].filter(Boolean).join(' · ') || escapeHtml(guidesPendingLabel || '')}</p></section>
     </div>
     <div class="zf-seo-cta-row"><a class="zf-seo-primary" href="${interactiveUrl}">${escapeHtml(openInteractive)} →</a></div>
   </div>
@@ -188,7 +190,7 @@ ${siteHeader(base, interactiveUrl, copy.viewFull.replace(/\s*→\s*$/, ''))}
 </html>`;
 }
 
-function buildZonePage({ baseUrl, locale, zoneId, zoneName, cityName, countryIsoCode, listingCount, avgPrice, currencyIso, sampleListings, imageUrl }) {
+function buildZonePage({ baseUrl, locale, zoneId, zoneName, cityName, countryIsoCode, listingCount, avgPrice, currencyIso, sampleListings, imageUrl, availableLocales }) {
   const base = requireBaseUrl(baseUrl);
   requireLocale(locale);
   const copy = COPY[locale];
@@ -209,7 +211,7 @@ function buildZonePage({ baseUrl, locale, zoneId, zoneName, cityName, countryIso
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeAttr(description)}">
 <link rel="canonical" href="${canonical}">
-${hreflangLinks(base,pathForLocale,LOCALES)}
+${hreflangLinks(base,pathForLocale,availableLocales || LOCALES)}
 <meta property="og:type" content="website">
 <meta property="og:title" content="${escapeAttr(title)}">
 <meta property="og:description" content="${escapeAttr(description)}">

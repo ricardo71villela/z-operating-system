@@ -70,7 +70,7 @@ if (registry) {
   const expectedKeys = [
     'PT','ES','FR','DE','IT','IE',
     'GB-ENG','GB-SCT','GB-WLS','GB-NIR',
-    'NL','BE',
+    'NL','BE','LU',
     'US','CA','MX','BR','AR',
     'CL','DO','PL','GR','HR','CY','AE-DU'
   ];
@@ -79,8 +79,8 @@ if (registry) {
     same(registry.MARKET_LOCALES, expectedLocales));
 
   const markets = registry.listMarkets();
-  check('exact 24 marketplace markets registered',
-    markets.length === 24 && same(markets.map(m => m.key), expectedKeys));
+  check('exact 25 marketplace markets registered (24 + Luxembourg)',
+    markets.length === 25 && same(markets.map(m => m.key), expectedKeys));
 
   check('every market has labels and slugs in all six locales',
     markets.every(m => expectedLocales.every(locale =>
@@ -209,22 +209,22 @@ if (generator && seoScript && registry) {
     seoScript.contentForPublicLocale(editorialRows, 'it') === null);
 
   const entries = seoScript.buildMarketSeoEntries('https://zfind.online');
-  check('24 markets x 6 languages yields 144 static SEO pages', entries.length === 144);
-  check('all 144 static SEO public paths are unique', new Set(entries.map(entry => entry.publicPath)).size === 144);
+  check('launch scope: 3 markets x 2 languages yields 6 static SEO pages', entries.length === 6);
+  check('all 6 static SEO public paths are unique', new Set(entries.map(entry => entry.publicPath)).size === 6);
 
-  const sample = entries.find(entry => entry.marketKey === 'PT' && entry.locale === 'en');
+  const sample = entries.find(entry => entry.marketKey === 'FR' && entry.locale === 'en');
   check('market SEO sample has clean canonical, not hash authority',
-    sample && sample.publicPath === '/en/markets/portugal' &&
-    sample.canonicalUrl === 'https://zfind.online/en/markets/portugal' &&
-    sample.html.includes('<link rel="canonical" href="https://zfind.online/en/markets/portugal">') &&
+    sample && sample.publicPath === '/en/markets/france' &&
+    sample.canonicalUrl === 'https://zfind.online/en/markets/france' &&
+    sample.html.includes('<link rel="canonical" href="https://zfind.online/en/markets/france">') &&
     !sample.html.includes('<link rel="canonical" href="https://zfind.online/#/'));
 
-  check('market SEO sample exposes 6 hreflang alternates plus x-default',
-    sample && (sample.html.match(/rel="alternate" hreflang="/g) || []).length === 7 &&
-    ['fr','en','pt','es','de','it','x-default'].every(code => sample.html.includes(`hreflang="${code}"`)));
+  check('market SEO sample exposes fr/en hreflang alternates plus x-default',
+    sample && (sample.html.match(/rel="alternate" hreflang="/g) || []).length === 3 &&
+    ['fr','en','x-default'].every(code => sample.html.includes(`hreflang="${code}"`)));
 
   check('static market page and interactive SPA remain explicitly connected',
-    sample && sample.html.includes('https://zfind.online/#/en/market/PT'));
+    sample && sample.html.includes('https://zfind.online/#/en/market/FR'));
 }
 
 console.log('');

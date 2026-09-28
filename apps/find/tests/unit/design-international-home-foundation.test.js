@@ -38,15 +38,15 @@ const sixLocales = ['fr','en','pt','es','de','it'];
 check('EN opportunistic slogan retired', !i18n.includes('Not an opportunistic portal.'));
 check('PT opportunistic slogan retired', !i18n.includes('Não é um portal oportunista.'));
 check('FR opportunistic slogan retired', !i18n.includes('Pas un portail opportuniste.') && !body.includes('Pas un portail opportuniste.'));
-check('EN hero explicitly international',
-  i18n.includes("eyebrow:'International real-estate portal'") &&
-  i18n.includes("titleLine1:'Explore real-estate opportunities across'"));
+check('EN hero names the launch markets',
+  i18n.includes("eyebrow:'Real-estate portal · France · Belgium · Luxembourg'") &&
+  i18n.includes("titleLine1:'Explore real-estate opportunities in'"));
 check('PT hero explicitly international',
   i18n.includes("eyebrow:'Portal imobiliário internacional'") &&
   i18n.includes("titleLine1:'Explore oportunidades imobiliárias em'"));
-check('FR hero explicitly international',
-  i18n.includes("eyebrow:'Portail immobilier international'") &&
-  i18n.includes("titleLine1:\"Explorez des opportunités immobilières sur\""));
+check('FR hero names the launch markets',
+  i18n.includes("eyebrow:'Portail immobilier · France · Belgique · Luxembourg'") &&
+  i18n.includes("titleLine1:\"Explorez des opportunités immobilières en\""));
 check('ES DE IT hero translations are present',
   i18nPhase4.includes("es: {") && i18nPhase4.includes("eyebrow:'Portal inmobiliario internacional'") &&
   i18nPhase4.includes("de: {") && i18nPhase4.includes("eyebrow:'Internationales Immobilienportal'") &&
