@@ -29,3 +29,24 @@
 @media (max-width: 380px){
   .market-divisions .md-grid{grid-template-columns:1fr;}
 }
+/* Home "Nos marchés" */
+.home-markets .hm-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;}
+.home-markets .hm-card{display:flex;flex-direction:column;gap:10px;padding:20px;border:1px solid var(--gray-200);border-radius:var(--radius);background:var(--white);}
+.home-markets .hm-card h3{margin:0;font-size:1.5rem;}
+.home-markets .hm-card h3 a{color:var(--gray-900);text-decoration:none;}
+.home-markets .hm-meta{margin:0;font-size:.85rem;color:var(--gray-500);}
+.home-markets .hm-price{margin:0;display:flex;flex-direction:column;gap:2px;}
+.home-markets .hm-price strong{font-size:1.35rem;color:var(--gray-900);}
+.home-markets .hm-price span{font-size:.8rem;color:var(--gray-500);}
+.home-markets .hm-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.home-markets .hm-chip{padding:5px 10px;border:1px solid var(--gray-200);border-radius:999px;font-size:.8rem;color:var(--gray-700);text-decoration:none;background:var(--gray-50,#fafafa);}
+.home-markets .hm-chip:hover{border-color:var(--gold);color:var(--gold-dark);}
+.home-markets .hm-more{font-weight:600;}
+.home-markets .hm-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:auto;padding-top:6px;}
+.home-markets .hm-primary,.home-markets .hm-secondary{padding:10px 16px;border-radius:var(--radius);font-weight:600;font-size:.9rem;text-decoration:none;}
+.home-markets .hm-primary{background:var(--gold-dark);color:var(--white);}
+.home-markets .hm-secondary{border:1px solid var(--gold-dark);color:var(--gold-dark);}
+.market-jump-actions{margin-top:14px;}
+@media (max-width: 900px){ .home-markets .hm-grid{grid-template-columns:1fr;} }
+/* Keep section tops clear of the fixed header when scrolled to. */
+#market-divisions-root,#market-prices-root,#market-search-root{scroll-margin-top:96px;}

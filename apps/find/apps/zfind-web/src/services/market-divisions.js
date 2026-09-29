@@ -140,8 +140,10 @@
   }
 
   /* Generic drill-down: `levels` describes the path; the last level lists communes. */
-  function mount(root, marketKey, lang, c, lead, note, buildLevel) {
+  function mount(root, marketKey, lang, c, lead, note, buildLevel, options) {
+    const opts = options || {};
     const path = []; // [{key, label}]
+    let restored = !(opts.keys && opts.keys.length);
     root.innerHTML = `
       <div class="block-head"><div><span class="eyebrow">${c.title}</span></div></div>
       <div class="market-divisions" data-market-divisions="${marketKey}">
@@ -155,12 +157,21 @@
 
     async function draw() {
       const country = COUNTRY[marketKey][lang] || COUNTRY[marketKey].en;
+      if (!restored) {
+        // Opened from a link (?div=84.74): rebuild the breadcrumb labels.
+        restored = true;
+        try {
+          const labels = await opts.resolveLabels(opts.keys);
+          for (let i = 0; i < opts.keys.length && labels[i]; i += 1) path.push({ key: opts.keys[i], label: labels[i] });
+        } catch (_) { path.length = 0; }
+      }
       crumbs.innerHTML = [`<button type="button" data-md-crumb="0">${esc(country)}</button>`]
         .concat(path.map((p, i) => i === path.length - 1
           ? `<span aria-current="page">${esc(p.label)}</span>`
           : `<button type="button" data-md-crumb="${i + 1}">${esc(p.label)}</button>`))
         .join('<span class="md-sep" aria-hidden="true">›</span>');
       body.innerHTML = `<p class="md-loading">${c.loading}</p>`;
+      if (typeof opts.onPath === 'function') opts.onPath(path.map(p => p.key), path.map(p => p.label));
       try {
         const level = await buildLevel(path.map(p => p.key));
         body.innerHTML = level.html;
@@ -204,7 +215,14 @@
   }
 
   /* ---------------- France ---------------- */
-  function france(root, lang, c) {
+  function france(root, lang, c, options) {
+    const resolveLabels = async keys => {
+      const index = await load('fr/index.json');
+      const name = r => (lang === 'fr' ? r.n : r.en || r.n);
+      const region = index.regions.find(r => r.c === keys[0]);
+      const dep = region && keys[1] ? region.deps.find(d => d.c === keys[1]) : null;
+      return [region && name(region), dep && `${dep.c} — ${name(dep)}`].slice(0, keys.length);
+    };
     mount(root, 'FR', lang, c, c.frLead, '', async keys => {
       const index = await load('fr/index.json');
       const unit = index.priceUnit;
@@ -228,11 +246,18 @@
         (x.arr || []).forEach(a => rows.push({ item: a, html: communeRow(a, lang, c, unit, 'FR', x.n) }));
       });
       return communeList(c, rows);
-    });
+    }, Object.assign({ resolveLabels }, options));
   }
 
   /* ---------------- Belgium ---------------- */
-  function belgium(root, lang, c) {
+  function belgium(root, lang, c, options) {
+    const resolveLabels = async keys => {
+      const data = await load('be.json');
+      const name = r => (lang === 'fr' ? r.n : r.en || r.n);
+      const region = data.regions.find(r => r.c === keys[0]);
+      const province = region && keys[1] ? region.provinces.find(p => p.c === keys[1]) : null;
+      return [region && name(region), province && name(province)].slice(0, keys.length);
+    };
     mount(root, 'BE', lang, c, c.beLead, c.flandersNote, async keys => {
       const data = await load('be.json');
       const unit = data.priceUnit;
@@ -261,11 +286,16 @@
       }
       const province = region.provinces.find(p => p.c === keys[1]);
       return communeList(c, communeRows(province.arrondissements));
-    });
+    }, Object.assign({ resolveLabels }, options));
   }
 
   /* ---------------- Luxembourg ---------------- */
-  function luxembourg(root, lang, c) {
+  function luxembourg(root, lang, c, options) {
+    const resolveLabels = async keys => {
+      const data = await load('lu.json');
+      const canton = data.cantons.find(k => k.c === keys[0]);
+      return [canton && canton.n].slice(0, keys.length);
+    };
     mount(root, 'LU', lang, c, c.luLead, '', async keys => {
       const data = await load('lu.json');
       const unit = data.priceUnit;
@@ -281,20 +311,26 @@
                     html: communeRow(Object.assign({}, x, { cp: [] }), lang, c, unit, 'LU', extra) });
       });
       return communeList(c, rows);
-    });
+    }, Object.assign({ resolveLabels }, options));
   }
 
-  function render(root, marketKey, lang) {
+  /* Division path from the URL (?div=84.74): only codes, at most three levels. */
+  function parsePath(value) {
+    return String(value || '').split('.').filter(k => /^[A-Za-z0-9-]{1,20}$/.test(k)).slice(0, 3);
+  }
+
+  function render(root, marketKey, lang, options) {
     if (!root || !SUPPORTED.includes(marketKey)) {
       if (root) root.innerHTML = '';
       return false;
     }
     const c = copyFor(lang);
-    if (marketKey === 'FR') france(root, lang, c);
-    else if (marketKey === 'BE') belgium(root, lang, c);
-    else luxembourg(root, lang, c);
+    const opts = Object.assign({}, options || {}, { keys: parsePath(options && options.path) });
+    if (marketKey === 'FR') france(root, lang, c, opts);
+    else if (marketKey === 'BE') belgium(root, lang, c, opts);
+    else luxembourg(root, lang, c, opts);
     return true;
   }
 
-  return Object.freeze({ SUPPORTED, COPY, render, _internals: Object.freeze({ esc, fold, matches, searchHref }) });
+  return Object.freeze({ SUPPORTED, COPY, render, _internals: Object.freeze({ esc, fold, matches, searchHref, parsePath }) });
 });
