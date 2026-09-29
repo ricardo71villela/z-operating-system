@@ -125,7 +125,7 @@ function mockRes() {
   let res = mockRes(); await handler(mockReq(good), res);
   check('API: refuses with 503 while e-mail is not configured', res.statusCode === 503 && sent.length === 0);
 
-  Object.assign(process.env, { RESEND_API_KEY: 'test', ZFIND_EMAIL_FROM: 'Z Find <estimation@zfind.online>', ZFIND_LEAD_NOTIFY_EMAIL: 'leads@example.com' });
+  Object.assign(process.env, { RESEND_API_KEY: 'test', ZFIND_EMAIL_FROM: 'Z Find <hello@zfind.online>', ZFIND_LEAD_NOTIFY_EMAIL: 'leads@example.com' });
   res = mockRes(); await handler(mockReq(Object.assign({}, good, { contact: Object.assign({}, good.contact, { consent: false }) })), res);
   check('API: consent is required', res.statusCode === 400 && res.body.error === 'consent' && sent.length === 0);
 

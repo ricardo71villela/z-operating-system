@@ -11,7 +11,7 @@
 
    Environment (Vercel project settings):
      RESEND_API_KEY           Resend API key
-     ZFIND_EMAIL_FROM         e.g. "Z Find <estimation@zfind.online>" (domain verified in Resend)
+     ZFIND_EMAIL_FROM         e.g. "Z Find <hello@zfind.online>" (domain verified in Resend)
      ZFIND_LEAD_NOTIFY_EMAIL  address that receives the leads
      SITE_BASE_URL            public site URL, e.g. https://zfind.online
    Nothing is stored: the lead exists only in the notification e-mail.
