@@ -35,4 +35,19 @@ assert.match(buildSource, /search-map-ui\.css/);
 assert.match(buildSource, /services\/search-map-viewport\.js/);
 assert.match(buildSource, /services\/search-map-ui\.js/);
 assert.doesNotMatch(require('fs').readFileSync(path.join(ROOT, 'apps/zfind-web/src/services/search-map-ui.js'), 'utf8'), /\bgeocode\w*\s*\(/i);
+
+// Freeze regression (2026-09-29): the map's own DOM work never re-renders it.
+const surface = { id: 'zfind-search-map-v1', contains: node => node === inner };
+const inner = { id: 'list' };
+const grid = { id: 'search-grid' };
+assert.equal(ui.isOwnMutation({ target: inner, addedNodes: [], removedNodes: [] }, surface), true);
+assert.equal(ui.isOwnMutation({ target: surface, addedNodes: [], removedNodes: [] }, surface), true);
+assert.equal(ui.isOwnMutation({ target: { id: 'view' }, addedNodes: [surface], removedNodes: [] }, surface), true);
+assert.equal(ui.isOwnMutation({ target: { id: 'view' }, addedNodes: [], removedNodes: [{ id: 'zfind-search-map-v1' }] }, null), true);
+assert.equal(ui.isOwnMutation({ target: grid, addedNodes: [{ id: 'card' }], removedNodes: [] }, surface), false);
+assert.equal(ui.isOwnMutation({ target: grid, addedNodes: [{ id: 'card' }], removedNodes: [] }, null), false);
+const mapSource = require('fs').readFileSync(path.join(ROOT, 'apps/zfind-web/src/services/search-map-ui.js'), 'utf8');
+assert.doesNotMatch(mapSource, /queueMicrotask/, 'map renders are scheduled as tasks, never microtasks');
+assert.doesNotMatch(mapSource, /unpkg\.com|jsdelivr\.net/, 'Leaflet is self-hosted');
+assert.ok(require('fs').existsSync(path.join(ROOT, 'apps/zfind-web/public/vendor/leaflet-1.9.4/leaflet.js')));
 console.log('Z_FIND_SEARCH_MAP_UI_V1=PASS');

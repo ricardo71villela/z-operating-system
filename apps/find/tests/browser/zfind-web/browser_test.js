@@ -1126,8 +1126,11 @@ async function mockSupabaseRoutes(page) {
   const searchLogsBeforeMarket = searchLogRequests;
 
   await page.evaluate(() => navigate('market','PT',{}));
+  // A market with nothing to feature hides the whole block (2026-09-29):
+  // wait for the ready state, visible or not.
   await page.waitForSelector(
-    '#market-featured-root[data-featured-state="ready"]'
+    '#market-featured-root[data-featured-state="ready"]',
+    { state: 'attached' }
   );
   await page.waitForTimeout(120);
 
@@ -1197,8 +1200,11 @@ async function mockSupabaseRoutes(page) {
   );
 
   await page.evaluate(() => navigate('market','FR',{}));
+  // A market with nothing to feature hides the whole block (2026-09-29):
+  // wait for the ready state, visible or not.
   await page.waitForSelector(
-    '#market-featured-root[data-featured-state="ready"]'
+    '#market-featured-root[data-featured-state="ready"]',
+    { state: 'attached' }
   );
 
   const frCards =
@@ -1228,8 +1234,11 @@ async function mockSupabaseRoutes(page) {
   }
 
   await page.evaluate(() => navigate('market','AE-DU',{}));
+  // A market with nothing to feature hides the whole block (2026-09-29):
+  // wait for the ready state, visible or not.
   await page.waitForSelector(
-    '#market-featured-root[data-featured-state="ready"]'
+    '#market-featured-root[data-featured-state="ready"]',
+    { state: 'attached' }
   );
 
   const dubaiParentCards =
@@ -1256,6 +1265,14 @@ async function mockSupabaseRoutes(page) {
     throw new Error(
       'Dubai Featured substituted non-exact market inventory'
     );
+  }
+
+  // Nothing to feature: visitors do not see six empty boxes.
+  const dubaiFeaturedVisible = await page.locator('#market-featured-root').isVisible();
+  const frStyleEmptyVisible = await page.locator('#market-featured-root .market-featured-empty:visible').count();
+  console.log('Dubai empty Featured block visible:', dubaiFeaturedVisible, '(expect false)');
+  if (dubaiFeaturedVisible || frStyleEmptyVisible !== 0) {
+    throw new Error('Empty Featured slots must not be shown to visitors');
   }
 
   await shot('19-market-dubai-featured-empty');

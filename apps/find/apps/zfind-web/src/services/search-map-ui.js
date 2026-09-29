@@ -23,8 +23,9 @@
   'use strict';
 
   const LEAFLET_VERSION = '1.9.4';
-  const LEAFLET_JS = `https://unpkg.com/leaflet@${LEAFLET_VERSION}/dist/leaflet.js`;
-  const LEAFLET_CSS = `https://unpkg.com/leaflet@${LEAFLET_VERSION}/dist/leaflet.css`;
+  // Served by zfind.online itself (public/vendor), never by a third-party CDN.
+  const LEAFLET_JS = `/vendor/leaflet-${LEAFLET_VERSION}/leaflet.js`;
+  const LEAFLET_CSS = `/vendor/leaflet-${LEAFLET_VERSION}/leaflet.css`;
   const TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
   const ROOT_ID = 'zfind-search-map-v1';
 
@@ -88,6 +89,16 @@
       .replace(/>/g, '&gt;')
       .replace(/\"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  // A DOM mutation made by the map itself: inside its surface, or the surface
+  // being inserted or removed. Such mutations must never trigger a re-render.
+  function isOwnMutation(record, surface) {
+    if (!record) return false;
+    const nodes = Array.from(record.addedNodes || []).concat(Array.from(record.removedNodes || []));
+    if (nodes.length && nodes.every(node => node && node.id === ROOT_ID)) return true;
+    if (!surface || !record.target) return false;
+    return record.target === surface || (typeof surface.contains === 'function' && surface.contains(record.target));
   }
 
   function installBrowser(rootRef, search, viewport) {
@@ -294,17 +305,24 @@
       });
     }
 
+    // What the map currently shows; an identical page is never redrawn.
+    let renderedSignature = '';
+
     async function renderSurface() {
       const token = ++renderToken;
       if (!onSearchRoute()) {
+        renderedSignature = '';
         removeSurface();
         return;
       }
       const pageIds = currentPageIds(documentRef);
       if (!pageIds.length) {
+        renderedSignature = '';
         removeSurface();
         return;
       }
+      const signature = routeLang() + '|' + pageIds.join(',');
+      if (signature === renderedSignature && map && documentRef.getElementById(ROOT_ID)) return;
       const allPins = await ensureInventoryPins();
       if (token !== renderToken || !onSearchRoute()) return;
       const pagePins = pinsForPage(allPins, pageCardsFromDom(), pageIds);
@@ -329,6 +347,7 @@
         }).addTo(map);
         map.on('moveend zoomend', () => updateVisibleList(currentPins));
       }
+      renderedSignature = signature;
       renderMarkers(L, pagePins);
       fitAllPins();
       updateVisibleList(pagePins);
@@ -343,17 +362,23 @@
       });
     }
 
+    // Rendering is scheduled as a task, never a microtask: the browser can
+    // paint and handle input between two renders whatever happens.
     let renderQueued = false;
     function scheduleRender() {
       if (renderQueued) return;
       renderQueued = true;
-      rootRef.queueMicrotask(() => {
+      rootRef.setTimeout(() => {
         renderQueued = false;
         renderSurface().catch(error => console.error('Search Map UI failed:', error));
-      });
+      }, 30);
     }
 
-    const observer = new rootRef.MutationObserver(scheduleRender);
+    // The map's own DOM work (its surface, list, tiles, markers, popups) must
+    // not wake it up again, or it redraws itself forever.
+    const observer = new rootRef.MutationObserver(records => {
+      if (records.some(record => !isOwnMutation(record, documentRef.getElementById(ROOT_ID)))) scheduleRender();
+    });
     observer.observe(documentRef.documentElement, { subtree:true, childList:true });
     rootRef.addEventListener('hashchange', scheduleRender);
     scheduleRender();
@@ -368,6 +393,7 @@
     currentPageIds,
     pinsForPage,
     visiblePinsForBounds,
+    isOwnMutation,
     listLabel,
     escapeHtml,
     installBrowser

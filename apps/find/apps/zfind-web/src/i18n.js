@@ -55,6 +55,7 @@ en: {
     aria:'Explore Z Find country and market marketplaces',
   },
   search: {
+    badgeVerified:'Verified', badgeLand:'Land', badgeDevelopment:'New development',
     tabResidential:'Residential', tabCommercial:'Commercial', tabDevelopments:'Developments', tabLand:'Land & Development',
     locationPh:'Location — city, zone or address', anyType:'Any type', anyBudget:'Any budget',
     buy:'Buy', rent:'Rent', rentalPeriod:'Rental period',
@@ -73,6 +74,7 @@ en: {
     filterAll:'All', filterApartments:'Apartments', filterVillas:'Villas', filterCommercial:'Commercial', filterDevelopments:'Developments', filterLand:'Land',
   },
   home: {
+    curatedTitle:'Latest opportunities', curatedSub:'Listings published by our partner agencies.',
     landTitle:'Land & development intelligence', landSub:'Where traditional portals stop, Z Find turns fragments into structured opportunity intelligence.',
     exploreLand:'Explore land opportunities',
     loadingTitle:'Loading opportunities…', loadingBody:'Fetching the latest listings.',
@@ -188,6 +190,7 @@ pt: {
     aria:'Explorar marketplaces Z Find por país e mercado',
   },
   search: {
+    badgeVerified:'Verificado', badgeLand:'Terreno', badgeDevelopment:'Empreendimento',
     tabResidential:'Residencial', tabCommercial:'Comercial', tabDevelopments:'Empreendimentos', tabLand:'Terrenos e Desenvolvimento',
     locationPh:'Localização — cidade, zona ou morada', anyType:'Qualquer tipo', anyBudget:'Qualquer orçamento',
     buy:'Comprar', rent:'Arrendar', rentalPeriod:'Período do arrendamento',
@@ -206,6 +209,7 @@ pt: {
     filterAll:'Todas', filterApartments:'Apartamentos', filterVillas:'Moradias', filterCommercial:'Comercial', filterDevelopments:'Empreendimentos', filterLand:'Terrenos',
   },
   home: {
+    curatedTitle:'Últimas oportunidades', curatedSub:'Anúncios publicados pelas nossas agências parceiras.',
     landTitle:'Inteligência de terrenos e desenvolvimento', landSub:'Onde os portais tradicionais param, o Z Find transforma fragmentos em inteligência de oportunidade estruturada.',
     exploreLand:'Explorar oportunidades de terreno',
     loadingTitle:'A carregar oportunidades…', loadingBody:'A obter os anúncios mais recentes.',
@@ -321,6 +325,7 @@ fr: {
     aria:'Explorer les marketplaces Z Find par pays et marché',
   },
   search: {
+    badgeVerified:'Vérifié', badgeLand:'Terrain', badgeDevelopment:'Programme neuf',
     tabResidential:'Résidentiel', tabCommercial:'Commercial', tabDevelopments:'Programmes neufs', tabLand:'Terrains et Développement',
     locationPh:'Localisation — ville, quartier ou adresse', anyType:'Tout type', anyBudget:'Tout budget',
     buy:'Acheter', rent:'Louer', rentalPeriod:'Période de location',
@@ -339,6 +344,7 @@ fr: {
     filterAll:'Toutes', filterApartments:'Appartements', filterVillas:'Villas', filterCommercial:'Commercial', filterDevelopments:'Programmes neufs', filterLand:'Terrains',
   },
   home: {
+    curatedTitle:'Dernières opportunités', curatedSub:'Annonces publiées par nos agences partenaires.',
     landTitle:'Intelligence terrains et développement', landSub:"Là où les portails traditionnels s'arrêtent, Z Find transforme des fragments en intelligence d'opportunité structurée.",
     exploreLand:'Explorer les opportunités foncières',
     loadingTitle:'Chargement des opportunités…', loadingBody:'Récupération des dernières annonces.',

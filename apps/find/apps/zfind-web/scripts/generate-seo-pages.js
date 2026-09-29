@@ -177,8 +177,10 @@ async function main() {
   const developmentsService = require('../src/services/developments.js');
   const zoneImages = require('../src/services/zone-images.js');
 
+  // listPublished(), not search(): building the site is not a visitor's
+  // search and must not be logged as one.
   const [propertiesResult, developmentsResult] = await Promise.all([
-    searchService.search({}),
+    searchService.listPublished(),
     developmentsService.listPublished()
   ]);
 
@@ -201,6 +203,10 @@ async function main() {
     sitemapUrls.add(entry.canonicalUrl);
     written++;
   }
+
+  // Listing pages actually written, by locale: zone pages link only to these
+  // (a link to a page that was never generated is a 404).
+  const writtenListingPages = new Set();
 
   async function writeListingPages(rows, kind) {
     for (const row of rows) {
@@ -245,6 +251,7 @@ async function main() {
         fs.mkdirSync(path.dirname(outPath), { recursive: true });
         fs.writeFileSync(outPath, html);
         sitemapUrls.add(`${baseUrl}/${locale}/${kind}/${row.id}`);
+        writtenListingPages.add(`${locale}/${kind}/${row.id}`);
         written++;
       }
     }
@@ -280,7 +287,7 @@ async function main() {
     for (const locale of zoneLocales) {
       const localizedSamples = samples.flatMap(sample => {
         const content = contentForPublicLocale(sample.contentRows, locale);
-        return content && content.title
+        return content && content.title && writtenListingPages.has(`${locale}/${sample.kind}/${sample.id}`)
           ? [{ kind: sample.kind, id: sample.id, title: content.title }]
           : [];
       });
