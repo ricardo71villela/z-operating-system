@@ -149,6 +149,36 @@ districts = sorted((lu_md.get("districts") or {}).keys())
 dump(os.path.join(OUT, "lu.json"),
      {"country": "LU", "priceUnit": "eur_m2", "cantons": cantons, "districts": districts})
 
+# ---------------- Search indexes (estimation autocomplete) ----------------
+# One row per place: [commune code, label, postal codes "a b c", aliases "x|y", parent label]
+fr_rows = []
+for r in fr["regions"]:
+    for d in r["departements"]:
+        pool = [c for a in d["arrondissements"] for c in a["communes"]] + d.get("communes_hors_arrondissement", [])
+        for c in pool:
+            fr_rows.append([c["code"], c["name"], " ".join(c["postal_codes"]), "", d["code"]])
+            for x in c.get("arrondissements_municipaux") or []:
+                fr_rows.append([x["code"], x["name"], " ".join(x["postal_codes"]), "", d["code"]])
+be_rows = []
+for r in be["regions"]:
+    for p in r["provinces"]:
+        for a in p["arrondissements"]:
+            for c in a["communes"]:
+                aliases = sorted({c["name_nl"], c["name_de"] or "", *[l["name"] for l in c["localities"]]} - {c["name_fr"], ""})
+                be_rows.append([c["code"], c["name_fr"], " ".join(c["postal_codes"]), "|".join(aliases),
+                                p["name_fr"] if p["code"] else r["name_fr"]])
+lu_rows = []
+districts_lu = [x for x in (lu_md.get("districts") or {})]
+for cant in lu["cantons"]:
+    for c in cant["communes"]:
+        aliases = [l["name"] for l in c["localities"] if l["name"] != c["name"]]
+        if c["code"] == "LU-LUXEMBOURG":
+            aliases += districts_lu
+        lu_rows.append([c["code"], c["name"], "", "|".join(sorted(set(aliases))), f'Canton {cant["name_fr"]}'])
+for name, rows in (("fr", fr_rows), ("be", be_rows), ("lu", lu_rows)):
+    dump(os.path.join(OUT, "search", f"{name}.json"), sorted(rows, key=lambda x: x[1]))
+stats.update({"search_fr": len(fr_rows), "search_be": len(be_rows), "search_lu": len(lu_rows)})
+
 print(json.dumps(stats))
 if stats["fr_communes"] < 34000 or stats["be_communes"] != 565 or stats["lu_communes"] != 100:
     sys.exit("DIVISIONS: unexpected counts")

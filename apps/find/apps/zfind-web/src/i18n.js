@@ -13,7 +13,7 @@ const I18N = {
 
 en: {
   common: { search:'Search', viewAll:'View all', save:'Save', signIn:'Sign in', publish:'Publish your portfolio', close:'Close', backToResults:'← Back to search results' },
-  navigation: { home:'Home', search:'Search', property:'Property', development:'Development', land:'Land & Development', partner:'Partner', simulator:'Simulators' },
+  navigation: { home:'Home', search:'Search', property:'Property', development:'Development', land:'Land & Development', partner:'Partner', simulator:'Simulators', estimation:'Estimate' },
   simulator: {
     title:'Acquisition Cost Simulator', subtitle:'Estimate transfer tax (IMT) and stamp duty for buying a home in Portugal.',
     country:'Country', propertyValue:'Property value (€)', isHPP:'This will be my primary residence', isResident:'I am a tax resident in Portugal',
@@ -146,7 +146,7 @@ en: {
 
 pt: {
   common: { search:'Pesquisar', viewAll:'Ver todas', save:'Guardar', signIn:'Entrar', publish:'Publicar o seu portefólio', close:'Fechar', backToResults:'← Voltar aos resultados' },
-  navigation: { home:'Início', search:'Pesquisar', property:'Imóvel', development:'Empreendimento', land:'Terrenos e Desenvolvimento', partner:'Parceiro', simulator:'Simuladores' },
+  navigation: { home:'Início', search:'Pesquisar', property:'Imóvel', development:'Empreendimento', land:'Terrenos e Desenvolvimento', partner:'Parceiro', simulator:'Simuladores', estimation:'Avaliação' },
   simulator: {
     title:'Simulador de Custos de Aquisição', subtitle:'Estime o IMT e o Imposto do Selo na compra de casa em Portugal.',
     country:'País', propertyValue:'Valor do imóvel (€)', isHPP:'Vai ser a minha habitação própria e permanente', isResident:'Sou residente fiscal em Portugal',
@@ -279,7 +279,7 @@ pt: {
 
 fr: {
   common: { search:'Rechercher', viewAll:'Voir tout', save:'Enregistrer', signIn:'Se connecter', publish:'Publier votre portefeuille', close:'Fermer', backToResults:'← Retour aux résultats' },
-  navigation: { home:'Accueil', search:'Rechercher', property:'Bien', development:'Programme neuf', land:'Terrains et Développement', partner:'Partenaire', simulator:'Simulateurs' },
+  navigation: { home:'Accueil', search:'Rechercher', property:'Bien', development:'Programme neuf', land:'Terrains et Développement', partner:'Partenaire', simulator:'Simulateurs', estimation:'Estimer' },
   simulator: {
     title:"Simulateur de Frais d'Acquisition", subtitle:"Estimez les droits de mutation (IMT) et le droit de timbre pour l'achat d'un bien au Portugal.",
     country:'Pays', propertyValue:'Valeur du bien (€)', isHPP:'Ce sera ma résidence principale', isResident:'Je suis résident fiscal au Portugal',

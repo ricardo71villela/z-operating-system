@@ -14,9 +14,19 @@
   "outputDirectory": "vercel-output",
   "rewrites": [
     {
+      "source": "/api/estimation",
+      "destination": "/api/estimation"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
   ],
-  "installCommand": "cd ../../../.. && npm ci --workspace=apps/find"
+  "installCommand": "cd ../../../.. && npm ci --workspace=apps/find",
+  "functions": {
+    "api/estimation.js": {
+      "includeFiles": "{public/market-data/**,public/geo/search/**,src/services/estimation.js}",
+      "maxDuration": 15
+    }
+  }
 }

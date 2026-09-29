@@ -715,6 +715,23 @@ function setHomeStatus(kind, titleKey, bodyKey) {
 }
 
 // Official price statistics (DVF / Statbel / Observatoire de l'Habitat).
+function marketEstimationCtaHTML(market) {
+  const fr = state.lang === 'fr';
+  const base = '#/' + state.lang + '/estimation?market=' + encodeURIComponent(market.key);
+  return `
+    <div class="mec">
+      <div>
+        <span class="eyebrow">${fr ? 'Estimation gratuite' : 'Free valuation'}</span>
+        <h2>${fr ? 'Combien vaut un bien ici ?' : 'What is a property worth here?'}</h2>
+        <p>${fr ? 'Une fourchette immédiate à partir des prix de vente officiels, commune par commune.' : 'An instant range from official sale prices, municipality by municipality.'}</p>
+      </div>
+      <div class="mec-actions">
+        <a class="mec-primary" href="${base}&mode=owner">${fr ? 'Estimer mon bien' : 'Value my property'}</a>
+        <a class="mec-secondary" href="${base}&mode=buyer">${fr ? 'Vérifier un prix' : 'Check a price'}</a>
+      </div>
+    </div>`;
+}
+
 function renderMarketDivisions(market) {
   const root = document.getElementById('market-divisions-root');
   const service = window.ZFindServices && window.ZFindServices.marketDivisions;
@@ -1067,6 +1084,10 @@ function renderMarket(marketKey) {
           data-market-search-scope-kind="${market.searchScope.kind}"
           data-market-search-scope-value="${market.searchScope.value}"
         ></div>
+      </section>
+
+      <section class="wrap market-foundation-section market-estimation-cta" id="market-estimation-cta">
+        ${marketEstimationCtaHTML(market)}
       </section>
 
       <section
@@ -2452,6 +2473,13 @@ async function renderPartner(partnerId) {
     hardcoded to Portugal, even though only Portugal has real rules
     implemented today — adding a second country never requires
     touching this render function. */
+function renderEstimation() {
+  const root = document.getElementById('estimation-root');
+  const page = window.ZFindServices && window.ZFindServices.estimationPage;
+  if (!root || !page) return;
+  page.render(root, state.lang, state.query || {});
+}
+
 function renderSimulator() {
   const L = state.lang;
   const countries = window.ZFindServices.simulator.supportedCountries();
@@ -2999,6 +3027,7 @@ function render() {
     case 'land': renderLand(state.id); break;
     case 'partner': renderPartner(state.id); break;
     case 'simulator': renderSimulator(); break;
+    case 'estimation': renderEstimation(); break;
     case 'zone': renderZone(state.id); break;
     case 'legal': break; // Portugal static jurisdiction content in body.html
     case 'al-manual': break; // Portugal short-term-rental jurisdiction content

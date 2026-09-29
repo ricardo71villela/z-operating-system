@@ -127,8 +127,9 @@ for region in be_geo["regions"]:
                 names[c["code"]] = c["name_fr"] if region["code"] != "2000" else c["name_nl"]
                 parents[c["code"]] = a["code"]
 
-BE_TYPES = {"maison (toutes)": "M", "appartement": "A"}
-be_entries = defaultdict(lambda: {"M": {}, "A": {}})
+# M: all houses, M23: 2-3 façades (closed/semi-closed), M4: 4+ façades (open), A: apartments
+BE_TYPES = {"maison (toutes)": "M", "maison 2-3 façades": "M23", "maison 4 façades+": "M4", "appartement": "A"}
+be_entries = defaultdict(lambda: {"M": {}, "M23": {}, "M4": {}, "A": {}})
 be_periods = set()
 for r in rows("be_prix_communes_statbel.csv"):
     t = BE_TYPES.get(r["type_bien"])
@@ -154,7 +155,7 @@ be = {
 for (lvl, code), val in be_entries.items():
     be["levels"].setdefault(lvl, []).append({
         "c": code, "n": names.get(code) or ("Belgique" if lvl == "pays" else code),
-        "p": parents.get(code), "M": val["M"], "A": val["A"]})
+        "p": parents.get(code), "M": val["M"], "M23": val["M23"], "M4": val["M4"], "A": val["A"]})
 for lvl in be["levels"]:
     be["levels"][lvl].sort(key=lambda x: x["n"])
 sizes["be/index.json"] = dump(OUT / "be" / "index.json", be)
