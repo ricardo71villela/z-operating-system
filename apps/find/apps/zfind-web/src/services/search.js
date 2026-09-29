@@ -32,14 +32,24 @@
 
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
-    module.exports = factory(require('./supabaseClient'));
+    module.exports = factory(require('./supabaseClient'), require('./listing-quality'), null);
   } else {
     root.ZFindServices = root.ZFindServices || {};
-    root.ZFindServices.search = factory(root.ZFindServices.supabaseClient);
+    root.ZFindServices.search = factory(root.ZFindServices.supabaseClient, root.ZFindServices.listingQuality, root.ZFindServices.launchScope);
   }
-})(typeof window !== 'undefined' ? window : this, function (supabaseClientModule) {
+})(typeof window !== 'undefined' ? window : this, function (supabaseClientModule, listingQuality, launchScope) {
 
 const { getSupabaseClient, safeQuery } = supabaseClientModule;
+
+// Only real, priced listings of the public launch markets reach the site
+// (listing-quality.js). Node callers (SEO generator, tests) get no country
+// filter: they apply their own launch rules.
+const isLaunchCountry = launchScope && typeof launchScope.isLaunchMarketKey === 'function'
+  ? iso => launchScope.isLaunchMarketKey(iso)
+  : null;
+function publicOnly(result) {
+  return listingQuality ? listingQuality.filterResult(result, isLaunchCountry) : result;
+}
 
 
 function normalizeCoordinatePair(latitude, longitude) {
@@ -124,7 +134,7 @@ async function search(filters) {
   if (f.budgetMin != null) query = query.gte('representations.listings.price_current', f.budgetMin);
   if (f.budgetMax != null) query = query.lte('representations.listings.price_current', f.budgetMax);
 
-  const result = await safeQuery(() => query, 'search.search');
+  const result = publicOnly(await safeQuery(() => query, 'search.search'));
 
   // Search analytics belong only to an explicit Search action.
   // Passive Market Featured rendering must never manufacture searches.
@@ -152,10 +162,10 @@ async function search(filters) {
 async function listPublished() {
   const client = getSupabaseClient();
 
-  return safeQuery(
+  return publicOnly(await safeQuery(
     () => publishedPropertyQuery(client),
     'search.listPublished'
-  );
+  ));
 }
 
 

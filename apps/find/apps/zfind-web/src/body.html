@@ -110,8 +110,10 @@
               </div>
             </div>
             <div class="divider transaction-divider"></div>
+            <label for="home-q" class="sr-only" data-i18n="search.locationPh">Localisation — ville, quartier ou adresse</label>
             <input type="text" id="home-q" data-i18n-ph="search.locationPh" placeholder="Localisation — ville, quartier ou adresse">
             <div class="divider"></div>
+            <label for="home-type" class="sr-only" data-i18n="search.anyType">Tout type</label>
             <select id="home-type">
               <option value="" data-i18n="search.typeAny">Tout type</option>
               <option value="apartment" data-i18n="search.typeApartment">Appartement</option>
@@ -120,6 +122,7 @@
               <option value="land" data-i18n="search.typeLand">Terrain</option>
             </select>
             <div class="divider"></div>
+            <label for="home-budget" class="sr-only" data-i18n="search.anyBudget">Tout budget</label>
             <select id="home-budget">
               <option value="" data-i18n="search.anyBudget">Tout budget</option>
               <option value="u400" data-i18n="search.budgetUnder400">Jusqu'à 400 000 €</option>
@@ -179,7 +182,7 @@
 
 <!-- ============ SEARCH ============ -->
 <section class="view" id="view-search">
-  <div class="wrap" style="padding:44px 0 76px">
+  <div class="wrap" style="padding-top:44px;padding-bottom:76px">
     <div class="block-head">
       <div><h2 id="search-results-title"></h2><p data-i18n="search.resultsSub"></p></div>
     </div>

@@ -95,6 +95,7 @@ function build() {
   const searchPaginationService = read('services/search-pagination.js');
   const searchMapViewportService = read('services/search-map-viewport.js');
   const marketSearchScopeService = read('services/market-search-scope.js');
+  const listingQualityService = read('services/listing-quality.js');
   const supabaseClient = read('services/supabaseClient.js');
   const propertiesService = read('services/properties.js');
   const publicVerificationService = read('services/public-verification.js');
@@ -177,6 +178,7 @@ function build() {
     + homeMarketsService + '\n'
     + estimationService + '\n'
     + estimationPageService + '\n'
+    + listingQualityService + '\n'
     + supabaseClient + '\n'
     + propertiesService + '\n'
     + publicVerificationService + '\n'

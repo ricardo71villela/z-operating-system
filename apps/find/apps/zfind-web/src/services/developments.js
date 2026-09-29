@@ -30,14 +30,24 @@
 
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
-    module.exports = factory(require('./supabaseClient'));
+    module.exports = factory(require('./supabaseClient'), require('./listing-quality'), null);
   } else {
     root.ZFindServices = root.ZFindServices || {};
-    root.ZFindServices.developments = factory(root.ZFindServices.supabaseClient);
+    root.ZFindServices.developments = factory(root.ZFindServices.supabaseClient, root.ZFindServices.listingQuality, root.ZFindServices.launchScope);
   }
-})(typeof window !== 'undefined' ? window : this, function (supabaseClientModule) {
+})(typeof window !== 'undefined' ? window : this, function (supabaseClientModule, listingQuality, launchScope) {
 
 const { getSupabaseClient, safeQuery } = supabaseClientModule;
+
+// Only real, priced listings of the public launch markets reach the site
+// (listing-quality.js). Node callers (SEO generator, tests) get no country
+// filter: they apply their own launch rules.
+const isLaunchCountry = launchScope && typeof launchScope.isLaunchMarketKey === 'function'
+  ? iso => launchScope.isLaunchMarketKey(iso)
+  : null;
+function publicOnly(result) {
+  return listingQuality ? listingQuality.filterResult(result, isLaunchCountry) : result;
+}
 
 
 const MEDIA_EMBED = `
@@ -144,7 +154,7 @@ async function listPublishedInternal(
   }
   if (transactionType) query = query.eq('representations.listings.transaction_type', transactionType);
   if (rentalPeriod) query = query.eq('representations.listings.rental_period', rentalPeriod);
-  return safeQuery(() => query, 'developments.listPublished');
+  return publicOnly(await safeQuery(() => query, 'developments.listPublished'));
 }
 
 /**

@@ -146,6 +146,16 @@ function resolveAssetGeography(asset, lang) {
    country_iso code — the location label here shows "Zone, City" only,
    omitting country, rather than fabricating a name lookup Zones Lite
    was never designed to provide. */
+/* "Zone, City" — or just the city when the zone is the city itself
+   ("Toulouse, Toulouse" reads as a bug). */
+function zoneLocationLabel(zone) {
+  const name = zone && zone.name ? String(zone.name).trim() : '';
+  const city = zone && zone.city ? String(zone.city).trim() : '';
+  if (!name) return city;
+  if (!city || name.localeCompare(city, undefined, { sensitivity: 'base' }) === 0) return name;
+  return name + ', ' + city;
+}
+
 function mapSupabasePropertyRowToCard(row, lang) {
   const rep = row.representations[0];
   const listing = rep.listings[0];
@@ -157,15 +167,15 @@ function mapSupabasePropertyRowToCard(row, lang) {
 
   const priceLabel = formatListingPrice(listing, lang, currencyIso);
 
-  const locationLabel = zone.name ? (zone.name + ', ' + zone.city) : (zone.city || '');
+  const locationLabel = zoneLocationLabel(zone);
 
   const meta = [];
   if (row.typology) meta.push(row.typology);
   if (row.area_sqm) meta.push(fmtNumber(row.area_sqm, lang) + ' m²');
   if (kind === 'Land') meta.push(zone.name || zone.city || '');
 
-  let badgeLabel = 'Verified';
-  if (kind === 'Land') badgeLabel = 'Land';
+  let badgeLabel = t(lang, 'search.badgeVerified');
+  if (kind === 'Land') badgeLabel = t(lang, 'search.badgeLand');
   else if ((listing.transaction_type || 'sale') === 'rent') badgeLabel = t(lang, 'search.forRent');
 
   return {
@@ -201,7 +211,7 @@ function mapSupabaseDevelopmentRowToCard(row, lang) {
 
   const priceLabel = formatListingPrice(listing, lang, currencyIso);
 
-  const locationLabel = zone.name ? (zone.name + ', ' + zone.city) : (zone.city || '');
+  const locationLabel = zoneLocationLabel(zone);
 
   return {
     listingId: listing.id,
@@ -220,7 +230,7 @@ function mapSupabaseDevelopmentRowToCard(row, lang) {
     priceLabel,
     priceValue: listing.price_current,
     meta: [],
-    badgeLabel: 'Development',
+    badgeLabel: t(lang, 'search.badgeDevelopment'),
     badgeGold: false,
     factsLine: t(lang, 'property.singleRepresentation'),
   };
@@ -245,6 +255,19 @@ async function resolveSearchMarketScope(services, marketKey) {
       supported: true,
       zoneLiteIds: null,
       marketKey: null
+    };
+  }
+
+  // Only the public launch markets (FR / BE / LU) can be searched.
+  if (
+    services.launchScope &&
+    typeof services.launchScope.isLaunchMarketKey === 'function' &&
+    !services.launchScope.isLaunchMarketKey(marketKey)
+  ) {
+    return {
+      supported: false,
+      reason: 'outside_launch_scope',
+      marketKey
     };
   }
 
@@ -375,6 +398,24 @@ async function resolveSearchMarketScope(services, marketKey) {
  * resolveMediaUrl(storagePath). The resolver already defaults to the
  * listing-media bucket and a one-hour live-browsing expiry.
  */
+/**
+ * Creates the signed cover-image URL of the given cards only (the page on
+ * screen), once per card: search results carry their media until then.
+ */
+async function resolveCardImages(cards) {
+  const services = window.ZFindServices;
+  const pending = (Array.isArray(cards) ? cards : [])
+    .filter(card => card && card.imageUrl === undefined && Array.isArray(card.imageMedia));
+  await Promise.all(pending.map(async card => {
+    try {
+      card.imageUrl = await resolveSearchCardImageUrl(services, card.imageMedia);
+    } catch (_) {
+      card.imageUrl = null;
+    }
+  }));
+  return cards;
+}
+
 async function resolveSearchCardImageUrl(
   services,
   associations
@@ -548,16 +589,16 @@ async function loadSearchResults(lang, filters) {
             ? rep.listings[0]
             : null;
 
-        const imageUrl =
-          await resolveSearchCardImageUrl(
-            services,
+        // The signed image URL is created later, only for the cards the
+        // visitor actually sees (resolveCardImages).
+        return Object.assign({}, card, {
+          imageUrl: undefined,
+          imageMedia:
             listing &&
             Array.isArray(listing.listing_media)
               ? listing.listing_media
               : []
-          );
-
-        return Object.assign({}, card, { imageUrl });
+        });
       })
     );
   if (propertySubtypes.length > 1) propertyCards = propertyCards.filter(c => propertySubtypes.includes(c.subtype)); // multi-select narrowing, service only accepts one
@@ -596,15 +637,10 @@ async function loadSearchResults(lang, filters) {
             ? listing.listing_media
             : [];
 
-        const imageUrl =
-          await resolveSearchCardImageUrl(
-            services,
-            ownMedia.length
-              ? ownMedia
-              : listingMedia
-          );
-
-        return Object.assign({}, card, { imageUrl });
+        return Object.assign({}, card, {
+          imageUrl: undefined,
+          imageMedia: ownMedia.length ? ownMedia : listingMedia
+        });
       })
     );
   // Client-side budget/text filtering for developments (listPublished has no filter params):
@@ -712,8 +748,10 @@ async function loadHomeCards(lang) {
     return { properties: [], developments: [], error: { type: 'malformed_response', message: 'Supabase services not loaded.' } };
   }
 
+  // listPublished(), not search(): opening the Home page is not a search
+  // and must not be logged as one.
   const [propertiesResult, developmentsResult] = await Promise.all([
-    services.search.search({}),
+    services.search.listPublished(),
     services.developments.listPublished(),
   ]);
 
@@ -858,6 +896,10 @@ async function loadPropertyDetail(propertyId, lang) {
   if (result.error) {
     return { viewModel: null, notFound: false, error: result.error };
   }
+  // Test / QA listings never get a public page, even when published.
+  if (services.listingQuality && services.listingQuality.isTestRow(result.data)) {
+    return { viewModel: null, notFound: true, error: null };
+  }
 
   const viewModel = mapSupabasePropertyRowToDetailViewModel(result.data, lang);
   if (viewModel.media[0] && viewModel.media[0].storagePath && window.ZFindServices.supabaseClient) {
@@ -935,7 +977,8 @@ async function loadLandDetail(propertyId, lang) {
     return { viewModel: null, notFound: false, error: result.error };
   }
 
-  if (!result.data || result.data.subtype !== 'land') {
+  if (!result.data || result.data.subtype !== 'land' ||
+      (services.listingQuality && services.listingQuality.isTestRow(result.data))) {
     return { viewModel: null, notFound: true, error: null };
   }
 

@@ -1006,6 +1006,15 @@ async function renderMarketFeatured(market) {
           )
     )
     .join('');
+
+  // Visitors only see real listings: empty slots stay in the DOM (slot
+  // positions are part of the featured contract) but are not shown, and
+  // the whole block disappears while the market has nothing to feature.
+  root.querySelectorAll('.market-featured-empty').forEach(node => {
+    node.hidden = true;
+  });
+  const section = root.closest('section');
+  if (section) section.hidden = selected.length === 0;
 }
 
 function renderMarket(marketKey) {
@@ -1929,9 +1938,11 @@ async function renderSearch() {
           )
       : null;
 
+  // "{{count}} opportunités{{market}}": the market part carries its own
+  // separator (" · France"), like computeMarketLabel's " · Lyon".
   const selectedMarketLabel =
     selectedMarket
-      ? MARKET_REGISTRY_SERVICE
+      ? ' · ' + MARKET_REGISTRY_SERVICE
           .marketLabel(
             selectedMarket.key,
             state.lang
@@ -1988,6 +1999,9 @@ async function renderSearch() {
 
     return;
   }
+
+  // Signed image URLs only for the cards on this page.
+  await resolveCardImages(pagination.cards);
 
   setSearchStatus('none');
 
@@ -2212,7 +2226,7 @@ async function renderDevelopment(assetId) {
       <div class="price-tag">${vm.priceLabel}</div>
     </div>
   </div>
-  <div class="wrap" style="padding:48px 0">
+  <div class="wrap" style="padding-top:48px;padding-bottom:48px">
     <div class="gallery" style="${galleryStyle}" title="${galleryAlt}"></div>
     <p style="color:var(--gray-700); line-height:1.7; font-size:0.95rem; margin-bottom:36px; max-width:760px;">${vm.content.description}</p>
     <div class="facts-grid" style="margin-bottom:40px">
@@ -2517,7 +2531,7 @@ function renderSimulator() {
   const L = state.lang;
   const countries = window.ZFindServices.simulator.supportedCountries();
   document.getElementById('simulator-root').innerHTML = `
-  <div class="wrap" style="padding:48px 0; max-width:640px;">
+  <div class="wrap" style="padding-top:48px;padding-bottom:48px; max-width:640px;">
     <div style="display:flex; gap:8px; margin-bottom:28px; border-bottom:1px solid var(--gray-200);">
       <button class="sim-tab-btn active" data-tab="costs" onclick="switchSimulatorTab('costs')" style="padding:10px 4px; margin-right:20px; border:none; background:none; font-size:0.95rem; font-weight:600; cursor:pointer; border-bottom:2px solid var(--gold);">${t(L,'simulator.tabCosts')}</button>
       <button class="sim-tab-btn" data-tab="yield" onclick="switchSimulatorTab('yield')" style="padding:10px 4px; border:none; background:none; font-size:0.95rem; font-weight:600; cursor:pointer; border-bottom:2px solid transparent; color:var(--gray-400);">${t(L,'simulator.tabYield')}</button>
@@ -2719,9 +2733,9 @@ function computeMarketLabel(cards) {
 async function renderZone(zoneId) {
   const root = document.getElementById('zone-root');
   const L = state.lang;
-  if (!zoneId) { root.innerHTML = `<div class="wrap" style="padding:48px 0;">${t(L,'zone.notFound')}</div>`; return; }
+  if (!zoneId) { root.innerHTML = `<div class="wrap" style="padding-top:48px;padding-bottom:48px;">${t(L,'zone.notFound')}</div>`; return; }
 
-  root.innerHTML = `<div class="wrap" style="padding:48px 0;">${t(L,'home.loadingTitle')}</div>`;
+  root.innerHTML = `<div class="wrap" style="padding-top:48px;padding-bottom:48px;">${t(L,'home.loadingTitle')}</div>`;
 
   const [zoneResult, searchResult] = await Promise.all([
     window.ZFindServices.zones.getZoneById(zoneId),
@@ -2729,16 +2743,17 @@ async function renderZone(zoneId) {
   ]);
 
   if (zoneResult.error) {
-    root.innerHTML = `<div class="wrap" style="padding:48px 0;">${t(L,'zone.notFound')}</div>`;
+    root.innerHTML = `<div class="wrap" style="padding-top:48px;padding-bottom:48px;">${t(L,'zone.notFound')}</div>`;
     return;
   }
   const zone = zoneResult.data;
   const cards = searchResult.cards || [];
+  await resolveCardImages(cards);
   const stats = window.ZFindServices.zones.computeZoneStats(cards);
   const imagePath = window.ZFindServices.zoneImages.getZoneImagePath(zone.name);
 
   root.innerHTML = `
-  <div class="wrap" style="padding:0 0 48px;">
+  <div class="wrap" style="padding-bottom:48px;">
     ${imagePath ? `<div style="width:100%; height:280px; overflow:hidden; margin-bottom:24px;"><img src="${imagePath}" alt="${zone.name}, ${zone.city}" style="width:100%; height:100%; object-fit:cover;"></div>` : ''}
     <h1 style="font-size:2rem; margin-bottom:6px;">${zone.name}, ${zone.city}</h1>
     <p style="color:var(--gray-500); margin-bottom:24px;">
