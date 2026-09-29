@@ -66,4 +66,27 @@ check('market page renders the divisions section before the prices', app.include
   app.indexOf('id="market-divisions-root"') < app.indexOf('id="market-prices-root"') && app.includes('renderMarketDivisions(market);'));
 check('build injects the service and its CSS', build.includes("read('services/market-divisions.js')") && build.includes("read('market-divisions.css')"));
 
+// Navigation: addressable levels, page order, home cards.
+const { parsePath } = divisions._internals;
+check('division path from the URL: codes only, at most three levels',
+  JSON.stringify(parsePath('84.74')) === '["84","74"]' && JSON.stringify(parsePath('3000.60000')) === '["3000","60000"]' &&
+  JSON.stringify(parsePath('LU-CA')) === '["LU-CA"]' && parsePath('<script>.84').length === 1 && parsePath('1.2.3.4').length === 3);
+check('each level updates the address (?div=…) and a shared link reopens it',
+  app.includes("'/market/' + market.key + (div ? '?div=' + div : '')") && app.includes('history.pushState(null, \'\', target)') &&
+  app.includes('path: initial,'));
+const order = ['id="market-divisions-root"', 'id="market-prices-root"', 'id="market-search-root"', 'id="market-featured-root"'].map(x => app.indexOf(x));
+check('market page order: regions, prices, search, then featured listings', order.every((v, i) => v > 0 && (i === 0 || v > order[i - 1])));
+check('market hero has shortcuts to regions and prices', app.includes("scrollToMarketSection('market-divisions-root')") && app.includes("scrollToMarketSection('market-prices-root')"));
+
+const summary = readJson('summary.json');
+check('home summary: three markets with national price and top-level divisions',
+  ['FR', 'BE', 'LU'].every(k => summary[k] && summary[k].top.length > 0) && summary.FR.top.length === 13 && summary.LU.top.length === 12 && summary.FR.pa > 0);
+const home = require(path.join(WEB, 'src', 'services', 'home-markets.js'));
+const card = home._internals.cardHTML('fr', home.COPY.fr, 'FR', summary.FR);
+check('home cards link to the market page and straight to each region',
+  card.includes('href="#/fr/market/FR?div=84"') && card.includes('href="#/fr/market/FR?go=regions"') && card.includes('Explorer par région'));
+const body = fs.readFileSync(path.join(WEB, 'src', 'body.html'), 'utf8');
+check('home block is always in the page and rendered with the home', body.includes('id="home-markets-root"') && app.includes('renderHomeMarkets();') &&
+  build.includes("read('services/home-markets.js')"));
+
 console.log(`\nMARKET DIVISIONS: ${passed}/${passed} PASSED`);

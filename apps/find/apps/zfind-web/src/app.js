@@ -715,11 +715,33 @@ function setHomeStatus(kind, titleKey, bodyKey) {
 }
 
 // Official price statistics (DVF / Statbel / Observatoire de l'Habitat).
+function scrollToMarketSection(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function renderMarketDivisions(market) {
   const root = document.getElementById('market-divisions-root');
   const service = window.ZFindServices && window.ZFindServices.marketDivisions;
   if (!root || !service) return;
-  service.render(root, market.key, state.lang);
+  const initial = (state.query && state.query.div) || '';
+  if (!window.__zfindBaseTitle) window.__zfindBaseTitle = document.title;
+  const baseTitle = window.__zfindBaseTitle;
+  service.render(root, market.key, state.lang, {
+    path: initial,
+    // Each level has its own address: #/fr/market/FR?div=84.74 (shareable, back button).
+    onPath(keys, labels) {
+      const div = keys.join('.');
+      const target = '#/' + state.lang + '/market/' + market.key + (div ? '?div=' + div : '');
+      if (location.hash !== target) history.pushState(null, '', target);
+      state.query = Object.assign({}, state.query, { div: div || undefined });
+      if (!div) delete state.query.div;
+      document.title = labels.length ? labels[labels.length - 1] + ' — ' + baseTitle : baseTitle;
+    }
+  });
+  if (initial || (state.query && state.query.go === 'regions')) {
+    setTimeout(() => scrollToMarketSection('market-divisions-root'), 50);
+  }
 }
 
 function renderMarketPrices(market) {
@@ -1011,6 +1033,10 @@ function renderMarket(marketKey) {
             <h1>${copy.heroTitle}</h1>
             <p class="lead">${copy.heroLead}</p>
 
+            <div class="market-foundation-actions market-jump-actions">
+              <button class="btn btn-gold" type="button" onclick="scrollToMarketSection('market-divisions-root')">${state.lang === 'fr' ? 'Explorer par région' : 'Explore by region'}</button>
+              <button class="btn btn-outline" type="button" onclick="scrollToMarketSection('market-prices-root')">${state.lang === 'fr' ? 'Prix de l’immobilier' : 'Property prices'}</button>
+            </div>
             <div class="market-foundation-actions">${marketGuideButtonsHTML(market, copy)}
             </div>
           </div>
@@ -1039,20 +1065,17 @@ function renderMarket(marketKey) {
         </div>
       </section>
 
-      <section class="wrap market-foundation-section">
-        <div class="block-head">
-          <div>
-            <span class="eyebrow">${copy.featuredTitle}</span>
-            <p>${copy.featuredIntro}</p>
-          </div>
-        </div>
-        <div
-          id="market-featured-root"
-          data-featured-slot-capacity="6"
-          data-featured-commercial-model="pending-dedicated-phase"
-          data-featured-selection-mode="source-backed-market-preview"
-        ></div>
-      </section>
+      <section
+        class="wrap market-foundation-section market-divisions-section"
+        id="market-divisions-root"
+        data-market-key="${market.key}"
+      ></section>
+
+      <section
+        class="wrap market-foundation-section market-prices-section"
+        id="market-prices-root"
+        data-market-key="${market.key}"
+      ></section>
 
       <section class="wrap market-foundation-section">
         <div class="block-head">
@@ -1069,17 +1092,20 @@ function renderMarket(marketKey) {
         ></div>
       </section>
 
-      <section
-        class="wrap market-foundation-section market-divisions-section"
-        id="market-divisions-root"
-        data-market-key="${market.key}"
-      ></section>
-
-      <section
-        class="wrap market-foundation-section market-prices-section"
-        id="market-prices-root"
-        data-market-key="${market.key}"
-      ></section>
+      <section class="wrap market-foundation-section">
+        <div class="block-head">
+          <div>
+            <span class="eyebrow">${copy.featuredTitle}</span>
+            <p>${copy.featuredIntro}</p>
+          </div>
+        </div>
+        <div
+          id="market-featured-root"
+          data-featured-slot-capacity="6"
+          data-featured-commercial-model="pending-dedicated-phase"
+          data-featured-selection-mode="source-backed-market-preview"
+        ></div>
+      </section>
 
       <section class="wrap market-foundation-section market-guide-links">
         <div class="block-head">
@@ -1101,7 +1127,14 @@ function renderMarket(marketKey) {
   renderMarketPrices(market);
 }
 
+function renderHomeMarkets() {
+  const root = document.getElementById('home-markets-root');
+  const service = window.ZFindServices && window.ZFindServices.homeMarkets;
+  if (root && service) service.render(root, state.lang);
+}
+
 async function renderHome() {
+  renderHomeMarkets();
   syncTransactionTabs('home-transaction-tabs', homeTransactionType);
   syncRentalPeriodControl(
     'home-rental-period',

@@ -80,6 +80,7 @@ function build() {
   const marketPricesService = read('services/market-prices.js');
   const marketDivisionsCss = read('market-divisions.css');
   const marketDivisionsService = read('services/market-divisions.js');
+  const homeMarketsService = read('services/home-markets.js');
   const body = read('body.html');
   const pathD = read('path_data.txt');
   const vendorSupabase = read('vendor-supabase.js');
@@ -170,6 +171,7 @@ function build() {
     + marketSearchScopeService + '\n'
     + marketPricesService + '\n'
     + marketDivisionsService + '\n'
+    + homeMarketsService + '\n'
     + supabaseClient + '\n'
     + propertiesService + '\n'
     + publicVerificationService + '\n'
