@@ -149,6 +149,26 @@ districts = sorted((lu_md.get("districts") or {}).keys())
 dump(os.path.join(OUT, "lu.json"),
      {"country": "LU", "priceUnit": "eur_m2", "cantons": cantons, "districts": districts})
 
+# ---------------- Summary (home page "Nos marchés") ----------------
+fr_nat = fr_md.get("national") or {}
+be_nat = next((x for x in be_md["levels"].get("pays", [])), {})
+lu_nat = ((lu_md.get("national") or {}).get("LU") or {}).get("reg") or {}
+summary = {
+    "FR": {"priceUnit": "eur_m2", "period": latest,
+           "pa": median(fr_nat.get("A"), latest), "pm": median(fr_nat.get("M"), latest),
+           "communes": stats["fr_communes"],
+           "top": [{"c": r["c"], "n": r["n"], "en": r["en"]} for r in regions if not r["overseas"]]},
+    "BE": {"priceUnit": "eur_total", "period": str(year),
+           "pa": median(be_nat.get("A"), year), "pm": median(be_nat.get("M"), year),
+           "communes": stats["be_communes"],
+           "top": [{"c": r["c"], "n": r["n"], "en": r["en"]} for r in be_regions]},
+    "LU": {"priceUnit": "eur_m2", "period": "12m",
+           "pa": last12(lu_nat.get("A")), "pm": None,
+           "communes": stats["lu_communes"],
+           "top": [{"c": k["c"], "n": k["n"], "en": k["en"]} for k in cantons]},
+}
+dump(os.path.join(OUT, "summary.json"), summary)
+
 print(json.dumps(stats))
 if stats["fr_communes"] < 34000 or stats["be_communes"] != 565 or stats["lu_communes"] != 100:
     sys.exit("DIVISIONS: unexpected counts")
