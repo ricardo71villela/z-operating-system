@@ -389,3 +389,20 @@
     letter-spacing: .04em !important;
   }
 }
+
+/* ------------------------------------------------------------
+   Touch targets on phones (audit 2026-09-29): every link or button
+   a thumb has to hit is at least 44 px tall (chips 40 px, spaced).
+   ------------------------------------------------------------ */
+@media (max-width: 900px) {
+  .hm-card h3 a { display: inline-flex; align-items: center; min-height: 44px; }
+  .hm-chip { display: inline-flex; align-items: center; min-height: 40px; }
+  .hm-primary, .hm-secondary,
+  .view.active .btn, .view.active .btn-outline { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+  #language-menu .lang-menu-panel button { min-height: 44px; }
+  footer.site .cols a { display: flex; align-items: center; min-height: 44px; }
+  footer.site a[id*="cookie"] { display: inline-flex; align-items: center; min-height: 44px; }
+  .md-crumbs button { min-height: 44px; padding-top: 0; padding-bottom: 0; }
+  .md-filter { min-height: 44px; }
+  .md-page select, .md-page input, #market-divisions-root select, #market-divisions-root input, #market-prices-root select { min-height: 44px; }
+}

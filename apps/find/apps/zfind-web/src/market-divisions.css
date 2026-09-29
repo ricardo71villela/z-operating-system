@@ -50,3 +50,6 @@
 @media (max-width: 900px){ .home-markets .hm-grid{grid-template-columns:1fr;} }
 /* Keep section tops clear of the fixed header when scrolled to. */
 #market-divisions-root,#market-prices-root,#market-search-root{scroll-margin-top:96px;}
+
+/* Market featured: hidden empty slots and an empty block stay hidden. */
+#market-featured-root [hidden], .market-foundation-section[hidden] { display: none !important; }

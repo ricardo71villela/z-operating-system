@@ -1,0 +1,58 @@
+name: Z Find production monitor
+
+# Every morning, opens https://zfind.online like a visitor (home, search,
+# a market page, the estimation, every sitemap URL) and fails when something
+# a visitor would notice is broken. A failed scheduled run makes GitHub
+# e-mail the repository owner; screenshots are attached to the run.
+
+on:
+  schedule:
+    # 05:00 UTC = 07:00 in Paris in summer, 06:00 in winter.
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Site to check"
+        required: false
+        default: "https://zfind.online"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zfind-production-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    name: zfind.online visitor journeys
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Playwright (outside the monorepo workspaces)
+        run: |
+          mkdir -p "$RUNNER_TEMP/pw" && cd "$RUNNER_TEMP/pw"
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1
+          npx playwright install --with-deps chromium
+
+      - name: Check zfind.online
+        env:
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+          ZFIND_MONITOR_URL: ${{ github.event.inputs.url || 'https://zfind.online' }}
+          ZFIND_MONITOR_OUT: ${{ runner.temp }}/zfind-monitor
+        run: node apps/find/tests/production/zfind-production-monitor.js
+
+      - name: Keep the screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zfind-monitor-${{ github.run_id }}
+          path: ${{ runner.temp }}/zfind-monitor
+          retention-days: 14
