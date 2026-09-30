@@ -867,6 +867,7 @@ function mapSupabasePropertyRowToDetailViewModel(row, lang) {
       countryIso: zone.country_iso || null,
       currencyIso,
     },
+    newBuild: !!row.development_id,
     content,
     media,
     verification: null, // Safe public Verification exists as a separate read path; it is not Trust and is not automatically fetched yet.

@@ -77,6 +77,7 @@ function build() {
   const listingCompliancePublicCss = read('listing-compliance-public.css');
   const searchMapUiCss = read('search-map-ui.css');
   const searchAdvancedCss = read('search-advanced.css');
+  const listingPageCss = read('listing-page.css');
   const marketPricesCss = read('market-prices.css');
   const marketPricesService = read('services/market-prices.js');
   const marketDivisionsCss = read('market-divisions.css');
@@ -100,6 +101,7 @@ function build() {
   const placeSearchService = read('services/place-search.js');
   const naturalSearchService = read('services/natural-search.js');
   const searchFiltersService = read('services/search-filters.js');
+  const acquisitionCostsService = read('services/acquisition-costs.js');
   const supabaseClient = read('services/supabaseClient.js');
   const propertiesService = read('services/properties.js');
   const publicVerificationService = read('services/public-verification.js');
@@ -167,7 +169,7 @@ function build() {
   );
 
   const html = headTop
-    + '<style>\n' + css + '\n' + legalGuideReadingSurface + '\n' + mobileUxPolish + '\n' + mobileUxBalanceV3 + '\n' + propertyMobileDetailHotfix + '\n' + listingCompliancePublicCss + '\n' + searchMapUiCss + '\n' + searchAdvancedCss + '\n' + marketPricesCss + '\n' + marketDivisionsCss + '\n' + estimationCss + '\n' + proReviewsCss + '\n</style>\n</head>\n<body>\n'
+    + '<style>\n' + css + '\n' + legalGuideReadingSurface + '\n' + mobileUxPolish + '\n' + mobileUxBalanceV3 + '\n' + propertyMobileDetailHotfix + '\n' + listingCompliancePublicCss + '\n' + searchMapUiCss + '\n' + searchAdvancedCss + '\n' + listingPageCss + '\n' + marketPricesCss + '\n' + marketDivisionsCss + '\n' + estimationCss + '\n' + proReviewsCss + '\n</style>\n</head>\n<body>\n'
     + resolvedBody
     + '\n<script>\n'
     + vendorSupabase + '\n'
@@ -190,6 +192,7 @@ function build() {
     + placeSearchService + '\n'
     + naturalSearchService + '\n'
     + searchFiltersService + '\n'
+    + acquisitionCostsService + '\n'
     + supabaseClient + '\n'
     + propertiesService + '\n'
     + publicVerificationService + '\n'

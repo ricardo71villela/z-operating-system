@@ -221,7 +221,7 @@ async function run() {
     await page.waitForTimeout(600);
     const text = await page.evaluate(() => document.getElementById('development-root').textContent);
     assert(text.includes('Z Intelligence market analysis'), 'Market Intelligence placeholder shown (never hidden, never fabricated)');
-    assert(text.includes('Professional insights and contextual observations'), 'Z Insights placeholder shown');
+    assert(!text.includes('Professional insights and contextual observations'), 'Z Insights "coming soon" placeholder no longer shown (2026-09-30)');
     assert(text.includes('Z Intelligence investment scoring'), 'Investment placeholder shown');
     assert(text.includes('Trust Score') && text.includes('Coming Soon'), 'Trust placeholder shown');
     await page.close();
