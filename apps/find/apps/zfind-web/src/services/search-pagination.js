@@ -153,9 +153,13 @@
       .sort(compareOrganicCards);
   }
 
-  function paginate(cards, rawPage) {
+  // options.keepOrder: the visitor chose an order (price, date…), keep it;
+  // otherwise the canonical organic order applies.
+  function paginate(cards, rawPage, options) {
     const orderedCards =
-      orderCards(cards);
+      options && options.keepOrder
+        ? (Array.isArray(cards) ? cards.slice() : [])
+        : orderCards(cards);
 
     const totalCount =
       orderedCards.length;

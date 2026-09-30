@@ -70,7 +70,7 @@ en: {
     rentBudgetOver4000:'€4,000+ / month',
     applyFilters:'Search', clearFilters:'Clear filters',
     noResultsTitle:'No opportunities match these filters', noResultsBody:'Try a broader location, a different category, or a wider budget range.',
-    resultsTitle:'{{count}} opportunities{{market}}', resultsSub:'Deduplicated — every card below is one distinct, canonical opportunity.',
+    resultsTitle:'{{count}} opportunities{{market}}', resultsTitleOne:'1 opportunity{{market}}', resultsSub:'Deduplicated — every card below is one distinct, canonical opportunity.',
     filterAll:'All', filterApartments:'Apartments', filterVillas:'Villas', filterCommercial:'Commercial', filterDevelopments:'Developments', filterLand:'Land',
   },
   home: {
@@ -205,7 +205,7 @@ pt: {
     rentBudgetOver4000:'€4.000+ / mês',
     applyFilters:'Pesquisar', clearFilters:'Limpar filtros',
     noResultsTitle:'Nenhuma oportunidade corresponde a estes filtros', noResultsBody:'Experimente uma localização mais ampla, outra categoria, ou um intervalo de orçamento maior.',
-    resultsTitle:'{{count}} oportunidades{{market}}', resultsSub:'Sem duplicações — cada cartão abaixo é uma oportunidade canónica distinta.',
+    resultsTitle:'{{count}} oportunidades{{market}}', resultsTitleOne:'1 oportunidade{{market}}', resultsSub:'Sem duplicações — cada cartão abaixo é uma oportunidade canónica distinta.',
     filterAll:'Todas', filterApartments:'Apartamentos', filterVillas:'Moradias', filterCommercial:'Comercial', filterDevelopments:'Empreendimentos', filterLand:'Terrenos',
   },
   home: {
@@ -340,7 +340,7 @@ fr: {
     rentBudgetOver4000:'4 000 €+ / mois',
     applyFilters:'Rechercher', clearFilters:'Effacer les filtres',
     noResultsTitle:'Aucune opportunité ne correspond à ces filtres', noResultsBody:'Essayez une localisation plus large, une autre catégorie, ou une fourchette de budget plus étendue.',
-    resultsTitle:'{{count}} opportunités{{market}}', resultsSub:'Dédupliqué — chaque fiche ci-dessous est une opportunité canonique distincte.',
+    resultsTitle:'{{count}} opportunités{{market}}', resultsTitleOne:'1 opportunité{{market}}', resultsSub:'Dédupliqué — chaque fiche ci-dessous est une opportunité canonique distincte.',
     filterAll:'Toutes', filterApartments:'Appartements', filterVillas:'Villas', filterCommercial:'Commercial', filterDevelopments:'Programmes neufs', filterLand:'Terrains',
   },
   home: {
