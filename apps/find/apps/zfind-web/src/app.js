@@ -1157,6 +1157,31 @@ function renderMarket(marketKey) {
   renderMarketPrices(market);
 }
 
+/* Home: the free valuation, first thing under the search (owners and buyers). */
+function homeEstimationCtaHTML() {
+  const fr = state.lang === 'fr';
+  const base = '#/' + state.lang + '/estimation?market=FR';
+  return `
+    <div class="mec">
+      <div>
+        <span class="eyebrow">${fr ? 'Estimation gratuite' : 'Free valuation'}</span>
+        <h2>${fr ? 'Combien vaut votre bien ?' : 'What is your property worth?'}</h2>
+        <p>${fr
+          ? 'Une fourchette de prix immédiate, calculée à partir des ventes officielles de votre commune, en France, en Belgique et au Luxembourg.'
+          : 'An instant price range, based on the official sales in your municipality, in France, Belgium and Luxembourg.'}</p>
+      </div>
+      <div class="mec-actions">
+        <a class="mec-primary" href="${base}&mode=owner">${fr ? 'Estimer mon bien' : 'Value my property'}</a>
+        <a class="mec-secondary" href="${base}&mode=buyer">${fr ? 'Vérifier le prix d’un bien' : 'Check an asking price'}</a>
+      </div>
+    </div>`;
+}
+
+function renderHomeEstimationCta() {
+  const root = document.getElementById('home-estimation-root');
+  if (root) root.innerHTML = homeEstimationCtaHTML();
+}
+
 function renderHomeMarkets() {
   const root = document.getElementById('home-markets-root');
   const service = window.ZFindServices && window.ZFindServices.homeMarkets;
@@ -1164,6 +1189,7 @@ function renderHomeMarkets() {
 }
 
 async function renderHome() {
+  renderHomeEstimationCta();
   renderHomeMarkets();
   syncTransactionTabs('home-transaction-tabs', homeTransactionType);
   syncRentalPeriodControl(

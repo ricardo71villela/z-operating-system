@@ -167,5 +167,8 @@ function mockRes() {
     body.includes('id="view-estimation"') && body.includes('data-view="estimation"') && app.includes("case 'estimation': renderEstimation(); break;") &&
     app.includes('marketEstimationCtaHTML(market)') && build.includes("read('services/estimation.js')") && build.includes("read('services/estimation-page.js')") && build.includes("read('estimation.css')"));
 
+  check('home page offers the free valuation (owner and buyer) under the search',
+    body.includes('id="home-estimation-root"') && body.indexOf('id="home-estimation-root"') < body.indexOf('id="home-markets-root"') &&
+    app.includes('renderHomeEstimationCta();') && app.includes('Combien vaut votre bien ?') && app.includes("&mode=owner") && app.includes("&mode=buyer"));
   console.log(`\nESTIMATION: ${passed}/${passed} PASSED`);
 })().catch(e => { console.error(e); process.exit(1); });

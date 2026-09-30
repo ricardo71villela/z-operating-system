@@ -72,3 +72,5 @@
 .market-estimation-cta .mec-primary,.market-estimation-cta .mec-secondary{padding:11px 18px;border-radius:var(--radius);font-weight:600;text-decoration:none;white-space:nowrap;}
 .market-estimation-cta .mec-primary{background:var(--gold-dark);color:var(--white);}
 .market-estimation-cta .mec-secondary{border:1px solid var(--gold-dark);color:var(--gold-dark);background:var(--white);}
+.home-estimation-cta{padding-bottom:0 !important;}
+.home-estimation-cta .mec-primary,.home-estimation-cta .mec-secondary{min-height:44px;display:inline-flex;align-items:center;}
