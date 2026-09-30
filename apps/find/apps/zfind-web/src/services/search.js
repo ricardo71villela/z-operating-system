@@ -99,9 +99,10 @@ function publishedPropertyQuery(client) {
     .from('properties')
     .select(`
       id, subtype, typology, area_sqm, zone_lite_id, latitude, longitude,
+      bedrooms, living_rooms, energy_rating, attributes, postal_code,
       zones_lite ( name, city, country_iso ),
       representations!inner ( target_type, status, listings!inner (
-        id, transaction_type, rental_period, price_current, currency_iso, price_is_from, status,
+        id, transaction_type, rental_period, price_current, currency_iso, price_is_from, status, created_at,
         listing_content ( locale, title ),
         listing_media (
           position, is_cover,

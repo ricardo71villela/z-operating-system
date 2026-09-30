@@ -178,11 +178,25 @@ function mapSupabasePropertyRowToCard(row, lang) {
   if (kind === 'Land') badgeLabel = t(lang, 'search.badgeLand');
   else if ((listing.transaction_type || 'sale') === 'rent') badgeLabel = t(lang, 'search.forRent');
 
+  const attrs = row.attributes && typeof row.attributes === 'object' ? row.attributes : {};
+  const positive = v => (typeof v === 'number' && v > 0) || v === true || (typeof v === 'string' && v !== '' && v !== '0' && v !== 'false');
+  const typologyRooms = /^[TF]\s?(\d+)/i.exec(String(row.typology || ''));
+
   return {
     listingId: listing.id,
     assetId: row.id,
     kind,
     subtype: row.subtype || null,
+    areaSqm: row.area_sqm == null ? null : Number(row.area_sqm),
+    rooms: typologyRooms ? Number(typologyRooms[1])
+      : (row.bedrooms != null && row.living_rooms != null ? Number(row.bedrooms) + Number(row.living_rooms) : null),
+    bedrooms: row.bedrooms == null ? null : Number(row.bedrooms),
+    energyRating: row.energy_rating ? String(row.energy_rating).toUpperCase() : null,
+    hasOutdoor: positive(attrs.balcony_sqm) || positive(attrs.terrace_sqm) || positive(attrs.garden) || positive(attrs.rooftop),
+    hasParking: positive(attrs.parking_spaces) || positive(attrs.garage_spaces),
+    hasLift: positive(attrs.elevator),
+    postalCode: row.postal_code || null,
+    createdAt: listing.created_at || null,
     transactionType: listing.transaction_type || 'sale',
     rentalPeriod: listing.rental_period || null,
     title: content.title || '',
@@ -470,6 +484,64 @@ async function resolveSearchCardImageUrl(
   );
 }
 
+/* ---------------- Advanced search filters (2026-09-30) ----------------
+   Applied to the published inventory already scoped by market, type,
+   transaction and price on the server: commune (code or name), surface,
+   rooms, bedrooms, energy class, outdoor space, parking, lift, free text
+   (accents ignored), then the chosen order. Developments carry none of
+   the property-level facts, so property-only filters leave them out. */
+const ENERGY_ORDER = 'ABCDEFG';
+
+function foldSearchText(value) {
+  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    .replace(/[’'`-]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function cardMatchesPlace(card, place) {
+  if (!place) return true;
+  if (place.country && card.countryIso && place.country !== card.countryIso) return false;
+  const names = [place.name].concat(place.aliases || []).map(foldSearchText).filter(Boolean);
+  const labels = [card.cityLabel, card.zoneLabel].map(foldSearchText).filter(Boolean);
+  if (labels.some(label => names.includes(label))) return true;
+  return !!(card.postalCode && Array.isArray(place.postcodes) && place.postcodes.includes(String(card.postalCode)));
+}
+
+function applyAdvancedSearchFilters(cards, f) {
+  const num = v => (v === '' || v == null ? null : Number(v));
+  const areaMin = num(f.areaMin), roomsMin = num(f.roomsMin), bedsMin = num(f.bedsMin);
+  const energyMax = f.energyMax && ENERGY_ORDER.includes(String(f.energyMax).toUpperCase()) ? String(f.energyMax).toUpperCase() : null;
+  const propertyOnly = areaMin != null || roomsMin != null || bedsMin != null || energyMax || f.outdoor || f.parking || f.lift;
+  const priceMin = num(f.budgetMin), priceMax = num(f.budgetMax);
+  let out = cards.filter(card => {
+    if (propertyOnly && card.kind === 'Development') return false;
+    // Also enforced by the database query; repeated here so every source agrees.
+    if (priceMin != null && !(Number(card.priceValue) >= priceMin)) return false;
+    if (priceMax != null && !(Number(card.priceValue) <= priceMax)) return false;
+    if (areaMin != null && !(card.areaSqm >= areaMin)) return false;
+    if (roomsMin != null && !(card.rooms >= roomsMin)) return false;
+    if (bedsMin != null && !(card.bedrooms >= bedsMin)) return false;
+    if (energyMax && !(card.energyRating && ENERGY_ORDER.indexOf(card.energyRating) >= 0 && ENERGY_ORDER.indexOf(card.energyRating) <= ENERGY_ORDER.indexOf(energyMax))) return false;
+    if (f.outdoor && !card.hasOutdoor) return false;
+    if (f.parking && !card.hasParking) return false;
+    if (f.lift && !card.hasLift) return false;
+    return true;
+  });
+  if (f.place) {
+    out = out.filter(card => cardMatchesPlace(card, f.place));
+  } else {
+    const q = foldSearchText(f.q);
+    if (q) out = out.filter(card => foldSearchText([card.title, card.locationLabel, card.cityLabel, card.zoneLabel, card.postalCode].filter(Boolean).join(' ')).includes(q));
+  }
+  const price = c => (typeof c.priceValue === 'number' ? c.priceValue : Number(c.priceValue) || 0);
+  const ppm2 = c => (c.areaSqm > 0 && price(c) > 0 ? price(c) / c.areaSqm : Infinity);
+  const time = c => (c.createdAt ? Date.parse(c.createdAt) || 0 : 0);
+  if (f.sort === 'price_asc') out = out.slice().sort((a, b) => price(a) - price(b));
+  else if (f.sort === 'price_desc') out = out.slice().sort((a, b) => price(b) - price(a));
+  else if (f.sort === 'ppm2_asc') out = out.slice().sort((a, b) => ppm2(a) - ppm2(b));
+  else if (f.sort === 'recent') out = out.slice().sort((a, b) => time(b) - time(a));
+  return out;
+}
+
 async function loadSearchResults(lang, filters) {
   const services = window.ZFindServices;
   if (!services || !services.search || !services.developments) {
@@ -649,10 +721,7 @@ async function loadSearchResults(lang, filters) {
 
   let cards = propertyCards.concat(developmentCards);
 
-  const q = (f.q || '').trim().toLowerCase();
-  if (q) {
-    cards = cards.filter(c => (c.title + ' ' + (c.locationLabel || '')).toLowerCase().includes(q));
-  }
+  cards = applyAdvancedSearchFilters(cards, f);
 
   return {
     cards,
@@ -850,6 +919,7 @@ function mapSupabasePropertyRowToDetailViewModel(row, lang) {
       zoneLabel: zone.name || null,
       cityLabel: zone.city || null,
       countryLabel: zone.country_iso || '', // see known simplification above — never null, avoids literally rendering "null"
+      countryIso: zone.country_iso || null,
       currencyIso,
     },
     content,

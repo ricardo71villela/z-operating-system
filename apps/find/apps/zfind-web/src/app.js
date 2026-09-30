@@ -134,7 +134,7 @@ function searchResultsCacheKey(
     transactionType || '',
     rentalPeriod || '',
     q && q.budget || ''
-  ]);
+  ].concat(ADVANCED_SEARCH_KEYS.map(key => (q && q[key]) || '')));
 }
 
 function clearSearchPagination() {
@@ -430,8 +430,23 @@ const SEARCH_RETURN_QUERY_KEYS = Object.freeze([
   'transactionType',
   'rentalPeriod',
   'budget',
-  'page'
+  'page',
+  // Advanced search (2026-09-30)
+  'commune',
+  'priceMin',
+  'priceMax',
+  'areaMin',
+  'rooms',
+  'beds',
+  'dpe',
+  'outdoor',
+  'parking',
+  'lift',
+  'sort'
 ]);
+
+// Advanced search parameters, in the address and in the results cache key.
+const ADVANCED_SEARCH_KEYS = Object.freeze(['commune', 'priceMin', 'priceMax', 'areaMin', 'rooms', 'beds', 'dpe', 'outdoor', 'parking', 'lift', 'sort']);
 
 function canonicalSearchReturnQuery(query) {
   const source =
@@ -1807,6 +1822,9 @@ async function renderSearch() {
     q.budget || ''
   );
 
+  syncAdvancedFilters(q);
+  if (qInput) qInput.dataset.commune = q.commune || '';
+
   const activePill =
     currentPillForQuery(q);
 
@@ -1850,9 +1868,20 @@ async function renderSearch() {
               .filter(Boolean),
           transactionType,
           rentalPeriod,
-          budgetMin: range.budgetMin,
-          budgetMax: range.budgetMax,
-          marketKey: q.market || undefined
+          budgetMin: q.priceMin ? Number(q.priceMin) : range.budgetMin,
+          budgetMax: q.priceMax ? Number(q.priceMax) : range.budgetMax,
+          marketKey: q.market || undefined,
+          areaMin: q.areaMin || null,
+          roomsMin: q.rooms || null,
+          bedsMin: q.beds || null,
+          energyMax: q.dpe || null,
+          outdoor: q.outdoor === '1',
+          parking: q.parking === '1',
+          lift: q.lift === '1',
+          sort: q.sort || '',
+          place: q.commune && window.ZFindServices.placeSearch
+            ? await window.ZFindServices.placeSearch.byCode(q.commune).catch(() => null)
+            : null
         }
       );
 
@@ -1980,7 +2009,9 @@ async function renderSearch() {
   ).textContent =
     t(
       state.lang,
-      'search.resultsTitle',
+      fullCards.length === 1 && I18N[state.lang] && I18N[state.lang].search && I18N[state.lang].search.resultsTitleOne
+        ? 'search.resultsTitleOne'
+        : 'search.resultsTitle',
       {
         count: fullCards.length,
         market: selectedMarketLabel
@@ -1990,7 +2021,8 @@ async function renderSearch() {
   const pagination =
     SEARCH_PAGINATION_SERVICE.paginate(
       fullCards,
-      presentationQuery.page
+      presentationQuery.page,
+      { keepOrder: Boolean((state.query || {}).sort) }
     );
 
   // Canonical URL authority:
@@ -2047,12 +2079,205 @@ async function renderSearch() {
   );
 }
 
-function applySearchBar() {
-  const qVal = document.getElementById('search-q').value;
+/* ---------------- Search bar: places and sentences (2026-09-30) ----------------
+   The location field accepts a commune (picked in the list or typed), a
+   postcode, or a whole sentence ("T3 avec balcon à Évian moins de 450 000 €"),
+   turned into filters by natural-search.js. */
+async function searchQueryFromText(text, selectedCommune) {
+  const services = window.ZFindServices || {};
+  const raw = String(text || '').trim();
+  const out = { q: raw, commune: selectedCommune || '' };
+  if (!raw || selectedCommune) return out;
+  const parsed = services.naturalSearch ? services.naturalSearch.parse(raw) : { filters: {}, place: raw, hasCriteria: false };
+  const f = parsed.filters || {};
+  if (f.transactionType) out.transactionType = f.transactionType;
+  if (f.subtype) out.subtype = f.subtype;
+  if (f.priceMin) out.priceMin = String(f.priceMin);
+  if (f.priceMax) out.priceMax = String(f.priceMax);
+  if (f.areaMin) out.areaMin = String(f.areaMin);
+  if (f.roomsMin) out.rooms = String(f.roomsMin);
+  if (f.bedsMin) out.beds = String(f.bedsMin);
+  if (f.energyMax) out.dpe = f.energyMax;
+  if (f.outdoor) out.outdoor = '1';
+  if (f.parking) out.parking = '1';
+  if (f.lift) out.lift = '1';
+  const place = (parsed.place || '').trim();
+  out.q = place;
+  if (place && services.placeSearch) {
+    const hits = await services.placeSearch.search(place, { limit: 2 }).catch(() => []);
+    if (hits[0] && hits[0].score >= 4 && !(hits[1] && hits[1].score === hits[0].score && hits[1].name === hits[0].name)) {
+      out.commune = services.placeSearch.encode(hits[0]);
+      out.q = hits[0].name;
+    }
+  }
+  return out;
+}
+
+function mergeSearchQuery(base, extra) {
+  const next = Object.assign({}, base);
+  ADVANCED_SEARCH_KEYS.forEach(key => { if (key !== 'sort') delete next[key]; });
+  Object.keys(extra).forEach(key => {
+    if (extra[key] === '' || extra[key] == null) delete next[key];
+    else next[key] = extra[key];
+  });
+  delete next.page;
+  return next;
+}
+
+async function applySearchBar() {
+  const input = document.getElementById('search-q');
   const budgetVal = document.getElementById('search-budget').value;
-  const next = Object.assign({}, state.query, { q: qVal, budget: budgetVal });
+  const extra = await searchQueryFromText(input.value, input.dataset.commune || '');
+  if (!extra.priceMin && !extra.priceMax) extra.budget = budgetVal;
+  const keepFilters = Object.assign({}, state.query);
+  const next = mergeSearchQuery(keepFilters, extra);
+  // Filters chosen in the panel stay unless the sentence set them.
+  ADVANCED_SEARCH_KEYS.forEach(key => { if (!(key in extra) && state.query && state.query[key] && key !== 'commune') next[key] = state.query[key]; });
+  navigate('search', null, next);
+}
+
+/* Commune suggestions under a location field (FR / BE / LU), keyboard and touch. */
+function attachPlaceAutocomplete(input, onPick) {
+  const service = window.ZFindServices && window.ZFindServices.placeSearch;
+  if (!input || !service || input.dataset.autocomplete) return;
+  input.dataset.autocomplete = '1';
+  input.setAttribute('autocomplete', 'off');
+  input.setAttribute('role', 'combobox');
+  input.setAttribute('aria-autocomplete', 'list');
+  const list = document.createElement('ul');
+  list.className = 'place-suggest';
+  list.id = input.id + '-suggest';
+  list.setAttribute('role', 'listbox');
+  list.hidden = true;
+  input.setAttribute('aria-controls', list.id);
+  input.insertAdjacentElement('afterend', list);
+  let items = [];
+  let active = -1;
+  let token = 0;
+  const flag = { FR: 'France', BE: 'Belgique', LU: 'Luxembourg' };
+  function close() { list.hidden = true; active = -1; input.setAttribute('aria-expanded', 'false'); }
+  function pick(i) {
+    const place = items[i];
+    if (!place) return;
+    input.value = place.name;
+    input.dataset.commune = service.encode(place);
+    close();
+    if (typeof onPick === 'function') onPick();
+  }
+  function paint() {
+    list.innerHTML = items.map((p, i) => `<li role="option" id="${list.id}-${i}" aria-selected="${i === active}" data-i="${i}"><strong>${escapeHtmlSim(p.name)}</strong><span>${escapeHtmlSim([p.via, p.parent, flag[p.country]].filter(Boolean).join(' · '))}</span></li>`).join('');
+    list.hidden = !items.length;
+    input.setAttribute('aria-expanded', String(!!items.length));
+    if (active >= 0) input.setAttribute('aria-activedescendant', `${list.id}-${active}`); else input.removeAttribute('aria-activedescendant');
+  }
+  input.addEventListener('input', () => {
+    input.dataset.commune = '';
+    const value = input.value;
+    const mine = ++token;
+    // A sentence ("T3 à Évian…") is left to the search button.
+    if (value.trim().length < 2 || (window.ZFindServices.naturalSearch && window.ZFindServices.naturalSearch.looksLikeSentence(value))) { items = []; paint(); return; }
+    setTimeout(async () => {
+      if (mine !== token) return;
+      items = await service.search(value, { limit: 6 }).catch(() => []);
+      if (mine !== token) return;
+      active = -1;
+      paint();
+    }, 120);
+  });
+  input.addEventListener('keydown', e => {
+    if (list.hidden) return;
+    if (e.key === 'ArrowDown') { active = Math.min(items.length - 1, active + 1); paint(); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { active = Math.max(0, active - 1); paint(); e.preventDefault(); }
+    else if (e.key === 'Enter' && active >= 0) { e.preventDefault(); pick(active); }
+    else if (e.key === 'Escape') close();
+  });
+  list.addEventListener('mousedown', e => {
+    const li = e.target.closest('li[data-i]');
+    if (li) { e.preventDefault(); pick(Number(li.dataset.i)); }
+  });
+  input.addEventListener('blur', () => setTimeout(close, 150));
+}
+
+function applyAdvancedFilters() {
+  const panel = document.getElementById('search-advanced');
+  if (!panel) return;
+  const value = name => (panel.querySelector(`[data-adv="${name}"]`) || {}).value || '';
+  const checked = name => !!(panel.querySelector(`[data-adv="${name}"]`) || {}).checked;
+  const next = Object.assign({}, state.query);
+  const set = (key, v) => { if (v) next[key] = v; else delete next[key]; };
+  set('priceMin', value('priceMin'));
+  set('priceMax', value('priceMax'));
+  set('areaMin', value('areaMin'));
+  set('rooms', value('rooms'));
+  set('beds', value('beds'));
+  set('dpe', value('dpe'));
+  set('outdoor', checked('outdoor') ? '1' : '');
+  set('parking', checked('parking') ? '1' : '');
+  set('lift', checked('lift') ? '1' : '');
+  set('sort', value('sort'));
+  if (next.priceMin || next.priceMax) delete next.budget;
   delete next.page;
   navigate('search', null, next);
+}
+
+const ADVANCED_FILTERS_COPY = Object.freeze({
+  fr: { toggle: 'Plus de critères', priceMin: 'Prix min. (€)', priceMax: 'Prix max. (€)', areaMin: 'Surface min. (m²)',
+        rooms: 'Pièces min.', beds: 'Chambres min.', dpe: 'DPE / PEB au moins', any: 'Indifférent',
+        outdoor: 'Balcon, terrasse ou jardin', parking: 'Parking ou garage', lift: 'Ascenseur',
+        sort: 'Trier par', sorts: { '': 'Pertinence', recent: 'Plus récents', price_asc: 'Prix croissant', price_desc: 'Prix décroissant', ppm2_asc: 'Prix au m² croissant' },
+        apply: 'Appliquer' },
+  en: { toggle: 'More criteria', priceMin: 'Min. price (€)', priceMax: 'Max. price (€)', areaMin: 'Min. area (m²)',
+        rooms: 'Min. rooms', beds: 'Min. bedrooms', dpe: 'Energy class at least', any: 'Any',
+        outdoor: 'Balcony, terrace or garden', parking: 'Parking or garage', lift: 'Lift',
+        sort: 'Sort by', sorts: { '': 'Relevance', recent: 'Newest', price_asc: 'Price, low to high', price_desc: 'Price, high to low', ppm2_asc: 'Price per m², low to high' },
+        apply: 'Apply' }
+});
+
+function renderAdvancedFiltersPanel() {
+  const panel = document.getElementById('search-advanced');
+  if (!panel) return;
+  const lang = state.lang === 'fr' ? 'fr' : 'en';
+  if (panel.dataset.lang === lang) return;
+  const c = ADVANCED_FILTERS_COPY[lang];
+  const opts = (values, labelOf) => values.map(v => `<option value="${v}">${labelOf(v)}</option>`).join('');
+  panel.innerHTML = `
+    <summary>${c.toggle} <span class="adv-count" data-adv-count></span></summary>
+    <div class="adv-grid">
+      <label>${c.priceMin}<input type="number" inputmode="numeric" min="0" step="10000" data-adv="priceMin"></label>
+      <label>${c.priceMax}<input type="number" inputmode="numeric" min="0" step="10000" data-adv="priceMax"></label>
+      <label>${c.areaMin}<input type="number" inputmode="numeric" min="0" step="5" data-adv="areaMin"></label>
+      <label>${c.rooms}<select data-adv="rooms">${opts(['', '1', '2', '3', '4', '5'], v => v ? v + (v === '5' ? '+' : '') : c.any)}</select></label>
+      <label>${c.beds}<select data-adv="beds">${opts(['', '1', '2', '3', '4'], v => v ? v + (v === '4' ? '+' : '') : c.any)}</select></label>
+      <label>${c.dpe}<select data-adv="dpe">${opts(['', 'A', 'B', 'C', 'D', 'E'], v => v || c.any)}</select></label>
+      <label>${c.sort}<select data-adv="sort">${opts(Object.keys(c.sorts), v => c.sorts[v])}</select></label>
+    </div>
+    <div class="adv-checks">
+      <label><input type="checkbox" data-adv="outdoor"> ${c.outdoor}</label>
+      <label><input type="checkbox" data-adv="parking"> ${c.parking}</label>
+      <label><input type="checkbox" data-adv="lift"> ${c.lift}</label>
+    </div>
+    <button type="button" class="btn btn-gold adv-apply" onclick="applyAdvancedFilters()">${c.apply}</button>`;
+  panel.dataset.lang = lang;
+  // Sorting applies at once; the other criteria with the button.
+  panel.querySelector('[data-adv="sort"]').addEventListener('change', applyAdvancedFilters);
+}
+
+function syncAdvancedFilters(q) {
+  renderAdvancedFiltersPanel();
+  const panel = document.getElementById('search-advanced');
+  if (!panel) return;
+  ['priceMin', 'priceMax', 'areaMin', 'rooms', 'beds', 'dpe', 'sort'].forEach(name => {
+    const el = panel.querySelector(`[data-adv="${name}"]`);
+    if (el) el.value = q[name] || '';
+  });
+  ['outdoor', 'parking', 'lift'].forEach(name => {
+    const el = panel.querySelector(`[data-adv="${name}"]`);
+    if (el) el.checked = q[name] === '1';
+  });
+  const active = ['priceMin', 'priceMax', 'areaMin', 'rooms', 'beds', 'dpe', 'outdoor', 'parking', 'lift'].filter(k => q[k]).length;
+  const count = panel.querySelector('[data-adv-count]');
+  if (count) count.textContent = active ? String(active) : '';
+  if (active) panel.open = true;
 }
 
 function clearSearchFilters() {
@@ -2067,7 +2292,7 @@ function clearSearchFilters() {
   navigate('search', null, next);
 }
 
-function submitHomeSearch() {
+async function submitHomeSearch() {
   const transactionType = homeTransactionType;
   const typeVal = document.getElementById('home-type').value;
   const qVal = document.getElementById('home-q').value;
@@ -2089,8 +2314,11 @@ function submitHomeSearch() {
     query.rentalPeriod = homeRentalPeriod;
   }
 
-  query.q = qVal;
-  query.budget = budgetVal;
+  const qInput = document.getElementById('home-q');
+  const extra = await searchQueryFromText(qVal, (qInput && qInput.dataset.commune) || '');
+  Object.keys(extra).forEach(key => { if (extra[key] !== '' && extra[key] != null) query[key] = extra[key]; });
+  if (!query.q) delete query.q;
+  if (!query.priceMin && !query.priceMax && budgetVal) query.budget = budgetVal;
 
   navigate('search', null, query);
 }
@@ -2113,6 +2341,57 @@ function detailStatusHTML(titleKey, bodyKey) {
   </div>`;
 }
 function propertyStatusHTML(titleKey, bodyKey) { return detailStatusHTML(titleKey, bodyKey); } // kept for call-site clarity in renderProperty
+
+/* ---------------- Listing page: price against the official market ----------------
+   The listing's commune (matched on the official files), type and surface go
+   through the estimation engine: the visitor sees the Z Find range for a
+   comparable property and where the asking price stands, with the source. */
+const jsonFileCache = new Map();
+function loadPublicJson(path) {
+  if (!jsonFileCache.has(path)) {
+    jsonFileCache.set(path, fetch('/' + path, { credentials: 'omit' }).then(r => {
+      if (!r.ok) throw new Error(path + ' ' + r.status);
+      return r.json();
+    }).catch(error => { jsonFileCache.delete(path); throw error; }));
+  }
+  return jsonFileCache.get(path);
+}
+
+async function renderListingMarketContext(vm) {
+  const root = document.getElementById('listing-market-root');
+  const services = window.ZFindServices || {};
+  const engine = services.estimation;
+  const page = services.estimationPage;
+  const places = services.placeSearch;
+  if (!root || !engine || !page || !places) return;
+  const country = vm.geo && vm.geo.countryIso;
+  const price = Number(vm.listing && vm.listing.priceCurrent);
+  const surface = Number(vm.asset && vm.asset.areaSqm);
+  if (!['FR', 'BE', 'LU'].includes(country) || vm.listing.transactionType !== 'sale' || !(price > 0) || !(surface >= 9)) return;
+  const type = vm.asset.subtype === 'apartment' ? 'apartment' : vm.asset.subtype === 'villa' ? (country === 'BE' ? 'house_open' : 'house') : null;
+  if (!type) return;
+  const place = await places.resolveCity(country, vm.geo.cityLabel || vm.geo.zoneLabel).catch(() => null);
+  if (!place) return;
+  const result = await engine.estimate({ market: country, communeCode: place.code, type, surface, askingPrice: price }, loadPublicJson).catch(() => null);
+  if (!result || !result.ok || state.view !== 'property' || !document.body.contains(root)) return;
+  const lang = state.lang === 'fr' ? 'fr' : 'en';
+  const c = page.COPY[lang];
+  const money = v => fmtCurrency(v, state.lang, 'EUR');
+  const pct = v => new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-IE', { style: 'percent', maximumFractionDigits: 0 }).format(Math.abs(v));
+  const typeLabel = (c.typesSales || {})[type] || '';
+  const buyer = result.buyer;
+  const verdict = buyer ? (buyer.position === 'within' ? c.buyer.within : c.buyer[buyer.position](pct(buyer.deltaPct))) : '';
+  const copy = lang === 'fr'
+    ? { title: `Estimation Z Find pour un bien comparable à ${place.name}`, perM2: 'Prix au m² de ce bien', more: 'Estimer un autre bien' }
+    : { title: `Z Find estimate for a comparable property in ${place.name}`, perM2: 'Price per m² of this property', more: 'Value another property' };
+  root.innerHTML = `
+    <div class="row"><span class="label">${copy.perM2}</span><span class="val">${money(Math.round(price / surface))}/m²</span></div>
+    <div class="row"><span class="label">${copy.title}</span><span class="val">${money(result.low)} – ${money(result.high)}</span></div>
+    <div class="row"><span class="label">${c.centralLabel}</span><span class="val">${money(result.central)} · ${c.confidence[result.confidence]}</span></div>
+    ${verdict ? `<p class="listing-market-verdict" data-position="${buyer.position}">${verdict}</p>` : ''}
+    <p class="listing-market-note">${escapeHtmlSim(c.basis(result.basis, typeLabel))} ${c.source || ''}${c.colon || ': '}${escapeHtmlSim(result.basis.source || '')}.</p>
+    <p class="listing-market-note"><a href="#/${state.lang}/estimation?market=${country}&mode=buyer">${copy.more} →</a></p>`;
+}
 
 async function renderProperty(assetId) {
   document.getElementById('property-root').innerHTML = propertyStatusHTML('home.loadingTitle', 'home.loadingBody');
@@ -2162,7 +2441,7 @@ async function renderProperty(assetId) {
       ${repNote}
 
       <div class="section-title" style="margin-top:30px">${t(L,'property.marketTitle')}</div>
-      <div class="info-card">
+      <div class="info-card" id="listing-market-root">
         ${(vm.market && (vm.market.avgPriceZone || vm.market.priceThis || vm.market.trend || vm.market.comparables)) ? `
         ${vm.market.avgPriceZone ? `<div class="row"><span class="label">${t(L,'property.avgPriceZone')}</span><span class="val">${fmtCurrency(vm.market.avgPriceZone.value,L)}/m²</span></div>` : ''}
         ${vm.market.priceThis ? `<div class="row"><span class="label">${t(L,'property.priceThis')}</span><span class="val">${fmtCurrency(vm.market.priceThis.value,L)}/m²</span></div>` : ''}
@@ -2211,6 +2490,7 @@ async function renderProperty(assetId) {
       </div>
     </div>
   </div>`;
+  renderListingMarketContext(vm);
 }
 
 /* ---------------- Development detail ---------------- */
@@ -3176,7 +3456,9 @@ document.addEventListener('DOMContentLoaded', () => {
       navigate('search', null, next);
     });
   });
-  document.getElementById('search-q').addEventListener('keydown', e => { if (e.key === 'Enter') applySearchBar(); });
-  document.getElementById('home-q').addEventListener('keydown', e => { if (e.key === 'Enter') submitHomeSearch(); });
+  document.getElementById('search-q').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.defaultPrevented) applySearchBar(); });
+  attachPlaceAutocomplete(document.getElementById('search-q'), applySearchBar);
+  attachPlaceAutocomplete(document.getElementById('home-q'), submitHomeSearch);
+  document.getElementById('home-q').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.defaultPrevented) submitHomeSearch(); });
   parseHash();
 });

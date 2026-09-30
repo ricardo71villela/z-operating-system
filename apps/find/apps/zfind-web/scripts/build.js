@@ -76,6 +76,7 @@ function build() {
   const propertyMobileDetailHotfix = read('property-mobile-detail-hotfix-v1.css');
   const listingCompliancePublicCss = read('listing-compliance-public.css');
   const searchMapUiCss = read('search-map-ui.css');
+  const searchAdvancedCss = read('search-advanced.css');
   const marketPricesCss = read('market-prices.css');
   const marketPricesService = read('services/market-prices.js');
   const marketDivisionsCss = read('market-divisions.css');
@@ -96,6 +97,8 @@ function build() {
   const searchMapViewportService = read('services/search-map-viewport.js');
   const marketSearchScopeService = read('services/market-search-scope.js');
   const listingQualityService = read('services/listing-quality.js');
+  const placeSearchService = read('services/place-search.js');
+  const naturalSearchService = read('services/natural-search.js');
   const supabaseClient = read('services/supabaseClient.js');
   const propertiesService = read('services/properties.js');
   const publicVerificationService = read('services/public-verification.js');
@@ -159,7 +162,7 @@ function build() {
   );
 
   const html = headTop
-    + '<style>\n' + css + '\n' + legalGuideReadingSurface + '\n' + mobileUxPolish + '\n' + mobileUxBalanceV3 + '\n' + propertyMobileDetailHotfix + '\n' + listingCompliancePublicCss + '\n' + searchMapUiCss + '\n' + marketPricesCss + '\n' + marketDivisionsCss + '\n' + estimationCss + '\n</style>\n</head>\n<body>\n'
+    + '<style>\n' + css + '\n' + legalGuideReadingSurface + '\n' + mobileUxPolish + '\n' + mobileUxBalanceV3 + '\n' + propertyMobileDetailHotfix + '\n' + listingCompliancePublicCss + '\n' + searchMapUiCss + '\n' + searchAdvancedCss + '\n' + marketPricesCss + '\n' + marketDivisionsCss + '\n' + estimationCss + '\n</style>\n</head>\n<body>\n'
     + resolvedBody
     + '\n<script>\n'
     + vendorSupabase + '\n'
@@ -179,6 +182,8 @@ function build() {
     + estimationService + '\n'
     + estimationPageService + '\n'
     + listingQualityService + '\n'
+    + placeSearchService + '\n'
+    + naturalSearchService + '\n'
     + supabaseClient + '\n'
     + propertiesService + '\n'
     + publicVerificationService + '\n'
