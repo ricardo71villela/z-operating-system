@@ -30,6 +30,15 @@
       lead: 'Une fourchette de prix immédiate, calculée à partir des prix de vente officiels de la commune — sans inscription.',
       modeOwner: 'Estimer mon bien', modeBuyer: 'Vérifier un prix',
       markets: { FR: 'France', BE: 'Belgique', LU: 'Luxembourg' },
+      introTitle: 'Comment ça marche',
+      introSteps: {
+        owner: ['Indiquez la commune, le type et la surface de votre bien.', 'Z Find part des prix de vente officiels de la commune, puis ajuste selon l’état, le DPE et les atouts.', 'Vous obtenez une fourchette, une valeur centrale et un niveau de fiabilité — et, si vous le souhaitez, le rapport détaillé par e-mail.'],
+        buyer: ['Indiquez la commune, le type, la surface et le prix demandé.', 'Z Find calcule la fourchette du marché à partir des ventes officielles de la commune.', 'Vous voyez tout de suite si le prix est sous, dans ou au-dessus de la fourchette.']
+      },
+      introSourceLabel: 'Données officielles',
+      introSources: { FR: 'DVF — ventes enregistrées par la DGFiP', BE: 'Statbel — actes de vente (SPF Finances)', LU: 'Observatoire de l’Habitat — ministère du Logement' },
+      introPoints: ['Gratuit', 'Sans inscription', 'Résultat immédiat'],
+      introNote: 'Estimation statistique indicative : elle ne remplace pas l’avis de valeur d’un professionnel qui visite le bien.',
       commune: 'Commune ou code postal', communePh: 'ex. Évian-les-Bains ou 74500', communeHint: 'Choisissez une commune dans la liste.',
       type: 'Type de bien',
       types: { apartment: 'Appartement', house: 'Maison', house_closed: 'Maison 2-3 façades (mitoyenne)', house_open: 'Maison 4 façades (isolée)' },
@@ -80,6 +89,15 @@
       lead: 'An instant price range, based on the official sale prices of the municipality — no sign-up.',
       modeOwner: 'Value my property', modeBuyer: 'Check a price',
       markets: { FR: 'France', BE: 'Belgium', LU: 'Luxembourg' },
+      introTitle: 'How it works',
+      introSteps: {
+        owner: ['Enter the municipality, type and area of your property.', 'Z Find starts from the official sale prices of the municipality, then adjusts for condition, energy rating and features.', 'You get a range, a central value and a reliability level — and, if you wish, the detailed report by e-mail.'],
+        buyer: ['Enter the municipality, type, area and asking price.', 'Z Find computes the market range from the official sales of the municipality.', 'You see at once whether the price is below, within or above the range.']
+      },
+      introSourceLabel: 'Official data',
+      introSources: { FR: 'DVF — sales recorded by the French tax authority (DGFiP)', BE: 'Statbel — deeds of sale (FPS Finance)', LU: 'Observatoire de l’Habitat — Ministry of Housing' },
+      introPoints: ['Free', 'No sign-up', 'Instant result'],
+      introNote: 'Indicative statistical estimate: it does not replace a valuation by a professional who visits the property.',
       commune: 'Municipality or postcode', communePh: 'e.g. Évian-les-Bains or 74500', communeHint: 'Choose a municipality from the list.',
       type: 'Property type',
       types: { apartment: 'Apartment', house: 'House', house_closed: 'House, 2-3 façades (terraced/semi)', house_open: 'House, 4 façades (detached)' },
@@ -261,6 +279,20 @@
       </section>`;
   }
 
+  /* Right-hand column before the first estimate: how it works, the
+     official source of the chosen market, and what the visitor gets. */
+  function introHTML(c, market, mode) {
+    const steps = c.introSteps[mode] || c.introSteps.owner;
+    return `
+      <aside class="est-intro" data-est-intro>
+        <h2 class="est-intro-title">${c.introTitle}</h2>
+        <ol class="est-steps">${steps.map(step => `<li>${esc(step)}</li>`).join('')}</ol>
+        <div class="est-source"><span class="est-source-label">${c.introSourceLabel}</span><span>${esc(c.introSources[market] || '')}</span></div>
+        <ul class="est-points">${c.introPoints.map(point => `<li>${esc(point)}</li>`).join('')}</ul>
+        <p class="est-muted">${esc(c.introNote)}</p>
+      </aside>`;
+  }
+
   function reportHTML(c, mode) {
     const projects = mode === 'buyer' ? c.projectsBuyer : c.projectsOwner;
     return `
@@ -311,7 +343,7 @@
         </header>
         <div class="est-grid">
           <div>${formHTML(c, state.market, state.mode)}</div>
-          <div data-est-output></div>
+          <div data-est-output>${introHTML(c, state.market, state.mode)}</div>
         </div>
       </div>`;
 
@@ -408,7 +440,7 @@
       let result;
       try { result = await engine.estimate(input, load); } catch (_) { result = { ok: false, errors: ['generic'] }; }
       btn.disabled = false; btn.textContent = state.mode === 'buyer' ? c.submitBuyer : c.submit;
-      if (!result.ok) { showError(error, c.errors[result.errors[0]] || c.errors.generic); output.innerHTML = ''; return; }
+      if (!result.ok) { showError(error, c.errors[result.errors[0]] || c.errors.generic); output.innerHTML = introHTML(c, state.market, state.mode); return; }
       state.input = input; state.result = result;
       output.innerHTML = resultHTML(c, lang, result, input) + reportHTML(c, state.mode);
       wireReport();
@@ -459,5 +491,5 @@
     return true;
   }
 
-  return Object.freeze({ COPY, render, _internals: Object.freeze({ searchPlaces, placeLabel, readQuery, fold }) });
+  return Object.freeze({ COPY, render, _internals: Object.freeze({ searchPlaces, placeLabel, readQuery, fold, introHTML }) });
 });
