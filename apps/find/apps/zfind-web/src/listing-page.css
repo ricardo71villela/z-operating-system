@@ -1,0 +1,16 @@
+/* Listing page: financing & purchase costs, travel time, similar listings. */
+.financing-card .fin-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:10px 0 8px;}
+.financing-card .fin-field{display:flex;flex-direction:column;gap:4px;font-size:.72rem;color:var(--gray-500);text-transform:none;letter-spacing:0;}
+.financing-card .fin-field input,.financing-card .fin-field select{width:100%;min-height:40px;padding:6px 8px;border:1px solid var(--gray-200);border-radius:6px;font:inherit;font-size:.9rem;color:var(--gray-900);background:var(--white);}
+.financing-card > .fin-field{margin:6px 0;}
+.financing-card .fin-check{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:.82rem;color:var(--gray-700);min-height:32px;}
+.financing-card .fin-result{margin-top:10px;}
+.financing-card .fin-muted,.fin-note{color:var(--gray-500);font-size:.75rem;line-height:1.45;}
+.fin-note{margin-top:10px;}
+.travel-card form{display:flex;flex-direction:column;gap:10px;margin-top:10px;}
+.travel-card input[type=text]{min-height:44px;padding:8px 10px;border:1px solid var(--gray-200);border-radius:6px;font:inherit;}
+.travel-card .travel-modes{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:.82rem;color:var(--gray-700);}
+.travel-card .travel-modes label{display:inline-flex;align-items:center;gap:6px;min-height:32px;}
+.similar-listings{padding-top:8px;padding-bottom:56px;}
+.similar-listings[hidden]{display:none !important;}
+@media (max-width:900px){.financing-card .fin-grid{grid-template-columns:1fr 1fr;}}

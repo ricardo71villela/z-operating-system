@@ -850,8 +850,13 @@ function mapSupabasePropertyRowToDetailViewModel(row, lang) {
       zoneLabel: zone.name || null,
       cityLabel: zone.city || null,
       countryLabel: zone.country_iso || '', // see known simplification above — never null, avoids literally rendering "null"
+      countryIso: zone.country_iso || null,
+      locationLabel: zoneLocationLabel(zone),
+      latitude: row.latitude == null ? null : Number(row.latitude),
+      longitude: row.longitude == null ? null : Number(row.longitude),
       currencyIso,
     },
+    newBuild: !!row.development_id,
     content,
     media,
     verification: null, // Safe public Verification exists as a separate read path; it is not Trust and is not automatically fetched yet.
