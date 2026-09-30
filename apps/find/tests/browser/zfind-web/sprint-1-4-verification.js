@@ -138,7 +138,7 @@ async function run() {
     // CTO product decision: never hide these sections, never fabricate
     // data — show a "Coming Soon" placeholder instead.
     assert(visibleText.includes('Z Intelligence market analysis'), 'Market Intelligence section ALWAYS visible, shows Coming Soon placeholder (never hidden, never fabricated)');
-    assert(visibleText.includes('Professional insights and contextual observations'), 'Z Insights (Observation) section ALWAYS visible, shows Coming Soon placeholder — distinct from Market Intelligence, per CTO correction');
+    assert(!visibleText.includes('Professional insights and contextual observations'), 'Z Insights "coming soon" placeholder no longer shown (2026-09-30)');
     assert(visibleText.includes('Z Intelligence investment scoring'), 'Investment/Yield sections ALWAYS visible, show Coming Soon placeholder');
     assert(visibleText.includes('Trust Score') && visibleText.includes('Coming Soon'), 'Trust chip ALWAYS visible, shows Coming Soon label instead of a fabricated trust score');
     await page.close();
@@ -315,7 +315,7 @@ async function run() {
     const visibleText = await page.evaluate(() => document.getElementById('property-root').textContent);
     assert(visibleText.includes('Null Safety Test Property'), 'Page still renders the real content around the null sections');
     assert(visibleText.includes('Z Intelligence market analysis'), 'Market Intelligence placeholder renders correctly when vm.market is null (not just empty-object)');
-    assert(visibleText.includes('Professional insights and contextual observations'), 'Z Insights placeholder renders correctly alongside a null vm.market');
+    assert(!visibleText.includes('Professional insights and contextual observations'), 'Z Insights "coming soon" placeholder no longer shown (2026-09-30)');
     assert(visibleText.includes('Z Intelligence investment scoring'), 'Investment placeholder renders correctly when vm.intelligence is null');
     assert(visibleText.includes('Trust Score') && visibleText.includes('Coming Soon'), 'Trust placeholder renders correctly when vm.trust is null');
     assert(!/%|€\d/.test(visibleText.replace('€300,000','')), 'No fabricated percentages or currency figures anywhere outside the real, mocked price');

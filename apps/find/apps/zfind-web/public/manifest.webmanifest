@@ -1,0 +1,21 @@
+{
+  "name": "Z Find — Immobilier France, Belgique, Luxembourg",
+  "short_name": "Z Find",
+  "description": "Biens, programmes neufs et prix officiels de l'immobilier en France, en Belgique et au Luxembourg.",
+  "lang": "fr",
+  "start_url": "/?source=pwa#/fr",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FAF7F0",
+  "theme_color": "#FFFFFF",
+  "icons": [
+    { "src": "/brand/zfind-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/brand/zfind-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/brand/zfind-icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/brand/zfind-icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Rechercher", "url": "/#/fr/search" },
+    { "name": "Nos marchés", "url": "/#/fr/market/FR" }
+  ]
+}
