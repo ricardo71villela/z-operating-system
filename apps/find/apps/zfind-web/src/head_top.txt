@@ -3,6 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#FFFFFF">
+<link rel="apple-touch-icon" href="/brand/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Z Find">
+<meta name="mobile-web-app-capable" content="yes">
 <script>
 /* Audience measurement: Vercel Web Analytics, cookieless, aggregated only.
    The site routes in the hash (#/fr/search?...): each view is reported as a
