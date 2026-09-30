@@ -30,8 +30,8 @@
   const ROOT_ID = 'zfind-search-map-v1';
 
   const COPY = Object.freeze({
-    fr: { title:'Carte des résultats', visible:'biens visibles', open:'Voir le bien', unavailable:'Aucun résultat de cette page ne dispose de coordonnées publiées.', attribution:'Données cartographiques © OpenStreetMap contributors' },
-    en: { title:'Results map', visible:'visible listings', open:'View listing', unavailable:'No result on this page has published coordinates.', attribution:'Map data © OpenStreetMap contributors' },
+    fr: { title:'Carte des résultats', visible:'biens visibles', visibleOne:'bien visible', open:'Voir le bien', unavailable:'Aucun résultat de cette page ne dispose de coordonnées publiées.', attribution:'Données cartographiques © OpenStreetMap contributors' },
+    en: { title:'Results map', visible:'visible listings', visibleOne:'visible listing', open:'View listing', unavailable:'No result on this page has published coordinates.', attribution:'Map data © OpenStreetMap contributors' },
     pt: { title:'Mapa dos resultados', visible:'imóveis visíveis', open:'Ver imóvel', unavailable:'Nenhum resultado desta página tem coordenadas publicadas.', attribution:'Dados cartográficos © OpenStreetMap contributors' },
     es: { title:'Mapa de resultados', visible:'anuncios visibles', open:'Ver anuncio', unavailable:'Ningún resultado de esta página tiene coordenadas publicadas.', attribution:'Datos cartográficos © OpenStreetMap contributors' },
     de: { title:'Ergebniskarte', visible:'sichtbare Angebote', open:'Objekt ansehen', unavailable:'Kein Ergebnis auf dieser Seite hat veröffentlichte Koordinaten.', attribution:'Kartendaten © OpenStreetMap-Mitwirkende' },
@@ -260,7 +260,7 @@
       const lang = routeLang();
       const bounds = currentMapBounds();
       const visible = bounds ? visiblePinsForBounds(pagePins, bounds, viewport) : pagePins;
-      rootNode.querySelector('.search-map-v1-count').textContent = `${visible.length} ${COPY[lang].visible}`;
+      rootNode.querySelector('.search-map-v1-count').textContent = `${visible.length} ${visible.length === 1 && COPY[lang].visibleOne ? COPY[lang].visibleOne : COPY[lang].visible}`;
       const list = rootNode.querySelector('[data-map-list]');
       list.innerHTML = compactListHtml(visible, lang);
       list.querySelectorAll('[data-map-asset-id]').forEach(button => {

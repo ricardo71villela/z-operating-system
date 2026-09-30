@@ -1,0 +1,76 @@
+/* Z FIND — estimation page (#/{lang}/estimation) */
+.est-page{padding-top:40px;padding-bottom:64px;}
+.est-head{max-width:760px;margin-bottom:24px;}
+.est-head h1{font-size:2.2rem;line-height:1.15;margin:6px 0 10px;}
+.est-lead{color:var(--gray-700);line-height:1.55;margin:0 0 18px;}
+.est-switches{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;}
+.est-modes,.est-markets{display:inline-flex;border:1px solid var(--gray-200);border-radius:999px;padding:3px;background:var(--white);}
+.est-modes a,.est-markets a{padding:7px 14px;border-radius:999px;font-size:.9rem;color:var(--gray-700);text-decoration:none;white-space:nowrap;}
+.est-modes a.active{background:var(--gray-900);color:var(--white);}
+.est-markets a.active{background:var(--gold-pale);color:var(--gold-dark);font-weight:600;}
+.est-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start;}
+.est-form,.est-report,.est-result{display:flex;flex-direction:column;gap:14px;border:1px solid var(--gray-200);border-radius:var(--radius);background:var(--white);padding:20px;}
+.est-report{margin-top:16px;}
+.est-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end;}
+.est-field{display:flex;flex-direction:column;gap:6px;min-width:0;}
+.est-field label{font-size:.82rem;font-weight:600;color:var(--gray-700);}
+.est-field input,.est-field select{width:100%;padding:10px 12px;border:1px solid var(--gray-300);border-radius:var(--radius);background:var(--white);font:inherit;color:var(--gray-900);min-width:0;}
+.est-field input:focus,.est-field select:focus{outline:2px solid var(--gold-light);outline-offset:1px;border-color:var(--gold);}
+.est-commune{position:relative;}
+.est-suggest{position:absolute;z-index:20;top:100%;left:0;right:0;margin:4px 0 0;padding:4px 0;list-style:none;background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius);box-shadow:0 8px 24px rgba(0,0,0,.08);max-height:300px;overflow:auto;}
+.est-suggest li{padding:9px 12px;cursor:pointer;font-size:.92rem;}
+.est-suggest li.active,.est-suggest li:hover{background:var(--gold-pale);}
+.est-check{display:flex;gap:8px;align-items:flex-start;font-size:.9rem;color:var(--gray-700);line-height:1.4;}
+.est-check input{margin-top:3px;accent-color:var(--gold-dark);}
+.est-lift{padding-bottom:10px;}
+.est-features{border:0;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:8px 18px;}
+.est-features legend{font-size:.82rem;font-weight:600;color:var(--gray-700);margin-bottom:6px;padding:0;}
+.est-submit{align-self:flex-start;padding:12px 22px;border:0;border-radius:var(--radius);background:var(--gold);color:var(--white);font:inherit;font-weight:600;letter-spacing:.03em;cursor:pointer;}
+.est-submit:hover{background:var(--gold-dark);}
+.est-submit:disabled{opacity:.6;cursor:default;}
+.est-error{margin:0;color:#a3341f;font-size:.88rem;}
+.est-range{margin:4px 0 0;font-size:2rem;line-height:1.2;color:var(--gray-900);}
+.est-range span{color:var(--gray-400);font-weight:400;}
+.est-central{margin:0;color:var(--gray-700);display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;}
+.est-badge{font-size:.75rem;padding:3px 9px;border-radius:999px;background:var(--gray-100,#f1f1f1);color:var(--gray-700);}
+.est-badge-high{background:#e5f2e8;color:#23633a;}
+.est-badge-medium{background:var(--gold-pale);color:var(--gold-dark);}
+.est-badge-low{background:#f7e9e4;color:#8a3b22;}
+.est-basis{margin:0;color:var(--gray-700);font-size:.92rem;line-height:1.5;}
+.est-subtitle{margin:4px 0 0;font-size:.95rem;}
+.est-adj{list-style:none;margin:0;padding:0;border-top:1px solid var(--gray-100);}
+.est-adj li{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--gray-100);font-size:.9rem;}
+.est-muted,.est-rgpd{margin:0;color:var(--gray-500);font-size:.8rem;line-height:1.5;}
+.est-rgpd a{color:inherit;}
+.est-report-title{margin:0;font-size:1.25rem;}
+.est-hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;}
+.est-sent{margin:0;color:#23633a;font-weight:600;}
+.est-buyer{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:var(--radius);background:var(--gray-50,#fafafa);}
+.est-buyer p{margin:0;font-size:.92rem;}
+.est-bar{position:relative;height:8px;border-radius:4px;background:var(--gray-200);margin:6px 0;}
+.est-bar-range{position:absolute;inset:0;border-radius:4px;background:linear-gradient(90deg,var(--gold-light),var(--gold));}
+.est-bar-mark{position:absolute;top:-5px;width:4px;height:18px;margin-left:-2px;border-radius:2px;background:var(--gray-900);}
+.est-buyer-above .est-bar-mark{left:100% !important;background:#a3341f;}
+.est-buyer-below .est-bar-mark{left:0 !important;background:#23633a;}
+.est-page [hidden]{display:none !important;}
+@media (max-width: 860px){
+  .est-grid{grid-template-columns:1fr;}
+}
+@media (max-width: 520px){
+  .est-head h1{font-size:1.7rem;}
+  .est-row{grid-template-columns:1fr;}
+  .est-range{font-size:1.6rem;}
+  .est-form,.est-report,.est-result{padding:16px;}
+  .est-switches{gap:10px;}
+  .est-modes a,.est-markets a{padding:7px 11px;font-size:.85rem;}
+}
+/* Market page call-to-action */
+.market-estimation-cta .mec{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px 32px;padding:22px 24px;border:1px solid var(--gold-light);border-radius:var(--radius);background:var(--gold-pale);}
+.market-estimation-cta h2{margin:4px 0 6px;font-size:1.4rem;}
+.market-estimation-cta p{margin:0;color:var(--gray-700);max-width:560px;}
+.market-estimation-cta .mec-actions{display:flex;flex-wrap:wrap;gap:10px;}
+.market-estimation-cta .mec-primary,.market-estimation-cta .mec-secondary{padding:11px 18px;border-radius:var(--radius);font-weight:600;text-decoration:none;white-space:nowrap;}
+.market-estimation-cta .mec-primary{background:var(--gold-dark);color:var(--white);}
+.market-estimation-cta .mec-secondary{border:1px solid var(--gold-dark);color:var(--gold-dark);background:var(--white);}
+.home-estimation-cta{padding-bottom:0 !important;}
+.home-estimation-cta .mec-primary,.home-estimation-cta .mec-secondary{min-height:44px;display:inline-flex;align-items:center;}

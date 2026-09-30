@@ -13,7 +13,7 @@ const I18N = {
 
 en: {
   common: { search:'Search', viewAll:'View all', save:'Save', signIn:'Sign in', publish:'Publish your portfolio', close:'Close', backToResults:'← Back to search results' },
-  navigation: { home:'Home', search:'Search', property:'Property', development:'Development', land:'Land & Development', partner:'Partner', simulator:'Simulators' },
+  navigation: { home:'Home', search:'Search', property:'Property', development:'Development', land:'Land & Development', partner:'Partner', simulator:'Simulators', estimation:'Estimate' },
   simulator: {
     title:'Acquisition Cost Simulator', subtitle:'Estimate transfer tax (IMT) and stamp duty for buying a home in Portugal.',
     country:'Country', propertyValue:'Property value (€)', isHPP:'This will be my primary residence', isResident:'I am a tax resident in Portugal',
@@ -70,7 +70,7 @@ en: {
     rentBudgetOver4000:'€4,000+ / month',
     applyFilters:'Search', clearFilters:'Clear filters',
     noResultsTitle:'No opportunities match these filters', noResultsBody:'Try a broader location, a different category, or a wider budget range.',
-    resultsTitle:'{{count}} opportunities{{market}}', resultsSub:'Deduplicated — every card below is one distinct, canonical opportunity.',
+    resultsTitle:'{{count}} opportunities{{market}}', resultsTitleOne:'1 opportunity{{market}}', resultsSub:'Deduplicated — every card below is one distinct, canonical opportunity.',
     filterAll:'All', filterApartments:'Apartments', filterVillas:'Villas', filterCommercial:'Commercial', filterDevelopments:'Developments', filterLand:'Land',
   },
   home: {
@@ -148,7 +148,7 @@ en: {
 
 pt: {
   common: { search:'Pesquisar', viewAll:'Ver todas', save:'Guardar', signIn:'Entrar', publish:'Publicar o seu portefólio', close:'Fechar', backToResults:'← Voltar aos resultados' },
-  navigation: { home:'Início', search:'Pesquisar', property:'Imóvel', development:'Empreendimento', land:'Terrenos e Desenvolvimento', partner:'Parceiro', simulator:'Simuladores' },
+  navigation: { home:'Início', search:'Pesquisar', property:'Imóvel', development:'Empreendimento', land:'Terrenos e Desenvolvimento', partner:'Parceiro', simulator:'Simuladores', estimation:'Avaliação' },
   simulator: {
     title:'Simulador de Custos de Aquisição', subtitle:'Estime o IMT e o Imposto do Selo na compra de casa em Portugal.',
     country:'País', propertyValue:'Valor do imóvel (€)', isHPP:'Vai ser a minha habitação própria e permanente', isResident:'Sou residente fiscal em Portugal',
@@ -205,7 +205,7 @@ pt: {
     rentBudgetOver4000:'€4.000+ / mês',
     applyFilters:'Pesquisar', clearFilters:'Limpar filtros',
     noResultsTitle:'Nenhuma oportunidade corresponde a estes filtros', noResultsBody:'Experimente uma localização mais ampla, outra categoria, ou um intervalo de orçamento maior.',
-    resultsTitle:'{{count}} oportunidades{{market}}', resultsSub:'Sem duplicações — cada cartão abaixo é uma oportunidade canónica distinta.',
+    resultsTitle:'{{count}} oportunidades{{market}}', resultsTitleOne:'1 oportunidade{{market}}', resultsSub:'Sem duplicações — cada cartão abaixo é uma oportunidade canónica distinta.',
     filterAll:'Todas', filterApartments:'Apartamentos', filterVillas:'Moradias', filterCommercial:'Comercial', filterDevelopments:'Empreendimentos', filterLand:'Terrenos',
   },
   home: {
@@ -283,7 +283,7 @@ pt: {
 
 fr: {
   common: { search:'Rechercher', viewAll:'Voir tout', save:'Enregistrer', signIn:'Se connecter', publish:'Publier votre portefeuille', close:'Fermer', backToResults:'← Retour aux résultats' },
-  navigation: { home:'Accueil', search:'Rechercher', property:'Bien', development:'Programme neuf', land:'Terrains et Développement', partner:'Partenaire', simulator:'Simulateurs' },
+  navigation: { home:'Accueil', search:'Rechercher', property:'Bien', development:'Programme neuf', land:'Terrains et Développement', partner:'Partenaire', simulator:'Simulateurs', estimation:'Estimer' },
   simulator: {
     title:"Simulateur de Frais d'Acquisition", subtitle:"Estimez les droits de mutation (IMT) et le droit de timbre pour l'achat d'un bien au Portugal.",
     country:'Pays', propertyValue:'Valeur du bien (€)', isHPP:'Ce sera ma résidence principale', isResident:'Je suis résident fiscal au Portugal',
@@ -340,7 +340,7 @@ fr: {
     rentBudgetOver4000:'4 000 €+ / mois',
     applyFilters:'Rechercher', clearFilters:'Effacer les filtres',
     noResultsTitle:'Aucune opportunité ne correspond à ces filtres', noResultsBody:'Essayez une localisation plus large, une autre catégorie, ou une fourchette de budget plus étendue.',
-    resultsTitle:'{{count}} opportunités{{market}}', resultsSub:'Dédupliqué — chaque fiche ci-dessous est une opportunité canonique distincte.',
+    resultsTitle:'{{count}} opportunités{{market}}', resultsTitleOne:'1 opportunité{{market}}', resultsSub:'Dédupliqué — chaque fiche ci-dessous est une opportunité canonique distincte.',
     filterAll:'Toutes', filterApartments:'Appartements', filterVillas:'Villas', filterCommercial:'Commercial', filterDevelopments:'Programmes neufs', filterLand:'Terrains',
   },
   home: {

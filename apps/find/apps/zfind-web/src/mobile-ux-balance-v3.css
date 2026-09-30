@@ -390,6 +390,21 @@
   }
 }
 
+/* Desktop header fit (901–1520 px): five menu entries + market switch + language +
+   "Publier votre portefeuille" + "Se connecter" must fit without horizontal scroll. */
+@media (min-width: 901px) and (max-width: 1520px) {
+  html body header.site .wrap.nav-row { gap: 14px !important; }
+  html body header.site .nav-links { gap: 14px !important; }
+  html body header.site .nav-actions { gap: 8px !important; }
+  html body header.site .market-switch select { width: 150px !important; min-width: 0 !important; }
+  html body header.site .nav-actions .btn-ghost,
+  html body header.site .nav-actions .btn-outline { letter-spacing: .04em !important; padding-left: 12px !important; padding-right: 12px !important; }
+}
+@media (min-width: 901px) and (max-width: 1260px) {
+  html body header.site .market-switch label { display: none !important; }
+  html body header.site .nav-actions .btn-ghost { display: none !important; }
+}
+
 /* ------------------------------------------------------------
    Touch targets on phones (audit 2026-09-29): every link or button
    a thumb has to hit is at least 44 px tall (chips 40 px, spaced).
