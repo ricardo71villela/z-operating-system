@@ -106,6 +106,10 @@ function mockRes() {
     cc.basis({ level: 'commune', name: 'Évian-les-Bains', n: 208, period: '2025' }, cc.typesSales.apartment) === 'Calculé à partir de 208 ventes d’appartements à Évian-les-Bains, période 2025.' &&
     cc.basis({ level: 'canton', name: 'Echternach', n: null, period: '12 mois' }, cc.typesSales.apartment) === 'Calculé à partir des ventes d’appartements dans le canton d’Echternach, période 12 derniers mois.');
   check('page copy exists in fr and en with the same keys', Object.keys(page.COPY.fr).join() === Object.keys(page.COPY.en).join());
+  const intro = page._internals.introHTML(page.COPY.fr, 'BE', 'buyer');
+  check('desktop right column before the first estimate: steps, the market’s official source, free / no sign-up',
+    intro.includes('data-est-intro') && intro.includes('Statbel') && intro.includes('prix demandé') && intro.includes('Sans inscription') &&
+    page.COPY.en.introSteps.owner.length === 3 && Object.keys(page.COPY.en.introSources).join() === 'FR,BE,LU');
 
   // ---------------- API ----------------
   const sent = [];
