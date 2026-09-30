@@ -232,6 +232,7 @@
           <p id="search-empty-body" style="color:var(--gray-500); margin-top:10px; font-size:0.9rem;"></p>
           <button class="btn btn-outline" style="margin-top:20px;" data-i18n="search.clearFilters" onclick="clearSearchFilters()"></button>
         </div>
+        <div id="search-alert-root" class="search-alert-root"></div>
         <nav
           id="search-results-pagination"
           class="search-results-pagination"
@@ -5608,6 +5609,7 @@
 
 <section class="view" id="view-simulator"><div id="simulator-root"></div></section>
 <section class="view" id="view-estimation"><div id="estimation-root"></div></section>
+<section class="view" id="view-pro"><div id="pro-root"></div></section>
 <section class="view" id="view-zone"><div id="zone-root"></div></section>
 
 </main>
@@ -5627,8 +5629,8 @@
         <a href="#" onclick="navigate('al-manual');return false;" data-i18n="footer.alManual"></a>
       </div>
       <div><h5 data-i18n="footer.partners"></h5>
-        <a href="#" data-i18n="common.publish"></a>
-        <a href="#" data-i18n="footer.servicesLevels"></a>
+        <a href="#" onclick="navigate('pro');return false;" data-i18n="common.publish"></a>
+        <a href="#" onclick="navigate('pro');return false;" data-i18n="footer.servicesLevels"></a>
         <a href="#" data-i18n="footer.partnerNetwork"></a>
       </div>
       <div><h5 data-i18n="footer.zos"></h5>

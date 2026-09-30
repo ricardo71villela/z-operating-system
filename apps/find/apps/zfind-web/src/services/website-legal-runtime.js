@@ -60,6 +60,8 @@
       thirdPartyTitle: 'Infrastructure',
       thirdPartyBody: 'Le site est hébergé sur Vercel et utilise Supabase pour les services de données et d’authentification. Ces fournisseurs peuvent mettre en œuvre des mécanismes techniques nécessaires à la sécurité, à la livraison du service ou à une session expressément demandée.',
       contactTitle: 'Question sur vos données ou traceurs',
+      alertsTitle: 'E-mails, alertes et avis',
+      alertsBody: 'Les alertes e-mail (nouvelles annonces, valeur de votre bien) ne démarrent qu’après confirmation du lien reçu par e-mail ; chaque envoi contient un lien de désinscription en un clic. Les demandes non confirmées et les désinscriptions sont effacées sous 30 jours, les alertes au plus tard 3 ans après leur confirmation. Si vous acceptez d’être invité(e) à noter une agence, une seule invitation vous est envoyée une semaine après votre demande ; votre adresse est effacée dès l’envoi de votre avis, ou après 60 jours sans réponse. Les e-mails sont envoyés par Resend.',
       back: '← Retour à Z Find',
       rgpd: 'Les données saisies (nom, e-mail ou téléphone, message et, le cas échéant, réponses de qualification) sont utilisées pour traiter cette demande et la transmettre au partenaire qui représente cette opportunité. Pour toute question relative à vos données :'
     }),
@@ -74,6 +76,8 @@
       thirdPartyTitle: 'Infrastructure',
       thirdPartyBody: 'The site is hosted on Vercel and uses Supabase for data and authentication services. These providers may use technical mechanisms necessary for security, service delivery or a session you expressly request.',
       contactTitle: 'Questions about your data or trackers',
+      alertsTitle: 'E-mails, alerts and reviews',
+      alertsBody: 'E-mail alerts (new listings, value of your property) start only after you confirm the link received by e-mail; every message has a one-click unsubscribe link. Unconfirmed requests and unsubscriptions are erased within 30 days, alerts at the latest 3 years after confirmation. If you agree to be invited to rate an agency, a single invitation is sent a week after your enquiry; your address is erased as soon as you submit your review, or after 60 days without an answer. E-mails are sent through Resend.',
       back: '← Back to Z Find',
       rgpd: 'The data you enter (name, email or phone, message and, where applicable, qualification answers) is used to process this enquiry and route it to the partner representing this opportunity. For questions about your data:'
     }),
@@ -145,6 +149,7 @@
         <section class="zfind-legal-section"><h2>${escapeHtml(c.currentTitle)}</h2><p>${escapeHtml(c.currentBody)}</p></section>
         <section class="zfind-legal-section"><h2>${escapeHtml(c.consentTitle)}</h2><p>${escapeHtml(c.consentBody)}</p></section>
         <section class="zfind-legal-section"><h2>${escapeHtml(c.thirdPartyTitle)}</h2><p>${escapeHtml(c.thirdPartyBody)}</p></section>
+        ${c.alertsTitle ? `<section class="zfind-legal-section" id="zfind-legal-alerts"><h2>${escapeHtml(c.alertsTitle)}</h2><p>${escapeHtml(c.alertsBody)}</p></section>` : ''}
         <section class="zfind-legal-section"><h2>${escapeHtml(c.contactTitle)}</h2><p><a class="zfind-legal-contact" href="mailto:${DATA_CONTACT}">${DATA_CONTACT}</a></p></section>
       </div>`;
   }

@@ -14,7 +14,10 @@
      ZFIND_EMAIL_FROM         e.g. "Z Find <hello@zfind.online>" (domain verified in Resend)
      ZFIND_LEAD_NOTIFY_EMAIL  address that receives the leads
      SITE_BASE_URL            public site URL, e.g. https://zfind.online
-   Nothing is stored: the lead exists only in the notification e-mail.
+     ZFIND_SUPABASE_SERVICE_KEY  optional: value alerts (see api/alerts.js)
+   The lead itself is not stored: it exists only in the notification e-mail.
+   When the owner asks for value alerts, a pending subscription is saved
+   (double opt-in: a confirmation e-mail is sent, nothing else until then).
    ============================================================ */
 
 'use strict';
@@ -252,8 +255,31 @@ async function handler(req, res) {
     console.error('estimation: send', e.message);
     return send(res, 502, { ok: false, error: 'send' });
   }
-  return send(res, 200, { ok: true });
+
+  // Value alert (owner ticked the box): double opt-in, never blocks the report.
+  let alert;
+  if (contact.alerts && mode === 'owner') {
+    if (!process.env.ZFIND_SUPABASE_SERVICE_KEY) {
+      alert = 'unavailable';
+    } else {
+      try {
+        const created = await alerts().createSubscription({
+          kind: 'value', email: contact.email, lang,
+          criteria: { input, place },
+          lastReference: `${result.basis.period}|${result.central}`
+        });
+        alert = created.ok ? created.status : 'unavailable';
+      } catch (e) {
+        console.error('estimation: value alert', e.message);
+        alert = 'unavailable';
+      }
+    }
+  }
+  return send(res, 200, alert ? { ok: true, alert } : { ok: true });
 }
+
+// Loaded on demand: the report works even where the alert tables do not exist yet.
+function alerts() { return require('./_lib/alerts-core'); }
 
 module.exports = handler;
 module.exports._internals = { cleanInput, reportEmail, leadEmail, loadJson, esc, oneLine, hits, RATE };

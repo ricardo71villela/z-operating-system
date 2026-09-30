@@ -99,6 +99,7 @@ function build() {
   const listingQualityService = read('services/listing-quality.js');
   const placeSearchService = read('services/place-search.js');
   const naturalSearchService = read('services/natural-search.js');
+  const searchFiltersService = read('services/search-filters.js');
   const supabaseClient = read('services/supabaseClient.js');
   const propertiesService = read('services/properties.js');
   const publicVerificationService = read('services/public-verification.js');
@@ -108,6 +109,10 @@ function build() {
   const authService = read('services/auth.js');
   const identityService = read('services/identity.js');
   const leadsService = read('services/leads.js');
+  const partnerReviewsService = read('services/partner-reviews.js');
+  const demoModeService = read('services/demo-mode.js');
+  const proOfferService = read('services/pro-offer.js');
+  const proReviewsCss = read('pro-reviews.css');
   const simulatorService = read('services/simulator.js');
   const zonesService = read('services/zones.js');
   const zoneImagesService = read('services/zone-images.js');
@@ -162,7 +167,7 @@ function build() {
   );
 
   const html = headTop
-    + '<style>\n' + css + '\n' + legalGuideReadingSurface + '\n' + mobileUxPolish + '\n' + mobileUxBalanceV3 + '\n' + propertyMobileDetailHotfix + '\n' + listingCompliancePublicCss + '\n' + searchMapUiCss + '\n' + searchAdvancedCss + '\n' + marketPricesCss + '\n' + marketDivisionsCss + '\n' + estimationCss + '\n</style>\n</head>\n<body>\n'
+    + '<style>\n' + css + '\n' + legalGuideReadingSurface + '\n' + mobileUxPolish + '\n' + mobileUxBalanceV3 + '\n' + propertyMobileDetailHotfix + '\n' + listingCompliancePublicCss + '\n' + searchMapUiCss + '\n' + searchAdvancedCss + '\n' + marketPricesCss + '\n' + marketDivisionsCss + '\n' + estimationCss + '\n' + proReviewsCss + '\n</style>\n</head>\n<body>\n'
     + resolvedBody
     + '\n<script>\n'
     + vendorSupabase + '\n'
@@ -184,6 +189,7 @@ function build() {
     + listingQualityService + '\n'
     + placeSearchService + '\n'
     + naturalSearchService + '\n'
+    + searchFiltersService + '\n'
     + supabaseClient + '\n'
     + propertiesService + '\n'
     + publicVerificationService + '\n'
@@ -193,6 +199,9 @@ function build() {
     + authService + '\n'
     + identityService + '\n'
     + leadsService + '\n'
+    + partnerReviewsService + '\n'
+    + demoModeService + '\n'
+    + proOfferService + '\n'
     + simulatorService + '\n'
     + zonesService + '\n'
     + zoneImagesService + '\n'

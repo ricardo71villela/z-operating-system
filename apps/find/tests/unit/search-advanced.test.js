@@ -51,13 +51,8 @@ function check(label, value) {
   check('a plain place or postcode is left untouched', natural.parse('Évian-les-Bains').place === 'Évian-les-Bains' && !natural.parse('74500').hasCriteria);
   check('amounts: 450k, 1,2 M€, 450 000 €', natural.parseAmount('450', 'k') === 450000 && natural.parseAmount('1,2', 'M') === 1200000 && natural.parseAmount('450 000', '') === 450000);
 
-  // Advanced filters (viewmodels.js helpers, run in isolation).
-  const source = fs.readFileSync(path.join(WEB, 'src', 'viewmodels.js'), 'utf8');
-  const start = source.indexOf('const ENERGY_ORDER');
-  const end = source.indexOf('async function loadSearchResults');
-  const context = { Date, Number, String, Array, Infinity };
-  vm.createContext(context);
-  vm.runInContext(source.slice(start, end) + ';globalThis.apply = applyAdvancedSearchFilters;', context);
+  // Advanced filters (services/search-filters.js, shared with the alert e-mails).
+  const context = { apply: require(path.join(WEB, 'src', 'services', 'search-filters.js')).applyAdvancedSearchFilters };
   const card = (id, extra) => Object.assign({ assetId: id, kind: 'Property', title: id, cityLabel: 'Évian-les-Bains', zoneLabel: 'Évian-les-Bains', countryIso: 'FR', priceValue: 400000, areaSqm: 70, rooms: 3, bedrooms: 2, energyRating: 'C', hasOutdoor: false, hasParking: false, hasLift: false, createdAt: '2026-09-01' }, extra);
   const cards = [
     card('a', { hasOutdoor: true, priceValue: 420000, createdAt: '2026-09-20' }),
