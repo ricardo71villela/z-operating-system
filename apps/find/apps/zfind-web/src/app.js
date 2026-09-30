@@ -2393,6 +2393,155 @@ async function renderListingMarketContext(vm) {
     <p class="listing-market-note"><a href="#/${state.lang}/estimation?market=${country}&mode=buyer">${copy.more} →</a></p>`;
 }
 
+/* ---------------- Listing page: financing, travel, similar listings ---------------- */
+
+const LISTING_PAGE_COPY = Object.freeze({
+  fr: { travelTitle: 'Temps de trajet', travelPlaceholder: 'Votre lieu de travail, une école…', travelGo: 'Voir le trajet',
+        travelModes: { driving: 'Voiture', transit: 'Transports', walking: 'À pied', bicycling: 'Vélo' },
+        travelNote: 'Itinéraire calculé par Google Maps, dans un nouvel onglet.', similarTitle: 'Biens similaires' },
+  en: { travelTitle: 'Travel time', travelPlaceholder: 'Your workplace, a school…', travelGo: 'Show the route',
+        travelModes: { driving: 'Car', transit: 'Public transport', walking: 'Walk', bicycling: 'Bike' },
+        travelNote: 'Route calculated by Google Maps, in a new tab.', similarTitle: 'Similar properties' }
+});
+function listingCopy() { return LISTING_PAGE_COPY[state.lang] || LISTING_PAGE_COPY.en; }
+
+function financingCardHTML(vm) {
+  const service = window.ZFindServices && window.ZFindServices.acquisitionCosts;
+  const country = vm.geo && vm.geo.countryIso;
+  if (!service || !['FR', 'BE', 'LU'].includes(country) || !(vm.listing.priceCurrent > 0)) return '';
+  const c = service.COPY[state.lang] || service.COPY.en;
+  const price = Number(vm.listing.priceCurrent);
+  const deposit = Math.round(price * 0.1 / 1000) * 1000;
+  const opt = (value, label, selected) => `<option value="${value}"${selected ? ' selected' : ''}>${label}</option>`;
+  const countryFields = country === 'FR'
+    ? `<label class="fin-check"><input type="checkbox" data-fin="newBuild"${vm.newBuild ? ' checked' : ''}> ${c.newBuild}</label>
+       <label class="fin-check"><input type="checkbox" data-fin="firstBuyer"> ${c.firstBuyer}</label>`
+    : country === 'BE'
+      ? `<label class="fin-field">${c.region}<select data-fin="region">${opt('', '—', true)}${['WAL', 'VLG', 'BRU'].map(r => opt(r, c.regions[r], false)).join('')}</select></label>
+         <label class="fin-check"><input type="checkbox" data-fin="ownHome" checked> ${c.ownHome.BE}</label>`
+      : `<label class="fin-check"><input type="checkbox" data-fin="ownHome" checked> ${c.ownHome.LU}</label>
+         <label class="fin-field">${c.buyers}<select data-fin="buyers">${opt(1, c.buyersOptions[1], true)}${opt(2, c.buyersOptions[2], false)}</select></label>`;
+  return `
+      <div class="sidebar-card financing-card" data-financing-country="${country}">
+        <h4>${c.title}</h4>
+        <div class="fin-grid">
+          <label class="fin-field">${c.deposit}<input type="number" inputmode="numeric" min="0" step="1000" value="${deposit}" data-fin="deposit"></label>
+          <label class="fin-field">${c.rate}<input type="number" inputmode="decimal" min="0" max="15" step="0.05" value="3.3" data-fin="ratePct"></label>
+          <label class="fin-field">${c.years}<select data-fin="years">${[15, 20, 25].map(y => opt(y, y, y === 20)).join('')}</select></label>
+        </div>
+        ${countryFields}
+        <div class="fin-result" data-fin-result aria-live="polite"></div>
+        <p class="fin-note">${c.note}</p>
+      </div>`;
+}
+
+function bindFinancingCard(vm) {
+  const card = document.querySelector('#property-root .financing-card');
+  const service = window.ZFindServices && window.ZFindServices.acquisitionCosts;
+  if (!card || !service) return;
+  const c = service.COPY[state.lang] || service.COPY.en;
+  const country = card.getAttribute('data-financing-country');
+  const field = name => card.querySelector(`[data-fin="${name}"]`);
+  const money = v => fmtCurrency(v, state.lang, 'EUR');
+  function update() {
+    const input = {
+      country, price: Number(vm.listing.priceCurrent),
+      deposit: Number((field('deposit') || {}).value) || 0,
+      ratePct: Number((field('ratePct') || {}).value) || 0,
+      years: Number((field('years') || {}).value) || 20,
+      newBuild: !!(field('newBuild') && field('newBuild').checked),
+      firstBuyer: !!(field('firstBuyer') && field('firstBuyer').checked),
+      region: field('region') ? field('region').value : undefined,
+      ownHome: !!(field('ownHome') && field('ownHome').checked),
+      buyers: field('buyers') ? Number(field('buyers').value) : 1
+    };
+    const r = service.financing(input);
+    const out = card.querySelector('[data-fin-result]');
+    if (r.error === 'region_required') {
+      out.innerHTML = `<div class="sim-row"><span>${c.region}</span><span>—</span></div>`;
+      return;
+    }
+    if (r.error) { out.innerHTML = ''; return; }
+    out.innerHTML = r.lines.map(line => `<div class="sim-row"><span>${c.lines[line.key]}</span><span>${money(line.amount)}</span></div>`).join('')
+      + `<div class="sim-row"><span>${c.costs}</span><span>${money(r.costs)}</span></div>`
+      + (r.notaryIncluded ? '' : `<div class="sim-row"><span class="fin-muted">${c.notaryExcluded}</span><span></span></div>`)
+      + `<div class="sim-row"><span>${c.total}</span><span>${money(r.total)}</span></div>`
+      + `<div class="sim-row"><span>${c.loan}</span><span>${money(r.loan)}</span></div>`
+      + `<div class="sim-row total"><span>${c.monthly}</span><span style="color:var(--gold-dark)">${money(r.monthly)}${c.perMonth}</span></div>`;
+  }
+  card.addEventListener('input', update);
+  card.addEventListener('change', update);
+  update();
+}
+
+function travelCardHTML(vm) {
+  const c = listingCopy();
+  const hasPlace = (vm.geo.latitude != null && vm.geo.longitude != null) || vm.geo.cityLabel;
+  if (!hasPlace) return '';
+  return `
+      <div class="sidebar-card travel-card">
+        <h4>${c.travelTitle}</h4>
+        <form data-travel-form>
+          <input type="text" data-travel-to placeholder="${c.travelPlaceholder}" aria-label="${c.travelPlaceholder}" required>
+          <div class="travel-modes" role="radiogroup" aria-label="${c.travelTitle}">
+            ${Object.keys(c.travelModes).map((mode, i) => `<label><input type="radio" name="travel-mode" value="${mode}"${i === 0 ? ' checked' : ''}> ${c.travelModes[mode]}</label>`).join('')}
+          </div>
+          <button type="submit" class="btn btn-outline" style="width:100%; justify-content:center">${c.travelGo}</button>
+        </form>
+        <p class="fin-note">${c.travelNote}</p>
+      </div>`;
+}
+
+function bindTravelCard(vm) {
+  const form = document.querySelector('#property-root [data-travel-form]');
+  if (!form) return;
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    const to = form.querySelector('[data-travel-to]').value.trim();
+    if (!to) return;
+    const mode = (form.querySelector('input[name="travel-mode"]:checked') || {}).value || 'driving';
+    const origin = vm.geo.latitude != null && vm.geo.longitude != null
+      ? `${vm.geo.latitude},${vm.geo.longitude}`
+      : [vm.geo.cityLabel, vm.geo.countryIso].filter(Boolean).join(', ');
+    const url = 'https://www.google.com/maps/dir/?api=1&origin=' + encodeURIComponent(origin) +
+      '&destination=' + encodeURIComponent(to) + '&travelmode=' + encodeURIComponent(mode);
+    window.open(url, '_blank', 'noopener');
+  });
+}
+
+/* Up to four published listings of the same country and type, priced
+   within ±30 % of this one, closest price first. */
+async function renderSimilarListings(vm) {
+  const root = document.getElementById('similar-listings-root');
+  const services = window.ZFindServices;
+  if (!root || !services || !services.search) return;
+  const price = Number(vm.listing.priceCurrent);
+  if (!(price > 0)) return;
+  let result;
+  try { result = await services.search.listPublished(); } catch (_) { return; }
+  if (state.view !== 'property' || !document.body.contains(root)) return;
+  const rows = (result && Array.isArray(result.data) ? result.data : []).filter(row => {
+    const rep = (row.representations || [])[0];
+    const listing = rep && (rep.listings || [])[0];
+    if (!listing || row.id === vm.asset.id) return false;
+    if ((row.zones_lite || {}).country_iso !== vm.geo.countryIso) return false;
+    if (row.subtype !== vm.asset.subtype) return false;
+    if ((listing.transaction_type || 'sale') !== vm.listing.transactionType) return false;
+    const p = Number(listing.price_current);
+    return p >= price * 0.7 && p <= price * 1.3;
+  }).sort((a, b) => Math.abs(a.representations[0].listings[0].price_current - price) - Math.abs(b.representations[0].listings[0].price_current - price))
+    .slice(0, 4);
+  if (!rows.length) return;
+  const cards = rows.map(row => Object.assign(mapSupabasePropertyRowToCard(row, state.lang), {
+    imageUrl: undefined,
+    imageMedia: ((row.representations[0].listings[0] || {}).listing_media) || []
+  }));
+  await resolveCardImages(cards);
+  if (state.view !== 'property' || !document.body.contains(root)) return;
+  root.innerHTML = `<div class="section-title">${listingCopy().similarTitle}</div><div class="cards-grid">${cards.map(cardHTML).join('')}</div>`;
+  root.hidden = false;
+}
+
 async function renderProperty(assetId) {
   document.getElementById('property-root').innerHTML = propertyStatusHTML('home.loadingTitle', 'home.loadingBody');
 
@@ -2424,7 +2573,7 @@ async function renderProperty(assetId) {
   </div>
   <div class="detail-hero">
     <div class="wrap">
-      <span class="eyebrow">${vm.asset.typology} · ${vm.geo.zoneLabel || vm.geo.cityLabel}, ${vm.geo.cityLabel}, ${vm.geo.countryLabel}</span>
+      <span class="eyebrow">${[vm.asset.typology, vm.geo.locationLabel].filter(Boolean).join(' · ')}</span>
       <h1>${vm.content.title}</h1>
       <div class="loc-row"><span style="cursor:pointer; text-decoration:underline; text-underline-offset:3px;" onclick="navigate('search',null,{q:'${(vm.geo.zoneLabel||vm.geo.cityLabel).replace(/'/g,"\\'")}'})">${vm.geo.zoneLabel || vm.geo.cityLabel}</span><span>·</span><span>${vm.asset.areaSqm} m²</span><span>·</span><span class="tag tag-verified">${t(L,'property.singleRepresentation')}</span></div>
       <div class="price-tag">${vm.priceLabel}</div>
@@ -2450,34 +2599,16 @@ async function renderProperty(assetId) {
         ` : `<div class="row"><span class="label" style="color:var(--gray-400);">${t(L,'property.zIntelComingSoonBody')}</span></div>`}
       </div>
 
-      <div class="section-title">${t(L,'property.zInsightsTitle')}</div>
-      <div class="info-card">
-        <div class="row"><span class="label" style="color:var(--gray-400);">${t(L,'property.zInsightsComingSoonBody')}</span></div>
-      </div>
-
-      ${isRentalListing ? '' : `
+      ${vm.intelligence && !isRentalListing ? `
       <div class="section-title">${t(L,'property.investmentTitle')}</div>
       <div class="info-card">
-        ${vm.intelligence ? `
         <div class="row"><span class="label">${t(L,'property.estYield')}</span><span class="val">${vm.intelligence.low}% – ${vm.intelligence.high}%</span></div>
         <div class="row"><span class="label">${t(L,'property.estRent')}</span><span class="val">${fmtCurrency(vm.intelligence.rentLow,L)} – ${fmtCurrency(vm.intelligence.rentHigh,L)}</span></div>
-        ` : `<div class="row"><span class="label" style="color:var(--gray-400);">${t(L,'property.zIntelInvestmentComingSoonBody')}</span></div>`}
-      </div>
-      `}
+      </div>` : ''}
     </div>
     <div>
       <div class="sidebar-sticky">
-      ${isRentalListing ? '' : `
-      <div class="sidebar-card">
-        <h4>${t(L,'property.yieldSimTitle')}</h4>
-        ${vm.intelligence ? `
-        <div class="sim-row"><span>${t(L,'property.purchasePrice')}</span><span>${vm.priceLabel}</span></div>
-        <div class="sim-row"><span>${t(L,'property.estCosts')}</span><span>${fmtCurrency(Math.round(vm.listing.priceCurrent*0.07),L)}</span></div>
-        <div class="sim-row"><span>${t(L,'property.estAnnualRent')}</span><span>${fmtCurrency(vm.intelligence.rentLow*12,L)}</span></div>
-        <div class="sim-row total"><span>${t(L,'property.estGrossYield')}</span><span style="color:var(--gold-dark)">${vm.intelligence.low}%</span></div>
-        ` : `<div class="sim-row"><span style="color:var(--gray-400);">${t(L,'property.zIntelInvestmentComingSoonBody')}</span></div>`}
-      </div>
-      `}
+      ${isRentalListing ? '' : financingCardHTML(vm)}
       <div class="sidebar-card">
         <h4>${t(L,'property.representedBy')}</h4>
         <div style="display:flex; gap:12px; align-items:center; ${vm.partner.id ? 'cursor:pointer;' : ''}" ${vm.partner.id ? `onclick="navigate('partner','${vm.partner.id}')"` : ''}>
@@ -2487,10 +2618,15 @@ async function renderProperty(assetId) {
         <button class="btn btn-gold" style="width:100%; margin-top:20px; justify-content:center" onclick="openModal('${vm.listing.id}', ${JSON.stringify(vm.partner.enquiryPolicy).replace(/"/g,'&quot;')}, '${vm.partner.id}')">${t(L,'property.contactBtn')}</button>
         <button class="btn btn-outline" style="width:100%; margin-top:10px; justify-content:center">${t(L,'property.saveBtn')}</button>
       </div>
+      ${travelCardHTML(vm)}
       </div>
     </div>
-  </div>`;
+  </div>
+  <section class="wrap similar-listings" id="similar-listings-root" hidden></section>`;
   renderListingMarketContext(vm);
+  bindFinancingCard(vm);
+  bindTravelCard(vm);
+  renderSimilarListings(vm);
 }
 
 /* ---------------- Development detail ---------------- */
@@ -2568,15 +2704,6 @@ async function renderDevelopment(assetId) {
       ${(vm.market && (vm.market.avgPriceZone || vm.market.priceThis || vm.market.trend || vm.market.comparables)) ? '' : `<div class="row"><span class="label" style="color:var(--gray-400);">${t(L,'property.zIntelComingSoonBody')}</span></div>`}
     </div>
 
-    <div class="section-title">${t(L,'property.zInsightsTitle')}</div>
-    <div class="info-card">
-      <div class="row"><span class="label" style="color:var(--gray-400);">${t(L,'property.zInsightsComingSoonBody')}</span></div>
-    </div>
-
-    <div class="section-title">${t(L,'property.investmentTitle')}</div>
-    <div class="info-card">
-      ${vm.intelligence ? '' : `<div class="row"><span class="label" style="color:var(--gray-400);">${t(L,'property.zIntelInvestmentComingSoonBody')}</span></div>`}
-    </div>
 
     <div style="margin-top:20px; display:flex; align-items:center; gap:12px;">
       <div style="font-family:'Cormorant Garamond'; font-size:1.1rem">${t(L,'property.representedBy')}: ${vm.partner.name}</div>
@@ -2690,14 +2817,7 @@ async function renderLand(assetId) {
         ${vm.content.description || ''}
       </p>
 
-      <div class="section-title" style="margin-top:30px">${t(L,'property.zInsightsTitle')}</div>
-      <div class="info-card">
-        <div class="row">
-          <span class="label" style="color:var(--gray-400);">
-            ${t(L,'property.zInsightsComingSoonBody')}
-          </span>
-        </div>
-      </div>
+
 
       <div class="section-title">${t(L,'property.investmentTitle')}</div>
       <div class="info-card">
@@ -3462,3 +3582,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('home-q').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.defaultPrevented) submitHomeSearch(); });
   parseHash();
 });
+
+/* Installable site: register the network-first service worker (sw.js) on
+   the real site only — never on file:// test pages or preview tooling. */
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => { /* optional enhancement */ });
+  });
+}
