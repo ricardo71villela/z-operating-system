@@ -104,9 +104,12 @@
   }
 
   /* Hash link to the market's search, scoped to one place. */
-  function searchHref(lang, marketKey, place) {
-    const usp = new URLSearchParams({ market: marketKey, transactionType: 'sale', q: place });
-    return `#/${lang}/search?${usp.toString()}`;
+  // Commune links carry the official code (commune=FR:74119) so that
+  // homonymous communes never mix; the name stays for display.
+  function searchHref(lang, marketKey, place, code) {
+    const params = new URLSearchParams({ market: marketKey, transactionType: 'sale', q: place });
+    if (code) params.set('commune', `${marketKey}:${code}`);
+    return `#/${lang}/search?${params.toString()}`;
   }
 
   function prices(item, lang, c, unit) {
@@ -128,7 +131,7 @@
     return `<li class="md-row">
       <div class="md-row-main"><strong>${esc(x.n)}</strong>${sub ? `<small>${esc(sub)}</small>` : ''}</div>
       ${prices(x, lang, c, unit)}
-      <a class="md-link" href="${esc(searchHref(lang, marketKey, x.n))}">${c.seeProperties}</a>
+      <a class="md-link" href="${esc(searchHref(lang, marketKey, x.n, x.c))}">${c.seeProperties}</a>
     </li>`;
   }
 

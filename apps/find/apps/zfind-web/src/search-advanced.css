@@ -1,0 +1,28 @@
+/* Advanced search: criteria panel, commune suggestions. */
+#view-search .searchbar{flex-wrap:wrap;}
+.search-advanced{grid-column:1/-1;flex:0 0 100%;width:100%;box-sizing:border-box;margin-top:4px;padding:0 16px 12px;border-top:1px solid var(--gray-200);}
+.search-advanced summary{cursor:pointer;font-size:.85rem;color:var(--gold-dark);font-weight:600;list-style:none;min-height:44px;display:inline-flex;align-items:center;gap:8px;}
+.search-advanced summary::-webkit-details-marker{display:none;}
+.search-advanced summary::before{content:'+';display:inline-block;width:1em;}
+.search-advanced[open] summary::before{content:'–';}
+.search-advanced .adv-count:not(:empty){display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--gold-dark);color:var(--white);font-size:.72rem;}
+.search-advanced .adv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px 12px;margin-top:8px;}
+.search-advanced label{display:flex;flex-direction:column;gap:4px;font-size:.75rem;color:var(--gray-500);}
+.search-advanced input[type=number],.search-advanced select{min-height:44px;padding:6px 10px;border:1px solid var(--gray-200);border-radius:6px;font:inherit;font-size:.9rem;color:var(--gray-900);background:var(--white);}
+.search-advanced .adv-checks{display:flex;flex-wrap:wrap;gap:6px 18px;margin:12px 0;}
+.search-advanced .adv-checks label{flex-direction:row;align-items:center;gap:8px;font-size:.85rem;color:var(--gray-700);min-height:36px;}
+.search-advanced .adv-apply{min-height:44px;}
+.place-suggest{position:absolute;z-index:40;left:0;right:0;top:100%;margin:4px 0 0;padding:4px 0;list-style:none;background:var(--white);border:1px solid var(--gray-200);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.08);max-height:320px;overflow:auto;}
+.place-suggest[hidden]{display:none;}
+.place-suggest li{display:flex;flex-direction:column;gap:2px;padding:10px 14px;cursor:pointer;min-height:44px;justify-content:center;}
+.place-suggest li[aria-selected=true],.place-suggest li:hover{background:var(--gold-pale,#f7f0e3);}
+.place-suggest li strong{font-weight:600;font-size:.92rem;color:var(--gray-900);}
+.place-suggest li span{font-size:.75rem;color:var(--gray-500);}
+.search-fields,.searchbar .fields,#view-home .searchbar{position:relative;}
+.place-anchor{position:relative;}
+/* Listing page: price against the official market. */
+#listing-market-root .listing-market-verdict{margin:12px 0 4px;font-weight:600;color:var(--gray-900);}
+#listing-market-root .listing-market-verdict[data-position=above]{color:#9a4b12;}
+#listing-market-root .listing-market-verdict[data-position=below]{color:#2f6b3a;}
+#listing-market-root .listing-market-note{margin-top:8px;font-size:.78rem;line-height:1.5;color:var(--gray-500);}
+#listing-market-root .listing-market-note a{color:var(--gold-dark);font-weight:600;}

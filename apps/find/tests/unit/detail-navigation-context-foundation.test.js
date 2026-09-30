@@ -77,7 +77,9 @@ check(
   Array.from(
     phaseC.SEARCH_RETURN_QUERY_KEYS || []
   ).join(',') ===
-    'market,q,subtype,transactionType,rentalPeriod,budget,page'
+    'market,q,subtype,transactionType,rentalPeriod,budget,page,' +
+    // Advanced search (2026-09-30): commune, price, surface, rooms, energy, features, order.
+    'commune,priceMin,priceMax,areaMin,rooms,beds,dpe,outdoor,parking,lift,sort'
 );
 
 const source = {

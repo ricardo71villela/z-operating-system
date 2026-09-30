@@ -76,12 +76,16 @@ function build() {
   const propertyMobileDetailHotfix = read('property-mobile-detail-hotfix-v1.css');
   const listingCompliancePublicCss = read('listing-compliance-public.css');
   const searchMapUiCss = read('search-map-ui.css');
+  const searchAdvancedCss = read('search-advanced.css');
   const listingPageCss = read('listing-page.css');
   const marketPricesCss = read('market-prices.css');
   const marketPricesService = read('services/market-prices.js');
   const marketDivisionsCss = read('market-divisions.css');
   const marketDivisionsService = read('services/market-divisions.js');
   const homeMarketsService = read('services/home-markets.js');
+  const estimationCss = read('estimation.css');
+  const estimationService = read('services/estimation.js');
+  const estimationPageService = read('services/estimation-page.js');
   const body = read('body.html');
   const pathD = read('path_data.txt');
   const vendorSupabase = read('vendor-supabase.js');
@@ -94,6 +98,8 @@ function build() {
   const searchMapViewportService = read('services/search-map-viewport.js');
   const marketSearchScopeService = read('services/market-search-scope.js');
   const listingQualityService = read('services/listing-quality.js');
+  const placeSearchService = read('services/place-search.js');
+  const naturalSearchService = read('services/natural-search.js');
   const acquisitionCostsService = read('services/acquisition-costs.js');
   const supabaseClient = read('services/supabaseClient.js');
   const propertiesService = read('services/properties.js');
@@ -158,7 +164,7 @@ function build() {
   );
 
   const html = headTop
-    + '<style>\n' + css + '\n' + legalGuideReadingSurface + '\n' + mobileUxPolish + '\n' + mobileUxBalanceV3 + '\n' + propertyMobileDetailHotfix + '\n' + listingCompliancePublicCss + '\n' + searchMapUiCss + '\n' + listingPageCss + '\n' + marketPricesCss + '\n' + marketDivisionsCss + '\n</style>\n</head>\n<body>\n'
+    + '<style>\n' + css + '\n' + legalGuideReadingSurface + '\n' + mobileUxPolish + '\n' + mobileUxBalanceV3 + '\n' + propertyMobileDetailHotfix + '\n' + listingCompliancePublicCss + '\n' + searchMapUiCss + '\n' + searchAdvancedCss + '\n' + listingPageCss + '\n' + marketPricesCss + '\n' + marketDivisionsCss + '\n' + estimationCss + '\n</style>\n</head>\n<body>\n'
     + resolvedBody
     + '\n<script>\n'
     + vendorSupabase + '\n'
@@ -175,7 +181,11 @@ function build() {
     + marketPricesService + '\n'
     + marketDivisionsService + '\n'
     + homeMarketsService + '\n'
+    + estimationService + '\n'
+    + estimationPageService + '\n'
     + listingQualityService + '\n'
+    + placeSearchService + '\n'
+    + naturalSearchService + '\n'
     + acquisitionCostsService + '\n'
     + supabaseClient + '\n'
     + propertiesService + '\n'

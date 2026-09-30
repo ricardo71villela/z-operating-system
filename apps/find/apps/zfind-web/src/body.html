@@ -19,6 +19,7 @@
       <button class="nav-btn" data-view="search" data-i18n="navigation.search">Rechercher</button>
       <button class="nav-btn" data-view="partner" data-i18n="navigation.partner">Partenaire</button>
       <button class="nav-btn" data-view="simulator" data-i18n="navigation.simulator">Simulateurs</button>
+      <button class="nav-btn" data-view="estimation" data-i18n="navigation.estimation">Estimer</button>
     </nav>
     <div class="nav-actions">
       <div class="market-switch">
@@ -141,6 +142,8 @@
     </div>
   </div>
 
+  <section class="block market-estimation-cta home-estimation-cta" aria-label="Z Find estimation"><div class="wrap" id="home-estimation-root"></div></section>
+
   <section class="block home-markets" aria-label="Z Find markets"><div class="wrap" id="home-markets-root"></div></section>
 
   <div id="home-status" class="design-home-status" style="display:none; text-align:center; padding:60px 20px; border:1px solid var(--gray-200); border-radius:var(--radius); background:var(--gray-50); max-width:1200px; margin:0 auto;">
@@ -210,6 +213,7 @@
         <button class="go" data-i18n="search.applyFilters" onclick="applySearchBar()"></button>
         <button class="btn btn-ghost" data-i18n="search.clearFilters" onclick="clearSearchFilters()"></button>
       </div>
+      <details class="search-advanced" id="search-advanced"></details>
     </div>
 
     <div class="tabs-row">
@@ -5603,6 +5607,7 @@
 </section>
 
 <section class="view" id="view-simulator"><div id="simulator-root"></div></section>
+<section class="view" id="view-estimation"><div id="estimation-root"></div></section>
 <section class="view" id="view-zone"><div id="zone-root"></div></section>
 
 </main>
