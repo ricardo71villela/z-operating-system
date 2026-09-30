@@ -66,7 +66,8 @@
       project: 'Votre projet',
       projectsOwner: { sell_3m: 'Vendre dans les 3 mois', sell_12m: 'Vendre dans l’année', later: 'Plus tard', curious: 'Simple curiosité' },
       projectsBuyer: { buy_3m: 'Acheter dans les 3 mois', buy_12m: 'Acheter dans l’année', looking: 'Je me renseigne' },
-      alerts: 'Je souhaite être informé(e) de l’évolution des prix dans cette commune.',
+      alerts: 'J’accepte de recevoir par e-mail la nouvelle estimation de mon bien à chaque mise à jour officielle des prix. Désinscription en un clic dans chaque e-mail.',
+      alertPending: 'Pour activer l’alerte de valeur, cliquez sur le lien de confirmation reçu par e-mail.',
       consent: 'J’accepte que Z Find utilise ces informations pour m’envoyer ce rapport et me recontacter au sujet de mon projet immobilier.',
       rgpd: 'Données utilisées uniquement pour ce rapport et le suivi de votre demande ; elles ne sont ni vendues ni cédées. Pour y accéder, les rectifier ou les supprimer :',
       send: 'Envoyer le rapport', sending: 'Envoi…',
@@ -113,7 +114,8 @@
       project: 'Your plans',
       projectsOwner: { sell_3m: 'Sell within 3 months', sell_12m: 'Sell within a year', later: 'Later', curious: 'Just curious' },
       projectsBuyer: { buy_3m: 'Buy within 3 months', buy_12m: 'Buy within a year', looking: 'Just looking' },
-      alerts: 'I would like updates on price trends in this municipality.',
+      alerts: 'I agree to receive by e-mail the new estimate of my property after each official price update. One-click unsubscribe in every e-mail.',
+      alertPending: 'To activate the value alert, click the confirmation link in the e-mail you received.',
       consent: 'I agree that Z Find uses this information to send me this report and contact me about my property plans.',
       rgpd: 'Data used only for this report and to follow up on your request; never sold or passed on. To access, correct or delete it:',
       send: 'Send the report', sending: 'Sending…',
@@ -275,7 +277,7 @@
             <select id="est-project" data-est-project>${Object.entries(projects).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('')}</select></div>
         </div>
         <label class="est-hp" aria-hidden="true">Website <input type="text" tabindex="-1" autocomplete="off" data-est-hp></label>
-        <label class="est-check"><input type="checkbox" data-est-alerts> ${c.alerts}</label>
+        ${mode === 'buyer' ? '' : `<label class="est-check"><input type="checkbox" data-est-alerts> ${c.alerts}</label>`}
         <label class="est-check est-consent"><input type="checkbox" data-est-consent> ${c.consent}</label>
         <p class="est-rgpd">${c.rgpd} <a href="mailto:${DATA_CONTACT}">${DATA_CONTACT}</a></p>
         <p class="est-error" data-est-send-error role="alert" hidden></p>
@@ -437,15 +439,16 @@
                 name: report.querySelector('[data-est-name]').value.trim(),
                 email, phone,
                 project: report.querySelector('[data-est-project]').value,
-                alerts: report.querySelector('[data-est-alerts]').checked,
+                alerts: Boolean(report.querySelector('[data-est-alerts]') && report.querySelector('[data-est-alerts]').checked),
                 consent: true
               },
               website: report.querySelector('[data-est-hp]').value
             })
           });
           if (!res.ok) throw new Error(String(res.status));
+          const payload = await res.json().catch(() => ({}));
           report.querySelectorAll('input, select, button').forEach(el => { el.disabled = true; });
-          sent.textContent = c.sent(email); sent.hidden = false;
+          sent.textContent = c.sent(email) + (payload.alert === 'pending' ? ' ' + c.alertPending : ''); sent.hidden = false;
           btn.textContent = c.send;
         } catch (_) {
           btn.disabled = false; btn.textContent = c.send;

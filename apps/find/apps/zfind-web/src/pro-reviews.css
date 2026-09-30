@@ -1,0 +1,67 @@
+/* ============================================================
+   Z FIND — alerts, reviews, demonstration mode, professionals page
+   ============================================================ */
+
+/* Search alert */
+.search-alert-root:empty { display: none; }
+.search-alert { margin: 28px 0 8px; padding: 20px; border: 1px solid var(--gray-200); border-radius: var(--radius); background: var(--gray-50); }
+.search-alert h3 { font-size: 1.25rem; margin: 0 0 6px; }
+.search-alert p { color: var(--gray-500); font-size: .88rem; margin: 0 0 12px; line-height: 1.5; }
+.search-alert-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.search-alert-row input[type=email] { flex: 1 1 220px; min-width: 0; padding: 11px 12px; border: 1px solid var(--gray-300, #d8d0c0); border-radius: var(--radius); font: inherit; }
+.search-alert-consent { display: flex; gap: 8px; align-items: flex-start; font-size: .8rem; color: var(--gray-500); margin-top: 10px; line-height: 1.45; }
+.search-alert-consent input { margin-top: 3px; }
+.search-alert-msg { margin-top: 10px; font-size: .85rem; }
+.search-alert-msg.ok { color: #2a6b2a; }
+.search-alert-msg.err { color: #a33; }
+.search-alert-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+/* Enquiry: review invitation */
+.enquiry-review-optin { display: flex; gap: 8px; align-items: flex-start; font-size: .8rem; color: var(--gray-500); margin-top: 12px; line-height: 1.45; }
+.enquiry-review-optin input { margin-top: 3px; width: auto; }
+
+/* Reviews */
+.zr-stars { color: var(--gold, #b08d57); letter-spacing: 1px; white-space: nowrap; }
+.zr-stars .zr-off { color: var(--gray-200, #e6e1d7); }
+.zr-section { margin-top: 36px; }
+.zr-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.zr-head h2 { font-size: 1.6rem; margin: 0; }
+.zr-score { font-size: .95rem; color: var(--gray-500); }
+.zr-score b { font-size: 1.4rem; color: var(--ink, #1d1a16); }
+.zr-method { color: var(--gray-500); font-size: .82rem; margin: 6px 0 16px; }
+.zr-list { display: grid; gap: 14px; }
+.zr-item { padding: 16px; border: 1px solid var(--gray-200); border-radius: var(--radius); background: #fff; }
+.zr-item-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.zr-date { color: var(--gray-400); font-size: .8rem; margin-left: auto; }
+.zr-verified { color: #2a6b2a; font-size: .78rem; margin-top: 4px; }
+.zr-item p { margin: 8px 0 0; line-height: 1.6; color: var(--gray-700); font-size: .92rem; }
+.zr-reply { margin-top: 10px; padding: 10px 12px; background: var(--gray-50); border-left: 3px solid var(--gold, #b08d57); font-size: .88rem; }
+.zr-summary { margin-top: 8px; font-size: .85rem; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.zr-summary a { color: var(--gold-dark, #8a6a36); }
+
+/* Demonstration mode */
+.zdemo-banner { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1000; box-shadow: 0 -4px 16px rgba(0,0,0,.18); display: flex; gap: 14px; justify-content: center; align-items: center; flex-wrap: wrap; padding: 8px 16px; background: #1d1a16; color: #f3ead8; font-size: .82rem; text-align: center; }
+.zdemo-banner a { color: #e2c48f; }
+.zr-demo-label { display: inline-block; font-size: .72rem; letter-spacing: .04em; text-transform: uppercase; color: #8a3b12; background: #fbeee2; border: 1px dashed #d89a6a; border-radius: 4px; padding: 2px 8px; margin-bottom: 10px; }
+.zdemo-slot { position: relative; }
+.zdemo-card { outline: 1px dashed #d89a6a; outline-offset: -1px; }
+.card.zdemo-card .thumb.zdemo-thumb { background: linear-gradient(135deg, #d9c7a3, #8a6a36); }
+.card.zdemo-card .thumb.zdemo-thumb-2 { background: linear-gradient(135deg, #b9c8c9, #4f6b73); }
+.card.zdemo-card .thumb.zdemo-thumb-3 { background: linear-gradient(135deg, #e0d2c0, #a7825a); }
+.card.zdemo-card .thumb.zdemo-thumb-4 { background: linear-gradient(135deg, #c9c2b6, #5d5448); }
+.card.zdemo-card .thumb.zdemo-thumb-5 { background: linear-gradient(135deg, #cfd8c4, #6b7d57); }
+.card.zdemo-card .thumb.zdemo-thumb-6 { background: linear-gradient(135deg, #d8c9c9, #7d5a5a); }
+body:has(.zdemo-banner) footer.site { padding-bottom: 56px; }
+
+/* Professionals page */
+.zpro { padding-top: 44px; padding-bottom: 60px; }
+.zpro h1 { font-size: 2.3rem; margin: 6px 0 12px; }
+.zpro h2 { font-size: 1.5rem; margin: 34px 0 14px; }
+.zpro-lead { max-width: 760px; color: var(--gray-700); line-height: 1.7; }
+.zpro-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.zpro-card { padding: 20px; border: 1px solid var(--gray-200); border-radius: var(--radius); background: #fff; }
+.zpro-card h3 { font-size: 1.15rem; margin: 0 0 8px; }
+.zpro-card p { color: var(--gray-700); font-size: .9rem; line-height: 1.6; margin: 0; }
+.zpro-card .zpro-model { margin-top: 12px; color: var(--gold-dark, #8a6a36); font-weight: 600; font-size: .85rem; }
+.zpro-rules { padding-left: 20px; line-height: 1.8; color: var(--gray-700); }
+.zpro-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px; }

@@ -18,6 +18,18 @@
       "destination": "/api/estimation"
     },
     {
+      "source": "/api/alerts",
+      "destination": "/api/alerts"
+    },
+    {
+      "source": "/api/reviews",
+      "destination": "/api/reviews"
+    },
+    {
+      "source": "/api/cron-daily",
+      "destination": "/api/cron-daily"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
@@ -25,8 +37,25 @@
   "installCommand": "cd ../../../.. && npm ci --workspace=apps/find",
   "functions": {
     "api/estimation.js": {
-      "includeFiles": "{public/market-data/**,public/geo/search/**,src/services/estimation.js}",
+      "includeFiles": "{public/market-data/**,public/geo/search/**,src/services/estimation.js,src/services/search-filters.js,src/services/listing-quality.js,src/services/place-search.js}",
       "maxDuration": 15
+    },
+    "api/alerts.js": {
+      "includeFiles": "{public/geo/search/**,src/services/search-filters.js,src/services/listing-quality.js,src/services/place-search.js}",
+      "maxDuration": 15
+    },
+    "api/reviews.js": {
+      "maxDuration": 15
+    },
+    "api/cron-daily.js": {
+      "includeFiles": "{public/market-data/**,public/geo/search/**,src/services/estimation.js,src/services/search-filters.js,src/services/listing-quality.js,src/services/place-search.js}",
+      "maxDuration": 60
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron-daily",
+      "schedule": "0 6 * * *"
+    }
+  ]
 }

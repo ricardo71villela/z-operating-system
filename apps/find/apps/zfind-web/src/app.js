@@ -1009,11 +1009,15 @@ async function renderMarketFeatured(market) {
   root.dataset.featuredState = 'ready';
   root.dataset.featuredCount = String(selected.length);
 
+  const demoSlots = demoModeOn();
+
   root.innerHTML = slots
     .map(slot =>
       slot.card
         ? featuredCardSlotHTML(slot, copy)
-        : featuredEmptySlotHTML(
+        : demoSlots
+          ? window.ZFindServices.demoMode.featuredSlotHTML(market.key, slot.position, state.lang, 'market-featured-slot market-featured-card')
+          : featuredEmptySlotHTML(
             slot.position,
             copy.featuredEmptyTitle,
             copy.featuredEmptyBody,
@@ -1029,7 +1033,7 @@ async function renderMarketFeatured(market) {
     node.hidden = true;
   });
   const section = root.closest('section');
-  if (section) section.hidden = selected.length === 0;
+  if (section) section.hidden = selected.length === 0 && !demoSlots;
 }
 
 function renderMarket(marketKey) {
@@ -1733,6 +1737,8 @@ async function renderSearchFeaturedRail(marketKey) {
   aside.dataset.searchAsideState =
     selected.length ? 'ready' : 'empty';
 
+  const demoSlots = demoModeOn();
+
   aside.innerHTML =
     searchFeaturedRailShellHTML(
       copy,
@@ -1740,7 +1746,9 @@ async function renderSearchFeaturedRail(marketKey) {
         .map(slot =>
           slot.card
             ? searchFeaturedCardSlotHTML(slot, copy)
-            : searchFeaturedEmptySlotHTML(
+            : demoSlots
+              ? window.ZFindServices.demoMode.featuredSlotHTML(market.key, slot.position, state.lang, 'search-featured-slot search-featured-card')
+              : searchFeaturedEmptySlotHTML(
                 slot.position,
                 copy.featuredEmptyTitle,
                 copy.featuredEmptyBody,
@@ -1839,6 +1847,32 @@ async function renderSearch() {
       )
     );
 
+  const searchFilterInput =
+    {
+      q: q.q || '',
+      subtype:
+        (q.subtype || '')
+          .split(',')
+          .filter(Boolean),
+      transactionType,
+      rentalPeriod,
+      budgetMin: q.priceMin ? Number(q.priceMin) : range.budgetMin,
+      budgetMax: q.priceMax ? Number(q.priceMax) : range.budgetMax,
+      marketKey: q.market || undefined,
+      areaMin: q.areaMin || null,
+      roomsMin: q.rooms || null,
+      bedsMin: q.beds || null,
+      energyMax: q.dpe || null,
+      outdoor: q.outdoor === '1',
+      parking: q.parking === '1',
+      lift: q.lift === '1',
+      sort: q.sort || '',
+      // Resolved only when the results are fetched (a cache hit already has them).
+      place: !cacheHit && q.commune && window.ZFindServices.placeSearch
+        ? await window.ZFindServices.placeSearch.byCode(q.commune).catch(() => null)
+        : null
+    };
+
   let result;
 
   if (cacheHit) {
@@ -1860,29 +1894,7 @@ async function renderSearch() {
     result =
       await loadSearchResults(
         state.lang,
-        {
-          q: q.q || '',
-          subtype:
-            (q.subtype || '')
-              .split(',')
-              .filter(Boolean),
-          transactionType,
-          rentalPeriod,
-          budgetMin: q.priceMin ? Number(q.priceMin) : range.budgetMin,
-          budgetMax: q.priceMax ? Number(q.priceMax) : range.budgetMax,
-          marketKey: q.market || undefined,
-          areaMin: q.areaMin || null,
-          roomsMin: q.rooms || null,
-          bedsMin: q.beds || null,
-          energyMax: q.dpe || null,
-          outdoor: q.outdoor === '1',
-          parking: q.parking === '1',
-          lift: q.lift === '1',
-          sort: q.sort || '',
-          place: q.commune && window.ZFindServices.placeSearch
-            ? await window.ZFindServices.placeSearch.byCode(q.commune).catch(() => null)
-            : null
-        }
+        searchFilterInput
       );
 
     // Async Search results may complete after the user has changed
@@ -1979,6 +1991,8 @@ async function renderSearch() {
 
     return;
   }
+
+  renderSearchAlert(searchFilterInput, presentationQuery);
 
   const fullCards =
     Array.isArray(result.cards)
@@ -2615,6 +2629,7 @@ async function renderProperty(assetId) {
           <div style="width:46px;height:46px;border-radius:50%;background:var(--gray-200)"></div>
           <div><div style="font-family:'Cormorant Garamond'; font-size:1.1rem">${vm.partner.name}</div><div class="trust-chip" style="${vm.trust ? '' : 'color:var(--gray-400); background:var(--gray-100); border-color:var(--gray-200);'}">${vm.trust ? vm.trust.label : t(L,'property.trustComingSoon')}</div></div>
         </div>
+        <div id="listing-reviews-root"></div>
         <button class="btn btn-gold" style="width:100%; margin-top:20px; justify-content:center" onclick="openModal('${vm.listing.id}', ${JSON.stringify(vm.partner.enquiryPolicy).replace(/"/g,'&quot;')}, '${vm.partner.id}')">${t(L,'property.contactBtn')}</button>
         <button class="btn btn-outline" style="width:100%; margin-top:10px; justify-content:center">${t(L,'property.saveBtn')}</button>
       </div>
@@ -2627,6 +2642,7 @@ async function renderProperty(assetId) {
   bindFinancingCard(vm);
   bindTravelCard(vm);
   renderSimilarListings(vm);
+  renderListingReviews(vm);
 }
 
 /* ---------------- Development detail ---------------- */
@@ -2931,7 +2947,9 @@ async function renderPartner(partnerId) {
       </div>
       <div class="grid">${cardsHTML}</div>
     </section>
+    <div id="partner-reviews-root"></div>
   </div>`;
+  renderPartnerReviews(partnerId);
 
   const allPill = document.querySelector('#partner-root .pill');
   if (allPill) {
@@ -3258,6 +3276,7 @@ function openModal(listingId, enquiryConfig, partnerId) {
     <label>${t(L,'enquiry.phoneLabel')}</label>
     <input type="text" id="enquiry-phone" placeholder="${t(L,'enquiry.phonePh')}">
     <p style="font-size:0.75rem; color:var(--gray-400); margin-top:-8px;">${t(L,'enquiry.atLeastOneNote')}</p>
+    ${(partnerId && partnerId !== 'null' && partnerId !== 'undefined') ? `<label class="enquiry-review-optin"><input type="checkbox" id="enquiry-review-optin"> <span>${REVIEW_OPTIN_COPY[L] || REVIEW_OPTIN_COPY.en}</span></label>` : ''}
   </div>
   <div id="enquiry-feedback" style="display:none; margin-top:14px; padding:12px; border-radius:var(--radius); font-size:0.85rem;"></div>
   <button class="btn btn-gold" id="enquiry-send-btn" style="width:100%; justify-content:center; margin-top:26px;" onclick="submitEnquiry()">${t(L,'enquiry.send')}</button>
@@ -3352,6 +3371,10 @@ async function submitEnquiry() {
   }
 
   showEnquiryFeedback('success', 'enquiry.submitSuccess');
+  const reviewOptin = document.getElementById('enquiry-review-optin');
+  if (reviewOptin && reviewOptin.checked && emailInput && emailInput.value.trim()) {
+    requestReviewInvitation(currentListingIdForEnquiry, emailInput.value.trim());
+  }
   if (btn) btn.style.display = 'none'; // only hidden on genuine success — never re-shown until the modal reopens fresh
 }
 
@@ -3480,6 +3503,151 @@ function initMobilePrimaryNavigation() {
   }
 }
 
+/* ---------------- E-mail alert on the search page (2026-09-30) ----------------
+   "Receive the new listings for this search": double opt-in through
+   /api/alerts (a confirmation e-mail, nothing else until it is clicked).
+   The consent text is the one stored with the subscription
+   (api/_lib/alerts-core.js CONSENT.search). */
+const SEARCH_ALERT_COPY = Object.freeze({
+  fr: Object.freeze({
+    title: 'Créer une alerte pour cette recherche',
+    body: 'Recevez par e-mail les nouvelles annonces qui correspondent à ces critères, au plus une fois par semaine.',
+    email: 'Votre e-mail', button: 'Créer l’alerte', sending: 'Envoi…',
+    consent: 'J’accepte de recevoir par e-mail, au plus une fois par semaine, les nouvelles annonces correspondant à cette recherche. Désinscription en un clic dans chaque e-mail.',
+    privacy: 'Adresse utilisée uniquement pour cette alerte ; ni vendue ni cédée.',
+    done: e => `Presque fini : cliquez sur le lien de confirmation envoyé à ${e}.`,
+    errors: { email: 'Indiquez une adresse e-mail valide.', consent: 'Cochez la case d’accord.', unsupported: 'Les alertes ne couvrent pas encore les programmes neufs seuls.', too_many: 'Nombre maximal d’alertes atteint pour cette adresse.', generic: 'L’alerte n’a pas pu être créée. Réessayez dans un instant.' }
+  }),
+  en: Object.freeze({
+    title: 'Create an alert for this search',
+    body: 'Get the new listings matching these criteria by e-mail, at most once a week.',
+    email: 'Your e-mail', button: 'Create the alert', sending: 'Sending…',
+    consent: 'I agree to receive by e-mail, at most once a week, the new listings matching this search. One-click unsubscribe in every e-mail.',
+    privacy: 'Address used only for this alert; never sold or passed on.',
+    done: e => `Almost done: click the confirmation link sent to ${e}.`,
+    errors: { email: 'Enter a valid e-mail address.', consent: 'Tick the agreement box.', unsupported: 'Alerts do not cover new developments on their own yet.', too_many: 'Maximum number of alerts reached for this address.', generic: 'The alert could not be created. Please try again shortly.' }
+  })
+});
+
+let searchAlertKey = '';
+
+function searchAlertQuery(query) {
+  const out = {};
+  Object.keys(query || {}).forEach(k => { if (k !== 'page' && k !== 'sort' && query[k]) out[k] = query[k]; });
+  return out;
+}
+
+function renderSearchAlert(filters, query) {
+  const root = document.getElementById('search-alert-root');
+  if (!root) return;
+  const alertQuery = searchAlertQuery(query);
+  const key = state.lang + '|' + JSON.stringify(alertQuery);
+  if (key === searchAlertKey && root.firstChild) return;
+  searchAlertKey = key;
+  const c = SEARCH_ALERT_COPY[state.lang] || SEARCH_ALERT_COPY.en;
+  root.innerHTML = `
+    <form class="search-alert" id="search-alert-form" novalidate>
+      <h3>${c.title}</h3>
+      <p>${c.body}</p>
+      <div class="search-alert-row">
+        <input type="email" id="search-alert-email" autocomplete="email" placeholder="${c.email}" aria-label="${c.email}">
+        <button type="submit" class="btn btn-gold">${c.button}</button>
+      </div>
+      <label class="search-alert-consent"><input type="checkbox" id="search-alert-consent"> <span>${c.consent}</span></label>
+      <div class="search-alert-hp" aria-hidden="true"><input type="text" id="search-alert-hp" tabindex="-1" autocomplete="off"></div>
+      <p class="search-alert-consent" style="margin-top:6px">${c.privacy} <a href="mailto:hello@zfind.online">hello@zfind.online</a></p>
+      <div class="search-alert-msg" id="search-alert-msg" role="status"></div>
+    </form>`;
+  const form = document.getElementById('search-alert-form');
+  const msg = document.getElementById('search-alert-msg');
+  const show = (kind, text) => { msg.className = 'search-alert-msg ' + kind; msg.textContent = text; };
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    const email = document.getElementById('search-alert-email').value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { show('err', c.errors.email); return; }
+    if (!document.getElementById('search-alert-consent').checked) { show('err', c.errors.consent); return; }
+    const button = form.querySelector('button');
+    button.disabled = true; button.textContent = c.sending;
+    try {
+      const response = await fetch('/api/alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'subscribe', kind: 'search', lang: state.lang, email, consent: true,
+          filters: Object.assign({}, filters, { place: undefined, sort: undefined }),
+          query: alertQuery,
+          website: document.getElementById('search-alert-hp').value
+        })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.ok) throw new Error(payload.error || String(response.status));
+      form.querySelectorAll('input, button').forEach(el => { el.disabled = true; });
+      button.textContent = c.button;
+      show('ok', c.done(email));
+    } catch (error) {
+      button.disabled = false; button.textContent = c.button;
+      show('err', c.errors[error.message] || c.errors.generic);
+    }
+  });
+}
+
+/* ---------------- Professionals page ---------------- */
+function renderPro() {
+  const service = window.ZFindServices && window.ZFindServices.proOffer;
+  const root = document.getElementById('pro-root');
+  if (!service || !root) return;
+  service.render(root, state.lang);
+  document.title = (state.lang === 'fr' ? 'Professionnels' : 'Professionals') + ' — Z Find';
+}
+
+/* ---------------- Demonstration mode: example sponsored slots ---------------- */
+function demoModeOn() {
+  const demo = window.ZFindServices && window.ZFindServices.demoMode;
+  return Boolean(demo && demo.isOn());
+}
+
+/* ---------------- Agency reviews (2026-09-30) ---------------- */
+async function loadPartnerReviews(partnerId) {
+  const service = window.ZFindServices && window.ZFindServices.partnerReviews;
+  if (!service || !partnerId) return { reviews: [], demo: false };
+  const result = await service.listPublished(partnerId);
+  if (result.data && result.data.length) return { reviews: result.data, demo: false };
+  if (demoModeOn()) return { reviews: window.ZFindServices.demoMode.exampleReviews(state.lang, partnerId), demo: true };
+  return { reviews: [], demo: false };
+}
+
+async function renderPartnerReviews(partnerId) {
+  const mount = document.getElementById('partner-reviews-root');
+  if (!mount) return;
+  const loaded = await loadPartnerReviews(partnerId);
+  if (state.view !== 'partner' || state.id !== partnerId) return;
+  mount.innerHTML = window.ZFindServices.partnerReviews.sectionHTML(state.lang, loaded.reviews, { demo: loaded.demo });
+}
+
+async function renderListingReviews(vm) {
+  const partnerId = vm && vm.partner && vm.partner.id;
+  const mount = document.getElementById('listing-reviews-root');
+  if (!partnerId || !mount) return;
+  const loaded = await loadPartnerReviews(partnerId);
+  if (!document.body.contains(mount)) return;
+  mount.innerHTML = window.ZFindServices.partnerReviews.summaryHTML(state.lang, loaded.reviews, partnerId, { demo: loaded.demo });
+}
+
+/* Enquiry form: optional invitation to review the agency a week later. */
+const REVIEW_OPTIN_COPY = Object.freeze({
+  fr: 'Dans une semaine, m’inviter par e-mail à donner mon avis sur cette agence (une seule fois, e-mail requis).',
+  en: 'In a week, invite me by e-mail to review this agency (once only, e-mail required).'
+});
+
+function requestReviewInvitation(listingId, email) {
+  if (!listingId || !email) return;
+  fetch('/api/reviews', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'optin', listingId, email, lang: state.lang, consent: true })
+  }).catch(() => { /* optional: never affects the enquiry */ });
+}
+
 /* ---------------- Main render dispatch ---------------- */
 function render() {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -3492,6 +3660,12 @@ function render() {
 
   applyI18n();
 
+  const demoMode = window.ZFindServices && window.ZFindServices.demoMode;
+  if (demoMode) {
+    demoMode.refresh();
+    demoMode.applyBanner(document, state.lang);
+  }
+
   switch (state.view) {
     case 'home': renderHome(); break;
     case 'market': renderMarket(state.id); break;
@@ -3502,6 +3676,7 @@ function render() {
     case 'partner': renderPartner(state.id); break;
     case 'simulator': renderSimulator(); break;
     case 'estimation': renderEstimation(); break;
+    case 'pro': renderPro(); break;
     case 'zone': renderZone(state.id); break;
     case 'legal': break; // Portugal static jurisdiction content in body.html
     case 'al-manual': break; // Portugal short-term-rental jurisdiction content

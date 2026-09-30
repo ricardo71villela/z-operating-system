@@ -54,12 +54,14 @@
       cookieTitle: 'Cookies et traceurs',
       cookieIntro: 'Z Find limite le stockage sur votre appareil aux fonctions techniques actuellement nécessaires à l’expérience demandée.',
       currentTitle: 'Utilisation actuelle',
-      currentBody: 'Le code public Z Find ne contient actuellement aucun outil publicitaire ni aucun outil de mesure d’audience nécessitant un consentement. La préférence de langue peut être conservée localement et, lorsque vous vous connectez, le service d’authentification conserve les informations techniques nécessaires à votre session.',
+      currentBody: 'Le code public Z Find ne contient aucun outil publicitaire. La fréquentation est mesurée avec Vercel Web Analytics, sans cookie ni identifiant stocké sur votre appareil : seules des statistiques agrégées (pages vues, pays, type d’appareil) sont produites, ce qui ne nécessite pas de consentement. La préférence de langue peut être conservée localement et, lorsque vous vous connectez, le service d’authentification conserve les informations techniques nécessaires à votre session.',
       consentTitle: 'Consentement',
       consentBody: 'Aucun bandeau de consentement n’est affiché tant qu’aucun traceur non essentiel n’est utilisé. Si Z Find ajoute ultérieurement des traceurs soumis au consentement, ils devront être bloqués jusqu’à votre choix et la présente information sera mise à jour.',
       thirdPartyTitle: 'Infrastructure',
       thirdPartyBody: 'Le site est hébergé sur Vercel et utilise Supabase pour les services de données et d’authentification. Ces fournisseurs peuvent mettre en œuvre des mécanismes techniques nécessaires à la sécurité, à la livraison du service ou à une session expressément demandée.',
       contactTitle: 'Question sur vos données ou traceurs',
+      alertsTitle: 'E-mails, alertes et avis',
+      alertsBody: 'Les alertes e-mail (nouvelles annonces, valeur de votre bien) ne démarrent qu’après confirmation du lien reçu par e-mail ; chaque envoi contient un lien de désinscription en un clic. Les demandes non confirmées et les désinscriptions sont effacées sous 30 jours, les alertes au plus tard 3 ans après leur confirmation. Si vous acceptez d’être invité(e) à noter une agence, une seule invitation vous est envoyée une semaine après votre demande ; votre adresse est effacée dès l’envoi de votre avis, ou après 60 jours sans réponse. Les e-mails sont envoyés par Resend.',
       back: '← Retour à Z Find',
       rgpd: 'Les données saisies (nom, e-mail ou téléphone, message et, le cas échéant, réponses de qualification) sont utilisées pour traiter cette demande et la transmettre au partenaire qui représente cette opportunité. Pour toute question relative à vos données :'
     }),
@@ -68,12 +70,14 @@
       cookieTitle: 'Cookies & trackers',
       cookieIntro: 'Z Find limits device storage to technical functions currently necessary for the experience you request.',
       currentTitle: 'Current use',
-      currentBody: 'The public Z Find code currently contains no advertising tracker or audience-measurement tool requiring consent. Your language preference may be stored locally and, when you sign in, the authentication service retains technical information needed for your session.',
+      currentBody: 'The public Z Find code contains no advertising tracker. Traffic is measured with Vercel Web Analytics, without cookies or any identifier stored on your device: only aggregated statistics (page views, country, device type) are produced, which does not require consent. Your language preference may be stored locally and, when you sign in, the authentication service retains technical information needed for your session.',
       consentTitle: 'Consent',
       consentBody: 'No consent banner is displayed while no non-essential tracker is used. If Z Find later adds trackers requiring consent, they must be blocked until you make a choice and this notice will be updated.',
       thirdPartyTitle: 'Infrastructure',
       thirdPartyBody: 'The site is hosted on Vercel and uses Supabase for data and authentication services. These providers may use technical mechanisms necessary for security, service delivery or a session you expressly request.',
       contactTitle: 'Questions about your data or trackers',
+      alertsTitle: 'E-mails, alerts and reviews',
+      alertsBody: 'E-mail alerts (new listings, value of your property) start only after you confirm the link received by e-mail; every message has a one-click unsubscribe link. Unconfirmed requests and unsubscriptions are erased within 30 days, alerts at the latest 3 years after confirmation. If you agree to be invited to rate an agency, a single invitation is sent a week after your enquiry; your address is erased as soon as you submit your review, or after 60 days without an answer. E-mails are sent through Resend.',
       back: '← Back to Z Find',
       rgpd: 'The data you enter (name, email or phone, message and, where applicable, qualification answers) is used to process this enquiry and route it to the partner representing this opportunity. For questions about your data:'
     }),
@@ -145,6 +149,7 @@
         <section class="zfind-legal-section"><h2>${escapeHtml(c.currentTitle)}</h2><p>${escapeHtml(c.currentBody)}</p></section>
         <section class="zfind-legal-section"><h2>${escapeHtml(c.consentTitle)}</h2><p>${escapeHtml(c.consentBody)}</p></section>
         <section class="zfind-legal-section"><h2>${escapeHtml(c.thirdPartyTitle)}</h2><p>${escapeHtml(c.thirdPartyBody)}</p></section>
+        ${c.alertsTitle ? `<section class="zfind-legal-section" id="zfind-legal-alerts"><h2>${escapeHtml(c.alertsTitle)}</h2><p>${escapeHtml(c.alertsBody)}</p></section>` : ''}
         <section class="zfind-legal-section"><h2>${escapeHtml(c.contactTitle)}</h2><p><a class="zfind-legal-contact" href="mailto:${DATA_CONTACT}">${DATA_CONTACT}</a></p></section>
       </div>`;
   }
