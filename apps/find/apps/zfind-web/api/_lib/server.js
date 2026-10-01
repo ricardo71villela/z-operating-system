@@ -81,17 +81,20 @@ function sendPage(res, status, l, title, body) {
 
 /* Supabase REST with the secret key (server only). */
 async function db(pathAndQuery, options) {
-  const key = env('ZFIND_SUPABASE_SERVICE_KEY');
+  const key = String(env('ZFIND_SUPABASE_SERVICE_KEY', '')).trim();
   const base = env('SUPABASE_URL', DEFAULT_SUPABASE_URL).replace(/\/+$/, '');
   const opts = options || {};
+  // New Supabase keys (sb_secret_…) go in the apikey header only: the platform
+  // rejects them as "Authorization: Bearer" (they are not JWTs). A legacy
+  // service_role JWT still needs both headers.
+  const auth = /^eyJ/.test(String(key || '')) ? { Authorization: `Bearer ${key}` } : {};
   const response = await fetch(`${base}/rest/v1/${pathAndQuery}`, {
     method: opts.method || 'GET',
     headers: Object.assign({
       apikey: key,
-      Authorization: `Bearer ${key}`,
       'Content-Type': 'application/json',
       Prefer: opts.prefer || 'return=representation'
-    }, opts.headers || {}),
+    }, auth, opts.headers || {}),
     body: opts.body == null ? undefined : JSON.stringify(opts.body)
   });
   const text = await response.text();
