@@ -30,11 +30,20 @@ COMMUNES_74550 = {
     "74053": "Cervens", "74106": "Draillant", "74206": "Orcier", "74210": "Perrignier",
 }
 
-ALL_COMMUNES = {**COMMUNES_74200, **COMMUNES_74500, **COMMUNES_74550}
+# Ajoute Sciez (sur demande, 2026-10-01). Sciez releve du code postal 74140,
+# qui couvre aussi 11 autres communes bien plus eloignees (Douvaine, Yvoire,
+# Chens-sur-Leman... cote Geneve) : on ne les inclut pas ici, seule Sciez a
+# ete demandee.
+COMMUNES_74140 = {
+    "74263": "Sciez",
+}
+
+ALL_COMMUNES = {**COMMUNES_74200, **COMMUNES_74500, **COMMUNES_74550, **COMMUNES_74140}
 CODE_POSTAL_BY_INSEE = {
     **{c: "74200" for c in COMMUNES_74200},
     **{c: "74500" for c in COMMUNES_74500},
     **{c: "74550" for c in COMMUNES_74550},
+    **{c: "74140" for c in COMMUNES_74140},
 }
 
 # ---------------------------------------------------------------- SOURCES ---
