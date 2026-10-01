@@ -285,5 +285,12 @@ function propertyRow({ id, title, price, city = 'Évian-les-Bains', postal = '74
     /revoke all on public\.zfind_alert_subscriptions from anon, authenticated/.test(sql) && /using \(status = 'published'\)/.test(sql) &&
     !/grant select \([^)]*invite_email/.test(sql) && !/grant select \([^)]*token/.test(sql));
 
+  const grants = fs.readFileSync(path.join(ROOT, 'infrastructure', 'supabase', 'migrations', '20261001200000_z_find_alerts_reviews_service_grants.sql'), 'utf8');
+  check('migration: the server key can read and write the alert and review tables and read the inventory and enquiries',
+    /grant select, insert, update, delete on public\.zfind_alert_subscriptions to service_role/.test(grants) &&
+    /grant select, insert, update, delete on public\.zfind_partner_reviews to service_role/.test(grants) &&
+    ['properties', 'zones_lite', 'representations', 'listings', 'listing_content', 'partners', 'leads'].every(t => grants.includes('public.' + t)) &&
+    !/to (anon|authenticated)/.test(grants));
+
   console.log(`\nALERTS & REVIEWS: ${passed}/${passed} PASSED`);
 })().catch(error => { console.error(error); process.exit(1); });
