@@ -1,4 +1,4 @@
-# App de prospection immobilière — Secteurs 74200 & 74500
+# App de prospection immobilière — Secteurs 74200, 74500, 74550 & 74140
 
 > **Intégration ZOS** — Ce pipeline est la première fonctionnalité (ingestion
 > de données) du produit **Z Intelligence** (`apps/intelligence/`). C'est un
@@ -14,9 +14,60 @@
 
 Pipeline d'ingestion de données **publiques et légales** qui produit des
 listes d'adresses à prospecter, **classées par score de priorité**, pour les
-26 communes des secteurs de Thonon-les-Bains (74200) et Évian-les-Bains (74500).
+31 communes des secteurs de Thonon-les-Bains (74200), Évian-les-Bains (74500),
+Cervens/Draillant/Orcier/Perrignier (74550) et Sciez (74140 — seule cette
+commune est incluse parmi les 12 que partage ce code postal, les autres
+étant du côté Genève/Yvoire, hors zone de prospection).
+
+Les communes couvertes sont définies dans `src/config.py` — c'est la seule
+source de vérité : ajouter un secteur se fait là, les autres modules
+(ingestion, scoring, statistiques) s'adaptent automatiquement sans
+modification de code.
 
 ---
+
+## 🔴 État opérationnel — audit du 2026-10-01
+
+**Le pipeline automatisé (GitHub Actions, `.github/workflows/intelligence-prospection-imobiliaria.yml`,
+exécution hebdomadaire le lundi 03h00 UTC) échoue sur l'étape d'ingestion
+depuis au moins 4 exécutions consécutives** (07/09, 14/09, 21/09, 28/09/2026)
+— c'est-à-dire tout le mois écoulé. Le job `tests` passe systématiquement
+(auto-tests de normalisation/scoring/pricing OK) ; c'est le job `ingest`
+(`python src/main.py`, qui télécharge BAN/DVF puis calcule) qui échoue, et
+très vite (54 s à 2 min 21 — bien avant la durée normale de 5-15 min),
+ce qui pointe vers un échec précoce (import, dépendance, ou premier appel
+réseau) plutôt qu'un problème survenant en cours de calcul.
+
+Cause exacte **non confirmée** : cet audit n'a pas pu lire le détail de
+l'erreur — le téléchargement des logs GitHub Actions passe par un domaine
+(`results-receiver.actions.githubusercontent.com`) bloqué par le proxy
+réseau de cet environnement, indépendamment de l'authentification. Deux
+pistes à vérifier en priorité, par ordre de probabilité vu la rapidité de
+l'échec :
+  1. **Dépendance cassée par une nouvelle version** : `requirements.txt` ne
+     plafonne aucune version (`pandas>=2.0.0`, `shapely>=2.0.0`, etc.) — une
+     sortie récente d'un de ces paquets (shapely et son lien natif à GEOS
+     est le suspect le plus probable, utilisé par `enrich_cadastre.py` et
+     `enrich_terrenos_livres.py`) peut casser l'import sur le runner
+     `ubuntu-latest` sans qu'aucun changement n'ait eu lieu dans ce dépôt.
+  2. **Un des portails sources a changé d'URL/schéma** sans que le repli
+     "échec silencieux" ne s'applique — ce repli existe pour le DPE et les
+     enrichissements optionnels (cadastre/géorisques/RNB), mais **pas** pour
+     `ingest_ban.main()` ni `ingest_dvf.main()` eux-mêmes (appelés sans
+     `try/except` dans `main.py`) : un 404/structure changée sur le flux BAN
+     ou DVF ferait échouer tout le pipeline, PDFs et dashboard inclus.
+
+**Action recommandée** : ouvrir
+[le dernier run](https://github.com/ricardo71villela/z-operating-system/actions/runs/36404480506)
+dans un navigateur connecté à GitHub (les logs n'y demandent qu'une
+connexion, pas de droits particuliers sur un dépôt public), copier le
+message d'erreur de l'étape "Correr o pipeline", et le transmettre pour
+diagnostic précis — ou relancer manuellement (`workflow_dispatch`) en
+observant le job en direct.
+
+---
+
+
 
 ## ⚖️ Cadre légal
 
@@ -25,8 +76,11 @@ listes d'adresses à prospecter, **classées par score de priorité**, pour les
 | Source | Producteur | Apporte |
 |---|---|---|
 | **BAN** | IGN / Etalab | Toutes les adresses + coordonnées GPS |
-| **DVF** | DGFiP | Transactions notariées 2019-2024 (anonymisées) |
+| **DVF** | DGFiP | Transactions notariées 2014-2025 (anonymisées, fenêtre glissante — voir `src/config.py::DVF_YEARS`) |
 | **DPE** | ADEME | Classe énergétique, année de construction, surface |
+| **Cadastre** | DGFiP / Etalab (`cadastre.data.gouv.fr`) | Surface de terrain par parcelle (potentiel de valorisation) |
+| **Géorisques** | MTE / Géorisques | Information réglementaire ERP (purement informative, jamais dans le score) |
+| **RNB** | Référentiel National des Bâtiments | Identifiant de bâtiment (robustesse du matching) |
 
 ❌ **Jamais collecté** : nom, téléphone, email, ou toute donnée permettant
 d'identifier un résident ou un propriétaire.
@@ -378,8 +432,29 @@ propres tests, `python export_map.py` régénère juste la carte, etc.).
 
 ## 🔜 Pistes d'extension
 
-- **Cadastre** (`cadastre.data.gouv.fr`) : surface du terrain, utile pour
-  repérer les parcelles divisibles.
-- **Géorisques** : état des risques, argument de préparation de dossier.
-- **RNB** (Référentiel National des Bâtiments) : identifiant unique de
-  bâtiment, pour fiabiliser encore le matching entre sources.
+**Déjà implémentées** (ne sont plus des pistes, listées ici pour mémoire —
+voir le tableau des sources plus haut) : Cadastre (surface de terrain,
+`enrich_cadastre.py`), Géorisques (`enrich_georisques.py`), RNB
+(`enrich_rnb.py`).
+
+**Pistes réelles restantes**, utiles du point de vue d'un négociateur sur le
+terrain :
+
+- **Suivi des contacts déjà prospectés** : aucune trace aujourd'hui de qui a
+  déjà reçu une fiche ou un courrier — un relancement risque de recontacter
+  la même adresse à chaque exécution. Un simple CSV `deja_contacte.csv`
+  (adresse → date du dernier contact) permettrait d'exclure ou de signaler
+  ces adresses dans `prospection_prioritaire.csv`.
+- **Exclusion des biens déjà en portefeuille DECORDIER** : pour ne pas
+  prospecter un propriétaire déjà client de l'agence — nécessite une liste
+  interne (hors scope légal de ce pipeline, qui ne traite que des données
+  publiques).
+- **Pont avec `apps/intelligence/.../imoveis-concorrencia`** (projet séparé,
+  scraping des annonces des agences concurrentes) : croiser une adresse
+  prioritaire avec une annonce active de la concurrence confirmerait une
+  mise en vente réelle, pas seulement un potentiel statistique. Ébauche déjà
+  présente dans `Claude outputs/ponte_radar_leman_concorrencia.py` à la
+  racine du monorepo, jamais intégrée au pipeline lui-même.
+- **Terrains libres / divisibles** (`enrich_terrenos_livres.py`) : module déjà
+  écrit et testé, mais pas encore appelé depuis `main.py` — à vérifier s'il
+  s'agit d'un oubli ou d'une étape volontairement tenue à part.

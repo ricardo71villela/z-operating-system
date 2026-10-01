@@ -7,7 +7,7 @@ l'environnement de développement n'avait pas accès aux portails data.gouv.
 Trois inconnues majeures ne peuvent être levées que par un vrai lancement :
 
   1. Le taux de rapprochement BAN <-> DVF tient-il sur les libellés locaux ?
-  2. Quelle est la couverture réelle du DPE sur ces 26 communes ?
+  2. Quelle est la couverture réelle du DPE sur ces communes ?
   3. Quels volumes par segment, et la segmentation discrimine-t-elle ?
 
 Ce module répond aux trois, avec une INTERPRÉTATION de chaque chiffre —

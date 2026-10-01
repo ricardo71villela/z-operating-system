@@ -31,8 +31,13 @@ FICHES_DIR = os.path.join(OUTPUT_DIR, "fiches")
 FOURCHETTE = 0.07
 
 CABINET = {
-    "nom": "[Votre agence]",
+    "nom": "DECORDIER IMMOBILIER",
     "baseline": "Estimation et transaction — Chablais / Léman",
+    # TODO (confirmer avec Ricardo) : téléphone/email/adresse de l'agence
+    # DECORDIER IMMOBILIER (secteur Thonon/Évian) n'ont pas pu être confirmés
+    # de façon fiable depuis cet environnement (pas d'accès à une source
+    # officielle de l'agence) — a completer avant la prochaine generation de
+    # fiches, le reste du document ne depend que de cette ligne.
     "contact": "[téléphone] · [email] · [adresse]",
 }
 

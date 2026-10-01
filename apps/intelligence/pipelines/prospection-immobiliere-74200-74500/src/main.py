@@ -5,7 +5,7 @@ Orchestrateur du pipeline complet.
     python main.py --skip-dpe   # sans l'enrichissement DPE (plus rapide)
 
 Etapes :
-  1. BAN  — adresses des 26 communes
+  1. BAN  — adresses des communes configurées (config.ALL_COMMUNES)
   2. DVF  — transactions notariees 2019-2024
   3. DPE  — diagnostics energetiques ADEME (comble les Tier 1)
   4. Cadastre — surface de terrain par parcelle (potentiel de valorisation)

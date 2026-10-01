@@ -5,7 +5,7 @@ Utile pour :
   - argumenter un prix en rendez-vous d'estimation (donnees notariales, pas
     des estimations de portails)
   - reperer les communes ou le marche accelere ou ralentit
-  - comparer les deux secteurs 74200 / 74500
+  - comparer les secteurs entre eux (codes postaux configures)
 
 Genere output/stats_marche_communes.csv
 """
@@ -126,7 +126,11 @@ def export(stats):
               f"prix_m2_actualise = ramené à {annee_ref} (voir price_index.py)")
     print(stats[cols].to_string(index=False))
 
-    for cp in ("74200", "74500", "74550", "74140"):
+    # Liste des secteurs derivee de la config (plus jamais ecrite en dur ici —
+    # voir l'audit du 2026-10-01 : ce tuple etait reste bloque sur les deux
+    # premiers secteurs historiques lors de l'ajout de 74550 puis 74140,
+    # jusqu'a ce que cette boucle soit rendue dynamique).
+    for cp in sorted(set(CODE_POSTAL_BY_INSEE.values())):
         sub = stats[stats["code_postal"] == cp]
         if len(sub):
             tot = sub["nb_ventes"].sum()
