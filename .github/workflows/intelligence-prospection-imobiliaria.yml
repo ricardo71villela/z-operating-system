@@ -64,9 +64,30 @@ jobs:
         run: pip install weasyprint
 
       - name: Correr o pipeline (BAN + DVF + DPE + scoring + export + PDFs)
-        run: python src/main.py
+        id: pipeline
+        shell: bash
+        run: |
+          set -o pipefail
+          python src/main.py 2>&1 | tee pipeline_output.log
+
+      # Diagnostic ajoute le 2026-10-01 : le job echoue systematiquement
+      # depuis 4 executions (07/09 a 28/09) sur cette etape, trop vite
+      # (54s-2min) pour un vrai probleme de donnees. Cette etape garde le
+      # log complet comme artefact MEME EN CAS D'ECHEC (if: always()),
+      # pour pouvoir enfin lire l'erreur exacte -- jusqu'ici invisible car
+      # le telechargement direct des logs GitHub Actions passe par un
+      # domaine bloque depuis l'environnement d'audit utilise.
+      - name: Publier le log du pipeline (toujours, meme en cas d'echec)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-log
+          path: apps/intelligence/pipelines/prospection-immobiliere-74200-74500/pipeline_output.log
+          retention-days: 14
+          if-no-files-found: ignore
 
       - name: Publicar resultados como artefacto
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: prospection-74200-74500-output
