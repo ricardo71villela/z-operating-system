@@ -275,6 +275,9 @@ function propertyRow({ id, title, price, city = 'Évian-les-Bains', postal = '74
     ['/api/alerts', '/api/reviews', '/api/cron-daily'].every(p => vercel.rewrites.findIndex(x => x.source === p) > -1 && vercel.rewrites.findIndex(x => x.source === p) < fallback) &&
     vercel.crons.some(c => c.path === '/api/cron-daily' && c.schedule === '0 6 * * *') && vercel.functions['api/cron-daily.js'].includeFiles.includes('public/market-data/**'));
 
+  check('vercel.json: the ignore step stays within Vercel’s 256-character limit and lets a same-commit Redeploy build',
+    vercel.ignoreCommand.length <= 256 && vercel.ignoreCommand.includes('[ "$B" = "$VERCEL_GIT_COMMIT_SHA" ]&&exit 1'));
+
   const sql = fs.readFileSync(path.join(ROOT, 'infrastructure', 'supabase', 'migrations', '20260930120000_z_find_alerts_reviews_v1.sql'), 'utf8');
   check('migration: alerts closed to the public; reviews readable only when published and without personal columns',
     /revoke all on public\.zfind_alert_subscriptions from anon, authenticated/.test(sql) && /using \(status = 'published'\)/.test(sql) &&
