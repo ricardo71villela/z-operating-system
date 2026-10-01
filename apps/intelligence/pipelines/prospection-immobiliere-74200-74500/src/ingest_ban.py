@@ -27,6 +27,15 @@ BAN_COLUMNS_KEEP = [
 ]
 
 CACHE_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "_cache")
+# BUG CORRIGE (audit CI 2026-10-01) : meme correction que ingest_dvf.py —
+# voir son commentaire pour le diagnostic complet. C'est CE out_path
+# precisement qui causait l'echec systematique du workflow GitHub Actions
+# depuis au moins le 07/09/2026 :
+#   OSError: Cannot save file into a non-existent directory: '../data'
+# ("../data" etait relatif au repertoire de travail du processus — la
+# racine du pipeline dans le workflow CI, pas le dossier src/ — et ce
+# repertoire-la n'existe pas).
+DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 
 
 def download_ban(url: str = BAN_DEPARTEMENT_URL) -> pd.DataFrame:
@@ -60,7 +69,7 @@ def main():
         sys.exit(1)
 
     df_filtered = filter_communes(df_raw, insee_codes)
-    out_path = "../data/adresses_74200_74500.csv"
+    out_path = os.path.join(DATA_DIR, "adresses_74200_74500.csv")
     df_filtered.to_csv(out_path, index=False)
     print(f"OK — {len(df_filtered):,} adresses exportées vers {out_path}")
     print(df_filtered["nom_commune_ref"].value_counts())

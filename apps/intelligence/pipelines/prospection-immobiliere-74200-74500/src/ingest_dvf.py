@@ -27,6 +27,18 @@ DVF_COLUMNS_KEEP = [
 ]
 
 CACHE_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "_cache")
+# BUG CORRIGE (audit CI 2026-10-01) : out_path etait un chemin relatif ecrit
+# en dur ("../data/..."), qui ne fonctionne que si le script est lance
+# depuis le dossier src/ (cas documente dans le README). Le workflow GitHub
+# Actions lance `python src/main.py` depuis la racine du pipeline (sans `cd
+# src` prealable) : "../data" pointait alors hors du dossier du pipeline,
+# vers un repertoire inexistant -> OSError systematique sur CHAQUE execution
+# planifiee depuis au moins le 07/09/2026 (la toute premiere etape d'ecriture
+# du pipeline, d'ou l'echec quasi instantane, ~1 min, toujours au meme
+# endroit). DATA_DIR suit desormais le meme ancrage sur __file__ que
+# CACHE_DIR ci-dessus (et que tous les autres modules du pipeline), robuste
+# au repertoire de travail courant.
+DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 
 
 def download_dvf_year(year: int) -> pd.DataFrame:
@@ -62,7 +74,7 @@ def main():
     df_all["valeur_fonciere"] = pd.to_numeric(df_all["valeur_fonciere"], errors="coerce")
     df_all["surface_reelle_bati"] = pd.to_numeric(df_all["surface_reelle_bati"], errors="coerce")
 
-    out_path = "../data/dvf_74200_74500.csv"
+    out_path = os.path.join(DATA_DIR, "dvf_74200_74500.csv")
     df_all.to_csv(out_path, index=False)
     print(f"OK — {len(df_all):,} transactions exportées vers {out_path}")
 
