@@ -31,7 +31,7 @@ global.fetch = async (url, opts) => {
     mails.push(body);
     return { ok: true, status: 200, json: async () => ({ id: 'mail' }), text: async () => '{}' };
   }
-  calls.push({ method, url: decodeURIComponent(String(url)), body });
+  calls.push({ method, url: decodeURIComponent(String(url)), body, headers: o.headers || {} });
   const r = routes.find(x => x.method === method && x.pattern.test(decodeURIComponent(String(url))));
   const data = r ? (typeof r.reply === 'function' ? r.reply(body, String(url)) : r.reply) : [];
   return { ok: true, status: 200, text: async () => (data == null ? '' : JSON.stringify(data)), json: async () => data };
@@ -115,6 +115,8 @@ function propertyRow({ id, title, price, city = 'Évian-les-Bains', postal = '74
   const inserted = calls.find(c => c.method === 'POST');
   check('subscribe: pending row with the server consent text and a lower-cased address',
     r.statusCode === 200 && r.json.status === 'pending' && inserted.body.email === 'marie@example.com' && inserted.body.consent_text === core.CONSENT.fr.search && inserted.body.kind === 'search');
+  check('Supabase: a new secret key (sb_secret_…) travels only in the apikey header, never as a Bearer token',
+    inserted.headers.apikey === 'service-test' && !('Authorization' in inserted.headers));
   check('subscribe: a confirmation e-mail with the confirm link, nothing else',
     mails.length === 1 && mails[0].to[0] === 'marie@example.com' && mails[0].html.includes(`/api/alerts?action=confirm&amp;token=${UUID(2)}`) && mails[0].subject === 'Confirmez votre alerte Z Find');
 
