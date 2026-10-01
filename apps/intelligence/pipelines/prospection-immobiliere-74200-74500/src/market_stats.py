@@ -126,7 +126,7 @@ def export(stats):
               f"prix_m2_actualise = ramené à {annee_ref} (voir price_index.py)")
     print(stats[cols].to_string(index=False))
 
-    for cp in ("74200", "74500"):
+    for cp in ("74200", "74500", "74550"):
         sub = stats[stats["code_postal"] == cp]
         if len(sub):
             tot = sub["nb_ventes"].sum()

@@ -25,10 +25,16 @@ COMMUNES_74500 = {
     "74073": "Chevenoz", "74175": "Meillerie", "74203": "Novel", "74127": "Féternes",
 }
 
-ALL_COMMUNES = {**COMMUNES_74200, **COMMUNES_74500}
+# Ajoute le secteur 74550 (sur demande, 2026-10-01).
+COMMUNES_74550 = {
+    "74053": "Cervens", "74106": "Draillant", "74206": "Orcier", "74210": "Perrignier",
+}
+
+ALL_COMMUNES = {**COMMUNES_74200, **COMMUNES_74500, **COMMUNES_74550}
 CODE_POSTAL_BY_INSEE = {
     **{c: "74200" for c in COMMUNES_74200},
     **{c: "74500" for c in COMMUNES_74500},
+    **{c: "74550" for c in COMMUNES_74550},
 }
 
 # ---------------------------------------------------------------- SOURCES ---
