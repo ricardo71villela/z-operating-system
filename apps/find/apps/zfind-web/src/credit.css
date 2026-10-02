@@ -1,0 +1,26 @@
+/* Z FIND — mortgage simulator (#/{lang}/simulator); builds on estimation.css (.est-*) */
+.credit-page .est-col-output{position:sticky;top:96px;}
+.credit-result .est-range span{font-size:1.1rem;margin-left:4px;}
+.credit-result .credit-key strong{color:var(--gold-dark);}
+.credit-result .est-adj strong{white-space:nowrap;text-align:right;}
+.credit-result .est-central{margin-top:-6px;}
+.credit-prompt{margin:0;padding:14px 16px;border-radius:var(--radius);background:var(--gold-pale);color:var(--gray-700);}
+.credit-rate-hint{margin:2px 0 0;font-size:.8rem;line-height:1.45;color:var(--gray-500);}
+.credit-rate-hint [data-credit-rate-state="missing"]{color:#8a3b22;}
+.credit-linkbtn{border:0;background:none;padding:0;font:inherit;color:var(--gold-dark);text-decoration:underline;cursor:pointer;}
+.credit-costs{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-end;}
+.credit-costs .est-field{min-width:180px;flex:1 1 180px;}
+.credit-short-warning{font-weight:600;color:var(--gray-700) !important;}
+.credit-warning{margin-top:28px;padding:20px 22px;border:1px solid var(--gray-200);border-left:3px solid var(--gold);border-radius:var(--radius);background:var(--gray-50,#fafafa);}
+.credit-warning h2{font-size:1.25rem;margin:0 0 10px;}
+.credit-warning p{margin:0 0 8px;color:var(--gray-700);font-size:.88rem;line-height:1.55;}
+.credit-warning p:last-child{margin-bottom:0;}
+.credit-warning a{color:var(--gold-dark);}
+@media (max-width: 860px){
+  .credit-page .est-col-output{position:static;}
+  .credit-page .credit-result{order:2;}
+}
+/* Listing page financing card: rate source line */
+.financing-card .fin-rate-hint{margin:-2px 0 6px;font-size:.72rem;line-height:1.4;color:var(--gray-500);}
+.financing-card .fin-rate-hint.missing{color:#8a3b22;}
+.financing-card .fin-more{display:inline-block;margin-top:8px;font-size:.82rem;color:var(--gold-dark);}

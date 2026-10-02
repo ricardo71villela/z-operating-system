@@ -84,6 +84,7 @@ function build() {
   const marketDivisionsService = read('services/market-divisions.js');
   const homeMarketsService = read('services/home-markets.js');
   const estimationCss = read('estimation.css');
+  const creditCss = read('credit.css');
   const estimationService = read('services/estimation.js');
   const estimationPageService = read('services/estimation-page.js');
   const body = read('body.html');
@@ -102,6 +103,8 @@ function build() {
   const naturalSearchService = read('services/natural-search.js');
   const searchFiltersService = read('services/search-filters.js');
   const acquisitionCostsService = read('services/acquisition-costs.js');
+  const creditRatesService = read('services/credit-rates.js');
+  const creditSimulatorService = read('services/credit-simulator.js');
   const supabaseClient = read('services/supabaseClient.js');
   const propertiesService = read('services/properties.js');
   const publicVerificationService = read('services/public-verification.js');
@@ -169,7 +172,7 @@ function build() {
   );
 
   const html = headTop
-    + '<style>\n' + css + '\n' + legalGuideReadingSurface + '\n' + mobileUxPolish + '\n' + mobileUxBalanceV3 + '\n' + propertyMobileDetailHotfix + '\n' + listingCompliancePublicCss + '\n' + searchMapUiCss + '\n' + searchAdvancedCss + '\n' + listingPageCss + '\n' + marketPricesCss + '\n' + marketDivisionsCss + '\n' + estimationCss + '\n' + proReviewsCss + '\n</style>\n</head>\n<body>\n'
+    + '<style>\n' + css + '\n' + legalGuideReadingSurface + '\n' + mobileUxPolish + '\n' + mobileUxBalanceV3 + '\n' + propertyMobileDetailHotfix + '\n' + listingCompliancePublicCss + '\n' + searchMapUiCss + '\n' + searchAdvancedCss + '\n' + listingPageCss + '\n' + marketPricesCss + '\n' + marketDivisionsCss + '\n' + estimationCss + '\n' + creditCss + '\n' + proReviewsCss + '\n</style>\n</head>\n<body>\n'
     + resolvedBody
     + '\n<script>\n'
     + vendorSupabase + '\n'
@@ -193,6 +196,8 @@ function build() {
     + naturalSearchService + '\n'
     + searchFiltersService + '\n'
     + acquisitionCostsService + '\n'
+    + creditRatesService + '\n'
+    + creditSimulatorService + '\n'
     + supabaseClient + '\n'
     + propertiesService + '\n'
     + publicVerificationService + '\n'

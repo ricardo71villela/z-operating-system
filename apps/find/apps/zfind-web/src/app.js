@@ -2440,13 +2440,41 @@ function financingCardHTML(vm) {
         <h4>${c.title}</h4>
         <div class="fin-grid">
           <label class="fin-field">${c.deposit}<input type="number" inputmode="numeric" min="0" step="1000" value="${deposit}" data-fin="deposit"></label>
-          <label class="fin-field">${c.rate}<input type="number" inputmode="decimal" min="0" max="15" step="0.05" value="3.3" data-fin="ratePct"></label>
+          <label class="fin-field">${c.rate}<input type="number" inputmode="decimal" min="0.1" max="15" step="0.01" value="${financingReference(country, 20) ? financingReference(country, 20).ratePct : ''}" data-fin="ratePct"></label>
           <label class="fin-field">${c.years}<select data-fin="years">${[15, 20, 25].map(y => opt(y, y, y === 20)).join('')}</select></label>
         </div>
+        <p class="fin-rate-hint" data-fin-rate-hint>${financingRateHint(country, 20, false)}</p>
         ${countryFields}
         <div class="fin-result" data-fin-result aria-live="polite"></div>
         <p class="fin-note">${c.note}</p>
+        <p class="fin-note">${financingCopy().warning}</p>
+        <a class="fin-more" href="#/${state.lang}/simulator?market=${country}&mode=payment&price=${Math.round(price)}">${financingCopy().more} →</a>
       </div>`;
+}
+
+/* Reference rate for the financing card: only an official average still
+   within its validity date (services/credit-rates.js), otherwise none. */
+function financingReference(country, years) {
+  const rates = window.ZFindServices && window.ZFindServices.creditRates;
+  return rates ? rates.reference(country, years, new Date()) : null;
+}
+function financingCopy() {
+  return state.lang === 'fr'
+    ? { more: 'Simulation détaillée du crédit', enterRate: 'Saisissez un taux', edited: 'Taux saisi par vous.',
+        warning: 'Simulation indicative : ni offre de prêt ni conseil. Consultez une banque ou un courtier en crédit.' }
+    : { more: 'Detailed mortgage simulation', enterRate: 'Enter a rate', edited: 'Rate entered by you.',
+        warning: 'Indicative simulation: neither a loan offer nor advice. Consult a bank or a credit broker.' };
+}
+function financingRateHint(country, years, edited) {
+  const sim = window.ZFindServices && window.ZFindServices.creditSimulator;
+  const rates = window.ZFindServices && window.ZFindServices.creditRates;
+  if (!sim || !rates) return '';
+  const copy = sim.COPY[state.lang] || sim.COPY.en;
+  if (edited) return escapeHtmlSim(financingCopy().edited);
+  const ref = financingReference(country, years);
+  if (ref) return escapeHtmlSim(copy.rateHint(ref, rates.periodLabel(ref.period, state.lang)));
+  const reason = rates.missingReason(country, years, new Date()) || 'no_source';
+  return `<span class="missing">${escapeHtmlSim(copy.rateMissing[reason](country))}</span>`;
 }
 
 function bindFinancingCard(vm) {
@@ -2457,6 +2485,21 @@ function bindFinancingCard(vm) {
   const country = card.getAttribute('data-financing-country');
   const field = name => card.querySelector(`[data-fin="${name}"]`);
   const money = v => fmtCurrency(v, state.lang, 'EUR');
+  const rateInput = field('ratePct');
+  const hint = card.querySelector('[data-fin-rate-hint]');
+  let rateEdited = false;
+  card.addEventListener('input', e => {
+    if (e.target !== rateInput) return;
+    const ref = financingReference(country, Number(field('years').value));
+    rateEdited = rateInput.value !== '' && !(ref && Number(rateInput.value) === ref.ratePct);
+    if (hint) hint.innerHTML = financingRateHint(country, Number(field('years').value), rateEdited);
+  });
+  card.addEventListener('change', e => {
+    if (e.target !== field('years') || rateEdited) return;
+    const ref = financingReference(country, Number(field('years').value));
+    rateInput.value = ref ? String(ref.ratePct) : '';
+    if (hint) hint.innerHTML = financingRateHint(country, Number(field('years').value), false);
+  });
   function update() {
     const input = {
       country, price: Number(vm.listing.priceCurrent),
@@ -2481,7 +2524,9 @@ function bindFinancingCard(vm) {
       + (r.notaryIncluded ? '' : `<div class="sim-row"><span class="fin-muted">${c.notaryExcluded}</span><span></span></div>`)
       + `<div class="sim-row"><span>${c.total}</span><span>${money(r.total)}</span></div>`
       + `<div class="sim-row"><span>${c.loan}</span><span>${money(r.loan)}</span></div>`
-      + `<div class="sim-row total"><span>${c.monthly}</span><span style="color:var(--gold-dark)">${money(r.monthly)}${c.perMonth}</span></div>`;
+      + (Number(rateInput && rateInput.value) > 0
+        ? `<div class="sim-row total"><span>${c.monthly}</span><span style="color:var(--gold-dark)">${money(r.monthly)}${c.perMonth}</span></div>`
+        : `<div class="sim-row total"><span>${c.monthly}</span><span class="fin-muted">${financingCopy().enterRate}</span></div>`);
   }
   card.addEventListener('input', update);
   card.addEventListener('change', update);
@@ -2971,7 +3016,19 @@ function renderEstimation() {
   page.render(root, state.lang, state.query || {});
 }
 
+/* Mortgage simulator for the launch markets (services/credit-simulator.js):
+   borrowing capacity and monthly payments, reference rates only while
+   their official publication is recent (services/credit-rates.js). */
 function renderSimulator() {
+  const root = document.getElementById('simulator-root');
+  const page = window.ZFindServices && window.ZFindServices.creditSimulator;
+  if (!root) return;
+  if (!page) { renderLegacySimulator(); return; }
+  page.render(root, state.lang, state.query || {});
+}
+
+/* Portugal-era IMT simulator, kept for the historical surface only. */
+function renderLegacySimulator() {
   const L = state.lang;
   const countries = window.ZFindServices.simulator.supportedCountries();
   document.getElementById('simulator-root').innerHTML = `

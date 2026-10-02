@@ -111,6 +111,21 @@ async function visibleText(page) {
     record('estimation form renders', true);
   });
 
+  // Mortgage simulator: an expired reference rate is hidden on the site,
+  // but the figures must be refreshed (apps/zfind-web/src/services/credit-rates.js).
+  await step(page, 'credit-rates', async () => {
+    await page.goto(`${BASE}/#/fr/simulator`, { waitUntil: 'domcontentloaded', timeout: STEP_TIMEOUT });
+    await page.waitForFunction(() => !!(window.ZFindServices && window.ZFindServices.estimation), null, { timeout: STEP_TIMEOUT });
+    const status = await page.evaluate(() => window.ZFindServices.creditRates ? window.ZFindServices.creditRates.status(new Date()) : null);
+    if (!status) { record('mortgage reference rates (not published yet)', true, 'skipped'); return; }
+    for (const s of status.filter(x => x.hasRates)) {
+      record(`mortgage reference rate ${s.market} is recent`, s.fresh,
+        s.fresh ? `${s.period}, valid ${s.daysLeft} more days` : `${s.period} expired on ${s.staleAfter} — update src/services/credit-rates.js`);
+    }
+    await page.waitForSelector('[data-credit-form]', { timeout: STEP_TIMEOUT });
+    record('mortgage simulator renders', true);
+  });
+
   await step(page, 'sitemap', async () => {
     const response = await page.request.get(`${BASE}/sitemap.xml`, { timeout: STEP_TIMEOUT });
     record('sitemap.xml is served', response.status() === 200, `HTTP ${response.status()}`);
