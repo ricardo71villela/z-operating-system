@@ -9,6 +9,9 @@
 .est-modes a.active{background:var(--gray-900);color:var(--white);}
 .est-markets a.active{background:var(--gold-pale);color:var(--gold-dark);font-weight:600;}
 .est-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:32px;align-items:start;}
+.est-col{display:flex;flex-direction:column;gap:16px;min-width:0;}
+.est-refine-slot:empty{display:none;}
+.est-col-output .est-report{margin-top:0;}
 .est-intro{position:sticky;top:96px;display:flex;flex-direction:column;gap:18px;padding:26px 26px 22px;border:1px solid var(--gold-light);border-radius:var(--radius);background:var(--gold-pale);}
 .est-intro-title{margin:0;font-size:1.45rem;}
 .est-steps{list-style:none;counter-reset:est-step;margin:0;padding:0;display:flex;flex-direction:column;gap:14px;}
@@ -63,7 +66,7 @@
 .est-buyer-above .est-bar-mark{left:100% !important;background:#a3341f;}
 .est-buyer-below .est-bar-mark{left:0 !important;background:#23633a;}
 .est-page [hidden]{display:none !important;}
-.est-refine{margin-top:16px;border:1px solid var(--gold-light);border-radius:var(--radius);background:var(--white);}
+.est-refine{margin-top:0;border:1px solid var(--gold-light);border-radius:var(--radius);background:var(--white);}
 .est-refine summary{list-style:none;cursor:pointer;display:flex;flex-direction:column;gap:4px;padding:16px 20px;background:var(--gold-pale);border-radius:var(--radius);}
 .est-refine summary::-webkit-details-marker{display:none;}
 .est-refine[open] summary{border-radius:var(--radius) var(--radius) 0 0;}
@@ -74,7 +77,13 @@
 .est-refine-form{display:flex;flex-direction:column;gap:14px;padding:18px 20px 20px;}
 .est-refine-checks{display:flex;flex-wrap:wrap;gap:8px 18px;}
 @media (max-width: 860px){
-  .est-grid{grid-template-columns:1fr;}
+  .est-grid{grid-template-columns:1fr;gap:16px;}
+  /* One column on phones, in reading order: form, result, questions, report. */
+  .est-col{display:contents;}
+  .est-form{order:1;}
+  .est-intro,.est-result-wrap{order:2;}
+  .est-refine-slot{order:3;}
+  .est-report{order:4;}
   .est-intro{position:static;}
 }
 @media (max-width: 520px){

@@ -339,6 +339,10 @@
       </details>`;
   }
 
+  function wideScreen() {
+    try { return typeof window !== 'undefined' && window.matchMedia('(min-width: 861px)').matches; } catch (_) { return false; }
+  }
+
   function readRefine(formEl) {
     const out = {};
     formEl.querySelectorAll('[data-est-r]').forEach(el => {
@@ -413,8 +417,8 @@
           </div>
         </header>
         <div class="est-grid">
-          <div>${formHTML(c, state.market, state.mode)}</div>
-          <div data-est-output>${introHTML(c, state.market, state.mode)}</div>
+          <div class="est-col est-col-inputs">${formHTML(c, state.market, state.mode)}<div class="est-refine-slot" data-est-refine-slot></div></div>
+          <div class="est-col est-col-output" data-est-output>${introHTML(c, state.market, state.mode)}</div>
         </div>
       </div>`;
 
@@ -424,6 +428,7 @@
     const typeSelect = form.querySelector('[data-est-type]');
     const error = form.querySelector('[data-est-error]');
     const output = rootEl.querySelector('[data-est-output]');
+    const refineSlot = rootEl.querySelector('[data-est-refine-slot]');
     let rows = null;
     let items = [];
     let active = -1;
@@ -511,16 +516,19 @@
       let result;
       try { result = await engine.estimate(input, load); } catch (_) { result = { ok: false, errors: ['generic'] }; }
       btn.disabled = false; btn.textContent = state.mode === 'buyer' ? c.submitBuyer : c.submit;
-      if (!result.ok) { showError(error, c.errors[result.errors[0]] || c.errors.generic); output.innerHTML = introHTML(c, state.market, state.mode); return; }
+      if (!result.ok) { showError(error, c.errors[result.errors[0]] || c.errors.generic); output.innerHTML = introHTML(c, state.market, state.mode); refineSlot.innerHTML = ''; return; }
       state.input = input; state.result = result;
-      output.innerHTML = `<div data-est-result-wrap>${resultHTML(c, lang, result, input)}</div>` + refineHTML(c, input, false) + reportHTML(c, state.mode);
+      // Inputs on the left (form, then the optional questions), outputs on the
+      // right (result, then the report): two columns of similar height.
+      output.innerHTML = `<div class="est-result-wrap" data-est-result-wrap>${resultHTML(c, lang, result, input)}</div>` + reportHTML(c, state.mode);
+      refineSlot.innerHTML = refineHTML(c, input, wideScreen());
       wireRefine();
       wireReport();
       output.querySelector('[data-est-result]').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     });
 
     function wireRefine() {
-      const refineForm = output.querySelector('[data-est-refine]');
+      const refineForm = refineSlot.querySelector('[data-est-refine]');
       if (!refineForm) return;
       const done = refineForm.querySelector('[data-est-refine-done]');
       refineForm.addEventListener('submit', async e => {
