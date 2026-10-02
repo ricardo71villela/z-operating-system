@@ -47,7 +47,8 @@
       condition: 'État', conditions: { to_renovate: 'À rénover', standard: 'Correct', good: 'Bon état', renovated: 'Refait à neuf' },
       energy: { FR: 'DPE', BE: 'PEB', LU: 'Classe énergétique' }, energyUnknown: 'Je ne sais pas',
       newBuild: 'Appartement neuf (VEFA)',
-      features: 'Atouts', f: { balcony: 'Balcon', terrace: 'Terrasse', garden: 'Jardin', parking: 'Parking / garage', pool: 'Piscine', view: 'Vue dégagée' },
+      features: 'Atouts', f: { balcony: 'Balcon', terrace: 'Terrasse', garden: 'Jardin', parking: 'Parking / garage', pool: 'Piscine', view: 'Vue dégagée', coownership: 'En copropriété' },
+      houseKind: 'Type de maison', houseKindPick: 'Choisissez…', houseKinds: { detached: 'Individuelle isolée (4 façades)', semi: 'Jumelée (un mur mitoyen)', terraced: 'Mitoyenne des deux côtés (en bande)' },
       floor: 'Étage', floorGround: 'Rez-de-chaussée', lift: 'Ascenseur',
       asking: 'Prix demandé (€)',
       submit: 'Estimer', submitBuyer: 'Vérifier le prix', computing: 'Calcul…',
@@ -62,7 +63,7 @@
       },
       adjTitle: 'Ajustements appliqués',
       adj: { condition: 'État', energy: 'Performance énergétique', outdoor: 'Extérieur', parking: 'Stationnement', pool: 'Piscine', view: 'Vue', ground_floor: 'Rez-de-chaussée', high_floor_no_lift: 'Étage élevé sans ascenseur',
-        position: 'Emplacement et standing (position dans les prix de la commune)', era: 'Époque de construction', light: 'Luminosité', land: 'Terrain', top_floor: 'Dernier étage', cellar: 'Cave', nuisance: 'Nuisances' },
+        position: 'Emplacement et standing (position dans les prix de la commune)', house_kind: 'Type de maison', coownership: 'Copropriété', era: 'Époque de construction', light: 'Luminosité', land: 'Terrain', top_floor: 'Dernier étage', cellar: 'Cave', nuisance: 'Nuisances' },
       refineTitle: 'Affiner l’estimation',
       refineLead: 'Quelques questions de plus pour une fourchette plus resserrée. Répondez seulement à ce que vous savez.',
       refineUnknown: '—',
@@ -84,7 +85,7 @@
       buyer: { below: d => `Le prix demandé est ${d} sous la fourchette estimée.`, within: 'Le prix demandé est dans la fourchette estimée.', above: d => `Le prix demandé est ${d} au-dessus de la valeur centrale estimée.` },
       disclaimer: 'Estimation statistique indicative, fondée sur des données publiques agrégées. Elle ne remplace pas l’avis de valeur d’un professionnel qui visite le bien.',
       source: 'Source',
-      errors: { commune: 'Choisissez une commune dans la liste.', type: 'Choisissez un type de bien.', surface: 'Indiquez une surface entre 9 et 2 000 m².', askingPrice: 'Indiquez un prix entre 10 000 € et 50 000 000 €.', no_data: 'Pas assez de ventes publiées dans cette zone pour une estimation fiable.', not_under_dvf: 'Les ventes du Bas-Rhin, du Haut-Rhin, de la Moselle et de Mayotte ne sont pas publiées dans la base DVF : estimation indisponible pour ce secteur.', generic: 'Estimation momentanément indisponible. Réessayez dans un instant.' },
+      errors: { houseKind: 'Précisez le type de maison (isolée, jumelée ou mitoyenne).', commune: 'Choisissez une commune dans la liste.', type: 'Choisissez un type de bien.', surface: 'Indiquez une surface entre 9 et 2 000 m².', askingPrice: 'Indiquez un prix entre 10 000 € et 50 000 000 €.', no_data: 'Pas assez de ventes publiées dans cette zone pour une estimation fiable.', not_under_dvf: 'Les ventes du Bas-Rhin, du Haut-Rhin, de la Moselle et de Mayotte ne sont pas publiées dans la base DVF : estimation indisponible pour ce secteur.', generic: 'Estimation momentanément indisponible. Réessayez dans un instant.' },
       reportTitle: 'Recevez le rapport détaillé',
       reportLead: 'Par e-mail : la fourchette, le détail du calcul, les prix de la commune et leur évolution.',
       name: 'Nom (facultatif)', email: 'E-mail', phone: 'Téléphone (facultatif)',
@@ -122,7 +123,8 @@
       condition: 'Condition', conditions: { to_renovate: 'Needs renovation', standard: 'Fair', good: 'Good', renovated: 'Fully renovated' },
       energy: { FR: 'EPC (DPE)', BE: 'EPC (PEB)', LU: 'Energy class' }, energyUnknown: 'I don’t know',
       newBuild: 'New-build apartment (off-plan)',
-      features: 'Features', f: { balcony: 'Balcony', terrace: 'Terrace', garden: 'Garden', parking: 'Parking / garage', pool: 'Pool', view: 'Open view' },
+      features: 'Features', f: { balcony: 'Balcony', terrace: 'Terrace', garden: 'Garden', parking: 'Parking / garage', pool: 'Pool', view: 'Open view', coownership: 'In a co-ownership' },
+      houseKind: 'House layout', houseKindPick: 'Choose…', houseKinds: { detached: 'Detached (4 façades)', semi: 'Semi-detached (one shared wall)', terraced: 'Terraced (shared walls on both sides)' },
       floor: 'Floor', floorGround: 'Ground floor', lift: 'Lift',
       asking: 'Asking price (€)',
       submit: 'Get estimate', submitBuyer: 'Check the price', computing: 'Calculating…',
@@ -135,7 +137,7 @@
       },
       adjTitle: 'Adjustments applied',
       adj: { condition: 'Condition', energy: 'Energy performance', outdoor: 'Outdoor space', parking: 'Parking', pool: 'Pool', view: 'View', ground_floor: 'Ground floor', high_floor_no_lift: 'High floor without lift',
-        position: 'Location and standard (position within local prices)', era: 'Construction period', light: 'Natural light', land: 'Plot', top_floor: 'Top floor', cellar: 'Cellar', nuisance: 'Nuisances' },
+        position: 'Location and standard (position within local prices)', house_kind: 'House layout', coownership: 'Co-ownership', era: 'Construction period', light: 'Natural light', land: 'Plot', top_floor: 'Top floor', cellar: 'Cellar', nuisance: 'Nuisances' },
       refineTitle: 'Refine the estimate',
       refineLead: 'A few more questions for a narrower range. Only answer what you know.',
       refineUnknown: '—',
@@ -157,7 +159,7 @@
       buyer: { below: d => `The asking price is ${d} below the estimated range.`, within: 'The asking price is within the estimated range.', above: d => `The asking price is ${d} above the estimated central value.` },
       disclaimer: 'Indicative statistical estimate based on aggregated public data. It does not replace a valuation by a professional who visits the property.',
       source: 'Source',
-      errors: { commune: 'Choose a municipality from the list.', type: 'Choose a property type.', surface: 'Enter an area between 9 and 2,000 m².', askingPrice: 'Enter a price between €10,000 and €50,000,000.', no_data: 'Not enough published sales in this area for a reliable estimate.', not_under_dvf: 'Sales in Bas-Rhin, Haut-Rhin, Moselle and Mayotte are not published in the DVF database: no estimate for this area.', generic: 'Estimate temporarily unavailable. Please try again shortly.' },
+      errors: { houseKind: 'Choose the house layout (detached, semi-detached or terraced).', commune: 'Choose a municipality from the list.', type: 'Choose a property type.', surface: 'Enter an area between 9 and 2,000 m².', askingPrice: 'Enter a price between €10,000 and €50,000,000.', no_data: 'Not enough published sales in this area for a reliable estimate.', not_under_dvf: 'Sales in Bas-Rhin, Haut-Rhin, Moselle and Mayotte are not published in the DVF database: no estimate for this area.', generic: 'Estimate temporarily unavailable. Please try again shortly.' },
       reportTitle: 'Get the detailed report',
       reportLead: 'By e-mail: the range, how it was calculated, and local prices over time.',
       name: 'Name (optional)', email: 'E-mail', phone: 'Phone (optional)',
@@ -255,6 +257,10 @@
           <div class="est-field"><label for="est-surface">${c.surface}</label>
             <input id="est-surface" type="number" inputmode="numeric" min="9" max="2000" step="1" data-est-surface></div>
         </div>
+        ${market === 'BE' ? '' : `<div class="est-field" data-est-house-only>
+          <label for="est-housekind">${c.houseKind}</label>
+          <select id="est-housekind" data-est-housekind><option value="">${c.houseKindPick}</option>${Object.entries(c.houseKinds).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('')}</select>
+        </div>`}
         <div class="est-row">
           <div class="est-field"><label for="est-condition">${c.condition}</label>
             <select id="est-condition" data-est-condition>${Object.entries(c.conditions).map(([k, v]) => `<option value="${k}"${k === 'standard' ? ' selected' : ''}>${esc(v)}</option>`).join('')}</select></div>
@@ -339,6 +345,10 @@
       </details>`;
   }
 
+  function wideScreen() {
+    try { return typeof window !== 'undefined' && window.matchMedia('(min-width: 861px)').matches; } catch (_) { return false; }
+  }
+
   function readRefine(formEl) {
     const out = {};
     formEl.querySelectorAll('[data-est-r]').forEach(el => {
@@ -413,8 +423,8 @@
           </div>
         </header>
         <div class="est-grid">
-          <div>${formHTML(c, state.market, state.mode)}</div>
-          <div data-est-output>${introHTML(c, state.market, state.mode)}</div>
+          <div class="est-col est-col-inputs">${formHTML(c, state.market, state.mode)}<div class="est-refine-slot" data-est-refine-slot></div></div>
+          <div class="est-col est-col-output" data-est-output>${introHTML(c, state.market, state.mode)}</div>
         </div>
       </div>`;
 
@@ -424,6 +434,7 @@
     const typeSelect = form.querySelector('[data-est-type]');
     const error = form.querySelector('[data-est-error]');
     const output = rootEl.querySelector('[data-est-output]');
+    const refineSlot = rootEl.querySelector('[data-est-refine-slot]');
     let rows = null;
     let items = [];
     let active = -1;
@@ -431,9 +442,10 @@
     function syncType() {
       const apartment = typeSelect.value === 'apartment';
       form.querySelectorAll('[data-est-apartment-only]').forEach(el => { el.hidden = !apartment; });
+      form.querySelectorAll('[data-est-house-only]').forEach(el => { el.hidden = apartment; });
       form.querySelectorAll('[data-est-feature]').forEach(el => {
         const k = el.getAttribute('data-est-feature');
-        el.hidden = apartment ? k === 'pool' : (k === 'balcony' || k === 'terrace' || k === 'garden');
+        el.hidden = apartment ? (k === 'pool' || k === 'coownership') : (k === 'balcony' || k === 'terrace' || k === 'garden');
       });
     }
     typeSelect.addEventListener('change', syncType);
@@ -493,6 +505,7 @@
         floor: apartment && floorVal !== '' ? Number(floorVal) : null,
         lift: apartment ? form.querySelector('[data-est-lift]').checked : null,
         newBuild: !!(apartment && newBuild && newBuild.checked),
+        houseKind: !apartment && form.querySelector('[data-est-housekind]') ? form.querySelector('[data-est-housekind]').value || null : null,
         askingPrice: asking && asking.value !== '' ? Number(asking.value) : null
       };
     }
@@ -503,6 +516,7 @@
       e.preventDefault();
       const input = readInput();
       if (state.mode === 'buyer' && input.askingPrice == null) { showError(error, c.errors.askingPrice); return; }
+      if (input.type === 'house' && state.market !== 'BE' && !input.houseKind) { showError(error, c.errors.houseKind); return; }
       const problems = engine.validate(input);
       if (problems.length) { showError(error, c.errors[problems[0]] || c.errors.generic); return; }
       showError(error, '');
@@ -511,16 +525,19 @@
       let result;
       try { result = await engine.estimate(input, load); } catch (_) { result = { ok: false, errors: ['generic'] }; }
       btn.disabled = false; btn.textContent = state.mode === 'buyer' ? c.submitBuyer : c.submit;
-      if (!result.ok) { showError(error, c.errors[result.errors[0]] || c.errors.generic); output.innerHTML = introHTML(c, state.market, state.mode); return; }
+      if (!result.ok) { showError(error, c.errors[result.errors[0]] || c.errors.generic); output.innerHTML = introHTML(c, state.market, state.mode); refineSlot.innerHTML = ''; return; }
       state.input = input; state.result = result;
-      output.innerHTML = `<div data-est-result-wrap>${resultHTML(c, lang, result, input)}</div>` + refineHTML(c, input, false) + reportHTML(c, state.mode);
+      // Inputs on the left (form, then the optional questions), outputs on the
+      // right (result, then the report): two columns of similar height.
+      output.innerHTML = `<div class="est-result-wrap" data-est-result-wrap>${resultHTML(c, lang, result, input)}</div>` + reportHTML(c, state.mode);
+      refineSlot.innerHTML = refineHTML(c, input, wideScreen());
       wireRefine();
       wireReport();
       output.querySelector('[data-est-result]').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     });
 
     function wireRefine() {
-      const refineForm = output.querySelector('[data-est-refine]');
+      const refineForm = refineSlot.querySelector('[data-est-refine]');
       if (!refineForm) return;
       const done = refineForm.querySelector('[data-est-refine-done]');
       refineForm.addEventListener('submit', async e => {

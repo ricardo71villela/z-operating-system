@@ -50,8 +50,17 @@
     pool: 0.05,
     view: 0.03,
     ground_floor: -0.05,
-    high_floor_no_lift: -0.07
+    high_floor_no_lift: -0.07,
+    // France / Luxembourg publish one price for all houses: a detached house
+    // sits above that median, a semi-detached or terraced one below it.
+    // (Belgium already publishes 2-3-façade and 4-façade houses separately.)
+    houseKind: Object.freeze({ detached: 0.04, semi: -0.06, terraced: -0.12 }),
+    // A house inside a co-ownership (shared grounds, charges, rules).
+    coownership: -0.05
   });
+  const HOUSE_KINDS = Object.freeze(['detached', 'semi', 'terraced']);
+  /* Typical plot by layout, as a share of the market reference plot. */
+  const LAND_REFERENCE_BY_KIND = Object.freeze({ detached: 1.15, semi: 0.65, terraced: 0.4 });
   const TOTAL_ADJUSTMENT = Object.freeze({ min: -0.25, max: 0.20 });
 
   /* Optional "Affiner" answers (2026-10).
@@ -142,6 +151,12 @@
     return errors;
   }
 
+  /* House layout, for the markets that publish one price for all houses. */
+  function houseKindOf(input) {
+    if (input.type !== 'house' || !(input.market === 'FR' || input.market === 'LU')) return null;
+    return HOUSE_KINDS.includes(input.houseKind) ? input.houseKind : null;
+  }
+
   /* ---------------- Adjustments ---------------- */
   function adjustments(input, base) {
     const list = [];
@@ -184,9 +199,13 @@
       else if (floor >= 3 && input.lift === false) add('high_floor_no_lift', ADJUSTMENTS.high_floor_no_lift);
       if (r.topFloor && floor !== 0 && !(floor >= 3 && input.lift === false)) add('top_floor', REFINE.topFloor);
     } else {
+      const kind = houseKindOf(input);
+      if (kind) add('house_kind', ADJUSTMENTS.houseKind[kind]);
+      if (input.coownership === true || f.coownership) add('coownership', ADJUSTMENTS.coownership);
       if (f.pool) add('pool', ADJUSTMENTS.pool);
       if (isNum(r.landArea) && r.landArea > 0) {
-        const ref = REFINE.landReference[input.market] || 600;
+        const kindForPlot = kind || (input.type === 'house_open' ? 'detached' : input.type === 'house_closed' ? 'semi' : null);
+        const ref = (REFINE.landReference[input.market] || 600) * (kindForPlot ? LAND_REFERENCE_BY_KIND[kindForPlot] : 1);
         const l = REFINE.land;
         add('land', clamp(l.perDoubling * Math.log2(r.landArea / ref), l.min, l.max));
       }
@@ -434,7 +453,7 @@
   }
 
   return Object.freeze({
-    MARKETS, TYPES, ADJUSTMENTS, TOTAL_ADJUSTMENT, SPREAD, BE_REFERENCE_M2, BE_SIZE_ELASTICITY, REFINE, REFINE_KEYS,
+    MARKETS, TYPES, ADJUSTMENTS, HOUSE_KINDS, TOTAL_ADJUSTMENT, SPREAD, BE_REFERENCE_M2, BE_SIZE_ELASTICITY, REFINE, REFINE_KEYS,
     validate, estimate, formatPeriod, cleanRefine,
     _internals: Object.freeze({ adjustments, spreadFrom, buyerPosition, luAskToSoldRatio, frDepartmentOf, median })
   });

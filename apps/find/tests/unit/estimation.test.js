@@ -222,6 +222,27 @@ function mockRes() {
   const leadRefined = handler._internals.leadEmail('fr', 'owner', cleaned, await engine.estimate(cleaned, load), 'Évian-les-Bains', { email: 'a@b.fr' });
   check('API: the detailed answers reach the server (cleaned) and the lead e-mail, in Portuguese',
     JSON.stringify(cleaned.refine) === '{"view":"lake","parking":"garage"}' && leadRefined.text.includes('Detalhes (afinar): vista: lago panorâmica · estacionamento: garagem/box'));
+  // ---------------- House layout (France / Luxembourg) ----------------
+  const houseBase = { market: 'FR', communeCode: '74281', type: 'house', surface: 140 };
+  const detached = await engine.estimate(Object.assign({}, houseBase, { houseKind: 'detached' }), load);
+  const semi = await engine.estimate(Object.assign({}, houseBase, { houseKind: 'semi' }), load);
+  const terraced = await engine.estimate(Object.assign({}, houseBase, { houseKind: 'terraced' }), load);
+  const semiCopro = await engine.estimate(Object.assign({}, houseBase, { houseKind: 'semi', features: { coownership: true } }), load);
+  check('house layout: detached > semi-detached > terraced; co-ownership lowers it further',
+    detached.central > semi.central && semi.central > terraced.central && semiCopro.central < semi.central &&
+    Math.round((detached.central - semi.central) / semi.central * 100) >= 9);
+  const bePlain = await engine.estimate({ market: 'BE', communeCode: '63023', type: 'house_open', surface: 185 }, load);
+  const beKind = await engine.estimate({ market: 'BE', communeCode: '63023', type: 'house_open', surface: 185, houseKind: 'semi' }, load);
+  check('house layout: not applied in Belgium, where 2-3 and 4-façade houses already have their own prices', bePlain.central === beKind.central);
+  const semiPlot = await engine.estimate(Object.assign({}, houseBase, { houseKind: 'semi', refine: { landArea: 400 } }), load);
+  const detachedPlot = await engine.estimate(Object.assign({}, houseBase, { houseKind: 'detached', refine: { landArea: 400 } }), load);
+  check('house layout: the plot is compared with a typical plot for that layout (400 m² is normal for a semi-detached house, small for a detached one)',
+    Math.abs(semiPlot.adjustments.find(a => a.key === 'land').pct) < 0.01 && detachedPlot.adjustments.find(a => a.key === 'land').pct < -0.05);
+  const cleanedHouse = handler._internals.cleanInput({ market: 'FR', communeCode: '74281', type: 'house', surface: 140, houseKind: 'semi', features: { coownership: true } });
+  const leadHouse = handler._internals.leadEmail('fr', 'owner', cleanedHouse, await engine.estimate(cleanedHouse, load), 'Thonon-les-Bains', { email: 'a@b.fr' });
+  check('house layout: kept by the server and written in the lead e-mail ("Maison jumelée en copropriété")',
+    cleanedHouse.houseKind === 'semi' && cleanedHouse.features.coownership === true && leadHouse.text.includes('Maison jumelée en copropriété, 140 m²'));
+
   check('page copy still has the same keys in fr and en', Object.keys(page.COPY.fr).join() === Object.keys(page.COPY.en).join());
 
   console.log(`\nESTIMATION: ${passed}/${passed} PASSED`);
