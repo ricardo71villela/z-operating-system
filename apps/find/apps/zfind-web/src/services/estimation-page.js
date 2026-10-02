@@ -62,12 +62,13 @@
       },
       adjTitle: 'Ajustements appliqués',
       adj: { condition: 'État', energy: 'Performance énergétique', outdoor: 'Extérieur', parking: 'Stationnement', pool: 'Piscine', view: 'Vue', ground_floor: 'Rez-de-chaussée', high_floor_no_lift: 'Étage élevé sans ascenseur',
-        standing: 'Standing (position dans les prix de la commune)', era: 'Époque de construction', light: 'Luminosité', land: 'Terrain', top_floor: 'Dernier étage', cellar: 'Cave', nuisance: 'Nuisances' },
+        position: 'Emplacement et standing (position dans les prix de la commune)', era: 'Époque de construction', light: 'Luminosité', land: 'Terrain', top_floor: 'Dernier étage', cellar: 'Cave', nuisance: 'Nuisances' },
       refineTitle: 'Affiner l’estimation',
       refineLead: 'Quelques questions de plus pour une fourchette plus resserrée. Répondez seulement à ce que vous savez.',
       refineUnknown: '—',
       refineFields: {
-        view: { label: 'Vue', options: { none: 'Sans vue particulière', open: 'Dégagée', mountain: 'Montagne', lake: 'Lac' } },
+        location: { label: 'Emplacement dans la commune', options: { less_sought: 'Excentré ou peu recherché', standard: 'Courant', sought: 'Résidentiel recherché', prime: 'Très prisé (bord de lac, centre historique, meilleur quartier)' } },
+        view: { label: 'Vue', options: { none: 'Sans vue particulière', open: 'Dégagée', mountain: 'Montagne', lake_partial: 'Lac (partielle)', lake: 'Lac (panoramique)' } },
         standing: { label: 'Standing du bien et de l’immeuble', options: { modest: 'Modeste', standard: 'Courant', high: 'Haut de gamme', prestige: 'Prestige' } },
         era: { label: 'Époque de construction', options: { pre1950: 'Avant 1950', '1950_1980': '1950 – 1980', '1980_2010': '1980 – 2010', post2010: 'Après 2010' } },
         light: { label: 'Luminosité', options: { dark: 'Sombre', standard: 'Normale', bright: 'Très lumineux' } },
@@ -134,12 +135,13 @@
       },
       adjTitle: 'Adjustments applied',
       adj: { condition: 'Condition', energy: 'Energy performance', outdoor: 'Outdoor space', parking: 'Parking', pool: 'Pool', view: 'View', ground_floor: 'Ground floor', high_floor_no_lift: 'High floor without lift',
-        standing: 'Standing (position within local prices)', era: 'Construction period', light: 'Natural light', land: 'Plot', top_floor: 'Top floor', cellar: 'Cellar', nuisance: 'Nuisances' },
+        position: 'Location and standard (position within local prices)', era: 'Construction period', light: 'Natural light', land: 'Plot', top_floor: 'Top floor', cellar: 'Cellar', nuisance: 'Nuisances' },
       refineTitle: 'Refine the estimate',
       refineLead: 'A few more questions for a narrower range. Only answer what you know.',
       refineUnknown: '—',
       refineFields: {
-        view: { label: 'View', options: { none: 'No particular view', open: 'Open', mountain: 'Mountains', lake: 'Lake' } },
+        location: { label: 'Location within the municipality', options: { less_sought: 'Outlying or less sought-after', standard: 'Average', sought: 'Sought-after residential', prime: 'Prime (lakefront, historic centre, best area)' } },
+        view: { label: 'View', options: { none: 'No particular view', open: 'Open', mountain: 'Mountains', lake_partial: 'Lake (partial)', lake: 'Lake (panoramic)' } },
         standing: { label: 'Standard of the property and building', options: { modest: 'Modest', standard: 'Average', high: 'High-end', prestige: 'Prestige' } },
         era: { label: 'Construction period', options: { pre1950: 'Before 1950', '1950_1980': '1950 – 1980', '1980_2010': '1980 – 2010', post2010: 'After 2010' } },
         light: { label: 'Natural light', options: { dark: 'Dark', standard: 'Normal', bright: 'Very bright' } },
@@ -326,9 +328,10 @@
       <details class="est-refine" data-est-refine-wrap${open ? ' open' : ''}>
         <summary><span class="est-refine-title">${c.refineTitle}</span><span class="est-refine-lead">${c.refineLead}</span></summary>
         <form class="est-refine-form" data-est-refine novalidate>
+          ${sel('location')}
           <div class="est-row">${sel('view')}${sel('standing')}</div>
           <div class="est-row">${sel('era')}${sel('light')}</div>
-          <div class="est-row">${apartment ? num('outdoorArea', c.refineOutdoorArea) : num('landArea', c.refineLandArea)}${sel('parking')}</div>
+          <div class="est-row">${sel('parking')}${apartment ? num('outdoorArea', c.refineOutdoorArea) : num('landArea', c.refineLandArea)}</div>
           <div class="est-refine-checks">${apartment ? chk('topFloor', c.refineTopFloor) : ''}${chk('cellar', c.refineCellar)}${chk('nuisance', c.refineNuisance)}</div>
           <button type="submit" class="est-submit">${c.refineSubmit}</button>
           <p class="est-sent" data-est-refine-done role="status" hidden></p>

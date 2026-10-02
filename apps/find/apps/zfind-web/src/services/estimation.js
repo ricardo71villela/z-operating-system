@@ -54,36 +54,48 @@
   });
   const TOTAL_ADJUSTMENT = Object.freeze({ min: -0.25, max: 0.20 });
 
-  /* Optional "Affiner" answers (2026-10). Market-practice coefficients,
-     deliberately prudent and published with every result; they replace the
-     quick-form answer on the same subject (view, outdoor, parking). The
-     "standing" answer positions the property inside the official quartiles
-     of the area instead of on the median. */
+  /* Optional "Affiner" answers (2026-10).
+     Weighting: what makes the price of a property inside its commune is first
+     WHERE it is (micro-location / neighbourhood), then the VIEW, then its
+     standing; the rest are smaller corrections.
+     - Location and standing are combined into one position score, placed
+       inside the official price quartiles of the area (DVF / Statbel /
+       Observatoire): the spread between the quartiles of the commune is the
+       measured spread between its cheap and expensive properties.
+     - The view is counted separately (a panoramic lake view is worth more
+       than a good address alone), but more modestly than its headline
+       premium because part of it is already in the location.
+     Market-practice coefficients (hedonic studies of French notaries'
+     data, agents' practice on Lake Geneva), published with every result
+     and easy to recalibrate here. */
   const REFINE = Object.freeze({
-    view: Object.freeze({ none: 0, open: 0.03, mountain: 0.04, lake: 0.10 }),
+    location: Object.freeze({ less_sought: -1, standard: 0, sought: 0.6, prime: 1.2 }),
+    standing: Object.freeze({ modest: -0.8, standard: 0, high: 0.6, prestige: 1.2 }),
+    positionWeights: Object.freeze({ location: 0.6, standing: 0.4 }),
+    position: Object.freeze({ min: -1.2, max: 1.4, pctMin: -0.25, pctMax: 0.35, fallbackQuartileGap: 0.15 }),
+    view: Object.freeze({ none: 0, open: 0.03, mountain: 0.05, lake_partial: 0.07, lake: 0.15 }),
     era: Object.freeze({ pre1950: 0, '1950_1980': -0.04, '1980_2010': 0, post2010: 0.04 }),
     light: Object.freeze({ dark: -0.05, standard: 0, bright: 0.03 }),
     parking: Object.freeze({ none: 0, outdoor: 0.02, garage: 0.04, double_garage: 0.06 }),
-    standing: Object.freeze({ modest: -0.5, standard: 0, high: 0.5, prestige: 1 }), // share of the way to the quartile
-    standingFallback: Object.freeze({ modest: -0.06, standard: 0, high: 0.06, prestige: 0.12 }),
     topFloor: 0.03,
     cellar: 0.01,
-    nuisance: -0.06,
+    nuisance: -0.07,
     outdoorArea: Object.freeze({ base: 0.015, perM2: 0.0012, max: 0.08 }),
-    land: Object.freeze({ perDoubling: 0.06, min: -0.08, max: 0.10 }),
+    land: Object.freeze({ perDoubling: 0.08, min: -0.10, max: 0.15 }),
     landReference: Object.freeze({ FR: 600, BE: 600, LU: 450 }),
-    totalWhenRefined: Object.freeze({ min: -0.30, max: 0.30 }),
+    totalWhenRefined: Object.freeze({ min: -0.35, max: 0.45 }),
     spreadShrinkPerAnswer: 0.03,
     spreadShrinkMax: 0.25,
     spreadFloor: 0.05
   });
-  const REFINE_KEYS = Object.freeze(['view', 'standing', 'era', 'light', 'outdoorArea', 'landArea', 'topFloor', 'parking', 'cellar', 'nuisance']);
+  const REFINE_KEYS = Object.freeze(['location', 'view', 'standing', 'era', 'light', 'outdoorArea', 'landArea', 'topFloor', 'parking', 'cellar', 'nuisance']);
 
   /* Keeps only known refine answers (from the page or from the e-mail request). */
   function cleanRefine(raw, type) {
     const r = raw && typeof raw === 'object' ? raw : {};
     const out = {};
     const apartment = type === 'apartment';
+    if (Object.prototype.hasOwnProperty.call(REFINE.location, r.location)) out.location = r.location;
     if (Object.prototype.hasOwnProperty.call(REFINE.view, r.view)) out.view = r.view;
     if (Object.prototype.hasOwnProperty.call(REFINE.standing, r.standing)) out.standing = r.standing;
     if (Object.prototype.hasOwnProperty.call(REFINE.era, r.era)) out.era = r.era;
@@ -143,14 +155,15 @@
     if (!newBuildLu) add('condition', ADJUSTMENTS.condition[input.condition] || 0);
     add('energy', ADJUSTMENTS.energy[String(input.energy || '').toUpperCase()] || 0);
 
-    // Standing: position inside the official quartiles of the area when they exist.
-    if (r.standing && r.standing !== 'standard') {
-      const share = REFINE.standing[r.standing];
+    // Location + standing: one position inside the official quartiles of the area.
+    if (r.location || r.standing) {
+      const w = REFINE.positionWeights;
+      const P = REFINE.position;
+      const score = clamp(w.location * (REFINE.location[r.location] || 0) + w.standing * (REFINE.standing[r.standing] || 0), P.min, P.max);
       const p25 = base && base.p25, p50 = base && base.p50, p75 = base && base.p75;
-      let pct = REFINE.standingFallback[r.standing];
-      if (isNum(p50) && p50 > 0 && share < 0 && isNum(p25)) pct = clamp(share * (p50 - p25) / p50, -0.15, 0);
-      if (isNum(p50) && p50 > 0 && share > 0 && isNum(p75)) pct = clamp(share * (p75 - p50) / p50, 0, 0.25);
-      add('standing', pct);
+      const upGap = isNum(p50) && p50 > 0 && isNum(p75) ? p75 / p50 - 1 : P.fallbackQuartileGap;
+      const downGap = isNum(p50) && p50 > 0 && isNum(p25) ? 1 - p25 / p50 : P.fallbackQuartileGap;
+      add('position', clamp(score >= 0 ? score * upGap : score * downGap, P.pctMin, P.pctMax));
     }
 
     const f = input.features || {};

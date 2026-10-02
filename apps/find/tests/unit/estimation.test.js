@@ -184,9 +184,18 @@ function mockRes() {
   check('refine: each answer narrows the range (never below ±5 %)',
     (upscale.high - upscale.low) / upscale.central < (plain.high - plain.low) / plain.central &&
     upscale.low <= upscale.central * 0.95 + 5000 && upscale.high >= upscale.central * 1.05 - 5000);
-  const standing = upscale.adjustments.find(a => a.key === 'standing');
-  check('refine: "standing" positions the flat inside the official quartiles of the commune (half-way to the upper quartile)',
+  const standing = upscale.adjustments.find(a => a.key === 'position');
+  check('refine: standing (and location) position the flat inside the official quartiles of the commune',
     standing && standing.pct > 0 && standing.pct < 0.25);
+  const prime = await engine.estimate(Object.assign({}, baseIn, { refine: { location: 'prime' } }), load);
+  const prestigeOnly = await engine.estimate(Object.assign({}, baseIn, { refine: { standing: 'prestige' } }), load);
+  const outlying = await engine.estimate(Object.assign({}, baseIn, { refine: { location: 'less_sought' } }), load);
+  check('refine: location weighs more than standing; an outlying address pulls towards the lower quartile',
+    prime.central > prestigeOnly.central && outlying.central < plain.central);
+  const lakePanoramic = await engine.estimate(Object.assign({}, baseIn, { refine: { view: 'lake' } }), load);
+  const lakePartial = await engine.estimate(Object.assign({}, baseIn, { refine: { view: 'lake_partial' } }), load);
+  check('refine: a panoramic lake view is worth more than a partial one, which is worth more than mountains',
+    lakePanoramic.central > lakePartial.central && engine.REFINE.view.lake_partial > engine.REFINE.view.mountain);
   const lake = upscale.adjustments.find(a => a.key === 'view');
   const outdoor = upscale.adjustments.find(a => a.key === 'outdoor');
   check('refine: answers replace the quick-form answer on the same subject (view, outdoor size, parking)',
@@ -194,25 +203,25 @@ function mockRes() {
     upscale.adjustments.filter(a => a.key === 'parking').length === 1);
   const house = await engine.estimate({ market: 'FR', communeCode: '74281', type: 'house', surface: 140, refine: { landArea: 1200 } }, load);
   const smallPlot = await engine.estimate({ market: 'FR', communeCode: '74281', type: 'house', surface: 140, refine: { landArea: 300 } }, load);
-  check('refine: plot size counts for houses (+6 % per doubling of the reference plot, capped)',
-    house.adjustments.find(a => a.key === 'land').pct === 0.06 && smallPlot.adjustments.find(a => a.key === 'land').pct === -0.06);
+  check('refine: plot size counts for houses (+8 % per doubling of the reference plot, capped)',
+    house.adjustments.find(a => a.key === 'land').pct === 0.08 && smallPlot.adjustments.find(a => a.key === 'land').pct === -0.08);
   const luHouse2 = await engine.estimate({ market: 'LU', communeCode: 'LU-BEAUFORT', type: 'house', surface: 150, refine: { standing: 'prestige' } }, load);
-  check('refine: without published quartiles, "standing" uses a fixed prudent step',
-    luHouse2.adjustments.find(a => a.key === 'standing').pct === engine.REFINE.standingFallback.prestige);
-  const extreme = await engine.estimate(Object.assign({}, baseIn, { condition: 'renovated', energy: 'A', refine: { view: 'lake', standing: 'prestige', era: 'post2010', light: 'bright', outdoorArea: 200, topFloor: true, parking: 'double_garage', cellar: true } }), load);
-  check('refine: the total adjustment stays capped at ±30 %', extreme.adjustmentCapped && Math.abs(extreme.adjustmentTotal - 0.30) < 1e-9);
+  check('refine: without published quartiles, the position uses a prudent fixed gap',
+    Math.abs(luHouse2.adjustments.find(a => a.key === 'position').pct - 0.4 * 1.2 * engine.REFINE.position.fallbackQuartileGap) < 1e-9);
+  const extreme = await engine.estimate(Object.assign({}, baseIn, { condition: 'renovated', energy: 'A', refine: { location: 'prime', view: 'lake', standing: 'prestige', era: 'post2010', light: 'bright', outdoorArea: 200, topFloor: true, parking: 'double_garage', cellar: true } }), load);
+  check('refine: the total adjustment stays capped (+45 % / −35 %)', extreme.adjustmentCapped && Math.abs(extreme.adjustmentTotal - 0.45) < 1e-9);
   check('refine: unknown or out-of-place answers are dropped (plot on a flat, outdoor size on a house)',
     JSON.stringify(engine.cleanRefine({ view: 'sea', landArea: 500, outdoorArea: 10, cellar: 'yes', standing: 'high' }, 'apartment')) === '{"standing":"high","outdoorArea":10}' &&
     JSON.stringify(engine.cleanRefine({ outdoorArea: 10, landArea: 500, topFloor: true }, 'house')) === '{"landArea":500}');
   const refineForm = page._internals.refineHTML(page.COPY.fr, { type: 'apartment', refine: { view: 'lake' } }, true);
   const refineHouse = page._internals.refineHTML(page.COPY.fr, { type: 'house' }, false);
   check('page: "Affiner l’estimation" asks the plot for houses and the outdoor size / top floor for flats, keeps answers',
-    refineForm.includes('Affiner l’estimation') && refineForm.includes('data-est-r="outdoorArea"') && refineForm.includes('data-est-r="topFloor"') &&
+    refineForm.includes('Affiner l’estimation') && refineForm.includes('data-est-r="location"') && refineForm.includes('data-est-r="outdoorArea"') && refineForm.includes('data-est-r="topFloor"') &&
     refineForm.includes('value="lake" selected') && refineHouse.includes('data-est-r="landArea"') && !refineHouse.includes('data-est-r="topFloor"'));
   const cleaned = handler._internals.cleanInput(Object.assign({}, good.input, { refine: { view: 'lake', parking: 'garage', hack: 1 } }));
   const leadRefined = handler._internals.leadEmail('fr', 'owner', cleaned, await engine.estimate(cleaned, load), 'Évian-les-Bains', { email: 'a@b.fr' });
   check('API: the detailed answers reach the server (cleaned) and the lead e-mail, in Portuguese',
-    JSON.stringify(cleaned.refine) === '{"view":"lake","parking":"garage"}' && leadRefined.text.includes('Detalhes (afinar): vista: lago · estacionamento: garagem/box'));
+    JSON.stringify(cleaned.refine) === '{"view":"lake","parking":"garage"}' && leadRefined.text.includes('Detalhes (afinar): vista: lago panorâmica · estacionamento: garagem/box'));
   check('page copy still has the same keys in fr and en', Object.keys(page.COPY.fr).join() === Object.keys(page.COPY.en).join());
 
   console.log(`\nESTIMATION: ${passed}/${passed} PASSED`);
