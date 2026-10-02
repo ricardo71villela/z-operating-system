@@ -86,7 +86,8 @@ function cleanInput(raw) {
     floor: Number.isInteger(x.floor) && x.floor >= 0 && x.floor <= 60 ? x.floor : null,
     lift: typeof x.lift === 'boolean' ? x.lift : null,
     newBuild: x.newBuild === true,
-    askingPrice: x.askingPrice == null ? null : Number(x.askingPrice)
+    askingPrice: x.askingPrice == null ? null : Number(x.askingPrice),
+    refine: engine.cleanRefine(x.refine, x.type)
   };
 }
 
@@ -110,7 +111,7 @@ const T = {
     asking: 'Prix demandé', position: { below: 'sous la fourchette', within: 'dans la fourchette', above: 'au-dessus de la fourchette' },
     types: { apartment: 'Appartement', house: 'Maison', house_closed: 'Maison 2-3 façades', house_open: 'Maison 4 façades' },
     cond: { to_renovate: 'à rénover', standard: 'correct', good: 'bon état', renovated: 'refait à neuf' },
-    adj: { condition: 'État', energy: 'Performance énergétique', outdoor: 'Extérieur', parking: 'Parking', pool: 'Piscine', view: 'Vue', ground_floor: 'Rez-de-chaussée', high_floor_no_lift: 'Étage élevé sans ascenseur' },
+    adj: { condition: 'État', energy: 'Performance énergétique', outdoor: 'Extérieur', parking: 'Stationnement', pool: 'Piscine', view: 'Vue', ground_floor: 'Rez-de-chaussée', high_floor_no_lift: 'Étage élevé sans ascenseur', standing: 'Standing', era: 'Époque de construction', light: 'Luminosité', land: 'Terrain', top_floor: 'Dernier étage', cellar: 'Cave', nuisance: 'Nuisances' },
     sales: 'ventes', adverts: 'annonces', period: 'période',
     market: 'Voir les prix et les communes de ce marché',
     disclaimer: 'Estimation statistique indicative, fondée sur des données publiques agrégées ; elle ne remplace pas l’avis de valeur d’un professionnel qui visite le bien.',
@@ -126,7 +127,7 @@ const T = {
     asking: 'Asking price', position: { below: 'below the range', within: 'within the range', above: 'above the range' },
     types: { apartment: 'Apartment', house: 'House', house_closed: 'House, 2-3 façades', house_open: 'House, 4 façades' },
     cond: { to_renovate: 'needs renovation', standard: 'fair', good: 'good', renovated: 'fully renovated' },
-    adj: { condition: 'Condition', energy: 'Energy performance', outdoor: 'Outdoor space', parking: 'Parking', pool: 'Pool', view: 'View', ground_floor: 'Ground floor', high_floor_no_lift: 'High floor without lift' },
+    adj: { condition: 'Condition', energy: 'Energy performance', outdoor: 'Outdoor space', parking: 'Parking', pool: 'Pool', view: 'View', ground_floor: 'Ground floor', high_floor_no_lift: 'High floor without lift', standing: 'Standard', era: 'Construction period', light: 'Natural light', land: 'Plot', top_floor: 'Top floor', cellar: 'Cellar', nuisance: 'Nuisances' },
     sales: 'sales', adverts: 'adverts', period: 'period',
     market: 'See prices and municipalities for this market',
     disclaimer: 'Indicative statistical estimate based on aggregated public data; it does not replace a valuation by a professional who visits the property.',
@@ -179,6 +180,25 @@ function reportEmail(lang, input, result, place, contact, site) {
 
 const PROJECT_PT = { sell_3m: 'Vender em 3 meses', sell_12m: 'Vender no próximo ano', later: 'Vender mais tarde', curious: 'Curiosidade', buy_3m: 'Comprar em 3 meses', buy_12m: 'Comprar no próximo ano', looking: 'A informar-se' };
 
+const REFINE_PT = {
+  view: { label: 'vista', v: { none: 'sem vista', open: 'desafogada', mountain: 'montanha', lake: 'lago' } },
+  standing: { label: 'standing', v: { modest: 'modesto', standard: 'corrente', high: 'alto', prestige: 'prestígio' } },
+  era: { label: 'construção', v: { pre1950: 'antes de 1950', '1950_1980': '1950-1980', '1980_2010': '1980-2010', post2010: 'depois de 2010' } },
+  light: { label: 'luz', v: { dark: 'sombrio', standard: 'normal', bright: 'muito luminoso' } },
+  parking: { label: 'estacionamento', v: { none: 'nenhum', outdoor: 'lugar exterior', garage: 'garagem/box', double_garage: 'garagem dupla' } }
+};
+function refineSummaryPt(r) {
+  const x = r || {};
+  const parts = [];
+  Object.keys(REFINE_PT).forEach(k => { if (x[k]) parts.push(`${REFINE_PT[k].label}: ${REFINE_PT[k].v[x[k]] || x[k]}`); });
+  if (x.outdoorArea != null) parts.push(`exterior ${x.outdoorArea} m²`);
+  if (x.landArea != null) parts.push(`terreno ${x.landArea} m²`);
+  if (x.topFloor) parts.push('último andar');
+  if (x.cellar) parts.push('cave');
+  if (x.nuisance) parts.push('incómodos');
+  return parts.length ? parts.join(' · ') : '—';
+}
+
 function leadEmail(lang, mode, input, result, place, contact) {
   const t = T.fr;
   const who = contact.name || contact.email;
@@ -191,6 +211,7 @@ function leadEmail(lang, mode, input, result, place, contact) {
     ['Estimativa', `${money(result.low, 'fr')} – ${money(result.high, 'fr')} (central ${money(result.central, 'fr')}, ${money(result.perM2, 'fr')}/m², fiabilidade ${({ high: 'alta', medium: 'média', low: 'limitada' })[result.confidence]})`],
     ['Preço pedido', result.buyer ? `${money(result.buyer.askingPrice, 'fr')} (${pct(result.buyer.deltaPct, 'fr')} vs central)` : '—'],
     ['Base', `${result.basis.level} ${result.basis.name}, n=${result.basis.n || '—'}, ${result.basis.period}`],
+    ['Detalhes (afinar)', refineSummaryPt(input.refine)],
     ['Consentimento', `sim, ${new Date().toISOString()}`]
   ];
   const html = `<!doctype html><html><body style="font-family:Arial,Helvetica,sans-serif;color:#1d1d1b;">
@@ -282,4 +303,4 @@ async function handler(req, res) {
 function alerts() { return require('./_lib/alerts-core'); }
 
 module.exports = handler;
-module.exports._internals = { cleanInput, reportEmail, leadEmail, loadJson, esc, oneLine, hits, RATE };
+module.exports._internals = { cleanInput, reportEmail, leadEmail, loadJson, esc, oneLine, hits, RATE, refineSummaryPt };
