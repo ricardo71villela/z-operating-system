@@ -76,7 +76,7 @@ function send(res, status, body) {
 function cleanInput(raw) {
   const x = raw || {};
   const features = {};
-  ['balcony', 'terrace', 'garden', 'parking', 'pool', 'view'].forEach(k => { if (x.features && x.features[k] === true) features[k] = true; });
+  ['balcony', 'terrace', 'garden', 'parking', 'pool', 'view', 'coownership'].forEach(k => { if (x.features && x.features[k] === true) features[k] = true; });
   return {
     market: x.market, communeCode: typeof x.communeCode === 'string' ? x.communeCode.slice(0, 20) : '',
     type: x.type, surface: Number(x.surface),
@@ -86,6 +86,7 @@ function cleanInput(raw) {
     floor: Number.isInteger(x.floor) && x.floor >= 0 && x.floor <= 60 ? x.floor : null,
     lift: typeof x.lift === 'boolean' ? x.lift : null,
     newBuild: x.newBuild === true,
+    houseKind: engine.HOUSE_KINDS.includes(x.houseKind) ? x.houseKind : null,
     askingPrice: x.askingPrice == null ? null : Number(x.askingPrice),
     refine: engine.cleanRefine(x.refine, x.type)
   };
@@ -111,7 +112,7 @@ const T = {
     asking: 'Prix demandé', position: { below: 'sous la fourchette', within: 'dans la fourchette', above: 'au-dessus de la fourchette' },
     types: { apartment: 'Appartement', house: 'Maison', house_closed: 'Maison 2-3 façades', house_open: 'Maison 4 façades' },
     cond: { to_renovate: 'à rénover', standard: 'correct', good: 'bon état', renovated: 'refait à neuf' },
-    adj: { condition: 'État', energy: 'Performance énergétique', outdoor: 'Extérieur', parking: 'Stationnement', pool: 'Piscine', view: 'Vue', ground_floor: 'Rez-de-chaussée', high_floor_no_lift: 'Étage élevé sans ascenseur', position: 'Emplacement et standing', era: 'Époque de construction', light: 'Luminosité', land: 'Terrain', top_floor: 'Dernier étage', cellar: 'Cave', nuisance: 'Nuisances' },
+    adj: { condition: 'État', energy: 'Performance énergétique', outdoor: 'Extérieur', parking: 'Stationnement', pool: 'Piscine', view: 'Vue', ground_floor: 'Rez-de-chaussée', high_floor_no_lift: 'Étage élevé sans ascenseur', position: 'Emplacement et standing', house_kind: 'Type de maison', coownership: 'Copropriété', era: 'Époque de construction', light: 'Luminosité', land: 'Terrain', top_floor: 'Dernier étage', cellar: 'Cave', nuisance: 'Nuisances' },
     sales: 'ventes', adverts: 'annonces', period: 'période',
     market: 'Voir les prix et les communes de ce marché',
     disclaimer: 'Estimation statistique indicative, fondée sur des données publiques agrégées ; elle ne remplace pas l’avis de valeur d’un professionnel qui visite le bien.',
@@ -127,7 +128,7 @@ const T = {
     asking: 'Asking price', position: { below: 'below the range', within: 'within the range', above: 'above the range' },
     types: { apartment: 'Apartment', house: 'House', house_closed: 'House, 2-3 façades', house_open: 'House, 4 façades' },
     cond: { to_renovate: 'needs renovation', standard: 'fair', good: 'good', renovated: 'fully renovated' },
-    adj: { condition: 'Condition', energy: 'Energy performance', outdoor: 'Outdoor space', parking: 'Parking', pool: 'Pool', view: 'View', ground_floor: 'Ground floor', high_floor_no_lift: 'High floor without lift', position: 'Location and standard', era: 'Construction period', light: 'Natural light', land: 'Plot', top_floor: 'Top floor', cellar: 'Cellar', nuisance: 'Nuisances' },
+    adj: { condition: 'Condition', energy: 'Energy performance', outdoor: 'Outdoor space', parking: 'Parking', pool: 'Pool', view: 'View', ground_floor: 'Ground floor', high_floor_no_lift: 'High floor without lift', position: 'Location and standard', house_kind: 'House layout', coownership: 'Co-ownership', era: 'Construction period', light: 'Natural light', land: 'Plot', top_floor: 'Top floor', cellar: 'Cellar', nuisance: 'Nuisances' },
     sales: 'sales', adverts: 'adverts', period: 'period',
     market: 'See prices and municipalities for this market',
     disclaimer: 'Indicative statistical estimate based on aggregated public data; it does not replace a valuation by a professional who visits the property.',
@@ -143,8 +144,15 @@ function pct(v, lang) {
   return new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-IE', { style: 'percent', maximumFractionDigits: 0, signDisplay: 'always' }).format(v);
 }
 
+const HOUSE_KIND_TEXT = {
+  fr: { detached: 'isolée', semi: 'jumelée', terraced: 'mitoyenne (en bande)' },
+  en: { detached: 'detached', semi: 'semi-detached', terraced: 'terraced' }
+};
 function propertyLine(t, input, place) {
-  const parts = [`${t.types[input.type]}, ${input.surface} m²`, place, t.cond[input.condition]];
+  const en = t === T.en;
+  const kind = input.houseKind && HOUSE_KIND_TEXT[en ? 'en' : 'fr'][input.houseKind] ? ` ${HOUSE_KIND_TEXT[en ? 'en' : 'fr'][input.houseKind]}` : '';
+  const copro = input.features && input.features.coownership ? (en ? ' in a co-ownership' : ' en copropriété') : '';
+  const parts = [`${t.types[input.type]}${kind}${copro}, ${input.surface} m²`, place, t.cond[input.condition]];
   if (input.energy) parts.push(`${input.market === 'BE' ? 'PEB' : input.market === 'FR' ? 'DPE' : 'CPE'} ${input.energy}`);
   if (input.newBuild) parts.push('VEFA');
   return parts.join(' · ');
