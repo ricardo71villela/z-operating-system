@@ -61,7 +61,23 @@
         return `Calculé à partir ${n ? `de ${n}${what}` : `des ${what}`} ${where}, période ${engine.formatPeriod(b.period, 'fr')}.`;
       },
       adjTitle: 'Ajustements appliqués',
-      adj: { condition: 'État', energy: 'Performance énergétique', outdoor: 'Extérieur', parking: 'Parking', pool: 'Piscine', view: 'Vue', ground_floor: 'Rez-de-chaussée', high_floor_no_lift: 'Étage élevé sans ascenseur' },
+      adj: { condition: 'État', energy: 'Performance énergétique', outdoor: 'Extérieur', parking: 'Stationnement', pool: 'Piscine', view: 'Vue', ground_floor: 'Rez-de-chaussée', high_floor_no_lift: 'Étage élevé sans ascenseur',
+        position: 'Emplacement et standing (position dans les prix de la commune)', era: 'Époque de construction', light: 'Luminosité', land: 'Terrain', top_floor: 'Dernier étage', cellar: 'Cave', nuisance: 'Nuisances' },
+      refineTitle: 'Affiner l’estimation',
+      refineLead: 'Quelques questions de plus pour une fourchette plus resserrée. Répondez seulement à ce que vous savez.',
+      refineUnknown: '—',
+      refineFields: {
+        location: { label: 'Emplacement dans la commune', options: { less_sought: 'Excentré ou peu recherché', standard: 'Courant', sought: 'Résidentiel recherché', prime: 'Très prisé (bord de lac, centre historique, meilleur quartier)' } },
+        view: { label: 'Vue', options: { none: 'Sans vue particulière', open: 'Dégagée', mountain: 'Montagne', lake_partial: 'Lac (partielle)', lake: 'Lac (panoramique)' } },
+        standing: { label: 'Standing du bien et de l’immeuble', options: { modest: 'Modeste', standard: 'Courant', high: 'Haut de gamme', prestige: 'Prestige' } },
+        era: { label: 'Époque de construction', options: { pre1950: 'Avant 1950', '1950_1980': '1950 – 1980', '1980_2010': '1980 – 2010', post2010: 'Après 2010' } },
+        light: { label: 'Luminosité', options: { dark: 'Sombre', standard: 'Normale', bright: 'Très lumineux' } },
+        parking: { label: 'Stationnement', options: { none: 'Aucun', outdoor: 'Place extérieure', garage: 'Garage ou box fermé', double_garage: 'Double garage' } }
+      },
+      refineOutdoorArea: 'Balcon, terrasse ou jardin (m²)', refineLandArea: 'Surface du terrain (m²)',
+      refineTopFloor: 'Dernier étage', refineCellar: 'Cave', refineNuisance: 'Nuisances (route passante, vis-à-vis, bruit)',
+      refineSubmit: 'Recalculer',
+      refineDone: n => `Estimation affinée avec ${n} réponse${n > 1 ? 's' : ''} supplémentaire${n > 1 ? 's' : ''}.`,
       adjNone: 'Aucun ajustement : bien comparé à la médiane de la zone.',
       beNote: s => `En Belgique, les prix publiés sont des prix totaux (pas au m²) : la surface est comparée à une surface de référence de ${s} m² pour ce type de bien.`,
       luHouseNote: r => `Au Luxembourg, les prix de vente des maisons ne sont pas publiés par commune : estimation à partir des prix annoncés, corrigés de l’écart constaté entre prix annoncés et prix de vente (${Math.round(r * 100)} %).`,
@@ -118,7 +134,23 @@
         return `Based on ${n}${b.segment === 'advertised_houses' ? 'house adverts' : typeLabel} ${where}, period ${engine.formatPeriod(b.period, 'en')}.`;
       },
       adjTitle: 'Adjustments applied',
-      adj: { condition: 'Condition', energy: 'Energy performance', outdoor: 'Outdoor space', parking: 'Parking', pool: 'Pool', view: 'View', ground_floor: 'Ground floor', high_floor_no_lift: 'High floor without lift' },
+      adj: { condition: 'Condition', energy: 'Energy performance', outdoor: 'Outdoor space', parking: 'Parking', pool: 'Pool', view: 'View', ground_floor: 'Ground floor', high_floor_no_lift: 'High floor without lift',
+        position: 'Location and standard (position within local prices)', era: 'Construction period', light: 'Natural light', land: 'Plot', top_floor: 'Top floor', cellar: 'Cellar', nuisance: 'Nuisances' },
+      refineTitle: 'Refine the estimate',
+      refineLead: 'A few more questions for a narrower range. Only answer what you know.',
+      refineUnknown: '—',
+      refineFields: {
+        location: { label: 'Location within the municipality', options: { less_sought: 'Outlying or less sought-after', standard: 'Average', sought: 'Sought-after residential', prime: 'Prime (lakefront, historic centre, best area)' } },
+        view: { label: 'View', options: { none: 'No particular view', open: 'Open', mountain: 'Mountains', lake_partial: 'Lake (partial)', lake: 'Lake (panoramic)' } },
+        standing: { label: 'Standard of the property and building', options: { modest: 'Modest', standard: 'Average', high: 'High-end', prestige: 'Prestige' } },
+        era: { label: 'Construction period', options: { pre1950: 'Before 1950', '1950_1980': '1950 – 1980', '1980_2010': '1980 – 2010', post2010: 'After 2010' } },
+        light: { label: 'Natural light', options: { dark: 'Dark', standard: 'Normal', bright: 'Very bright' } },
+        parking: { label: 'Parking', options: { none: 'None', outdoor: 'Outdoor space', garage: 'Garage or closed box', double_garage: 'Double garage' } }
+      },
+      refineOutdoorArea: 'Balcony, terrace or garden (m²)', refineLandArea: 'Plot size (m²)',
+      refineTopFloor: 'Top floor', refineCellar: 'Cellar', refineNuisance: 'Nuisances (busy road, overlooked, noise)',
+      refineSubmit: 'Recalculate',
+      refineDone: n => `Estimate refined with ${n} extra answer${n > 1 ? 's' : ''}.`,
       adjNone: 'No adjustment: property compared with the area median.',
       beNote: s => `In Belgium, published prices are total prices (not per m²): the living area is compared with a reference area of ${s} m² for this property type.`,
       luHouseNote: r => `In Luxembourg, house sale prices are not published by municipality: estimate based on advertised prices, corrected by the observed gap between advertised and sale prices (${Math.round(r * 100)}%).`,
@@ -277,6 +309,45 @@
         ${notes.map(n => `<p class="est-muted">${esc(n)}</p>`).join('')}
         <p class="est-muted">${c.disclaimer} ${c.source}${c.colon}${esc(r.basis.source)}.</p>
       </section>`;
+  }
+
+  /* "Affiner": optional extra questions under the first result. Empty
+     answers are ignored; the result is recomputed with the same engine. */
+  function refineHTML(c, input, open) {
+    const r = input.refine || {};
+    const apartment = input.type === 'apartment';
+    const sel = key => {
+      const f = c.refineFields[key];
+      return `<div class="est-field"><label for="est-r-${key}">${f.label}</label>
+        <select id="est-r-${key}" data-est-r="${key}"><option value="">${c.refineUnknown}</option>${Object.entries(f.options).map(([k, v]) => `<option value="${k}"${r[key] === k ? ' selected' : ''}>${esc(v)}</option>`).join('')}</select></div>`;
+    };
+    const num = (key, label) => `<div class="est-field"><label for="est-r-${key}">${label}</label>
+        <input id="est-r-${key}" type="number" inputmode="numeric" min="0" step="1" data-est-r="${key}" value="${r[key] != null ? esc(r[key]) : ''}"></div>`;
+    const chk = (key, label) => `<label class="est-check"><input type="checkbox" data-est-r="${key}"${r[key] ? ' checked' : ''}> ${esc(label)}</label>`;
+    return `
+      <details class="est-refine" data-est-refine-wrap${open ? ' open' : ''}>
+        <summary><span class="est-refine-title">${c.refineTitle}</span><span class="est-refine-lead">${c.refineLead}</span></summary>
+        <form class="est-refine-form" data-est-refine novalidate>
+          ${sel('location')}
+          <div class="est-row">${sel('view')}${sel('standing')}</div>
+          <div class="est-row">${sel('era')}${sel('light')}</div>
+          <div class="est-row">${sel('parking')}${apartment ? num('outdoorArea', c.refineOutdoorArea) : num('landArea', c.refineLandArea)}</div>
+          <div class="est-refine-checks">${apartment ? chk('topFloor', c.refineTopFloor) : ''}${chk('cellar', c.refineCellar)}${chk('nuisance', c.refineNuisance)}</div>
+          <button type="submit" class="est-submit">${c.refineSubmit}</button>
+          <p class="est-sent" data-est-refine-done role="status" hidden></p>
+        </form>
+      </details>`;
+  }
+
+  function readRefine(formEl) {
+    const out = {};
+    formEl.querySelectorAll('[data-est-r]').forEach(el => {
+      const key = el.getAttribute('data-est-r');
+      if (el.type === 'checkbox') { if (el.checked) out[key] = true; }
+      else if (el.type === 'number') { if (el.value !== '') out[key] = Number(el.value); }
+      else if (el.value) out[key] = el.value;
+    });
+    return out;
   }
 
   /* Right-hand column before the first estimate: how it works, the
@@ -442,10 +513,32 @@
       btn.disabled = false; btn.textContent = state.mode === 'buyer' ? c.submitBuyer : c.submit;
       if (!result.ok) { showError(error, c.errors[result.errors[0]] || c.errors.generic); output.innerHTML = introHTML(c, state.market, state.mode); return; }
       state.input = input; state.result = result;
-      output.innerHTML = resultHTML(c, lang, result, input) + reportHTML(c, state.mode);
+      output.innerHTML = `<div data-est-result-wrap>${resultHTML(c, lang, result, input)}</div>` + refineHTML(c, input, false) + reportHTML(c, state.mode);
+      wireRefine();
       wireReport();
       output.querySelector('[data-est-result]').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     });
+
+    function wireRefine() {
+      const refineForm = output.querySelector('[data-est-refine]');
+      if (!refineForm) return;
+      const done = refineForm.querySelector('[data-est-refine-done]');
+      refineForm.addEventListener('submit', async e => {
+        e.preventDefault();
+        const input = Object.assign({}, state.input, { refine: readRefine(refineForm) });
+        const btn = refineForm.querySelector('.est-submit');
+        btn.disabled = true; btn.textContent = c.computing;
+        let result;
+        try { result = await engine.estimate(input, load); } catch (_) { result = { ok: false }; }
+        btn.disabled = false; btn.textContent = c.refineSubmit;
+        if (!result || !result.ok) return;
+        state.input = input; state.result = result;
+        output.querySelector('[data-est-result-wrap]').innerHTML = resultHTML(c, lang, result, input);
+        done.textContent = result.refineCount ? c.refineDone(result.refineCount) : '';
+        done.hidden = !result.refineCount;
+        output.querySelector('[data-est-result]').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      });
+    }
 
     function wireReport() {
       const report = output.querySelector('[data-est-report]');
@@ -491,5 +584,5 @@
     return true;
   }
 
-  return Object.freeze({ COPY, render, _internals: Object.freeze({ searchPlaces, placeLabel, readQuery, fold, introHTML }) });
+  return Object.freeze({ COPY, render, _internals: Object.freeze({ searchPlaces, placeLabel, readQuery, fold, introHTML, refineHTML, readRefine }) });
 });

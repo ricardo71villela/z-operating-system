@@ -54,6 +54,61 @@
   });
   const TOTAL_ADJUSTMENT = Object.freeze({ min: -0.25, max: 0.20 });
 
+  /* Optional "Affiner" answers (2026-10).
+     Weighting: what makes the price of a property inside its commune is first
+     WHERE it is (micro-location / neighbourhood), then the VIEW, then its
+     standing; the rest are smaller corrections.
+     - Location and standing are combined into one position score, placed
+       inside the official price quartiles of the area (DVF / Statbel /
+       Observatoire): the spread between the quartiles of the commune is the
+       measured spread between its cheap and expensive properties.
+     - The view is counted separately (a panoramic lake view is worth more
+       than a good address alone), but more modestly than its headline
+       premium because part of it is already in the location.
+     Market-practice coefficients (hedonic studies of French notaries'
+     data, agents' practice on Lake Geneva), published with every result
+     and easy to recalibrate here. */
+  const REFINE = Object.freeze({
+    location: Object.freeze({ less_sought: -1, standard: 0, sought: 0.6, prime: 1.2 }),
+    standing: Object.freeze({ modest: -0.8, standard: 0, high: 0.6, prestige: 1.2 }),
+    positionWeights: Object.freeze({ location: 0.6, standing: 0.4 }),
+    position: Object.freeze({ min: -1.2, max: 1.4, pctMin: -0.25, pctMax: 0.35, fallbackQuartileGap: 0.15 }),
+    view: Object.freeze({ none: 0, open: 0.03, mountain: 0.05, lake_partial: 0.07, lake: 0.15 }),
+    era: Object.freeze({ pre1950: 0, '1950_1980': -0.04, '1980_2010': 0, post2010: 0.04 }),
+    light: Object.freeze({ dark: -0.05, standard: 0, bright: 0.03 }),
+    parking: Object.freeze({ none: 0, outdoor: 0.02, garage: 0.04, double_garage: 0.06 }),
+    topFloor: 0.03,
+    cellar: 0.01,
+    nuisance: -0.07,
+    outdoorArea: Object.freeze({ base: 0.015, perM2: 0.0012, max: 0.08 }),
+    land: Object.freeze({ perDoubling: 0.08, min: -0.10, max: 0.15 }),
+    landReference: Object.freeze({ FR: 600, BE: 600, LU: 450 }),
+    totalWhenRefined: Object.freeze({ min: -0.35, max: 0.45 }),
+    spreadShrinkPerAnswer: 0.03,
+    spreadShrinkMax: 0.25,
+    spreadFloor: 0.05
+  });
+  const REFINE_KEYS = Object.freeze(['location', 'view', 'standing', 'era', 'light', 'outdoorArea', 'landArea', 'topFloor', 'parking', 'cellar', 'nuisance']);
+
+  /* Keeps only known refine answers (from the page or from the e-mail request). */
+  function cleanRefine(raw, type) {
+    const r = raw && typeof raw === 'object' ? raw : {};
+    const out = {};
+    const apartment = type === 'apartment';
+    if (Object.prototype.hasOwnProperty.call(REFINE.location, r.location)) out.location = r.location;
+    if (Object.prototype.hasOwnProperty.call(REFINE.view, r.view)) out.view = r.view;
+    if (Object.prototype.hasOwnProperty.call(REFINE.standing, r.standing)) out.standing = r.standing;
+    if (Object.prototype.hasOwnProperty.call(REFINE.era, r.era)) out.era = r.era;
+    if (Object.prototype.hasOwnProperty.call(REFINE.light, r.light)) out.light = r.light;
+    if (Object.prototype.hasOwnProperty.call(REFINE.parking, r.parking)) out.parking = r.parking;
+    if (apartment && isNum(r.outdoorArea) && r.outdoorArea >= 0 && r.outdoorArea <= 2000) out.outdoorArea = Math.round(r.outdoorArea);
+    if (!apartment && isNum(r.landArea) && r.landArea >= 0 && r.landArea <= 100000) out.landArea = Math.round(r.landArea);
+    if (apartment && typeof r.topFloor === 'boolean') out.topFloor = r.topFloor;
+    if (typeof r.cellar === 'boolean') out.cellar = r.cellar;
+    if (typeof r.nuisance === 'boolean') out.nuisance = r.nuisance;
+    return out;
+  }
+
   /* Half-width of the range by confidence: [minimum, maximum]. */
   const SPREAD = Object.freeze({ high: [0.07, 0.15], medium: [0.09, 0.18], low: [0.12, 0.22] });
   const QUARTILE_SHRINK = 0.6; // quartiles describe all properties; the adjustments already position this one
@@ -88,37 +143,67 @@
   }
 
   /* ---------------- Adjustments ---------------- */
-  function adjustments(input) {
+  function adjustments(input, base) {
     const list = [];
     const isApartment = input.type === 'apartment';
     const add = (key, pct) => { if (pct) list.push({ key, pct }); };
+    const r = cleanRefine(input.refine, input.type);
+    const refined = Object.keys(r).length > 0;
 
     // Luxembourg new-build apartments are priced from the VEFA statistic, not adjusted.
     const newBuildLu = input.market === 'LU' && isApartment && input.newBuild === true;
     if (!newBuildLu) add('condition', ADJUSTMENTS.condition[input.condition] || 0);
     add('energy', ADJUSTMENTS.energy[String(input.energy || '').toUpperCase()] || 0);
 
+    // Location + standing: one position inside the official quartiles of the area.
+    if (r.location || r.standing) {
+      const w = REFINE.positionWeights;
+      const P = REFINE.position;
+      const score = clamp(w.location * (REFINE.location[r.location] || 0) + w.standing * (REFINE.standing[r.standing] || 0), P.min, P.max);
+      const p25 = base && base.p25, p50 = base && base.p50, p75 = base && base.p75;
+      const upGap = isNum(p50) && p50 > 0 && isNum(p75) ? p75 / p50 - 1 : P.fallbackQuartileGap;
+      const downGap = isNum(p50) && p50 > 0 && isNum(p25) ? 1 - p25 / p50 : P.fallbackQuartileGap;
+      add('position', clamp(score >= 0 ? score * upGap : score * downGap, P.pctMin, P.pctMax));
+    }
+
     const f = input.features || {};
-    let outdoor = 0;
+    const floor = typeof input.floor === 'number' && isFinite(input.floor) ? input.floor : null;
     if (isApartment) {
-      if (f.balcony) outdoor += ADJUSTMENTS.balcony;
-      if (f.terrace) outdoor += ADJUSTMENTS.terrace;
-      if (f.garden) outdoor += ADJUSTMENTS.garden_apartment;
-      add('outdoor', Math.min(outdoor, ADJUSTMENTS.outdoor_cap));
-      if (f.parking) add('parking', ADJUSTMENTS.parking);
+      if (isNum(r.outdoorArea)) {
+        const o = REFINE.outdoorArea;
+        add('outdoor', r.outdoorArea > 0 ? clamp(o.base + r.outdoorArea * o.perM2, o.base, o.max) : 0);
+      } else {
+        let outdoor = 0;
+        if (f.balcony) outdoor += ADJUSTMENTS.balcony;
+        if (f.terrace) outdoor += ADJUSTMENTS.terrace;
+        if (f.garden) outdoor += ADJUSTMENTS.garden_apartment;
+        add('outdoor', Math.min(outdoor, ADJUSTMENTS.outdoor_cap));
+      }
       // Floor is optional: only a real number counts (null / '' must not read as ground floor).
-      const floor = typeof input.floor === 'number' && isFinite(input.floor) ? input.floor : null;
       if (floor === 0) add('ground_floor', ADJUSTMENTS.ground_floor);
       else if (floor >= 3 && input.lift === false) add('high_floor_no_lift', ADJUSTMENTS.high_floor_no_lift);
+      if (r.topFloor && floor !== 0 && !(floor >= 3 && input.lift === false)) add('top_floor', REFINE.topFloor);
     } else {
       if (f.pool) add('pool', ADJUSTMENTS.pool);
-      if (f.parking) add('parking', ADJUSTMENTS.parking);
+      if (isNum(r.landArea) && r.landArea > 0) {
+        const ref = REFINE.landReference[input.market] || 600;
+        const l = REFINE.land;
+        add('land', clamp(l.perDoubling * Math.log2(r.landArea / ref), l.min, l.max));
+      }
     }
-    if (f.view) add('view', ADJUSTMENTS.view);
+    if (r.parking) add('parking', REFINE.parking[r.parking]);
+    else if (f.parking) add('parking', ADJUSTMENTS.parking);
+    if (r.view) add('view', REFINE.view[r.view]);
+    else if (f.view) add('view', ADJUSTMENTS.view);
+    if (r.era && !input.newBuild) add('era', REFINE.era[r.era]);
+    if (r.light) add('light', REFINE.light[r.light]);
+    if (r.cellar) add('cellar', REFINE.cellar);
+    if (r.nuisance) add('nuisance', REFINE.nuisance);
 
-    const raw = list.reduce((s, a) => s + a.pct, 0);
-    const total = clamp(raw, TOTAL_ADJUSTMENT.min, TOTAL_ADJUSTMENT.max);
-    return { list, total, capped: total !== raw };
+    const limits = refined ? REFINE.totalWhenRefined : TOTAL_ADJUSTMENT;
+    const raw = list.reduce((sum, a) => sum + a.pct, 0);
+    const total = clamp(raw, limits.min, limits.max);
+    return { list, total, capped: total !== raw, refine: r, refineCount: Object.keys(r).length };
   }
 
   function spreadFrom(p25, p50, p75, confidence) {
@@ -314,9 +399,13 @@
       : await baseLuxembourg(input, load);
     if (base.unavailable) return { ok: false, errors: [base.unavailable] };
 
-    const adj = adjustments(input);
+    const adj = adjustments(input, base);
     const central = base.value * (1 + adj.total);
     const spread = spreadFrom(base.p25, base.p50, base.p75, base.confidence);
+    // Each detailed answer narrows the range a little (never below ±5 %).
+    const shrink = 1 - Math.min(REFINE.spreadShrinkMax, adj.refineCount * REFINE.spreadShrinkPerAnswer);
+    spread.down = Math.max(REFINE.spreadFloor, spread.down * shrink);
+    spread.up = Math.max(REFINE.spreadFloor, spread.up * shrink);
     const step = central >= 1000000 ? 10000 : 5000;
     const result = {
       ok: true,
@@ -331,6 +420,8 @@
       adjustments: adj.list,
       adjustmentTotal: adj.total,
       adjustmentCapped: adj.capped,
+      refine: adj.refine,
+      refineCount: adj.refineCount,
       model: {
         sizeFactor: base.sizeFactor || null,
         referenceSurface: base.referenceSurface || null,
@@ -343,8 +434,8 @@
   }
 
   return Object.freeze({
-    MARKETS, TYPES, ADJUSTMENTS, TOTAL_ADJUSTMENT, SPREAD, BE_REFERENCE_M2, BE_SIZE_ELASTICITY,
-    validate, estimate, formatPeriod,
+    MARKETS, TYPES, ADJUSTMENTS, TOTAL_ADJUSTMENT, SPREAD, BE_REFERENCE_M2, BE_SIZE_ELASTICITY, REFINE, REFINE_KEYS,
+    validate, estimate, formatPeriod, cleanRefine,
     _internals: Object.freeze({ adjustments, spreadFrom, buyerPosition, luAskToSoldRatio, frDepartmentOf, median })
   });
 });

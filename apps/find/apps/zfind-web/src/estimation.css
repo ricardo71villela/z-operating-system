@@ -63,6 +63,16 @@
 .est-buyer-above .est-bar-mark{left:100% !important;background:#a3341f;}
 .est-buyer-below .est-bar-mark{left:0 !important;background:#23633a;}
 .est-page [hidden]{display:none !important;}
+.est-refine{margin-top:16px;border:1px solid var(--gold-light);border-radius:var(--radius);background:var(--white);}
+.est-refine summary{list-style:none;cursor:pointer;display:flex;flex-direction:column;gap:4px;padding:16px 20px;background:var(--gold-pale);border-radius:var(--radius);}
+.est-refine summary::-webkit-details-marker{display:none;}
+.est-refine[open] summary{border-radius:var(--radius) var(--radius) 0 0;}
+.est-refine-title{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.25rem;color:var(--gray-900);}
+.est-refine-title::after{content:' ＋';color:var(--gold-dark);font-size:1rem;}
+.est-refine[open] .est-refine-title::after{content:' －';}
+.est-refine-lead{font-size:.85rem;color:var(--gray-700);}
+.est-refine-form{display:flex;flex-direction:column;gap:14px;padding:18px 20px 20px;}
+.est-refine-checks{display:flex;flex-wrap:wrap;gap:8px 18px;}
 @media (max-width: 860px){
   .est-grid{grid-template-columns:1fr;}
   .est-intro{position:static;}
