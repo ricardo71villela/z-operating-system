@@ -93,21 +93,90 @@ function render() {
     developments: adminState.id ? renderDevelopmentEdit : renderDevelopmentsList,
     partners: adminState.id ? renderPartnerEdit : renderPartnersList,
     leads: adminState.id ? renderLeadDetail : renderLeadsList,
+    agencias: adminState.id ? renderAgenciaDetail : renderAgenciasList,
   };
   (routes[adminState.view] || renderDashboard)();
 }
 
 /* ---------------- Dashboard ---------------- */
+const OPS_LINKS = [
+  ['Site público', 'https://zfind.online'],
+  ['Supabase — tabelas', 'https://supabase.com/dashboard/project/dcdggqyazdddrfuzwavw/editor'],
+  ['GitHub — Actions (ingestão, monitor)', 'https://github.com/ricardo71villela/z-operating-system/actions'],
+  ['Vercel — deployments e Analytics', 'https://vercel.com/zoperatingsystem/z-find-platform'],
+  ['Resend — e-mails enviados', 'https://resend.com/emails']
+];
+const OPS_ROUTINE = [
+  ['Todos os dias', [
+    'Responder aos pedidos de estimação de proprietários (e-mail «Novo lead») no próprio dia.',
+    'Ver os Leads novos (pedidos de contacto sobre anúncios) e confirmar que a agência respondeu.',
+    'Moderar as avaliações pendentes (Publicar / Rejeitar no e-mail recebido) em menos de 48 h.',
+    'Sem e-mail de falha do monitor das 7 h = site a funcionar.'
+  ]],
+  ['Todas as semanas', [
+    'Segunda-feira: a ingestão das agências corre sozinha (GitHub Actions) e atualiza a base.',
+    'Agências: escolher um segmento (país, departamento, rede), exportar e preparar a campanha.',
+    'Vercel Analytics: visitantes e páginas mais vistas. Resend: e-mails devolvidos.'
+  ]],
+  ['Todos os meses', [
+    'Taxas do simulador de crédito: atualizar antes da data de validade (o monitor avisa).',
+    'Bélgica: descarregar o novo ficheiro BCE e correr a ingestão belga.'
+  ]]
+];
+const TYPE_LABELS = { agency: 'Agência', network_agency: 'Agência de rede', network_hq: 'Sede de rede', independent: 'Mandatário / independente' };
+
 async function renderDashboard() {
   const main = document.getElementById('main');
-  main.insertAdjacentHTML('beforeend', '<div class="page-title">Dashboard</div><div class="cards" id="dash-cards">Loading…</div>');
+  main.insertAdjacentHTML('beforeend', `
+    <div class="page-title">Dashboard</div>
+    <div class="cards" id="dash-cards">Loading…</div>
+    <h3 class="section-title">Operação</h3>
+    <div class="cards" id="ops-cards">A carregar…</div>
+    <div class="ops-grid">
+      <div class="detail-panel"><h4>Rotina</h4>${OPS_ROUTINE.map(([when, items]) => `<p class="ops-when">${escapeHtml(when)}</p><ul class="ops-list">${items.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>`).join('')}</div>
+      <div class="detail-panel"><h4>Ferramentas</h4><ul class="ops-list">${OPS_LINKS.map(([l, u]) => `<li><a href="${u}" target="_blank" rel="noopener">${escapeHtml(l)}</a></li>`).join('')}</ul>
+        <h4 style="margin-top:16px">Base de agências por país e tipo</h4><div id="ops-agencias">A carregar…</div></div>
+    </div>`);
   const result = await window.ZFindServices.admin.getDashboardCounts();
   const cardsEl = document.getElementById('dash-cards');
-  if (result.error) { cardsEl.textContent = 'Could not load counts.'; return; }
-  const c = result.data;
-  cardsEl.innerHTML = ['properties', 'developments', 'partners', 'leads'].map(k =>
-    `<div class="card"><div class="n">${c[k] == null ? '—' : c[k]}</div><div class="l">${k[0].toUpperCase() + k.slice(1)}</div></div>`
-  ).join('');
+  if (result.error) { cardsEl.textContent = 'Could not load counts.'; }
+  else {
+    const c = result.data;
+    cardsEl.innerHTML = ['properties', 'developments', 'partners', 'leads'].map(k =>
+      `<div class="card"><div class="n">${c[k] == null ? '—' : c[k]}</div><div class="l">${k[0].toUpperCase() + k.slice(1)}</div></div>`
+    ).join('');
+  }
+  await loadOperationsOverview();
+}
+
+const fmtN = n => (n == null ? '—' : Number(n).toLocaleString('pt-PT'));
+
+async function loadOperationsOverview() {
+  const ops = document.getElementById('ops-cards');
+  const agEl = document.getElementById('ops-agencias');
+  const svc = window.ZFindServices.prospection;
+  const res = svc ? await svc.overview() : { error: { message: 'service missing' } };
+  if (res.error) {
+    ops.innerHTML = '<div class="status-msg error">Não foi possível carregar os indicadores de operação (a migração 20261003220000 está aplicada?).</div>';
+    agEl.textContent = '—';
+    return;
+  }
+  const o = res.data || {};
+  const a = o.agencias || {}, r = o.reviews || {}, al = o.alerts || {}, l = o.leads || {};
+  const card = (n, label, view, warn) => `<div class="card${warn ? ' card-warn' : ''}"${view ? ` onclick="navigateAdmin('${view}')" style="cursor:pointer"` : ''}><div class="n">${fmtN(n)}</div><div class="l">${escapeHtml(label)}</div></div>`;
+  ops.innerHTML = [
+    card(l.new, 'Leads por tratar', 'leads', l.new > 0),
+    card(l.last_7_days, 'Leads (7 dias)', 'leads'),
+    card(r.pending, 'Avaliações por moderar', null, r.pending > 0),
+    card(al.active, `Alertas ativos (${fmtN(al.pending)} por confirmar)`),
+    card(a.active, 'Agências na base', 'agencias'),
+    card(a.with_email, 'Agências com e-mail', 'agencias'),
+    card(a.outreach_allowed, 'Prospeção por e-mail permitida', 'agencias')
+  ].join('');
+  const rows = o.agencias_by_country_type || [];
+  agEl.innerHTML = rows.length ? `<table class="compact"><thead><tr><th>País</th><th>Tipo</th><th>Total</th><th>Com e-mail</th><th>Prospeção</th></tr></thead><tbody>${
+    rows.map(x => `<tr><td>${x.country}</td><td>${escapeHtml(TYPE_LABELS[x.type] || x.type)}</td><td>${fmtN(x.n)}</td><td>${fmtN(x.with_email)}</td><td>${fmtN(x.outreach)}</td></tr>`).join('')
+  }</tbody></table><p class="muted">Última ingestão: ${a.last_ingest ? new Date(a.last_ingest).toLocaleString('pt-PT') : '—'}</p>` : '<p class="muted">Base ainda vazia.</p>';
 }
 
 /* ---------------- Partners ---------------- */
@@ -1193,6 +1262,136 @@ async function handleMediaUpload(ownerId, kind) {
   showStatus(result.error ? 'error' : 'success', result.error ? 'Upload failed.' : 'Uploaded.');
   input.value = '';
   if (!result.error) loadMediaGrid(ownerId, kind);
+}
+
+/* ---------------- Agências (base de prospeção) ---------------- */
+const agState = { filters: {}, page: 0 };
+
+async function renderAgenciasList() {
+  const main = document.getElementById('main');
+  const f = agState.filters;
+  const opt = (v, l, cur) => `<option value="${v}"${v === (cur || '') ? ' selected' : ''}>${escapeHtml(l)}</option>`;
+  main.insertAdjacentHTML('beforeend', `
+    <div class="page-title">Agências — base de prospeção <button class="btn" id="ag-export" onclick="exportAgencias()">Exportar CSV</button></div>
+    <p class="muted">Agências imobiliárias e mandatários de França, Bélgica e Luxemburgo (registos oficiais, OpenStreetMap, sites). Prospeção por e-mail: França — todos os profissionais, com desinscrição; Bélgica e Luxemburgo — só pessoas coletivas; nunca quem pediu para não ser contactado.</p>
+    <div class="toolbar wrap">
+      <input type="text" id="ag-search" placeholder="Nome, cidade, e-mail…" value="${escapeHtml(f.search || '')}">
+      <select id="ag-country">${opt('', 'Todos os países', f.country)}${['FR', 'BE', 'LU'].map(c => opt(c, c, f.country)).join('')}</select>
+      <select id="ag-type">${opt('', 'Todos os tipos', f.type)}${Object.entries(TYPE_LABELS).map(([k, v]) => opt(k, v, f.type)).join('')}</select>
+      <input type="text" id="ag-network" placeholder="Rede (ex. orpi)" value="${escapeHtml(f.network || '')}" style="min-width:120px">
+      <input type="text" id="ag-postcode" placeholder="CP / dep. (ex. 74)" value="${escapeHtml(f.postcode || '')}" style="min-width:110px">
+      <label class="chk"><input type="checkbox" id="ag-email"${f.withEmail ? ' checked' : ''}> Com e-mail</label>
+      <label class="chk"><input type="checkbox" id="ag-outreach"${f.outreach ? ' checked' : ''}> Prospeção permitida</label>
+      <button class="btn btn-primary" onclick="applyAgenciasFilters()">Filtrar</button>
+    </div>
+    <div id="ag-count" class="muted"></div>
+    <table><thead><tr><th>Nome</th><th>Tipo</th><th>Local</th><th>E-mail</th><th>Telefone</th></tr></thead><tbody id="ag-tbody"><tr><td colspan="5">A carregar…</td></tr></tbody></table>
+    <div class="pager"><button class="btn" id="ag-prev" onclick="pageAgencias(-1)">← Anterior</button><span id="ag-page"></span><button class="btn" id="ag-next" onclick="pageAgencias(1)">Seguinte →</button></div>`);
+  document.getElementById('ag-search').addEventListener('keydown', e => { if (e.key === 'Enter') applyAgenciasFilters(); });
+  await loadAgencias();
+}
+
+function readAgenciasFilters() {
+  const v = id => document.getElementById(id).value.trim();
+  return {
+    search: v('ag-search'), country: v('ag-country'), type: v('ag-type'), network: v('ag-network').toLowerCase(),
+    postcode: v('ag-postcode'), withEmail: document.getElementById('ag-email').checked, outreach: document.getElementById('ag-outreach').checked
+  };
+}
+async function applyAgenciasFilters() { agState.filters = readAgenciasFilters(); agState.page = 0; await loadAgencias(); }
+async function pageAgencias(delta) { agState.page = Math.max(0, agState.page + delta); await loadAgencias(); }
+
+async function loadAgencias() {
+  const svc = window.ZFindServices.prospection;
+  const tbody = document.getElementById('ag-tbody');
+  const res = await svc.list(agState.filters, agState.page);
+  if (res.error) { tbody.innerHTML = `<tr><td colspan="5">Não foi possível carregar (${escapeHtml(res.error.message)}).</td></tr>`; return; }
+  const rows = res.data || [];
+  const total = res.count || 0;
+  const pages = Math.max(1, Math.ceil(total / svc.PAGE));
+  document.getElementById('ag-count').textContent = `${fmtN(total)} resultados`;
+  document.getElementById('ag-page').textContent = ` Página ${agState.page + 1} de ${fmtN(pages)} `;
+  document.getElementById('ag-prev').disabled = agState.page === 0;
+  document.getElementById('ag-next').disabled = agState.page + 1 >= pages;
+  tbody.innerHTML = rows.length ? rows.map(x => `
+    <tr onclick="navigateAdmin('agencias','${x.id}')" style="cursor:pointer"${x.do_not_contact ? ' class="row-muted"' : ''}>
+      <td><strong>${escapeHtml(x.trade_name || x.name)}</strong>${x.trade_name && x.trade_name !== x.name ? `<br><span class="muted">${escapeHtml(x.name)}</span>` : ''}</td>
+      <td>${escapeHtml(TYPE_LABELS[x.type] || x.type)}${x.network ? `<br><span class="tag tag-draft">${escapeHtml(x.network)}</span>` : ''}</td>
+      <td>${x.country} · ${escapeHtml(x.postcode || '')} ${escapeHtml(x.city || '')}</td>
+      <td>${x.email ? escapeHtml(x.email) : '<span class="muted">—</span>'}${x.do_not_contact ? '<br><span class="tag tag-inactive">não contactar</span>' : x.email && !x.email_outreach_allowed ? '<br><span class="tag tag-inactive">e-mail não permitido</span>' : ''}</td>
+      <td>${x.phone ? escapeHtml(x.phone) : '<span class="muted">—</span>'}</td>
+    </tr>`).join('') : '<tr><td colspan="5">Nenhum resultado.</td></tr>';
+}
+
+async function exportAgencias() {
+  const svc = window.ZFindServices.prospection;
+  const btn = document.getElementById('ag-export');
+  btn.disabled = true;
+  const res = await svc.exportRows(readAgenciasFilters(), n => { btn.textContent = `A exportar… ${fmtN(n)}`; });
+  btn.disabled = false; btn.textContent = 'Exportar CSV';
+  if (res.error) { showStatus('error', 'Exportação falhou.'); return; }
+  const blob = new Blob([svc.toCsv(res.data)], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `zfind-agencias-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  showStatus('success', `${fmtN(res.data.length)} linhas exportadas${res.truncated ? ' (limite de 50 000 atingido: filtre mais)' : ''}.`);
+}
+
+async function renderAgenciaDetail() {
+  const main = document.getElementById('main');
+  main.insertAdjacentHTML('beforeend', `<a class="back-link" onclick="navigateAdmin('agencias')">← Voltar às agências</a><div id="ag-detail">A carregar…</div>`);
+  const res = await window.ZFindServices.prospection.get(adminState.id);
+  const el = document.getElementById('ag-detail');
+  if (res.error) { el.textContent = 'Não foi possível carregar.'; return; }
+  const x = res.data;
+  const row = (k, v) => `<div class="row"><span class="k">${escapeHtml(k)}</span><span>${v == null || v === '' ? '—' : v}</span></div>`;
+  const src = (v, s) => v ? `${escapeHtml(v)} <span class="muted">(${escapeHtml(s || '?')})</span>` : null;
+  el.innerHTML = `
+    <div class="page-title">${escapeHtml(x.trade_name || x.name)}</div>
+    <div class="detail-panel">
+      ${row('Nome legal', escapeHtml(x.name))}
+      ${row('Tipo', escapeHtml(TYPE_LABELS[x.type] || x.type) + (x.is_natural_person ? ' · pessoa singular' : ''))}
+      ${row('Rede', escapeHtml(x.network || ''))}
+      ${row('Morada', escapeHtml(x.address || ''))}
+      ${row('País', x.country)}
+      ${row('E-mail', src(x.email, x.email_source))}
+      ${row('Telefone', src(x.phone, x.phone_source))}
+      ${row('Site', x.website ? `<a href="${escapeHtml(x.website)}" target="_blank" rel="noopener">${escapeHtml(x.website)}</a> <span class="muted">(${escapeHtml(x.website_source || '?')})</span>` : null)}
+      ${row('Prospeção por e-mail', x.email_outreach_allowed ? 'permitida' : 'não permitida')}
+      ${row('Não contactar', x.do_not_contact ? `sim, desde ${new Date(x.do_not_contact_at).toLocaleDateString('pt-PT')}` : 'não')}
+      ${row('Fonte do registo', `${escapeHtml(x.source)} · ${escapeHtml(x.source_id)}${x.company_id ? ' · empresa ' + escapeHtml(x.company_id) : ''}`)}
+      ${row('Visto no registo', new Date(x.last_seen_at).toLocaleDateString('pt-PT'))}
+      ${row('Procura no site', x.enriched_at ? `${escapeHtml(x.enrich_status || '')} · ${new Date(x.enriched_at).toLocaleDateString('pt-PT')}` : 'ainda não')}
+    </div>
+    <h3 class="section-title">Corrigir contactos</h3>
+    <div class="form-grid">
+      <div class="form-field"><label>E-mail</label><input id="agd-email" value="${escapeHtml(x.email || '')}"></div>
+      <div class="form-field"><label>Telefone</label><input id="agd-phone" value="${escapeHtml(x.phone || '')}"></div>
+      <div class="form-field"><label>Site</label><input id="agd-website" value="${escapeHtml(x.website || '')}"></div>
+    </div>
+    <div class="toolbar">
+      <button class="btn btn-primary" onclick="saveAgenciaContacts('${x.id}')">Guardar contactos</button>
+      ${x.do_not_contact
+        ? `<button class="btn" onclick="toggleDoNotContact('${x.id}', false)">Voltar a permitir contacto</button>`
+        : `<button class="btn btn-danger" onclick="toggleDoNotContact('${x.id}', true)">Marcar «não contactar»</button>`}
+    </div>`;
+}
+
+async function saveAgenciaContacts(id) {
+  const v = k => document.getElementById(`agd-${k}`).value;
+  const res = await window.ZFindServices.prospection.updateContacts(id, { email: v('email'), phone: v('phone'), website: v('website') });
+  if (res.error) { showStatus('error', 'Não foi possível guardar.'); return; }
+  showStatus('success', 'Contactos guardados.');
+  render();
+}
+
+async function toggleDoNotContact(id, value) {
+  if (value && !(await askConfirm('Não contactar', 'Esta agência deixa de receber e-mails de prospeção da Z Find. Confirmar?', 'Confirmar'))) return;
+  const res = await window.ZFindServices.prospection.setDoNotContact(id, value);
+  if (res.error) { showStatus('error', 'Não foi possível atualizar.'); return; }
+  showStatus('success', value ? 'Marcada «não contactar».' : 'Contacto de novo permitido.');
+  render();
 }
 
 /* ---------------- Leads ---------------- */
