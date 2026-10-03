@@ -2449,6 +2449,7 @@ function financingCardHTML(vm) {
         <p class="fin-note">${c.note}</p>
         <p class="fin-note">${financingCopy().warning}</p>
         <a class="fin-more" href="#/${state.lang}/simulator?market=${country}&mode=payment&price=${Math.round(price)}">${financingCopy().more} →</a>
+        <a class="fin-more" href="#/${state.lang}/yield?market=${country}&mode=long&price=${Math.round(price)}">${financingCopy().yield} →</a>
       </div>`;
 }
 
@@ -2460,9 +2461,9 @@ function financingReference(country, years) {
 }
 function financingCopy() {
   return state.lang === 'fr'
-    ? { more: 'Simulation détaillée du crédit', enterRate: 'Saisissez un taux', edited: 'Taux saisi par vous.',
+    ? { more: 'Simulation détaillée du crédit', yield: 'Simuler la rentabilité locative', enterRate: 'Saisissez un taux', edited: 'Taux saisi par vous.',
         warning: 'Simulation indicative : ni offre de prêt ni conseil. Consultez une banque ou un courtier en crédit.' }
-    : { more: 'Detailed mortgage simulation', enterRate: 'Enter a rate', edited: 'Rate entered by you.',
+    : { more: 'Detailed mortgage simulation', yield: 'Simulate the rental yield', enterRate: 'Enter a rate', edited: 'Rate entered by you.',
         warning: 'Indicative simulation: neither a loan offer nor advice. Consult a bank or a credit broker.' };
 }
 function financingRateHint(country, years, edited) {
@@ -3024,6 +3025,14 @@ function renderSimulator() {
   const page = window.ZFindServices && window.ZFindServices.creditSimulator;
   if (!root) return;
   if (!page) { renderLegacySimulator(); return; }
+  page.render(root, state.lang, state.query || {});
+}
+
+/* Rental yield simulator for the launch markets (services/rental-yield.js). */
+function renderYield() {
+  const root = document.getElementById('yield-root');
+  const page = window.ZFindServices && window.ZFindServices.rentalYield;
+  if (!root || !page) return;
   page.render(root, state.lang, state.query || {});
 }
 
@@ -3732,6 +3741,7 @@ function render() {
     case 'land': renderLand(state.id); break;
     case 'partner': renderPartner(state.id); break;
     case 'simulator': renderSimulator(); break;
+    case 'yield': renderYield(); break;
     case 'estimation': renderEstimation(); break;
     case 'pro': renderPro(); break;
     case 'zone': renderZone(state.id); break;
