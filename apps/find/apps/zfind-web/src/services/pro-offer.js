@@ -22,7 +22,7 @@
   const PRICES = Object.freeze({
     essentiel: 99, pro: 199, networkDiscountPct: 20, networkFrom: 3,
     featuredMarketWeek: 49, featuredSearchWeek: 29, developmentMonth: 149, sellerLead: 29,
-    founderMonth: 49, founderFreeMonths: 3, founderPriceMonths: 12,
+    founderMonth: 99, founderFreeMonths: 3, founderPriceMonths: 12,
     founderSeatsPerCountry: 50, founderDevelopers: 10, founderMinLeads: 5, founderExtensionMonths: 3
   });
 
@@ -63,7 +63,7 @@
       founder: p => [
         `${p.founderFreeMonths} mois gratuits dès votre inscription : l’offre Pro complète, sans carte bancaire ni engagement.`,
         `Garantie : moins de ${p.founderMinLeads} contacts reçus via Z Find pendant ces ${p.founderFreeMonths} mois ? La gratuité est renouvelée pour ${p.founderExtensionMonths} mois de plus, une fois.`,
-        `Ensuite, ${p.founderMonth} € HT par mois au lieu de ${p.pro} €, garantis ${p.founderPriceMonths} mois, toujours sans engagement.`,
+        `Ensuite, l’offre Pro au prix de l’Essentiel : ${p.founderMonth} € HT par mois au lieu de ${p.pro} €, garantis ${p.founderPriceMonths} mois, toujours sans engagement.`,
         `Places limitées : ${p.founderSeatsPerCountry} agences par pays et ${p.founderDevelopers} promoteurs, dont les programmes neufs sont gratuits pendant la même période.`,
         `« À la une » offert pendant la période gratuite, en rotation entre les fondateurs.`
       ],
@@ -107,7 +107,7 @@
       founder: p => [
         `${p.founderFreeMonths} months free from sign-up: the full Pro plan, no card and no commitment.`,
         `Guarantee: fewer than ${p.founderMinLeads} enquiries through Z Find during those ${p.founderFreeMonths} months? The free period is renewed for ${p.founderExtensionMonths} more months, once.`,
-        `Then €${p.founderMonth} excl. VAT a month instead of €${p.pro}, guaranteed for ${p.founderPriceMonths} months, still with no minimum term.`,
+        `Then the Pro plan at the Essentiel price: €${p.founderMonth} excl. VAT a month instead of €${p.pro}, guaranteed for ${p.founderPriceMonths} months, still with no minimum term.`,
         `Limited places: ${p.founderSeatsPerCountry} agencies per country and ${p.founderDevelopers} developers, whose new developments are free for the same period.`,
         '"Featured" slots free during the free period, rotating among founders.'
       ],
