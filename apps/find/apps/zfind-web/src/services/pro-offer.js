@@ -22,7 +22,7 @@
   const PRICES = Object.freeze({
     essentiel: 99, pro: 199, networkDiscountPct: 20, networkFrom: 3,
     featuredMarketWeek: 49, featuredSearchWeek: 29, developmentMonth: 149, sellerLead: 29,
-    founderMonth: 49, founderFreeMonths: 3, founderPriceMonths: 24,
+    founderMonth: 49, founderFreeMonths: 3, founderPriceMonths: 12,
     founderSeatsPerCountry: 50, founderDevelopers: 10, founderMinLeads: 5, founderExtensionMonths: 3
   });
 
