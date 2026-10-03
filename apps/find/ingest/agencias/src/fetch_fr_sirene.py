@@ -10,6 +10,8 @@ immobiliers), a partir da API pública recherche-entreprises.api.gouv.fr
 - Uma linha por estabelecimento (SIRET), com morada e coordenadas GPS.
 - Pessoas singulares (empresário em nome individual, natureza jurídica 1000):
   type = 'independent' (mandatários e agentes independentes).
+- Pessoas em difusão parcial do SIRENE (estatuto «P», dados «[NON-DIFFUSIBLE]»)
+  opuseram-se à difusão dos seus dados: nunca entram na base.
 - No fim de uma passagem COMPLETA, os estabelecimentos que deixaram de
   aparecer são marcados active = false (nunca apagados).
 
@@ -41,8 +43,24 @@ def call(params):
     raise RuntimeError(f"recherche-entreprises: demasiadas tentativas {params}")
 
 
+def to_float(value):
+    """Coordenada numérica, ou None (vazio, «[NON-DIFFUSIBLE]», texto)."""
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def diffusible(status):
+    """Só dados de difusão pública (O). Uma pessoa em difusão parcial (P)
+    opôs-se à difusão — e à prospeção — dos seus dados: fica de fora."""
+    return status in (None, "", "O")
+
+
 def rows_from_result(res, dept, seen_at):
     """Converte uma unidade legal e os seus estabelecimentos correspondentes."""
+    if not diffusible(res.get("statut_diffusion")):
+        return []
     complements = res.get("complements") or {}
     natural = bool(complements.get("est_entrepreneur_individuel")) or res.get("nature_juridique") == "1000"
     large = res.get("categorie_entreprise") in ("GE", "ETI") or (res.get("nombre_etablissements_ouverts") or 0) >= 10
@@ -50,6 +68,8 @@ def rows_from_result(res, dept, seen_at):
     rows = []
     for et in res.get("matching_etablissements") or []:
         if et.get("etat_administratif") != "A" or et.get("activite_principale") != NAF:
+            continue
+        if not diffusible(et.get("statut_diffusion_etablissement")):
             continue
         enseignes = et.get("liste_enseignes") or []
         trade = (et.get("nom_commercial") or (enseignes[0] if enseignes else None) or res.get("sigle") or None)
@@ -61,7 +81,7 @@ def rows_from_result(res, dept, seen_at):
             "is_natural_person": natural, "legal_form": res.get("nature_juridique"), "activity_code": NAF,
             "is_head_office": bool(et.get("est_siege")), "address": et.get("adresse"), "postcode": et.get("code_postal"),
             "city": et.get("libelle_commune"), "commune_code": et.get("commune"),
-            "latitude": float(lat) if lat not in (None, "") else None, "longitude": float(lon) if lon not in (None, "") else None,
+            "latitude": to_float(lat), "longitude": to_float(lon),
             "registry_created": et.get("date_creation"), "last_seen_at": seen_at, "active": True, "updated_at": seen_at,
         })
     return rows
@@ -78,7 +98,10 @@ def fetch_query(params, dept, seen_at, label):
         for res in data.get("results", []):
             if len(res.get("matching_etablissements") or []) >= 10:
                 capped += 1
-            rows.extend(rows_from_result(res, dept, seen_at))
+            try:
+                rows.extend(rows_from_result(res, dept, seen_at))
+            except Exception as e:  # um registo estranho não faz falhar o departamento
+                print(f"  {label}: registo {res.get('siren')} ignorado ({e})")
         if page >= data.get("total_pages", 0) or not data.get("results"):
             break
         page += 1
