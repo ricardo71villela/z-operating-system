@@ -77,7 +77,9 @@ def rows_from_result(res, dept, seen_at):
         lat, lon = et.get("latitude"), et.get("longitude")
         rows.append({
             "country": "FR", "source": "sirene", "source_id": et["siret"], "company_id": res.get("siren"),
-            "name": res.get("nom_complet") or name, "trade_name": trade, "type": kind, "network": network,
+            # Nome legal sem a insígnia entre parênteses (vai para trade_name);
+            # para uma pessoa singular, o nome completo.
+            "name": (res.get("nom_complet") if natural else name) or res.get("nom_complet") or name, "trade_name": trade, "type": kind, "network": network,
             "is_natural_person": natural, "legal_form": res.get("nature_juridique"), "activity_code": NAF,
             "is_head_office": bool(et.get("est_siege")), "address": et.get("adresse"), "postcode": et.get("code_postal"),
             "city": et.get("libelle_commune"), "commune_code": et.get("commune"),
