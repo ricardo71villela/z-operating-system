@@ -268,8 +268,10 @@ function propertyRow({ id, title, price, city = 'Évian-les-Bains', postal = '74
     P.essentiel === 99 && P.pro === 199 && P.featuredMarketWeek === 49 && P.featuredSearchWeek === 29 && P.developmentMonth === 149 && P.sellerLead === 29 && P.founderMonth === 49 &&
     proHtml.includes('99 € HT / mois') && proHtml.includes('199 € HT / mois') && proHtml.includes('susceptibles d’évoluer') && proHtml.includes('sans engagement') &&
     pro.pageHTML('en').includes('€199 excl. VAT / month'));
-  check('professionals page: Founder offer (free until 31 March 2027, then 49 € until 31 March 2029, guarantee)',
-    proHtml.includes('Gratuit jusqu’au 31 mars 2027') && proHtml.includes('49 € HT par mois au lieu de 199 €') && proHtml.includes('31 mars 2029') && proHtml.includes('prolongée de 3 mois'));
+  check('professionals page: Founder offer (3 months free, renewed once for 3 months under 5 contacts, then 49 € for 24 months)',
+    P.founderFreeMonths === 3 && P.founderExtensionMonths === 3 && P.founderMinLeads === 5 && P.founderPriceMonths === 24 &&
+    proHtml.includes('3 mois gratuits dès votre inscription') && proHtml.includes('moins de 5 contacts') && proHtml.includes('renouvelée pour 3 mois de plus, une fois') &&
+    proHtml.includes('49 € HT par mois au lieu de 199 €, garantis 24 mois') && !proHtml.includes('2027'));
   check('professionals page: seller leads only with the owner’s express agreement, one agency',
     proHtml.includes('acceptent expressément') && proHtml.includes('une seule agence') && !/\[object|undefined/.test(proHtml + pro.pageHTML('en')));
   const body = fs.readFileSync(path.join(WEB, 'src', 'body.html'), 'utf8');

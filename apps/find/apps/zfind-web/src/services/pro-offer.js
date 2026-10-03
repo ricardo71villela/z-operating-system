@@ -22,7 +22,7 @@
   const PRICES = Object.freeze({
     essentiel: 99, pro: 199, networkDiscountPct: 20, networkFrom: 3,
     featuredMarketWeek: 49, featuredSearchWeek: 29, developmentMonth: 149, sellerLead: 29,
-    founderMonth: 49, founderFreeUntil: '2027-03-31', founderPriceUntil: '2029-03-31',
+    founderMonth: 49, founderFreeMonths: 3, founderPriceMonths: 24,
     founderSeatsPerCountry: 50, founderDevelopers: 10, founderMinLeads: 5, founderExtensionMonths: 3
   });
 
@@ -61,11 +61,11 @@
       pricesHead: ['Offre', 'Prix', 'Inclus'],
       founderTitle: 'Offre de lancement « Fondateur »',
       founder: p => [
-        `Gratuit jusqu’au 31 mars 2027 : l’offre Pro complète, sans carte bancaire ni engagement.`,
-        `Ensuite, ${p.founderMonth} € HT par mois au lieu de ${p.pro} €, garantis jusqu’au 31 mars 2029, toujours sans engagement.`,
-        `Places limitées : ${p.founderSeatsPerCountry} agences par pays et ${p.founderDevelopers} promoteurs, dont les programmes neufs sont gratuits jusqu’au 31 mars 2027.`,
-        `« À la une » offert pendant le lancement, en rotation entre les fondateurs.`,
-        `Garantie : moins de ${p.founderMinLeads} contacts reçus via Z Find au 31 mars 2027 ? La gratuité est prolongée de ${p.founderExtensionMonths} mois.`
+        `${p.founderFreeMonths} mois gratuits dès votre inscription : l’offre Pro complète, sans carte bancaire ni engagement.`,
+        `Garantie : moins de ${p.founderMinLeads} contacts reçus via Z Find pendant ces ${p.founderFreeMonths} mois ? La gratuité est renouvelée pour ${p.founderExtensionMonths} mois de plus, une fois.`,
+        `Ensuite, ${p.founderMonth} € HT par mois au lieu de ${p.pro} €, garantis ${p.founderPriceMonths} mois, toujours sans engagement.`,
+        `Places limitées : ${p.founderSeatsPerCountry} agences par pays et ${p.founderDevelopers} promoteurs, dont les programmes neufs sont gratuits pendant la même période.`,
+        `« À la une » offert pendant la période gratuite, en rotation entre les fondateurs.`
       ],
       founderAsk: 'En contrepartie : vous publiez tout votre portefeuille, vous répondez aux demandes sous 24 heures et vous nous autorisez à citer votre agence comme référence.',
       contact: 'Devenir agence fondatrice', demo: 'Voir la démonstration des emplacements « À la une »',
@@ -105,11 +105,11 @@
       pricesHead: ['Offer', 'Price', 'Included'],
       founderTitle: '"Founder" launch offer',
       founder: p => [
-        'Free until 31 March 2027: the full Pro plan, no card and no commitment.',
-        `Then €${p.founderMonth} excl. VAT a month instead of €${p.pro}, guaranteed until 31 March 2029, still with no minimum term.`,
-        `Limited places: ${p.founderSeatsPerCountry} agencies per country and ${p.founderDevelopers} developers, whose new developments are free until 31 March 2027.`,
-        '"Featured" slots free during the launch, rotating among founders.',
-        `Guarantee: fewer than ${p.founderMinLeads} enquiries through Z Find by 31 March 2027? The free period is extended by ${p.founderExtensionMonths} months.`
+        `${p.founderFreeMonths} months free from sign-up: the full Pro plan, no card and no commitment.`,
+        `Guarantee: fewer than ${p.founderMinLeads} enquiries through Z Find during those ${p.founderFreeMonths} months? The free period is renewed for ${p.founderExtensionMonths} more months, once.`,
+        `Then €${p.founderMonth} excl. VAT a month instead of €${p.pro}, guaranteed for ${p.founderPriceMonths} months, still with no minimum term.`,
+        `Limited places: ${p.founderSeatsPerCountry} agencies per country and ${p.founderDevelopers} developers, whose new developments are free for the same period.`,
+        '"Featured" slots free during the free period, rotating among founders.'
       ],
       founderAsk: 'In return: you publish your whole portfolio, answer enquiries within 24 hours and let us name your agency as a reference.',
       contact: 'Become a founding agency', demo: 'See the "Featured" placements demonstration',
