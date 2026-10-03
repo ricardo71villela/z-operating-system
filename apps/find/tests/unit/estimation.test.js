@@ -148,6 +148,20 @@ function mockRes() {
     (await engine.estimate(Object.assign({}, good.input, { floor: 0 }), load)).adjustments.some(a => a.key === 'ground_floor'));
   check('API: report subject names the commune; notification in Portuguese',
     sent[1].body.subject === 'Votre estimation Z Find — Évian-les-Bains' && sent[0].body.subject.startsWith('Novo lead proprietário — Évian-les-Bains (FR)'));
+  check('API: without the separate agency consent, the lead says NOT to pass it on and the report says nothing about it',
+    sent[0].body.text.includes('Partilha com agência parceira: NÃO autorizada') && !sent[1].body.text.includes('agence partenaire'));
+
+  sent.length = 0;
+  res = mockRes(); await handler(mockReq(Object.assign({}, good, { contact: Object.assign({}, good.contact, { agencyConsent: true }) })), res);
+  check('API: owner who ticked the agency consent — lead marked AUTHORISED (one agency), report confirms and explains how to withdraw',
+    res.statusCode === 200 && sent[0].body.text.includes('Partilha com agência parceira: AUTORIZADA') && sent[0].body.text.includes('uma só agência') &&
+    sent[1].body.text.includes('mis en relation avec une agence partenaire') && sent[1].body.text.includes('retirer votre accord'));
+  sent.length = 0;
+  res = mockRes(); await handler(mockReq(Object.assign({}, good, { mode: 'buyer', input: Object.assign({}, good.input, { askingPrice: 300000 }), contact: Object.assign({}, good.contact, { agencyConsent: true }) })), res);
+  check('API: a buyer can never be passed on as a seller lead', sent.length === 2 && sent[0].body.text.includes('NÃO autorizada'));
+  const cFr = page.COPY.fr, cEn = page.COPY.en;
+  check('page: separate optional agency consent (owners only), and the privacy notice no longer says data is never passed on',
+    /Facultatif/.test(cFr.agencyConsent) && /Optional/.test(cEn.agencyConsent) && !/ni vendues ni cédées/.test(cFr.rgpd) && /une seule agence partenaire/.test(cFr.rgpd) && /single partner agency/.test(cEn.rgpd));
 
   sent.length = 0;
   global.fetch = async (url, opts) => { sent.push(JSON.parse(opts.body)); return { ok: false, status: 422, text: async () => 'bad', json: async () => ({}) }; };

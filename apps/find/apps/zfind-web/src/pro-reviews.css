@@ -65,3 +65,15 @@ body:has(.zdemo-banner) footer.site { padding-bottom: 56px; }
 .zpro-card .zpro-model { margin-top: 12px; color: var(--gold-dark, #8a6a36); font-weight: 600; font-size: .85rem; }
 .zpro-rules { padding-left: 20px; line-height: 1.8; color: var(--gray-700); }
 .zpro-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
+.zpro-founder{margin-top:28px;padding:22px 24px;border:1px solid var(--gold-light,#e2c48f);border-radius:var(--radius);background:var(--gold-pale,#f7efe1);}
+.zpro-founder h2{margin:0 0 10px;}
+.zpro-founder ul{margin:0 0 12px;padding-left:20px;line-height:1.7;color:var(--gray-700);}
+.zpro-founder p{color:var(--gray-700);margin:0 0 14px;line-height:1.6;}
+.zpro-table-wrap{overflow-x:auto;}
+.zpro-prices{width:100%;border-collapse:collapse;font-size:.92rem;}
+.zpro-prices th,.zpro-prices td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--gray-200);vertical-align:top;}
+.zpro-prices thead th{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--gray-500);}
+.zpro-prices tbody th{font-weight:600;white-space:nowrap;}
+.zpro-price{white-space:nowrap;color:var(--gold-dark,#8a6a36);font-weight:600;}
+.zpro-note{color:var(--gray-500);font-size:.85rem;margin-top:10px;}
+@media (max-width:640px){.zpro-prices tbody th,.zpro-price{white-space:normal;}}

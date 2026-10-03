@@ -261,9 +261,17 @@ function propertyRow({ id, title, price, city = 'Évian-les-Bains', postal = '74
 
   const pro = require(path.join(WEB, 'src', 'services', 'pro-offer.js'));
   const proHtml = pro.pageHTML('fr');
-  check('professionals page: revenue lines, neutral-results rule, no private sellers, prices on request, demo link',
-    proHtml.includes('Mise en avant « À la une »') && proHtml.includes('Résultats neutres') && proHtml.includes('Aucun particulier') &&
-    proHtml.includes('Tarifs de lancement sur demande.') && proHtml.includes('?demo=1') && !/\d+\s?€/.test(proHtml));
+  const P = pro.PRICES;
+  check('professionals page: revenue lines, neutral-results rule, no private sellers, demo link',
+    proHtml.includes('Mise en avant « À la une »') && proHtml.includes('Résultats neutres') && proHtml.includes('Aucun particulier') && proHtml.includes('?demo=1'));
+  check('professionals page: approved launch price list (HT, monthly, no minimum term, subject to change)',
+    P.essentiel === 99 && P.pro === 199 && P.featuredMarketWeek === 49 && P.featuredSearchWeek === 29 && P.developmentMonth === 149 && P.sellerLead === 29 && P.founderMonth === 49 &&
+    proHtml.includes('99 € HT / mois') && proHtml.includes('199 € HT / mois') && proHtml.includes('susceptibles d’évoluer') && proHtml.includes('sans engagement') &&
+    pro.pageHTML('en').includes('€199 excl. VAT / month'));
+  check('professionals page: Founder offer (free until 31 March 2027, then 49 € until 31 March 2029, guarantee)',
+    proHtml.includes('Gratuit jusqu’au 31 mars 2027') && proHtml.includes('49 € HT par mois au lieu de 199 €') && proHtml.includes('31 mars 2029') && proHtml.includes('prolongée de 3 mois'));
+  check('professionals page: seller leads only with the owner’s express agreement, one agency',
+    proHtml.includes('acceptent expressément') && proHtml.includes('une seule agence') && !/\[object|undefined/.test(proHtml + pro.pageHTML('en')));
   const body = fs.readFileSync(path.join(WEB, 'src', 'body.html'), 'utf8');
   const build = fs.readFileSync(path.join(WEB, 'scripts', 'build.js'), 'utf8');
   check('wiring: pro view and route, alert box on search, reviews on agency and listing, enquiry opt-in, build injection',
