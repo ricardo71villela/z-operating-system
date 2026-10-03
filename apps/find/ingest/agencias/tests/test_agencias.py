@@ -81,6 +81,13 @@ ei = dict(res, nom_complet="MARIE MARTIN", nom_raison_sociale=None, nature_jurid
 ei["matching_etablissements"] = [dict(res["matching_etablissements"][0], siret="91234567800011", liste_enseignes=None, est_siege=True)]
 r1 = fetch_fr_sirene.rows_from_result(ei, "74", "x")[0]
 check("SIRENE: empresário em nome individual = independent", r1["type"] == "independent" and r1["is_natural_person"] and r1["name"] == "MARIE MARTIN")
+masked = dict(ei, statut_diffusion="P")
+masked["matching_etablissements"] = [dict(ei["matching_etablissements"][0], latitude="[NON-DIFFUSIBLE]", longitude="[NON-DIFFUSIBLE]")]
+check("SIRENE: pessoa em difusão parcial (P, [NON-DIFFUSIBLE]) fica de fora", fetch_fr_sirene.rows_from_result(masked, "74", "x") == [])
+et_masked = dict(res, matching_etablissements=[dict(res["matching_etablissements"][0], statut_diffusion_etablissement="P")])
+check("SIRENE: estabelecimento não difusível fica de fora", fetch_fr_sirene.rows_from_result(et_masked, "74", "x") == [])
+odd = dict(res, matching_etablissements=[dict(res["matching_etablissements"][0], latitude="[NON-DIFFUSIBLE]", longitude="")])
+check("SIRENE: coordenada não numérica = vazia, sem erro", fetch_fr_sirene.rows_from_result(odd, "74", "x")[0]["latitude"] is None)
 check("SIRENE: todas as colunas do registo presentes", set(common.REGISTRY_COLUMNS) <= set(r0))
 check("SIRENE: 101 departamentos, Córsega e DOM incluídos", len(fetch_fr_sirene.DEPARTMENTS) == 101 and "2A" in fetch_fr_sirene.DEPARTMENTS and "974" in fetch_fr_sirene.DEPARTMENTS and "20" not in fetch_fr_sirene.DEPARTMENTS)
 
