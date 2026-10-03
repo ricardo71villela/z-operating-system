@@ -468,7 +468,7 @@
   return Object.freeze({
     MARKETS, MODES, RULES, COPY,
     annuityFactor, payment, capacity, project, maxPriceFor,
-    pageHTML, resultHTML, render, normalise,
+    pageHTML, resultHTML, render, normalise, rateHintHTML,
     _internals: Object.freeze({ fixationLabel, pctLabel, money })
   });
 });

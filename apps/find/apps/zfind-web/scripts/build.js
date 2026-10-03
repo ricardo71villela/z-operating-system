@@ -105,6 +105,7 @@ function build() {
   const acquisitionCostsService = read('services/acquisition-costs.js');
   const creditRatesService = read('services/credit-rates.js');
   const creditSimulatorService = read('services/credit-simulator.js');
+  const rentalYieldService = read('services/rental-yield.js');
   const supabaseClient = read('services/supabaseClient.js');
   const propertiesService = read('services/properties.js');
   const publicVerificationService = read('services/public-verification.js');
@@ -198,6 +199,7 @@ function build() {
     + acquisitionCostsService + '\n'
     + creditRatesService + '\n'
     + creditSimulatorService + '\n'
+    + rentalYieldService + '\n'
     + supabaseClient + '\n'
     + propertiesService + '\n'
     + publicVerificationService + '\n'

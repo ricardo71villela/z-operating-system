@@ -22,8 +22,8 @@ console.log('\n=== Z FIND LISTING PAGE ===');
 const frOld = costs.estimate({ country: 'FR', price: 300000 });
 const frFirst = costs.estimate({ country: 'FR', price: 300000, firstBuyer: true });
 const frNew = costs.estimate({ country: 'FR', price: 300000, newBuild: true });
-check('France existing home: 6.31825 % duties + notary scale + CSI + disbursements ≈ 7.9 %',
-  frOld.lines[0].amount === 18955 && near(frOld.costsRate, 0.0794, 0.001));
+check('France existing home: 6.3185 % duties + notary scale + CSI + disbursements ≈ 7.9 %',
+  frOld.lines[0].amount === 18956 && near(frOld.costsRate, 0.0794, 0.001));
 check('France first buyer keeps the 5.80665 % duties', frFirst.lines[0].amount === 17420);
 check('France new build pays the 0.715 % land registration tax instead', frNew.lines[0].key === 'publicityTax' && frNew.lines[0].amount === 2145 && near(frNew.costsRate, 0.0233, 0.001));
 check('France notary emoluments follow the official scale with VAT (300 000 € → 3 353 €)', frOld.lines[1].amount === 3353);
@@ -39,12 +39,12 @@ check('REFNIS code gives the Belgian region',
   costs.belgianRegionFromRefnis('21004') === 'BRU' && costs.belgianRegionFromRefnis('11002') === 'VLG' &&
   costs.belgianRegionFromRefnis('24062') === 'VLG' && costs.belgianRegionFromRefnis('25005') === 'WAL' && costs.belgianRegionFromRefnis('62063') === 'WAL');
 
-// Luxembourg: 7 % minus the Bëllegen Akt credit (30 000 € per buyer, main residence).
-const lu1 = costs.estimate({ country: 'LU', price: 500000, ownHome: true, buyers: 1 });
-const lu2 = costs.estimate({ country: 'LU', price: 500000, ownHome: true, buyers: 2 });
-const luInv = costs.estimate({ country: 'LU', price: 500000, ownHome: false });
-check('Luxembourg: 7 % duties, Bëllegen Akt 30 000 € per buyer, never below zero, notary not included',
-  lu1.costs === 5000 && lu2.costs === 0 && luInv.costs === 35000 && lu1.notaryIncluded === false);
+// Luxembourg: 7 % minus the Bëllegen Akt credit (40 000 € per buyer, main residence, law n° 8540).
+const lu1 = costs.estimate({ country: 'LU', price: 700000, ownHome: true, buyers: 1 });
+const lu2 = costs.estimate({ country: 'LU', price: 700000, ownHome: true, buyers: 2 });
+const luInv = costs.estimate({ country: 'LU', price: 700000, ownHome: false });
+check('Luxembourg: 7 % duties, Bëllegen Akt 40 000 € per buyer, never below zero, never for an investment, notary not included',
+  lu1.costs === 9000 && lu2.costs === 0 && luInv.costs === 49000 && lu1.notaryIncluded === false);
 
 // Loan maths.
 check('monthly payment: 200 000 € over 20 years at 3 % ≈ 1 109 €', Math.round(costs.monthlyPayment(200000, 3, 20)) === 1109);
