@@ -42,6 +42,7 @@ check("agência independente = agency", common.classify("IMMOBILIERE DU CHABLAIS
 check("acentos e pontuação: Laforêt, Stéphane Plaza, Engel & Völkers",
       common.detect_network("Laforêt Évian")[0] == "laforet" and common.detect_network("Stéphane Plaza Immobilier Thonon")[0] == "stephane-plaza"
       and common.detect_network("Engel & Völkers Luxembourg")[0] == "engel-volkers")
+check("redes regionais: Oralia, Imogroup", common.detect_network("ORALIA BARNOUD")[0] == "oralia" and common.detect_network("IMOGROUP")[0] == "imogroup")
 check("'era' não apanha palavras que contêm era", common.detect_network("GENERAL IMMOBILIER")[0] is None and common.detect_network("ERA Immobilier Annemasse")[0] == "era")
 
 # ------------------------------------------------------------ contacts
@@ -88,6 +89,8 @@ et_masked = dict(res, matching_etablissements=[dict(res["matching_etablissements
 check("SIRENE: estabelecimento não difusível fica de fora", fetch_fr_sirene.rows_from_result(et_masked, "74", "x") == [])
 odd = dict(res, matching_etablissements=[dict(res["matching_etablissements"][0], latitude="[NON-DIFFUSIBLE]", longitude="")])
 check("SIRENE: coordenada não numérica = vazia, sem erro", fetch_fr_sirene.rows_from_result(odd, "74", "x")[0]["latitude"] is None)
+named = dict(res, nom_complet="A&P IMMOBILIER (&API)", nom_raison_sociale="A&P IMMOBILIER")
+check("SIRENE: nome legal sem a insígnia entre parênteses", fetch_fr_sirene.rows_from_result(named, "74", "x")[0]["name"] == "A&P IMMOBILIER")
 check("SIRENE: todas as colunas do registo presentes", set(common.REGISTRY_COLUMNS) <= set(r0))
 check("SIRENE: 101 departamentos, Córsega e DOM incluídos", len(fetch_fr_sirene.DEPARTMENTS) == 101 and "2A" in fetch_fr_sirene.DEPARTMENTS and "974" in fetch_fr_sirene.DEPARTMENTS and "20" not in fetch_fr_sirene.DEPARTMENTS)
 

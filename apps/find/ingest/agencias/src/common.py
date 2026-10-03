@@ -63,6 +63,8 @@ NETWORKS = [
     ("arthurimmo", r"\barthurimmo\b", False),
     ("l-adresse", r"\bl ?adresse\b", False),
     ("cimm", r"\bcimm immobilier\b", False),
+    ("oralia", r"\boralia\b", False),
+    ("imogroup", r"\bimogroup\b", False),
     ("barnes", r"\bbarnes\b", False),
     ("sothebys", r"\bsotheby", False),
     ("engel-volkers", r"\bengel ?(&|et|und)? ?volkers\b", False),
