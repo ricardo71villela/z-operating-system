@@ -124,6 +124,11 @@ async function visibleText(page) {
     }
     await page.waitForSelector('[data-credit-form]', { timeout: STEP_TIMEOUT });
     record('mortgage simulator renders', true);
+    const hasYield = await page.evaluate(() => !!window.ZFindServices.rentalYield);
+    if (!hasYield) { record('rental yield simulator (not published yet)', true, 'skipped'); return; }
+    await page.evaluate(() => { location.hash = '#/fr/yield'; });
+    await page.waitForSelector('[data-yield-form]', { timeout: STEP_TIMEOUT });
+    record('rental yield simulator renders', true);
   });
 
   await step(page, 'sitemap', async () => {

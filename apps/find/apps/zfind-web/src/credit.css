@@ -23,4 +23,26 @@
 /* Listing page financing card: rate source line */
 .financing-card .fin-rate-hint{margin:-2px 0 6px;font-size:.72rem;line-height:1.4;color:var(--gray-500);}
 .financing-card .fin-rate-hint.missing{color:#8a3b22;}
-.financing-card .fin-more{display:inline-block;margin-top:8px;font-size:.82rem;color:var(--gold-dark);}
+.financing-card .fin-more{display:block;margin-top:8px;font-size:.82rem;color:var(--gold-dark);}
+/* Rental yield simulator (#/{lang}/yield) */
+.yield-group{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:12px;}
+.yield-group + .yield-group{padding-top:16px;border-top:1px solid var(--gray-100,#eee);}
+.yield-group legend{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.2rem;color:var(--gray-900);padding:0;margin-bottom:10px;}
+.yield-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+.yield-kpis .yield-kpi:last-child{grid-column:1/-1;flex-direction:row;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:4px 12px;}
+.yield-kpi{display:flex;flex-direction:column;gap:4px;padding:12px;border-radius:var(--radius);background:var(--gold-pale);min-width:0;}
+.yield-kpi span{font-size:.78rem;color:var(--gray-700);line-height:1.3;}
+.yield-kpi em{font-style:normal;color:var(--gray-500);}
+.yield-kpi strong{font-size:1.3rem;color:var(--gray-900);white-space:nowrap;}
+.yield-kpi strong small{font-size:.8rem;font-weight:400;margin-left:2px;}
+.yield-kpi-neg{background:#f7e9e4;}
+.yield-kpi-neg strong{color:#8a3b22;}
+.yield-note{padding:12px 14px;border-radius:var(--radius);background:var(--gold-pale);font-size:.86rem;line-height:1.5;color:var(--gray-700);}
+.yield-note p{margin:0 0 6px;}
+.yield-note p:last-child{margin-bottom:0;}
+.yield-note-alert{background:#f7e9e4;color:#8a3b22;}
+.yield-formulas{margin:0;padding-left:18px;color:var(--gray-500);font-size:.8rem;line-height:1.55;}
+.yield-result .est-steps{margin:0;}
+@media (max-width: 520px){
+  .yield-kpis{grid-template-columns:1fr;}
+}

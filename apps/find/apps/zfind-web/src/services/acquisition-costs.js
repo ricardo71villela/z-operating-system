@@ -5,7 +5,7 @@
    the monthly loan payment. Public rates only, never a valuation.
 
    France (2026)
-     Existing home ("ancien"): droits de mutation 6.31825 % (the ~80+
+     Existing home ("ancien"): droits de mutation 6.3185 % = 5 % × 1.0237 + 1.2 % (the ~80+
      departments that raised their share to 5 % in 2025) or 5.80665 %
      for a first-time buyer of a main residence (exempt from the raise),
      notary emoluments on the official scale (3.870 % / 1.596 % / 1.064 %
@@ -21,12 +21,14 @@
      + 21 % VAT) and ~1 200 € of administrative costs.
    Luxembourg (2026)
      Registration 6 % + transcription 1 % = 7 %; "Bëllegen Akt" tax credit
-     of up to 30 000 € per buyer for a main residence. Notary fees are not
-     included (shown as such).
+     of up to 40 000 € per buyer for a main residence (law n° 8540; a rise
+     to 45 000 € for deeds from 16 July 2026 was announced on 16 July 2026
+     and applies only once the law is voted — not used here). Never for a
+     rental investment. Notary fees are not included (shown as such).
 
    Sources: notaires / service-public (France, 2025 DMTO reform),
    housing-service.be (June 2026, regional duties and notary scale),
-   guichet.public.lu (Bëllegen Akt). Every result says it is an estimate.
+   guichet.public.lu and chd.lu (Bëllegen Akt, checked October 2026). Every result says it is an estimate.
    ============================================================ */
 
 (function (root, factory) {
@@ -40,7 +42,7 @@
   'use strict';
 
   const FR = Object.freeze({
-    DMTO_STANDARD: 0.0631825,
+    DMTO_STANDARD: 0.063185,
     DMTO_FIRST_BUYER: 0.0580665,
     NEW_BUILD_TAX: 0.00715,
     EMOLUMENT_SCALE: [[6500, 0.0387], [17000, 0.01596], [60000, 0.01064], [Infinity, 0.00799]],
@@ -58,7 +60,7 @@
     VAT: 0.21,
     ADMIN: 1200
   });
-  const LU = Object.freeze({ DUTIES: 0.07, CREDIT_PER_BUYER: 30000 });
+  const LU = Object.freeze({ DUTIES: 0.07, CREDIT_PER_BUYER: 40000 });
 
   const round = v => Math.round(v);
 

@@ -14,7 +14,7 @@
   Object.assign(I18N, {
     es: {
       common: { search:'Buscar', viewAll:'Ver todo', save:'Guardar', signIn:'Iniciar sesión', publish:'Publicar su cartera', close:'Cerrar', backToResults:'← Volver a los resultados' },
-      navigation: { home:'Inicio', search:'Buscar', property:'Inmueble', development:'Promoción', land:'Terrenos y Desarrollo', partner:'Socio', simulator:'Simuladores', estimation:'Valoración' },
+      navigation: { home:'Inicio', search:'Buscar', property:'Inmueble', development:'Promoción', land:'Terrenos y Desarrollo', partner:'Socio', simulator:'Simuladores', yield:'Rentabilidad', estimation:'Valoración' },
       simulator: {
         title:'Simulador de Costes de Adquisición', subtitle:'Estime el impuesto de transmisiones (IMT) y el impuesto de timbre al comprar una vivienda en Portugal.',
         country:'País', propertyValue:'Valor del inmueble (€)', isHPP:'Esta será mi residencia habitual', isResident:'Soy residente fiscal en Portugal',
@@ -124,7 +124,7 @@
 
     de: {
       common: { search:'Suchen', viewAll:'Alle ansehen', save:'Speichern', signIn:'Anmelden', publish:'Portfolio veröffentlichen', close:'Schließen', backToResults:'← Zurück zu den Suchergebnissen' },
-      navigation: { home:'Start', search:'Suchen', property:'Immobilie', development:'Neubauprojekt', land:'Grundstücke & Entwicklung', partner:'Partner', simulator:'Rechner', estimation:'Bewertung' },
+      navigation: { home:'Start', search:'Suchen', property:'Immobilie', development:'Neubauprojekt', land:'Grundstücke & Entwicklung', partner:'Partner', simulator:'Rechner', yield:'Rendite', estimation:'Bewertung' },
       simulator: { title:'Kaufnebenkosten-Rechner', subtitle:'Schätzen Sie Grunderwerbsteuer (IMT) und Stempelsteuer beim Immobilienkauf in Portugal.', country:'Land', propertyValue:'Immobilienwert (€)', isHPP:'Dies wird mein Hauptwohnsitz', isResident:'Ich bin in Portugal steuerlich ansässig', calculate:'Berechnen', imt:'Grunderwerbsteuer (IMT)', stampDuty:'Stempelsteuer', total:'Gesamt', tabCosts:'Kaufnebenkosten', tabYield:'Mietrendite' },
       yieldSim: {
         title:'Mietrendite-Rechner', subtitle:'Geben Sie Ihre eigenen Annahmen ein — dieses Werkzeug berechnet sie lediglich und schätzt niemals eine Rendite für Sie.', modeAL:'Kurzzeitvermietung (Alojamento Local)', modeALD:'Langzeitvermietung',
@@ -165,7 +165,7 @@
 
     it: {
       common: { search:'Cerca', viewAll:'Vedi tutto', save:'Salva', signIn:'Accedi', publish:'Pubblica il tuo portafoglio', close:'Chiudi', backToResults:'← Torna ai risultati' },
-      navigation: { home:'Home', search:'Cerca', property:'Immobile', development:'Nuova costruzione', land:'Terreni e Sviluppo', partner:'Partner', simulator:'Simulatori', estimation:'Stima' },
+      navigation: { home:'Home', search:'Cerca', property:'Immobile', development:'Nuova costruzione', land:'Terreni e Sviluppo', partner:'Partner', simulator:'Simulatori', yield:'Rendimento', estimation:'Stima' },
       simulator: { title:'Simulatore dei Costi di Acquisto', subtitle:'Stima l’imposta di trasferimento (IMT) e l’imposta di bollo per l’acquisto di una casa in Portogallo.', country:'Paese', propertyValue:'Valore dell’immobile (€)', isHPP:'Questa sarà la mia residenza principale', isResident:'Sono residente fiscale in Portogallo', calculate:'Calcola', imt:'Imposta di trasferimento (IMT)', stampDuty:'Imposta di bollo', total:'Totale', tabCosts:'Costi di Acquisto', tabYield:'Rendimento' },
       yieldSim: {
         title:'Simulatore di Rendimento', subtitle:'Inserisci le tue ipotesi — questo strumento esegue i calcoli, senza mai stimare un rendimento al posto tuo.', modeAL:'Breve termine (Alojamento Local)', modeALD:'Locazione a lungo termine', propertyValue:'Valore dell’immobile (€)', renovation:'Costi di ristrutturazione (€)', acquisitionCosts:'Costi di acquisto — IMT + Imposta di bollo (€)', acquisitionCostsNote:'Ottieni questo valore dal', acquisitionCostsLink:'Simulatore dei Costi di Acquisto →', dailyRate:'Tariffa giornaliera (€)', occupancy:'Occupazione (%)', platformFee:'Commissione piattaforma (%)', managementFee:'Commissione di gestione (%)', utilitiesMonthly:'Utenze — mensili (€)', monthlyRent:'Canone mensile (€)', voidMonths:'Mesi sfitti / anno', condoMonthly:'Condominio — mensile (€)', irsRate:'Aliquota IRS sui redditi da locazione (%)', irsRateNote:'L’aliquota ordinaria è del 28% — verifica con un consulente fiscale l’aliquota applicabile alla tua situazione; i contratti di lunga durata possono beneficiare di riduzioni.', hasLoan:'Finanziato con mutuo', loanAmount:'Importo del mutuo (€)', loanRate:'Tasso del mutuo (%)', loanYears:'Durata del mutuo (anni)', calculate:'Calcola', grossYield:'Rendimento lordo', netYield:'Rendimento netto', cashFlow:'Flusso di cassa annuo', cashOnCash:'Rendimento cash-on-cash', payback:'Periodo di recupero', years:'anni', irrNoConverge:'— (ipotesi troppo estreme per il calcolo)', disclaimer:'Stima basata esclusivamente sui valori inseriti — Z Find non calcola né garantisce la redditività. Verifica l’aliquota IRS applicabile e i costi di acquisto con un commercialista o consulente prima di decidere.'
