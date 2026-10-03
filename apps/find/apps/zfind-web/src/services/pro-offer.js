@@ -22,7 +22,7 @@
   const PRICES = Object.freeze({
     essentiel: 99, pro: 199, networkDiscountPct: 20, networkFrom: 3,
     featuredMarketWeek: 49, featuredSearchWeek: 29, developmentMonth: 149, sellerLead: 29,
-    founderMonth: 129, founderFreeMonths: 3, founderPriceMonths: 12,
+    founderMonth: 99, founderWave2Month: 129, founderFreeMonths: 3, founderPriceMonths: 12,
     founderSeatsPerCountry: 50, founderDevelopers: 10, founderMinLeads: 5, founderExtensionMonths: 3
   });
 
@@ -63,8 +63,9 @@
       founder: p => [
         `${p.founderFreeMonths} mois gratuits dès votre inscription : l’offre Pro complète, sans carte bancaire ni engagement.`,
         `Garantie : moins de ${p.founderMinLeads} contacts reçus via Z Find pendant ces ${p.founderFreeMonths} mois ? La gratuité est renouvelée pour ${p.founderExtensionMonths} mois de plus, une fois.`,
-        `Ensuite, l’offre Pro à ${p.founderMonth} € HT par mois au lieu de ${p.pro} €, garantis ${p.founderPriceMonths} mois, toujours sans engagement.`,
-        `Places limitées : ${p.founderSeatsPerCountry} agences par pays et ${p.founderDevelopers} promoteurs, dont les programmes neufs sont gratuits pendant la même période.`,
+        `1re vague — les ${p.founderSeatsPerCountry} premières agences de chaque pays : ensuite, l’offre Pro au prix de l’Essentiel, ${p.founderMonth} € HT par mois au lieu de ${p.pro} €, garantis ${p.founderPriceMonths} mois.`,
+        `2e vague — les agences suivantes : l’offre Pro à ${p.founderWave2Month} € HT par mois au lieu de ${p.pro} €, garantis ${p.founderPriceMonths} mois.`,
+        `Toujours sans engagement. ${p.founderDevelopers} promoteurs fondateurs : programmes neufs gratuits pendant la période gratuite.`,
         `« À la une » offert pendant la période gratuite, en rotation entre les fondateurs.`
       ],
       founderAsk: 'En contrepartie : vous publiez tout votre portefeuille, vous répondez aux demandes sous 24 heures et vous nous autorisez à citer votre agence comme référence.',
@@ -107,8 +108,9 @@
       founder: p => [
         `${p.founderFreeMonths} months free from sign-up: the full Pro plan, no card and no commitment.`,
         `Guarantee: fewer than ${p.founderMinLeads} enquiries through Z Find during those ${p.founderFreeMonths} months? The free period is renewed for ${p.founderExtensionMonths} more months, once.`,
-        `Then the Pro plan at €${p.founderMonth} excl. VAT a month instead of €${p.pro}, guaranteed for ${p.founderPriceMonths} months, still with no minimum term.`,
-        `Limited places: ${p.founderSeatsPerCountry} agencies per country and ${p.founderDevelopers} developers, whose new developments are free for the same period.`,
+        `First wave — the first ${p.founderSeatsPerCountry} agencies in each country: then the Pro plan at the Essentiel price, €${p.founderMonth} excl. VAT a month instead of €${p.pro}, guaranteed for ${p.founderPriceMonths} months.`,
+        `Second wave — the following agencies: the Pro plan at €${p.founderWave2Month} excl. VAT a month instead of €${p.pro}, guaranteed for ${p.founderPriceMonths} months.`,
+        `Always with no minimum term. ${p.founderDevelopers} founding developers: new developments free during the free period.`,
         '"Featured" slots free during the free period, rotating among founders.'
       ],
       founderAsk: 'In return: you publish your whole portfolio, answer enquiries within 24 hours and let us name your agency as a reference.',
