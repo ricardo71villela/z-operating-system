@@ -1,0 +1,75 @@
+name: Z Find — ingestão das agências (FR/BE/LU)
+
+# Base de prospeção das agências imobiliárias e mandatários de França,
+# Bélgica e Luxemburgo (tabela zfind_agencias no Supabase ZOS).
+# Todas as segundas-feiras às 03:00 UTC, ou à mão no separador Actions.
+# Num pull request que mexa no pipeline, só corre os testes.
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      steps:
+        description: "Passos (all, fr, be, osm, websites)"
+        required: false
+        default: "all"
+      fr_dept:
+        description: "Só este departamento francês (ex. 74) — vazio = todos"
+        required: false
+        default: ""
+  pull_request:
+    paths:
+      - "apps/find/ingest/agencias/**"
+      - "infrastructure/supabase/migrations/*agencias*"
+      - ".github/workflows/zfind-agencias-ingest.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zfind-agencias-ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    defaults:
+      run:
+        working-directory: apps/find/ingest/agencias
+    env:
+      ZFIND_SUPABASE_SERVICE_KEY: ${{ secrets.ZFIND_SUPABASE_SERVICE_KEY }}
+      KBO_ZIP_URL: ${{ secrets.KBO_ZIP_URL }}
+      STEPS: ${{ github.event.inputs.steps || 'all' }}
+      FR_DEPT: ${{ github.event.inputs.fr_dept || '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: Testes
+        id: tests
+        run: python tests/test_agencias.py
+
+      - name: França — SIRENE (68.31Z)
+        if: ${{ !cancelled() && steps.tests.outcome == 'success' && github.event_name != 'pull_request' && (env.STEPS == 'all' || contains(env.STEPS, 'fr')) }}
+        run: |
+          if [ -n "$FR_DEPT" ]; then python src/fetch_fr_sirene.py --dept "$FR_DEPT"; else python src/fetch_fr_sirene.py; fi
+
+      - name: Bélgica — BCE / KBO (68.311)
+        if: ${{ !cancelled() && steps.tests.outcome == 'success' && github.event_name != 'pull_request' && (env.STEPS == 'all' || contains(env.STEPS, 'be')) }}
+        run: python src/fetch_be_kbo.py
+
+      - name: OpenStreetMap — Luxemburgo + contactos FR/BE
+        if: ${{ !cancelled() && steps.tests.outcome == 'success' && github.event_name != 'pull_request' && (env.STEPS == 'all' || contains(env.STEPS, 'osm')) }}
+        run: python src/fetch_osm.py
+
+      - name: Sites das agências — e-mails e telefones
+        if: ${{ !cancelled() && steps.tests.outcome == 'success' && github.event_name != 'pull_request' && (env.STEPS == 'all' || contains(env.STEPS, 'websites')) }}
+        run: python src/enrich_websites.py --limit 4000
