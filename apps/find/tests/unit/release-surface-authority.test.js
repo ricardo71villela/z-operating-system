@@ -29,6 +29,7 @@ function verifyPrivateSurface(name, root, ownPath) {
   const config = readJson(path.join(root, 'vercel.json'));
   assert.equal(config.$schema, 'https://openapi.vercel.sh/vercel.json', `${name}: Vercel schema missing`);
   assert.match(config.ignoreCommand || '', /git cat-file -e/, `${name}: missing shallow-clone guard`);
+  assert.ok((config.ignoreCommand || '').length <= 256, `${name}: ignoreCommand longer than Vercel's 256-character limit`);
   assert.match(config.ignoreCommand || '', new RegExp(ownPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), `${name}: own source path missing from ignore contract`);
   assert.match(config.ignoreCommand || '', /apps\/find\/apps\/zfind-web\/src\/\*\*/, `${name}: shared Web source missing from ignore contract`);
   assert.equal(config.installCommand, 'cd ../../../.. && npm ci --workspace=apps/find', `${name}: monorepo install authority mismatch`);
