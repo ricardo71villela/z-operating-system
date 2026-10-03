@@ -129,7 +129,7 @@ async function shot(page, name) {
     await page.evaluate(() => { location.hash = '#/fr/pro'; });
     await page.waitForSelector('#pro-root .zpro', { timeout: 10000 });
     const pro = await page.textContent('#pro-root');
-    check('professionals page: offers, rules and prices on request', pro.includes('Mise en avant « À la une »') && pro.includes('Aucun particulier') && pro.includes('Tarifs de lancement sur demande'));
+    check('professionals page: offers, rules, public price list and Founder offer', pro.includes('Mise en avant « À la une »') && pro.includes('Aucun particulier') && pro.includes('199 € HT / mois') && pro.includes('Fondateur'));
     await shot(page, 'pro.png');
 
     // Estimation: the value alert box is offered to owners only.

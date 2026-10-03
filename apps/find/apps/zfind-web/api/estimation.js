@@ -116,7 +116,8 @@ const T = {
     sales: 'ventes', adverts: 'annonces', period: 'période',
     market: 'Voir les prix et les communes de ce marché',
     disclaimer: 'Estimation statistique indicative, fondée sur des données publiques agrégées ; elle ne remplace pas l’avis de valeur d’un professionnel qui visite le bien.',
-    privacy: 'Vous recevez ce message parce que vous l’avez demandé sur zfind.online. Pour accéder à vos données, les rectifier ou les supprimer : hello@zfind.online.'
+    privacy: 'Vous recevez ce message parce que vous l’avez demandé sur zfind.online. Pour accéder à vos données, les rectifier ou les supprimer : hello@zfind.online.',
+    agencyShared: 'Vous avez accepté d’être mis en relation avec une agence partenaire de votre commune : vos coordonnées lui seront transmises, à elle seule. Pour retirer votre accord : hello@zfind.online.'
   },
   en: {
     subject: (place) => `Your Z Find estimate — ${place}`,
@@ -132,7 +133,8 @@ const T = {
     sales: 'sales', adverts: 'adverts', period: 'period',
     market: 'See prices and municipalities for this market',
     disclaimer: 'Indicative statistical estimate based on aggregated public data; it does not replace a valuation by a professional who visits the property.',
-    privacy: 'You receive this message because you requested it on zfind.online. To access, correct or delete your data: hello@zfind.online.'
+    privacy: 'You receive this message because you requested it on zfind.online. To access, correct or delete your data: hello@zfind.online.',
+    agencyShared: 'You agreed to be put in touch with a partner agency in your municipality: your contact details will be passed on to that agency only. To withdraw your agreement: hello@zfind.online.'
   }
 };
 
@@ -180,9 +182,10 @@ function reportEmail(lang, input, result, place, contact, site) {
   <p style="margin:0 0 4px;font-weight:bold;">${esc(t.adjustments)}</p><p style="margin:0 0 18px;color:#444;">${esc(adj)}</p>
   <p><a href="${esc(marketUrl)}" style="color:#8B6B3A;">${esc(t.market)}</a></p>
   <p style="color:#888;font-size:12px;line-height:1.5;margin-top:24px;">${esc(t.disclaimer)}</p>
+  ${contact.agencyConsent ? `<p style="color:#888;font-size:12px;line-height:1.5;">${esc(t.agencyShared)}</p>` : ''}
   <p style="color:#888;font-size:12px;line-height:1.5;">${esc(t.privacy)}</p></body></html>`;
   const text = [t.hello(contact.name), '', t.intro, '', `${t.property}: ${propertyLine(t, input, place)}`, ...rows.map(([k, v]) => `${k}: ${v}`),
-    `${t.basis}: ${basis}`, `${t.adjustments}: ${adj}`, '', `${t.market}: ${marketUrl}`, '', t.disclaimer, t.privacy].join('\n');
+    `${t.basis}: ${basis}`, `${t.adjustments}: ${adj}`, '', `${t.market}: ${marketUrl}`, '', t.disclaimer, ...(contact.agencyConsent ? [t.agencyShared] : []), t.privacy].join('\n');
   return { subject: oneLine(t.subject(place), 150), html, text };
 }
 
@@ -221,7 +224,8 @@ function leadEmail(lang, mode, input, result, place, contact) {
     ['Preço pedido', result.buyer ? `${money(result.buyer.askingPrice, 'fr')} (${pct(result.buyer.deltaPct, 'fr')} vs central)` : '—'],
     ['Base', `${result.basis.level} ${result.basis.name}, n=${result.basis.n || '—'}, ${result.basis.period}`],
     ['Detalhes (afinar)', refineSummaryPt(input.refine)],
-    ['Consentimento', `sim, ${new Date().toISOString()}`]
+    ['Consentimento (relatório)', `sim, ${new Date().toISOString()}`],
+    ['Partilha com agência parceira', contact.agencyConsent ? `AUTORIZADA pelo proprietário (${new Date().toISOString()}) — a uma só agência da comuna` : 'NÃO autorizada — não transmitir a nenhuma agência']
   ];
   const html = `<!doctype html><html><body style="font-family:Arial,Helvetica,sans-serif;color:#1d1d1b;">
   <h2 style="margin:0 0 12px;">Novo lead — estimativa Z Find</h2>
@@ -263,7 +267,9 @@ async function handler(req, res) {
   const c = body.contact || {};
   const contact = {
     name: oneLine(c.name, 120), email: oneLine(c.email, 200), phone: oneLine(c.phone, 40),
-    project: PROJECTS.has(c.project) ? c.project : null, alerts: c.alerts === true
+    project: PROJECTS.has(c.project) ? c.project : null, alerts: c.alerts === true,
+    // Separate, optional consent: only owners who ticked it may be passed on to ONE partner agency.
+    agencyConsent: mode === 'owner' && c.agencyConsent === true
   };
   if (c.consent !== true) return send(res, 400, { ok: false, error: 'consent' });
   if (!EMAIL_RE.test(contact.email)) return send(res, 400, { ok: false, error: 'email' });

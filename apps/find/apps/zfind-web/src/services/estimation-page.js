@@ -95,7 +95,8 @@
       alerts: 'J’accepte de recevoir par e-mail la nouvelle estimation de mon bien à chaque mise à jour officielle des prix. Désinscription en un clic dans chaque e-mail.',
       alertPending: 'Pour activer l’alerte de valeur, cliquez sur le lien de confirmation reçu par e-mail.',
       consent: 'J’accepte que Z Find utilise ces informations pour m’envoyer ce rapport et me recontacter au sujet de mon projet immobilier.',
-      rgpd: 'Données utilisées uniquement pour ce rapport et le suivi de votre demande ; elles ne sont ni vendues ni cédées. Pour y accéder, les rectifier ou les supprimer :',
+      agencyConsent: 'Facultatif : j’accepte d’être mis en relation avec une agence immobilière partenaire de Z Find dans ma commune, qui pourra me contacter au sujet de mon projet de vente.',
+      rgpd: 'Données utilisées pour ce rapport et le suivi de votre demande. Elles ne sont transmises qu’à une seule agence partenaire de votre commune, et seulement si vous avez coché la case de mise en relation ; jamais à d’autres tiers. Pour y accéder, les rectifier, retirer votre accord ou les supprimer :',
       send: 'Envoyer le rapport', sending: 'Envoi…',
       sent: e => `C’est envoyé. Vérifiez votre boîte de réception (${e}).`,
       sendErrors: { email: 'Indiquez une adresse e-mail valide.', consent: 'Cochez la case de consentement pour recevoir le rapport.', phone: 'Numéro de téléphone invalide.', generic: 'L’envoi n’a pas abouti. Réessayez dans un instant.' }
@@ -169,7 +170,8 @@
       alerts: 'I agree to receive by e-mail the new estimate of my property after each official price update. One-click unsubscribe in every e-mail.',
       alertPending: 'To activate the value alert, click the confirmation link in the e-mail you received.',
       consent: 'I agree that Z Find uses this information to send me this report and contact me about my property plans.',
-      rgpd: 'Data used only for this report and to follow up on your request; never sold or passed on. To access, correct or delete it:',
+      agencyConsent: 'Optional: I agree to be put in touch with a Z Find partner estate agency in my municipality, which may contact me about selling my property.',
+      rgpd: 'Data used for this report and to follow up on your request. It is passed on only to a single partner agency in your municipality, and only if you ticked the box to be put in touch; never to any other third party. To access, correct, withdraw your agreement or delete it:',
       send: 'Send the report', sending: 'Sending…',
       sent: e => `Sent. Check your inbox (${e}).`,
       sendErrors: { email: 'Enter a valid e-mail address.', consent: 'Tick the consent box to receive the report.', phone: 'Invalid phone number.', generic: 'Sending failed. Please try again shortly.' }
@@ -391,6 +393,7 @@
         </div>
         <label class="est-hp" aria-hidden="true">Website <input type="text" tabindex="-1" autocomplete="off" data-est-hp></label>
         ${mode === 'buyer' ? '' : `<label class="est-check"><input type="checkbox" data-est-alerts> ${c.alerts}</label>`}
+        ${mode === 'buyer' ? '' : `<label class="est-check est-agency-consent"><input type="checkbox" data-est-agency> ${c.agencyConsent}</label>`}
         <label class="est-check est-consent"><input type="checkbox" data-est-consent> ${c.consent}</label>
         <p class="est-rgpd">${c.rgpd} <a href="mailto:${DATA_CONTACT}">${DATA_CONTACT}</a></p>
         <p class="est-error" data-est-send-error role="alert" hidden></p>
@@ -582,6 +585,7 @@
                 email, phone,
                 project: report.querySelector('[data-est-project]').value,
                 alerts: Boolean(report.querySelector('[data-est-alerts]') && report.querySelector('[data-est-alerts]').checked),
+                agencyConsent: Boolean(report.querySelector('[data-est-agency]') && report.querySelector('[data-est-agency]').checked),
                 consent: true
               },
               website: report.querySelector('[data-est-hp]').value
