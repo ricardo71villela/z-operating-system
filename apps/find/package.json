@@ -21,6 +21,7 @@
     "build:admin": "node -r dotenv/config apps/zfind-admin/scripts/build.js",
     "build:partner": "node -r dotenv/config apps/zfind-partner/scripts/build.js",
     "test:sprint-1-7": "node tests/browser/zfind-admin/sprint-1-7-verification.js",
+    "test:admin-operations": "node tests/browser/zfind-admin/operations-agencias-verification.js",
     "test:sprint-1-8": "node tests/browser/zfind-web/sprint-1-8-verification.js",
     "test:sprint-1-9": "node tests/browser/zfind-web/sprint-1-9-verification.js",
     "test:sprint-1-10": "node tests/browser/zfind-web/sprint-1-10-verification.js",
