@@ -96,6 +96,7 @@ function build() {
     + readWeb('services/field-forms.js') + '\n'
     + readWeb('services/pro-offer.js') + '\n' // public price list: Founder seats
     + readAdmin('prospection.js') + '\n'
+    + readAdmin('import.js') + '\n' // « Nous chargeons pour vous »: CSV / Excel import
     + appJs
     + '\n</script>\n</body>\n</html>\n';
 

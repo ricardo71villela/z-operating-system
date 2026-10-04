@@ -95,6 +95,7 @@ function render() {
     leads: adminState.id ? renderLeadDetail : renderLeadsList,
     agencias: adminState.id ? renderAgenciaDetail : renderAgenciasList,
     inscricoes: renderSignupsList,
+    importar: renderImport,
   };
   (routes[adminState.view] || renderDashboard)();
 }
@@ -110,6 +111,7 @@ const OPS_LINKS = [
 const OPS_ROUTINE = [
   ['Todos os dias', [
     'Inscrições novas: verificar o cartão profissional e o SIRET, depois Validar ou Recusar.',
+    'Ficheiro de anúncios enviado por uma agência: Importar anúncios (ficam em rascunho), depois rever.',
     'Responder aos pedidos de estimação de proprietários (e-mail «Novo lead») no próprio dia.',
     'Ver os Leads novos (pedidos de contacto sobre anúncios) e confirmar que a agência respondeu.',
     'Moderar as avaliações pendentes (Publicar / Rejeitar no e-mail recebido) em menos de 48 h.',
@@ -260,6 +262,153 @@ async function reviewSignup(id, decision) {
   if (res.error) { showStatus('error', 'Não foi possível guardar a decisão.'); return; }
   showStatus('success', decision === 'verified' ? 'Inscrição validada.' : 'Inscrição recusada.');
   loadSignupsList();
+}
+
+/* ---------------- Importar anúncios (« Nous chargeons pour vous ») ---------------- */
+/* The agency sends the export of its software (CSV / Excel); one mapping,
+   then every row becomes a property + DRAFT listing for that agency
+   (services/listingImport). Publication stays the usual review. */
+const importState = { table: null, map: {}, rows: [], fileName: '', running: false };
+const IMPORT_STATUS = { ok: ['Criado (rascunho)', 'active'], skipped: ['Não importado', 'draft'], duplicate: ['Já existia', 'inactive'], error: ['Erro', 'inactive'] };
+
+async function renderImport() {
+  const main = document.getElementById('main');
+  importState.table = null; importState.rows = []; importState.map = {};
+  main.insertAdjacentHTML('beforeend', `
+    <div class="page-title">Importar anúncios</div>
+    <p class="muted" style="margin:-6px 0 14px;max-width:880px">« Nous chargeons pour vous » : a agência envia o export do seu software (CSV ou Excel: Hektor, Apimo, Netty, AC3, Ubiflow…) ou a sua própria folha. Cada linha passa a um bem com anúncio <strong>em rascunho</strong> dessa agência. Nada é publicado: cada anúncio passa pela revisão habitual. As fotografias são acrescentadas pela agência no painel. Linhas cuja referência já foi importada para a agência são ignoradas, por isso pode voltar a importar o mesmo ficheiro atualizado.</p>
+    <div class="toolbar wrap" id="imp-form">
+      <select id="imp-partner" aria-label="Agência"><option value="">A carregar as agências…</option></select>
+      <select id="imp-country" aria-label="País"><option value="FR">França</option><option value="BE">Bélgica</option><option value="LU">Luxemburgo</option></select>
+      <input type="file" id="imp-file" accept=".csv,.txt,.xlsx,.xls,.ods" aria-label="Ficheiro">
+      <button class="btn btn-primary" id="imp-read" onclick="importReadFile()">Ler ficheiro</button>
+    </div>
+    <div id="imp-mapping"></div>
+    <div id="imp-preview"></div>
+    <div id="imp-results"></div>`);
+  const res = await window.ZFindServices.admin.listPartners();
+  const sel = document.getElementById('imp-partner');
+  if (!sel) return;
+  const partners = (res.data || []).slice().sort((a, b) => (a.status === 'active' ? 0 : 1) - (b.status === 'active' ? 0 : 1) || String(a.name).localeCompare(String(b.name)));
+  sel.innerHTML = '<option value="">— Escolher a agência —</option>' + partners.map(p =>
+    `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}${p.status && p.status !== 'active' ? ' (' + escapeHtml(p.status) + ')' : ''}</option>`).join('');
+  sel.onchange = renderImportPreview;
+}
+
+async function importReadFile() {
+  const input = document.getElementById('imp-file');
+  const file = input && input.files && input.files[0];
+  if (!file) { showStatus('error', 'Escolha primeiro o ficheiro da agência.'); return; }
+  const svc = window.ZFindServices.listingImport;
+  let table;
+  try { table = await svc.readFile(file); }
+  catch (e) { showStatus('error', 'Não foi possível ler o ficheiro (CSV, XLSX, XLS ou ODS).'); return; }
+  if (!table.headers.length || !table.records.length) { showStatus('error', 'O ficheiro não tem linhas de anúncios.'); return; }
+  importState.table = table;
+  importState.fileName = file.name;
+  importState.map = svc.autoMap(table.headers);
+  document.getElementById('imp-results').innerHTML = '';
+  renderImportMapping();
+  renderImportPreview();
+}
+
+function importExample(header) {
+  if (!header || !importState.table) return '';
+  const r = importState.table.records.find(x => String(x[header] || '').trim());
+  return r ? String(r[header]).slice(0, 80) : '';
+}
+
+function renderImportMapping() {
+  const { table, map } = importState;
+  const svc = window.ZFindServices.listingImport;
+  const options = sel => '<option value="">— não usar —</option>' + table.headers.map(h => `<option value="${escapeHtml(h)}"${h === sel ? ' selected' : ''}>${escapeHtml(h)}</option>`).join('');
+  document.getElementById('imp-mapping').innerHTML = `
+    <div class="detail-panel" style="margin-bottom:16px">
+      <h4>1. Colunas do ficheiro «${escapeHtml(importState.fileName)}» (${fmtN(table.records.length)} linhas)</h4>
+      <p class="muted">As colunas reconhecidas já estão escolhidas. Corrija o que faltar; o exemplo é o primeiro valor da coluna.</p>
+      <table class="compact" id="imp-map-table"><thead><tr><th>Campo Z Find</th><th>Coluna do ficheiro</th><th>Exemplo</th></tr></thead><tbody>
+      ${svc.FIELDS.map(([key, label]) => `<tr><td>${escapeHtml(label)}</td><td><select data-field="${key}" onchange="importSetMap('${key}', this.value)">${options(map[key])}</select></td><td class="muted" id="imp-ex-${key}">${escapeHtml(importExample(map[key]))}</td></tr>`).join('')}
+      </tbody></table>
+    </div>`;
+}
+
+function importSetMap(key, header) {
+  if (header) importState.map[key] = header; else delete importState.map[key];
+  const ex = document.getElementById('imp-ex-' + key);
+  if (ex) ex.textContent = importExample(header);
+  renderImportPreview();
+}
+
+function importPriceLabel(row) {
+  if (!(row.price > 0)) return '—';
+  return fmtN(row.price) + ' €' + (row.transaction === 'rent' ? ' /mês' : '');
+}
+
+function renderImportPreview() {
+  const host = document.getElementById('imp-preview');
+  if (!host || !importState.table) return;
+  const svc = window.ZFindServices.listingImport;
+  const rows = importState.table.records.map(r => svc.normalizeRow(r, importState.map));
+  importState.rows = rows;
+  const ready = rows.filter(r => !r.errors.length).length;
+  const partnerSel = document.getElementById('imp-partner');
+  const partnerOk = !!(partnerSel && partnerSel.value);
+  const SUB = { apartment: 'Apartamento', villa: 'Moradia', land: 'Terreno', office: 'Escritório', retail: 'Comércio', industrial_logistics: 'Armazém / atividade', hospitality: 'Hotelaria' };
+  const shown = rows.slice(0, 25);
+  host.innerHTML = `
+    <div class="detail-panel" style="margin-bottom:16px">
+      <h4>2. Pré-visualização</h4>
+      <p id="imp-summary"><strong>${fmtN(ready)}</strong> de ${fmtN(rows.length)} linhas prontas a importar${rows.length - ready ? ` · <span style="color:#a33">${fmtN(rows.length - ready)} não serão importadas</span>` : ''}${rows.length > shown.length ? ` · mostram-se as primeiras ${shown.length}` : ''}.</p>
+      <table class="compact" id="imp-preview-table"><thead><tr><th>#</th><th>Referência</th><th>Bem</th><th>Preço</th><th>m²</th><th>Localização</th><th>Título</th><th>Notas</th></tr></thead><tbody>
+      ${shown.map((r, i) => `<tr data-row="${i}"${r.errors.length ? ' style="background:#fdf1f1"' : ''}>
+        <td>${i + 2}</td>
+        <td>${escapeHtml(r.reference || '—')}</td>
+        <td>${escapeHtml(r.subtype ? SUB[r.subtype] || r.subtype : '—')}${r.typology ? ' · ' + escapeHtml(r.typology) : ''}<br><span class="muted">${r.transaction === 'rent' ? 'Arrendamento' : 'Venda'}</span></td>
+        <td>${importPriceLabel(r)}</td>
+        <td>${r.areaSqm != null ? fmtN(r.areaSqm) : '—'}</td>
+        <td>${escapeHtml([r.postcode, r.city].filter(Boolean).join(' ') || '—')}</td>
+        <td>${escapeHtml(r.title || '—')}</td>
+        <td>${r.errors.map(e => `<span style="color:#a33">${escapeHtml(e)}</span>`).join('<br>')}${r.errors.length && r.warnings.length ? '<br>' : ''}<span class="muted">${r.warnings.map(escapeHtml).join('<br>')}</span></td>
+      </tr>`).join('')}
+      </tbody></table>
+      <p class="muted" style="margin-top:8px">A coluna # é a linha no ficheiro (a linha 1 são os títulos).</p>
+      <div class="toolbar" style="margin-top:12px">
+        <button class="btn btn-primary" id="imp-run" onclick="importRun()"${!ready || !partnerOk || importState.running ? ' disabled' : ''}>Importar ${fmtN(ready)} anúncios como rascunho</button>
+        ${partnerOk ? '' : '<span class="muted">Escolha a agência para importar.</span>'}
+      </div>
+    </div>`;
+}
+
+async function importRun() {
+  const partnerSel = document.getElementById('imp-partner');
+  const partnerId = partnerSel.value;
+  const partnerName = partnerSel.options[partnerSel.selectedIndex].text;
+  const country = document.getElementById('imp-country').value;
+  const rows = importState.rows;
+  const ready = rows.filter(r => !r.errors.length).length;
+  if (!partnerId || !ready || importState.running) return;
+  const ok = await askConfirm(`Importar ${ready} anúncios?`, `Para ${partnerName} (${country}). Ficam todos em rascunho; nada é publicado.`, 'Importar');
+  if (!ok) return;
+  importState.running = true;
+  const btn = document.getElementById('imp-run');
+  if (btn) btn.disabled = true;
+  const out = document.getElementById('imp-results');
+  out.innerHTML = `<div class="detail-panel"><h4>3. Resultado</h4><p id="imp-progress">A importar… 0 / ${fmtN(rows.length)}</p><table class="compact" id="imp-results-table"><thead><tr><th>#</th><th>Referência</th><th>Estado</th><th>Detalhe</th><th></th></tr></thead><tbody></tbody></table></div>`;
+  const tbody = out.querySelector('tbody');
+  const counts = { ok: 0, skipped: 0, duplicate: 0, error: 0 };
+  const results = await window.ZFindServices.listingImport.importAll(rows, partnerId, country, window.ZFindServices.admin, (i, r) => {
+    counts[r.status] = (counts[r.status] || 0) + 1;
+    const [label, tag] = IMPORT_STATUS[r.status] || [r.status, 'draft'];
+    tbody.insertAdjacentHTML('beforeend', `<tr data-status="${r.status}"><td>${i + 2}</td><td>${escapeHtml(rows[i].reference || '—')}</td><td><span class="tag tag-${tag}">${escapeHtml(label)}</span></td><td>${escapeHtml(r.message || '')}</td><td>${r.propertyId ? `<a href="#" onclick="navigateAdmin('properties','${escapeHtml(r.propertyId)}');return false">Abrir</a>` : ''}</td></tr>`);
+    const p = document.getElementById('imp-progress');
+    if (p) p.textContent = `A importar… ${i + 1} / ${rows.length}`;
+  });
+  importState.running = false;
+  const p = document.getElementById('imp-progress');
+  if (p) p.innerHTML = `<strong>${fmtN(counts.ok)} criados em rascunho</strong> · ${fmtN(counts.duplicate)} já existiam · ${fmtN(counts.skipped)} não importados · ${fmtN(counts.error)} com erro. Próximo passo: a agência acrescenta as fotografias no painel; depois revemos e publicamos cada anúncio em Properties.`;
+  showStatus(counts.error ? 'error' : 'success', `${counts.ok} anúncios criados em rascunho${counts.error ? `, ${counts.error} com erro` : ''}.`);
+  renderImportPreview();
+  return results;
 }
 
 /* ---------------- Partners ---------------- */
