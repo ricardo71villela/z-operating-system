@@ -35,6 +35,7 @@ const SIGNUPS = [
   for (const t of ['properties', 'developments', 'partners', 'leads']) await page.route(`**/rest/v1/${t}**`, r => r.fulfill(json([])));
   await page.route('**/rest/v1/rpc/zfind_admin_operations_overview**', r => r.fulfill(json(OVERVIEW)));
   await page.route('**/rest/v1/zfind_partner_signups**', r => { seen.lists.push(decodeURIComponent(r.request().url())); return r.fulfill(json(SIGNUPS)); });
+  await page.route('**/rest/v1/rpc/zfind_admin_signup_lead_counts**', r => r.fulfill(json([{ signup_id: 's1', leads_total: 7, leads_free_period: 2 }])));
   await page.route('**/rest/v1/rpc/zfind_admin_review_signup**', r => { seen.reviews.push(r.request().postDataJSON()); return r.fulfill(json({ id: 's1', status: 'verified' })); });
 
   await page.goto(FILE_URL);
@@ -50,6 +51,7 @@ const SIGNUPS = [
   check('list loads pending sign-ups by default', seen.lists[0].includes('status=eq.pending'));
   const t = await page.textContent('#sg-tbody');
   check('row shows who, registry, card, offer and status', t.includes('LAC IMMO') && t.includes('12345678200010') && t.includes('CPI 0605') && t.includes('Fundador · 1.ª vaga') && t.includes('Por verificar') && t.includes('Promotor fundador'));
+  check('leads column: enquiries during the 3 free months, total, end of free period', t.includes('2 em 3 meses') && t.includes('7 no total') && t.includes('grátis até'));
   check('SIRET links to the public company directory', !!(await page.$('a[href="https://annuaire-entreprises.data.gouv.fr/etablissement/12345678200010"]')));
   if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'admin-inscricoes.png'), fullPage: true });
   await page.fill('#sg-note-s1', 'Carte vérifiée CCI');
