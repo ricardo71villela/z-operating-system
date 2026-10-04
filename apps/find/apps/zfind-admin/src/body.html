@@ -10,7 +10,8 @@
   <div id="sidebar">
     <h2>Z Find Admin</h2>
     <a data-view="dashboard" onclick="navigateAdmin('dashboard')">Dashboard</a>
-    <a data-view="properties" onclick="navigateAdmin('properties')">Properties</a>
+    <a data-view="properties" onclick="adminState.propFilter.status=''; navigateAdmin('properties')">Bens e anúncios</a>
+    <a class="sub" onclick="openReviewQueue()">↳ Por rever</a>
     <a data-view="developments" onclick="navigateAdmin('developments')">Developments</a>
     <a data-view="partners" onclick="navigateAdmin('partners')">Partners</a>
     <a data-view="leads" onclick="navigateAdmin('leads')">Leads</a>

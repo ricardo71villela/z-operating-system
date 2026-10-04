@@ -109,3 +109,10 @@ tr.row-muted td{opacity:.55;}
 .sg-actions{min-width:190px;}
 .sg-actions input{width:100%;margin-bottom:6px;padding:6px 8px;border:1px solid #ddd;border-radius:4px;font-size:.8rem;}
 .sg-actions .btn{margin:0 4px 4px 0;}
+
+.status-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+.chip{padding:5px 10px;border-radius:14px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:.8rem;}
+.chip.on{background:#111;color:#fff;border-color:#111;}
+.chip.warn:not(.on){border-color:#c58b00;color:#8a6100;}
+#sidebar a.sub{padding-left:30px;font-size:.85rem;opacity:.85;}
+.tag-review{background:#fff4d6;color:#8a6100;}
