@@ -34,6 +34,10 @@
       "destination": "/api/lead-notify"
     },
     {
+      "source": "/api/media-import",
+      "destination": "/api/media-import"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
@@ -53,6 +57,9 @@
     },
     "api/lead-notify.js": {
       "maxDuration": 30
+    },
+    "api/media-import.js": {
+      "maxDuration": 60
     },
     "api/cron-daily.js": {
       "includeFiles": "{public/market-data/**,public/geo/search/**,src/services/estimation.js,src/services/search-filters.js,src/services/listing-quality.js,src/services/place-search.js}",

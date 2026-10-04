@@ -91,7 +91,8 @@ async function uploadPartnerLogo(partnerId, file) {
 
 async function listDevelopments(searchText) {
   const client = getSupabaseClient();
-  let q = client.from('developments').select('id, name, zone_lite_id, promoter_partner_id, zones_lite(name,city), partners(name)').order('name');
+  // Representation + listing status: the Admin's review queue and filters for programmes.
+  let q = client.from('developments').select('id, name, zone_lite_id, promoter_partner_id, created_at, zones_lite(name,city), partners(name), representations(id, status, partner_id, listings(id, status, price_current, currency_iso, price_is_from, transaction_type, listing_content(locale,title)))').order('name');
   if (searchText) q = q.ilike('name', `%${searchText}%`);
   return safeQuery(() => q, 'admin.listDevelopments');
 }

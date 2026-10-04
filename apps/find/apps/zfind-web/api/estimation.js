@@ -15,7 +15,9 @@
      ZFIND_LEAD_NOTIFY_EMAIL  address that receives the leads
      SITE_BASE_URL            public site URL, e.g. https://zfind.online
      ZFIND_SUPABASE_SERVICE_KEY  optional: value alerts (see api/alerts.js)
-   The lead itself is not stored: it exists only in the notification e-mail.
+   The request is also kept in zfind_estimation_requests (when the server key
+   is set) so the Admin can follow it up and, with the owner's separate
+   consent, pass it to one partner agency.
    When the owner asks for value alerts, a pending subscription is saved
    (double opt-in: a confirmation e-mail is sent, nothing else until then).
    ============================================================ */
@@ -189,52 +191,54 @@ function reportEmail(lang, input, result, place, contact, site) {
   return { subject: oneLine(t.subject(place), 150), html, text };
 }
 
-const PROJECT_PT = { sell_3m: 'Vender em 3 meses', sell_12m: 'Vender no próximo ano', later: 'Vender mais tarde', curious: 'Curiosidade', buy_3m: 'Comprar em 3 meses', buy_12m: 'Comprar no próximo ano', looking: 'A informar-se' };
+const PROJECT_FR = { sell_3m: 'Vendre d’ici 3 mois', sell_12m: 'Vendre dans l’année', later: 'Vendre plus tard', curious: 'Simple curiosité', buy_3m: 'Acheter d’ici 3 mois', buy_12m: 'Acheter dans l’année', looking: 'Se renseigne' };
 
-const REFINE_PT = {
-  location: { label: 'localização', v: { less_sought: 'excêntrica/pouco procurada', standard: 'corrente', sought: 'residencial procurada', prime: 'muito procurada' } },
-  view: { label: 'vista', v: { none: 'sem vista', open: 'desafogada', mountain: 'montanha', lake_partial: 'lago parcial', lake: 'lago panorâmica' } },
-  standing: { label: 'standing', v: { modest: 'modesto', standard: 'corrente', high: 'alto', prestige: 'prestígio' } },
-  era: { label: 'construção', v: { pre1950: 'antes de 1950', '1950_1980': '1950-1980', '1980_2010': '1980-2010', post2010: 'depois de 2010' } },
-  light: { label: 'luz', v: { dark: 'sombrio', standard: 'normal', bright: 'muito luminoso' } },
-  parking: { label: 'estacionamento', v: { none: 'nenhum', outdoor: 'lugar exterior', garage: 'garagem/box', double_garage: 'garagem dupla' } }
+/* « Affiner » answers, in French, for the Z Find notification and the Admin. */
+const REFINE_FR = {
+  location: { label: 'emplacement', v: { less_sought: 'excentré / peu recherché', standard: 'courant', sought: 'résidentiel recherché', prime: 'très recherché' } },
+  view: { label: 'vue', v: { none: 'sans vue', open: 'dégagée', mountain: 'montagne', lake_partial: 'lac partielle', lake: 'lac panoramique' } },
+  standing: { label: 'standing', v: { modest: 'modeste', standard: 'courant', high: 'haut', prestige: 'prestige' } },
+  era: { label: 'construction', v: { pre1950: 'avant 1950', '1950_1980': '1950-1980', '1980_2010': '1980-2010', post2010: 'après 2010' } },
+  light: { label: 'luminosité', v: { dark: 'sombre', standard: 'normale', bright: 'très lumineux' } },
+  parking: { label: 'stationnement', v: { none: 'aucun', outdoor: 'place extérieure', garage: 'garage / box', double_garage: 'garage double' } }
 };
-function refineSummaryPt(r) {
+function refineSummaryFr(r) {
   const x = r || {};
   const parts = [];
-  Object.keys(REFINE_PT).forEach(k => { if (x[k]) parts.push(`${REFINE_PT[k].label}: ${REFINE_PT[k].v[x[k]] || x[k]}`); });
-  if (x.outdoorArea != null) parts.push(`exterior ${x.outdoorArea} m²`);
-  if (x.landArea != null) parts.push(`terreno ${x.landArea} m²`);
-  if (x.topFloor) parts.push('último andar');
+  Object.keys(REFINE_FR).forEach(k => { if (x[k]) parts.push(`${REFINE_FR[k].label} : ${REFINE_FR[k].v[x[k]] || x[k]}`); });
+  if (x.outdoorArea != null) parts.push(`extérieur ${x.outdoorArea} m²`);
+  if (x.landArea != null) parts.push(`terrain ${x.landArea} m²`);
+  if (x.topFloor) parts.push('dernier étage');
   if (x.cellar) parts.push('cave');
-  if (x.nuisance) parts.push('incómodos');
+  if (x.nuisance) parts.push('nuisances');
   return parts.length ? parts.join(' · ') : '—';
 }
 
 function leadEmail(lang, mode, input, result, place, contact) {
   const t = T.fr;
   const who = contact.name || contact.email;
+  const now = new Date().toISOString();
   const lines = [
-    ['Tipo de lead', mode === 'buyer' ? 'Comprador (verificar um preço)' : 'Proprietário (estimar o bem)'],
-    ['Projeto', PROJECT_PT[contact.project] || '—'],
-    ['Nome', contact.name || '—'], ['E-mail', contact.email], ['Telefone', contact.phone || '—'],
-    ['Alertas de preços', contact.alerts ? 'Sim' : 'Não'], ['Língua', lang],
-    ['Mercado', input.market], ['Bem', propertyLine(t, input, place)],
-    ['Estimativa', `${money(result.low, 'fr')} – ${money(result.high, 'fr')} (central ${money(result.central, 'fr')}, ${money(result.perM2, 'fr')}/m², fiabilidade ${({ high: 'alta', medium: 'média', low: 'limitada' })[result.confidence]})`],
-    ['Preço pedido', result.buyer ? `${money(result.buyer.askingPrice, 'fr')} (${pct(result.buyer.deltaPct, 'fr')} vs central)` : '—'],
+    ['Type de contact', mode === 'buyer' ? 'Acheteur (vérifier un prix)' : 'Propriétaire (estimer son bien)'],
+    ['Projet', PROJECT_FR[contact.project] || '—'],
+    ['Nom', contact.name || '—'], ['E-mail', contact.email], ['Téléphone', contact.phone || '—'],
+    ['Alertes de prix', contact.alerts ? 'Oui' : 'Non'], ['Langue', lang],
+    ['Marché', input.market], ['Bien', propertyLine(t, input, place)],
+    ['Estimation', `${money(result.low, 'fr')} – ${money(result.high, 'fr')} (valeur centrale ${money(result.central, 'fr')}, ${money(result.perM2, 'fr')}/m², fiabilité ${t.conf[result.confidence]})`],
+    ['Prix demandé', result.buyer ? `${money(result.buyer.askingPrice, 'fr')} (${pct(result.buyer.deltaPct, 'fr')} par rapport à la valeur centrale)` : '—'],
     ['Base', `${result.basis.level} ${result.basis.name}, n=${result.basis.n || '—'}, ${result.basis.period}`],
-    ['Detalhes (afinar)', refineSummaryPt(input.refine)],
-    ['Consentimento (relatório)', `sim, ${new Date().toISOString()}`],
-    ['Partilha com agência parceira', contact.agencyConsent ? `AUTORIZADA pelo proprietário (${new Date().toISOString()}) — a uma só agência da comuna` : 'NÃO autorizada — não transmitir a nenhuma agência']
+    ['Précisions (affiner)', refineSummaryFr(input.refine)],
+    ['Consentement (rapport)', `oui, ${now}`],
+    ['Mise en relation avec une agence', contact.agencyConsent ? `AUTORISÉE par le propriétaire (${now}) — à une seule agence de la commune (Admin › Estimations)` : 'NON autorisée — ne transmettre à aucune agence']
   ];
   const html = `<!doctype html><html><body style="font-family:Arial,Helvetica,sans-serif;color:#1d1d1b;">
-  <h2 style="margin:0 0 12px;">Novo lead — estimativa Z Find</h2>
+  <h2 style="margin:0 0 12px;">Nouveau contact — estimation Z Find</h2>
   <table style="border-collapse:collapse;">${lines.map(([k, v]) => `<tr><td style="padding:6px 16px 6px 0;color:#666;vertical-align:top;">${esc(k)}</td><td style="padding:6px 0;"><strong>${esc(v)}</strong></td></tr>`).join('')}</table>
-  <p style="color:#888;font-size:12px;">Responder a este e-mail responde diretamente a ${esc(contact.email)}.</p></body></html>`;
+  <p style="color:#888;font-size:12px;">Répondre à cet e-mail répond directement à ${esc(contact.email)}.</p></body></html>`;
   return {
-    subject: oneLine(`Novo lead ${mode === 'buyer' ? 'comprador' : 'proprietário'} — ${place} (${input.market}) — ${who}`, 180),
+    subject: oneLine(`Nouveau contact ${mode === 'buyer' ? 'acheteur' : 'propriétaire'} — ${place} (${input.market}) — ${who}`, 180),
     html,
-    text: lines.map(([k, v]) => `${k}: ${v}`).join('\n')
+    text: lines.map(([k, v]) => `${k} : ${v}`).join('\n')
   };
 }
 
@@ -292,6 +296,9 @@ async function handler(req, res) {
     return send(res, 502, { ok: false, error: 'send' });
   }
 
+  // Kept for the Admin follow-up (migration 20261004200000); never blocks the visitor.
+  await storeRequest(lang, mode, input, result, place, contact);
+
   // Value alert (owner ticked the box): double opt-in, never blocks the report.
   let alert;
   if (contact.alerts && mode === 'owner') {
@@ -314,8 +321,37 @@ async function handler(req, res) {
   return send(res, 200, alert ? { ok: true, alert } : { ok: true });
 }
 
+/* The request, as the Admin will follow it up (owner → one agency only with consent). */
+function requestRow(lang, mode, input, result, place, contact) {
+  return {
+    mode, lang, market: input.market || null, commune_code: input.communeCode || null, place: oneLine(place, 160) || null,
+    name: contact.name || null, email: contact.email, phone: contact.phone || null, project: contact.project,
+    alerts: contact.alerts, agency_consent: contact.agencyConsent,
+    property: {
+      line: propertyLine(T.fr, input, place), type: input.type, surface: input.surface, condition: input.condition,
+      energy: input.energy, floor: input.floor, newBuild: input.newBuild, houseKind: input.houseKind, details: refineSummaryFr(input.refine)
+    },
+    estimate: {
+      low: result.low, high: result.high, central: result.central, perM2: result.perM2, confidence: result.confidence,
+      basis: result.basis ? { level: result.basis.level, name: result.basis.name, n: result.basis.n || null, period: result.basis.period } : null,
+      askingPrice: result.buyer ? result.buyer.askingPrice : null, deltaPct: result.buyer ? result.buyer.deltaPct : null
+    }
+  };
+}
+
+async function storeRequest(lang, mode, input, result, place, contact) {
+  if (!process.env.ZFIND_SUPABASE_SERVICE_KEY) return false;
+  try {
+    await require('./_lib/server').db('zfind_estimation_requests', { method: 'POST', body: requestRow(lang, mode, input, result, place, contact), prefer: 'return=minimal' });
+    return true;
+  } catch (e) {
+    console.error('estimation: store', e.message);
+    return false;
+  }
+}
+
 // Loaded on demand: the report works even where the alert tables do not exist yet.
 function alerts() { return require('./_lib/alerts-core'); }
 
 module.exports = handler;
-module.exports._internals = { cleanInput, reportEmail, leadEmail, loadJson, esc, oneLine, hits, RATE, refineSummaryPt };
+module.exports._internals = { cleanInput, reportEmail, leadEmail, loadJson, esc, oneLine, hits, RATE, refineSummaryFr, requestRow, storeRequest };

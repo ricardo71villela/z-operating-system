@@ -225,7 +225,7 @@ function propertyRow({ id, title, price, city = 'Évian-les-Bains', postal = '74
   const digest = mails.find(m => m.to[0] === 'marie@example.com');
   check('daily job (Monday): search digest lists only the matching new listing',
     report.search.sent === 1 && digest.html.includes(`/#/fr/property/a`) && !digest.html.includes('/property/x') && digest.subject.startsWith('1 nouvelle annonce — '));
-  check('daily job (Monday): activity summary to Z Find', report.summary === 'sent' && mails.some(m => m.to[0] === 'leads@example.com' && m.subject.includes('resumo semanal')));
+  check('daily job (Monday): activity summary to Z Find', report.summary === 'sent' && mails.some(m => m.to[0] === 'leads@example.com' && m.subject.includes('résumé hebdomadaire')));
 
   reset();
   route('DELETE', /./, null);

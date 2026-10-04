@@ -187,7 +187,7 @@ has(
 
 has(
   adminApp,
-  /current — unavailable for new authoring/,
+  /actuel — plus proposé pour les nouveaux biens/,
   'Admin edit must preserve a disabled historical current subtype'
 );
 

@@ -116,3 +116,8 @@ tr.row-muted td{opacity:.55;}
 .chip.warn:not(.on){border-color:#c58b00;color:#8a6100;}
 #sidebar a.sub{padding-left:30px;font-size:.85rem;opacity:.85;}
 .tag-review{background:#fff4d6;color:#8a6100;}
+.tag-late{background:#fde2e2;color:#a33;}
+tr.row-late td{background:#fff6f6;}
+.stars-cell{color:#c58b00;white-space:nowrap;letter-spacing:1px;}
+.est-agency select{max-width:200px;margin-bottom:4px;}
+#est-tbody .btn{padding:5px 9px;font-size:.78rem;}

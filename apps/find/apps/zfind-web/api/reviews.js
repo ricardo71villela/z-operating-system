@@ -93,10 +93,10 @@ async function optin(req, res) {
 
 function moderationEmail(row, agency) {
   const link = `${S.siteUrl()}/api/reviews?moderate=${row.moderation_token}`;
-  const html = S.mailHtml('fr', `Novo avis a moderar — ${agency}`,
-    `<p><strong>${'★'.repeat(row.rating)}${'☆'.repeat(5 - row.rating)}</strong> — ${S.esc(row.author_label)}</p><p style="white-space:pre-wrap;line-height:1.6">${S.esc(row.comment || '(sem comentário)')}</p>` + S.button(link, 'Moderar (publicar ou rejeitar)'),
-    'Z Find — moderação de avis');
-  return { to: [S.env('ZFIND_LEAD_NOTIFY_EMAIL')], subject: S.oneLine(`Avis a moderar: ${row.rating}/5 — ${agency}`, 150), html, text: `${row.rating}/5 — ${row.author_label}\n${row.comment || ''}\n\nModerar: ${link}` };
+  const html = S.mailHtml('fr', `Nouvel avis à modérer — ${agency}`,
+    `<p><strong>${'★'.repeat(row.rating)}${'☆'.repeat(5 - row.rating)}</strong> — ${S.esc(row.author_label)}</p><p style="white-space:pre-wrap;line-height:1.6">${S.esc(row.comment || '(sans commentaire)')}</p>` + S.button(link, 'Modérer (publier ou refuser)'),
+    'Z Find — modération des avis');
+  return { to: [S.env('ZFIND_LEAD_NOTIFY_EMAIL')], subject: S.oneLine(`Avis à modérer : ${row.rating}/5 — ${agency}`, 150), html, text: `${row.rating}/5 — ${row.author_label}\n${row.comment || ''}\n\nModérer : ${link}` };
 }
 
 async function submit(req, res, body) {
@@ -125,26 +125,26 @@ async function submit(req, res, body) {
 
 async function moderatePage(res, token) {
   const row = S.UUID_RE.test(String(token || '')) ? await one(`zfind_partner_reviews?moderation_token=eq.${token}&select=${REVIEW_SELECT}`) : null;
-  if (!row) return S.sendPage(res, 404, 'fr', 'Avis não encontrado', '<p>Este link já não corresponde a nenhum avis.</p>');
-  const state = { invited: 'ainda não submetido', pending: 'a aguardar moderação', published: 'publicado', rejected: 'rejeitado' }[row.status];
+  if (!row) return S.sendPage(res, 404, 'fr', 'Avis introuvable', '<p>Ce lien ne correspond plus à aucun avis.</p>');
+  const state = { invited: 'pas encore envoyé', pending: 'en attente de modération', published: 'publié', rejected: 'refusé' }[row.status];
   const buttons = row.status === 'pending' || row.status === 'published' || row.status === 'rejected'
     ? `<form method="post" action="/api/reviews"><input type="hidden" name="action" value="moderate"><input type="hidden" name="token" value="${S.esc(row.moderation_token)}">
-${row.status !== 'published' ? '<button type="submit" name="decision" value="publish">Publicar</button>' : ''}${row.status !== 'rejected' ? '<button class="alt" type="submit" name="decision" value="reject">Rejeitar</button>' : ''}</form>` : '';
-  return S.sendPage(res, 200, 'fr', `Avis sobre ${agencyName(row)}`,
-    `<p class="muted">Estado: ${S.esc(state)}</p><p><strong>${row.rating ? '★'.repeat(row.rating) + '☆'.repeat(5 - row.rating) : ''}</strong> ${S.esc(row.author_label || '')}</p><p style="white-space:pre-wrap">${S.esc(row.comment || '')}</p>${buttons}
-<p class="muted">Publicar só se o avis respeitar as regras: experiência real, sem insultos, sem dados pessoais de terceiros. Rejeitar não pode servir para esconder avis negativos legítimos.</p>`);
+${row.status !== 'published' ? '<button type="submit" name="decision" value="publish">Publier</button>' : ''}${row.status !== 'rejected' ? '<button class="alt" type="submit" name="decision" value="reject">Refuser</button>' : ''}</form>` : '';
+  return S.sendPage(res, 200, 'fr', `Avis sur ${agencyName(row)}`,
+    `<p class="muted">Statut : ${S.esc(state)}</p><p><strong>${row.rating ? '★'.repeat(row.rating) + '☆'.repeat(5 - row.rating) : ''}</strong> ${S.esc(row.author_label || '')}</p><p style="white-space:pre-wrap">${S.esc(row.comment || '')}</p>${buttons}
+<p class="muted">Ne publier que si l’avis respecte les règles : expérience réelle, pas d’insultes, pas de données personnelles de tiers. Refuser ne doit jamais servir à cacher un avis négatif légitime.</p>`);
 }
 
 async function moderate(res, body) {
   const token = String(body.token || '');
-  if (!S.UUID_RE.test(token) || !['publish', 'reject'].includes(body.decision)) return S.sendPage(res, 400, 'fr', 'Pedido inválido', '<p>—</p>');
+  if (!S.UUID_RE.test(token) || !['publish', 'reject'].includes(body.decision)) return S.sendPage(res, 400, 'fr', 'Demande invalide', '<p>—</p>');
   const patch = body.decision === 'publish'
     ? { status: 'published', published_at: new Date().toISOString() }
     : { status: 'rejected', published_at: null };
   const rows = await S.db(`zfind_partner_reviews?moderation_token=eq.${token}&status=in.(pending,published,rejected)`, { method: 'PATCH', body: patch });
-  if (!rows || !rows[0]) return S.sendPage(res, 404, 'fr', 'Avis não encontrado', '<p>—</p>');
-  return S.sendPage(res, 200, 'fr', body.decision === 'publish' ? 'Avis publicado' : 'Avis rejeitado',
-    body.decision === 'publish' ? '<p>Já aparece na página da agência e nos anúncios dela.</p>' : '<p>Não será mostrado. Os dados são apagados ao fim de 30 dias.</p>');
+  if (!rows || !rows[0]) return S.sendPage(res, 404, 'fr', 'Avis introuvable', '<p>—</p>');
+  return S.sendPage(res, 200, 'fr', body.decision === 'publish' ? 'Avis publié' : 'Avis refusé',
+    body.decision === 'publish' ? '<p>Il apparaît déjà sur la page de l’agence et sur ses annonces.</p>' : '<p>Il ne sera pas affiché. Les données sont effacées au bout de 30 jours.</p>');
 }
 
 async function handler(req, res) {
@@ -173,7 +173,7 @@ async function handler(req, res) {
       const body = await S.readBody(req);
       if (body.action === 'submit') return await submit(req, res, body);
       if (body.action === 'moderate') return await moderate(res, body);
-      return S.sendPage(res, 400, 'fr', 'Pedido inválido', '<p>—</p>');
+      return S.sendPage(res, 400, 'fr', 'Demande invalide', '<p>—</p>');
     }
     res.setHeader('Allow', 'GET, POST');
     return S.sendJson(res, 405, { ok: false, error: 'method' });

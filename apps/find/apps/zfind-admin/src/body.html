@@ -1,24 +1,27 @@
 <div id="login-view">
   <h1>Z Find Admin</h1>
   <div id="login-error"></div>
-  <input type="email" id="login-email" placeholder="Email">
-  <input type="password" id="login-password" placeholder="Password">
-  <button id="login-btn" onclick="handleLogin()">Sign in</button>
+  <input type="email" id="login-email" placeholder="E-mail">
+  <input type="password" id="login-password" placeholder="Mot de passe">
+  <button id="login-btn" onclick="handleLogin()">Se connecter</button>
 </div>
 
 <div id="app-shell" class="hidden">
   <div id="sidebar">
     <h2>Z Find Admin</h2>
-    <a data-view="dashboard" onclick="navigateAdmin('dashboard')">Dashboard</a>
-    <a data-view="properties" onclick="adminState.propFilter.status=''; navigateAdmin('properties')">Bens e anúncios</a>
-    <a class="sub" onclick="openReviewQueue()">↳ Por rever</a>
-    <a data-view="developments" onclick="navigateAdmin('developments')">Developments</a>
-    <a data-view="partners" onclick="navigateAdmin('partners')">Partners</a>
-    <a data-view="leads" onclick="navigateAdmin('leads')">Leads</a>
-    <a data-view="agencias" onclick="navigateAdmin('agencias')">Agências</a>
-    <a data-view="inscricoes" onclick="navigateAdmin('inscricoes')">Inscrições</a>
-    <a data-view="importar" onclick="navigateAdmin('importar')">Importar anúncios</a>
-    <div class="signout"><a onclick="handleSignOut()">Sign out</a></div>
+    <a data-view="dashboard" onclick="navigateAdmin('dashboard')">Tableau de bord</a>
+    <a data-view="properties" onclick="adminState.propFilter.status=''; navigateAdmin('properties')">Biens et annonces</a>
+    <a class="sub" onclick="openReviewQueue()">↳ À vérifier</a>
+    <a data-view="developments" onclick="adminState.devFilter.status=''; navigateAdmin('developments')">Programmes neufs</a>
+    <a class="sub" id="nav-dev-review" onclick="openDevReviewQueue()">↳ À vérifier</a>
+    <a data-view="partners" onclick="navigateAdmin('partners')">Partenaires</a>
+    <a data-view="leads" onclick="openLeads('')">Demandes</a>
+    <a data-view="estimacoes" onclick="adminState.estFilter=null; navigateAdmin('estimacoes')">Estimations</a>
+    <a data-view="avaliacoes" onclick="navigateAdmin('avaliacoes')">Avis</a>
+    <a data-view="agencias" onclick="navigateAdmin('agencias')">Agences</a>
+    <a data-view="inscricoes" onclick="navigateAdmin('inscricoes')">Inscriptions</a>
+    <a data-view="importar" onclick="navigateAdmin('importar')">Importer des annonces</a>
+    <div class="signout"><a onclick="handleSignOut()">Se déconnecter</a></div>
   </div>
   <div id="main"></div>
 </div>

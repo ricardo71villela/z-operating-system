@@ -44,14 +44,14 @@ const SIGNUPS = [
   await page.click('#login-btn');
   await page.waitForSelector('#ops-cards .card');
   const ops = await page.textContent('#ops-cards');
-  check('dashboard: sign-ups to check and Founder seats per country (from the public price list)', ops.includes('Inscrições por verificar') && ops.includes('FR 3/50') && ops.includes('LU 1/50') && ops.includes('promotores 1/10'));
-  check('daily routine includes checking new sign-ups', (await page.textContent('#main')).includes('Inscrições novas'));
+  check('dashboard: sign-ups to check and Founder seats per country (from the public price list)', ops.includes('Inscriptions à vérifier') && ops.includes('FR 3/50') && ops.includes('LU 1/50') && ops.includes('promoteurs 1/10'));
+  check('daily routine includes checking new sign-ups', (await page.textContent('#main')).includes('Nouvelles inscriptions'));
   await page.click('#sidebar a[data-view="inscricoes"]');
   await page.waitForSelector('#sg-tbody tr[data-signup]');
   check('list loads pending sign-ups by default', seen.lists[0].includes('status=eq.pending'));
   const t = await page.textContent('#sg-tbody');
-  check('row shows who, registry, card, offer and status', t.includes('LAC IMMO') && t.includes('12345678200010') && t.includes('CPI 0605') && t.includes('Fundador · 1.ª vaga') && t.includes('Por verificar') && t.includes('Promotor fundador'));
-  check('leads column: enquiries during the 3 free months, total, end of free period', t.includes('2 em 3 meses') && t.includes('7 no total') && t.includes('grátis até'));
+  check('row shows who, registry, card, offer and status', t.includes('LAC IMMO') && t.includes('12345678200010') && t.includes('CPI 0605') && t.includes('Fondateur · 1re vague') && t.includes('À vérifier') && t.includes('Promoteur fondateur'));
+  check('leads column: enquiries during the 3 free months, total, end of free period', t.includes('2 en 3 mois') && t.includes('7 au total') && t.includes('gratuit jusqu’au'));
   check('SIRET links to the public company directory', !!(await page.$('a[href="https://annuaire-entreprises.data.gouv.fr/etablissement/12345678200010"]')));
   if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'admin-inscricoes.png'), fullPage: true });
   await page.fill('#sg-note-s1', 'Carte vérifiée CCI');
@@ -68,5 +68,5 @@ const SIGNUPS = [
   check('"Todas" lists without a status filter', !seen.lists[seen.lists.length - 1].includes('status=eq.'));
   check('no script error', errors.length === 0);
   await browser.close();
-  console.log(`\nADMIN INSCRIÇÕES: ${passed}/${passed} PASSED`);
+  console.log(`\nADMIN INSCRIPTIONS: ${passed}/${passed} PASSED`);
 })().catch(e => { console.error(e); process.exit(1); });

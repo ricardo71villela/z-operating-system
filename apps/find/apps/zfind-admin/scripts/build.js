@@ -97,6 +97,7 @@ function build() {
     + readWeb('services/pro-offer.js') + '\n' // public price list: Founder seats
     + readAdmin('prospection.js') + '\n'
     + readAdmin('import.js') + '\n' // « Nous chargeons pour vous »: CSV / Excel import
+    + readAdmin('followup.js') + '\n' // estimations, leads follow-up, reviews, photo links
     + appJs
     + '\n</script>\n</body>\n</html>\n';
 

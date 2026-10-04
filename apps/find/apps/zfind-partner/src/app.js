@@ -444,7 +444,7 @@ const LISTING_STATUS_FR = {
   draft: 'Brouillon', incomplete: 'Incomplète', pending_review: 'En vérification', ready: 'Prête à publier',
   published: 'En ligne', suspended: 'Suspendue', archived: 'Archivée'
 };
-const LEAD_STATUS_FR = { new: 'Nouvelle', contacted: 'Contactée', closed: 'Clôturée' };
+const LEAD_STATUS_FR = { new: 'À répondre', contacted: 'Répondue', closed: 'Clôturée' };
 function listingStatusLabel(s) { return LISTING_STATUS_FR[s] || s || ''; }
 function leadStatusLabel(s) { return LEAD_STATUS_FR[s] || s || ''; }
 function loginErrorMessage(error) {
@@ -1746,6 +1746,21 @@ function renderLeadStats(st) {
   el.innerHTML = parts.join('');
 }
 
+/* Z Find follows the answer time promised to buyers and tenants: after
+   24 h without « Répondue », one reminder e-mail (migration 20261004200000). */
+function leadWaitingLabel(l) {
+  if (l.status !== 'new') return '';
+  const h = Math.floor((Date.now() - new Date(l.created_at).getTime()) / 3600000);
+  return h >= 24 ? ` <span class="lead-late">en attente depuis ${h < 48 ? h + ' h' : Math.floor(h / 24) + ' jours'}</span>` : '';
+}
+
+async function markLead(id, status) {
+  const res = await window.ZFindServices.partnerSignup.setLeadStatus(id, status);
+  if (res.error) { showStatus('error', status === 'closed' ? 'Impossible de clôturer la demande.' : 'Impossible de marquer la demande comme répondue.'); return; }
+  showStatus('success', status === 'closed' ? 'Demande clôturée.' : 'Demande marquée comme répondue. Merci !');
+  loadLeadsView();
+}
+
 async function loadLeadsView() {
   const listEl = document.getElementById('leads-list');
   window.ZFindServices.partnerSignup.leadStats().then(r => renderLeadStats(r.data)).catch(() => {});
@@ -1762,8 +1777,9 @@ async function loadLeadsView() {
         <span class="name">${escapeHtmlPartner(l.name || 'Sans nom')}</span>
         <span class="date">${date}</span>
       </div>
-      <div class="contact">${escapeHtmlPartner(contact)} <span class="lead-status ${l.status}">${escapeHtmlPartner(leadStatusLabel(l.status))}</span></div>
+      <div class="contact">${escapeHtmlPartner(contact)} <span class="lead-status ${l.status}">${escapeHtmlPartner(leadStatusLabel(l.status))}</span>${leadWaitingLabel(l)}</div>
       ${l.message ? `<div class="message">${escapeHtmlPartner(l.message)}</div>` : ''}
+      ${l.status !== 'closed' ? `<div class="lead-actions">${l.status === 'new' ? `<button class="btn-sm" data-lead-action="contacted" onclick="markLead('${l.id}','contacted')">Marquer comme répondue</button>` : ''}<button class="btn-sm ghost" data-lead-action="closed" onclick="markLead('${l.id}','closed')">Clôturer</button></div>` : ''}
     </div>`;
   }).join('');
 }
