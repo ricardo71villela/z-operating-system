@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       steps:
-        description: "Passos (all, fr, be, osm, websites)"
+        description: "Passos (all, fr, be, osm, websites, communes)"
         required: false
         default: "all"
       fr_dept:
@@ -56,6 +56,10 @@ jobs:
       - name: Testes
         id: tests
         run: python tests/test_agencias.py
+
+      - name: Comunas FR/BE/LU (localização dos bens no painel dos parceiros)
+        if: ${{ !cancelled() && steps.tests.outcome == 'success' && github.event_name != 'pull_request' && (env.STEPS == 'all' || contains(env.STEPS, 'communes')) }}
+        run: python src/load_communes.py
 
       - name: França — SIRENE (68.31Z)
         if: ${{ !cancelled() && steps.tests.outcome == 'success' && github.event_name != 'pull_request' && (env.STEPS == 'all' || contains(env.STEPS, 'fr')) }}

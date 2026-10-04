@@ -37,6 +37,11 @@ const PROP = { id: 'prop1', subtype: 'apartment', typology: null, area_sqm: null
     await page.route('**/rest/v1/features**', r => r.fulfill(json([{ id: 'f1', code: 'pool', label: 'Piscina' }])));
     await page.route('**/rest/v1/property_features**', r => r.fulfill(json([])));
     await page.route('**/rest/v1/rpc/zfind_partner_get_listing_for_asset**', r => r.fulfill(json(null)));
+    let searchArgs = null, setArgs = null;
+    await page.route('**/rest/v1/rpc/zfind_commune_search**', r => { searchArgs = r.request().postDataJSON(); return r.fulfill(json([
+      { code: '74119', name: 'Évian-les-Bains', postcodes: ['74500'], parent: '74', zone_label: 'Évian-les-Bains (74500)' },
+      { code: '74057', name: 'Champanges', postcodes: ['74500'], parent: '74', zone_label: 'Champanges (74500)' }])); });
+    await page.route('**/rest/v1/rpc/zfind_set_asset_commune**', r => { setArgs = r.request().postDataJSON(); return r.fulfill(json({ zone_lite_id: 'z1', name: 'Évian-les-Bains', country: 'FR', code: '74119', postcodes: ['74500'], parent: '74' })); });
     await page.route('**/rest/v1/rpc/zfind_update_asset**', r => { patch = r.request().postDataJSON(); return r.fulfill(json(Object.assign({}, PROP, { subtype: 'villa', typology: 'T4' }))); });
 
     await page.goto(FILE_URL);
@@ -44,7 +49,7 @@ const PROP = { id: 'prop1', subtype: 'apartment', typology: null, area_sqm: null
     await page.fill('#login-password', 'MotDePasse-2026');
     await page.click('#login-btn');
     await page.waitForSelector('.portfolio-row');
-    check('portfolio shows the property type in French with its typology', (await page.textContent('#portfolio-list')).includes('Appartement · T3'));
+    check('portfolio shows the property type in French with its typology', (await page.textContent('#portfolio-list')).includes('Appartement · T3') && (await page.textContent('#portfolio-list')).includes('Commune à définir'));
     check('verified sign-up: no welcome banner', !(await page.locator('#signup-banner').isVisible()));
     await page.click('.portfolio-row');
     await page.waitForSelector('#pp-subtype');
@@ -57,6 +62,15 @@ const PROP = { id: 'prop1', subtype: 'apartment', typology: null, area_sqm: null
     if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'partner-le-bien.png') });
     await page.click('button:has-text("Enregistrer") >> nth=0');
     await page.waitForTimeout(400);
+    check('commune picker: "à définir" with the publication hint', (await page.textContent('#cm-current')) === 'à définir' && (await page.textContent('.commune-picker')).includes('nécessaire pour publier'));
+    await page.fill('#cm-q', 'Évian');
+    await page.waitForSelector('.commune-option');
+    check('search sends country and the folded query', searchArgs.p_country === 'FR' && searchArgs.p_query === 'evian');
+    check('results show commune and postcode', (await page.textContent('#cm-results')).includes('Évian-les-Bains (74500)'));
+    await page.click('.commune-option >> nth=0');
+    await page.waitForFunction(() => document.getElementById('cm-current').textContent.includes('Évian'));
+    check('pick links the property to the commune (server-checked code)', setArgs.p_kind === 'property' && setArgs.p_asset_id === 'prop1' && setArgs.p_country === 'FR' && setArgs.p_code === '74119'
+      && (await page.textContent('#cm-current')) === 'Évian-les-Bains (74500)' && !(await page.$('.commune-required')));
     check('save sends subtype, typology, surface and floor through zfind_update_asset',
       patch && patch.p_kind === 'property' && patch.p_asset_id === 'prop1' && patch.p_patch.subtype === 'villa' && patch.p_patch.typology === 'T4' && patch.p_patch.area_sqm === 112.5 && patch.p_patch.floor === 2);
     check('title follows the new type', (await page.textContent('#detail-title')) === 'Maison / villa · T4');

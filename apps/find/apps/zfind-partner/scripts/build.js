@@ -42,6 +42,7 @@ function build() {
   const body = readPartner('body.html');
   const appJs = readPartner('app.js');
   const signupJs = readPartner('signup.js');
+  const communeJs = readPartner('commune.js');
 
   // Genuinely reused, not copied:
   const vendorSupabase = readWeb('vendor-supabase.js');
@@ -81,6 +82,7 @@ function build() {
     + fieldFormsService + '\n'
     + proOfferService + '\n'
     + signupJs + '\n'
+    + communeJs + '\n'
     + appJs
     + '\n</script>\n</body>\n</html>\n';
 
