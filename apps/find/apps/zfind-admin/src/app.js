@@ -111,6 +111,7 @@ const OPS_LINKS = [
 const OPS_ROUTINE = [
   ['Todos os dias', [
     'Inscrições novas: verificar o cartão profissional e o SIRET, depois Validar ou Recusar.',
+    'Anúncios por rever (enviados pelas agências): verificar conformidade e publicar.',
     'Ficheiro de anúncios enviado por uma agência: Importar anúncios (ficam em rascunho), depois rever.',
     'Responder aos pedidos de estimação de proprietários (e-mail «Novo lead») no próprio dia.',
     'Ver os Leads novos (pedidos de contacto sobre anúncios) e confirmar que a agência respondeu.',
@@ -151,6 +152,19 @@ async function renderDashboard() {
     ).join('');
   }
   await loadOperationsOverview();
+  await loadReviewQueueCard();
+}
+
+/* « Anúncios por rever »: listings sent by the agencies, waiting for the Admin. */
+async function loadReviewQueueCard() {
+  const ops = document.getElementById('ops-cards');
+  if (!ops) return;
+  const res = await window.ZFindServices.admin.listProperties();
+  if (res.error) return;
+  const all = res.data || [];
+  const pending = all.filter(p => propStatus(p) === 'pending_review').length;
+  const ready = all.filter(p => propStatus(p) === 'ready').length;
+  ops.insertAdjacentHTML('afterbegin', `<div class="card${pending ? ' card-warn' : ''}" id="card-review" onclick="openReviewQueue()" style="cursor:pointer"><div class="n">${fmtN(pending)}</div><div class="l">Anúncios por rever${ready ? ` · ${fmtN(ready)} prontos a publicar` : ''}</div></div>`);
 }
 
 const fmtN = n => (n == null ? '—' : Number(n).toLocaleString('pt-PT'));
@@ -405,7 +419,7 @@ async function importRun() {
   });
   importState.running = false;
   const p = document.getElementById('imp-progress');
-  if (p) p.innerHTML = `<strong>${fmtN(counts.ok)} criados em rascunho</strong> · ${fmtN(counts.duplicate)} já existiam · ${fmtN(counts.skipped)} não importados · ${fmtN(counts.error)} com erro. Próximo passo: a agência acrescenta as fotografias no painel; depois revemos e publicamos cada anúncio em Properties.`;
+  if (p) p.innerHTML = `<strong>${fmtN(counts.ok)} criados em rascunho</strong> · ${fmtN(counts.duplicate)} já existiam · ${fmtN(counts.skipped)} não importados · ${fmtN(counts.error)} com erro. Próximo passo: a agência acrescenta as fotografias no painel e envia cada anúncio para revisão; aparecem em «Por rever».`;
   showStatus(counts.error ? 'error' : 'success', `${counts.ok} anúncios criados em rascunho${counts.error ? `, ${counts.error} com erro` : ''}.`);
   renderImportPreview();
   return results;
@@ -711,33 +725,121 @@ async function getResidentialDefaultSubtype() {
   };
 }
 
+/* ---------------- Properties list + review queue ---------------- */
+/* Listing statuses in Portuguese; « Por rever » = sent by the agency
+   (pending_review) — the queue to check and publish. */
+const LISTING_STATUS_PT = { draft: 'Rascunho', incomplete: 'Incompleto', pending_review: 'Por rever', ready: 'Pronto a publicar', published: 'Publicado', suspended: 'Suspenso', archived: 'Arquivado', none: 'Sem anúncio' };
+const LISTING_STATUS_TAG = { published: 'published', ready: 'active', pending_review: 'review', suspended: 'inactive', archived: 'inactive' };
+const PROP_FILTERS = [
+  ['', 'Todos'], ['pending_review', 'Por rever'], ['ready', 'Prontos a publicar'], ['draft', 'Rascunhos'],
+  ['published', 'Publicados'], ['suspended', 'Suspensos'], ['archived', 'Arquivados']
+];
+const SUBTYPE_PT = { apartment: 'Apartamento', villa: 'Moradia', land: 'Terreno', office: 'Escritório', retail: 'Comércio', industrial_logistics: 'Armazém / atividade', hospitality: 'Hotelaria' };
+adminState.propFilter = { status: '', partner: '', search: '' };
+let propRowsCache = [];
+
+function propListing(p) {
+  const rep = (p.representations || [])[0];
+  return { rep, listing: rep && (rep.listings || [])[0] };
+}
+function propStatus(p) {
+  const { listing } = propListing(p);
+  return listing ? listing.status : 'none';
+}
+/* Agencies write in French: French title first, then any other language. */
+function propTitle(p) {
+  const { listing } = propListing(p);
+  const content = (listing && listing.listing_content) || [];
+  const order = ['fr', 'en', 'pt-PT', 'pt', 'es', 'de', 'it'];
+  const best = order.map(l => content.find(c => c.locale === l && c.title && c.title.trim())).find(Boolean) || content.find(c => c.title && c.title.trim());
+  return best ? best.title : '';
+}
+function propStatusMatches(status, filter) {
+  if (!filter) return true;
+  if (filter === 'draft') return status === 'draft' || status === 'incomplete' || status === 'none';
+  return status === filter;
+}
+function propPrice(listing) {
+  if (!listing || !(Number(listing.price_current) > 0)) return '—';
+  return (listing.price_is_from ? 'desde ' : '') + fmtN(listing.price_current) + ' ' + (listing.currency_iso === 'EUR' || !listing.currency_iso ? '€' : escapeHtml(listing.currency_iso)) + (listing.transaction_type === 'rent' ? ' /mês' : '');
+}
+
+function openReviewQueue() {
+  adminState.propFilter = { status: 'pending_review', partner: '', search: '' };
+  navigateAdmin('properties');
+}
+
 async function renderPropertiesList() {
   const main = document.getElementById('main');
+  const f = adminState.propFilter;
   main.insertAdjacentHTML('beforeend', `
-    <div class="page-title">Properties <button class="btn btn-primary" onclick="showNewPropertyForm()">+ New property</button></div>
-    <div class="toolbar"><input type="text" id="prop-search" placeholder="Search by reference, title, zone, partner…" oninput="loadPropertiesList(this.value)"></div>
+    <div class="page-title">Bens e anúncios <button class="btn btn-primary" onclick="showNewPropertyForm()">+ Novo bem</button></div>
+    <div class="status-chips" id="prop-chips"></div>
+    <div class="toolbar wrap">
+      <input type="text" id="prop-search" placeholder="Procurar por título, zona, agência…" value="${escapeHtml(f.search)}" oninput="adminState.propFilter.search=this.value; renderPropRows()">
+      <select id="prop-status" aria-label="Estado" onchange="adminState.propFilter.status=this.value; renderPropRows()">${PROP_FILTERS.map(([v, l]) => `<option value="${v}"${v === f.status ? ' selected' : ''}>${l}</option>`).join('')}</select>
+      <select id="prop-partner" aria-label="Agência" onchange="adminState.propFilter.partner=this.value; renderPropRows()"><option value="">Todas as agências</option></select>
+    </div>
     <div id="new-prop-form"></div>
-    <table><thead><tr><th>Title</th><th>Subtype</th><th>Zone</th><th>Partner</th><th>Status</th><th></th></tr></thead><tbody id="props-tbody"><tr><td colspan="6">Loading…</td></tr></tbody></table>`);
+    <table><thead><tr><th>Título</th><th>Bem</th><th>Zona</th><th>Agência</th><th>Preço</th><th>Estado</th><th></th></tr></thead><tbody id="props-tbody"><tr><td colspan="7">A carregar…</td></tr></tbody></table>`);
   await loadPropertiesList();
 }
-async function loadPropertiesList(search) {
-  const result = await window.ZFindServices.admin.listProperties(search);
+
+async function loadPropertiesList() {
+  const result = await window.ZFindServices.admin.listProperties();
   const tbody = document.getElementById('props-tbody');
-  if (result.error) { tbody.innerHTML = '<tr><td colspan="6">Could not load.</td></tr>'; return; }
-  const rows = result.data || [];
-  tbody.innerHTML = rows.length ? rows.map(p => {
-    const rep = (p.representations || [])[0];
-    const listing = rep && (rep.listings || [])[0];
-    const title = listing && (listing.listing_content || []).find(c => c.locale === 'en');
-    const status = listing ? listing.status : 'draft';
-    return `<tr onclick="navigateAdmin('properties','${p.id}')" style="cursor:pointer">
-      <td>${title ? escapeHtml(title.title) : '(untitled)'}</td><td>${p.subtype}</td>
-      <td>${p.zones_lite ? escapeHtml(p.zones_lite.name) : ''}</td>
+  if (!tbody) return;
+  if (result.error) { tbody.innerHTML = '<tr><td colspan="7">Não foi possível carregar.</td></tr>'; return; }
+  propRowsCache = result.data || [];
+  const partners = new Map();
+  propRowsCache.forEach(p => { const { rep } = propListing(p); if (rep && rep.partner_id) partners.set(rep.partner_id, rep.partners ? rep.partners.name : rep.partner_id); });
+  const sel = document.getElementById('prop-partner');
+  if (sel) {
+    sel.innerHTML = '<option value="">Todas as agências</option>' + [...partners.entries()].sort((a, b) => String(a[1]).localeCompare(String(b[1])))
+      .map(([id, name]) => `<option value="${escapeHtml(id)}"${id === adminState.propFilter.partner ? ' selected' : ''}>${escapeHtml(name)}</option>`).join('');
+  }
+  renderPropRows();
+}
+
+function renderPropRows() {
+  const tbody = document.getElementById('props-tbody');
+  if (!tbody) return;
+  const f = adminState.propFilter;
+  const needle = String(f.search || '').trim().toLowerCase();
+  const byPartner = propRowsCache.filter(p => !f.partner || (propListing(p).rep || {}).partner_id === f.partner);
+  const chips = document.getElementById('prop-chips');
+  if (chips) {
+    chips.innerHTML = PROP_FILTERS.filter(([v]) => v).map(([v, l]) => {
+      const n = byPartner.filter(p => propStatusMatches(propStatus(p), v)).length;
+      return `<button class="chip${v === f.status ? ' on' : ''}${v === 'pending_review' && n ? ' warn' : ''}" data-status="${v}" onclick="adminState.propFilter.status='${v === f.status ? '' : v}'; document.getElementById('prop-status').value=adminState.propFilter.status; renderPropRows()">${l} <strong>${fmtN(n)}</strong></button>`;
+    }).join('');
+  }
+  const rows = byPartner.filter(p => propStatusMatches(propStatus(p), f.status)).filter(p => {
+    if (!needle) return true;
+    const { rep } = propListing(p);
+    const hay = [propTitle(p), p.zones_lite && p.zones_lite.name, p.zones_lite && p.zones_lite.city, rep && rep.partners && rep.partners.name, p.id].filter(Boolean).join(' ').toLowerCase();
+    return hay.includes(needle);
+  });
+  // The review queue reads oldest first: whoever waited longest is checked first.
+  if (f.status === 'pending_review') rows.reverse();
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="muted">${f.status === 'pending_review' ? 'Nenhum anúncio por rever. 👍' : 'Nenhum bem com estes filtros.'}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map(p => {
+    const { rep, listing } = propListing(p);
+    const status = propStatus(p);
+    const title = propTitle(p);
+    return `<tr data-prop="${p.id}" onclick="navigateAdmin('properties','${p.id}')" style="cursor:pointer">
+      <td>${title ? escapeHtml(title) : '<span class="muted">(sem título)</span>'}</td>
+      <td>${escapeHtml(SUBTYPE_PT[p.subtype] || p.subtype || '')}${p.typology ? ' · ' + escapeHtml(p.typology) : ''}${p.area_sqm ? '<br><span class="muted">' + fmtN(p.area_sqm) + ' m²</span>' : ''}</td>
+      <td>${p.zones_lite ? escapeHtml(p.zones_lite.name) : '<span class="muted">a definir</span>'}</td>
       <td>${rep && rep.partners ? escapeHtml(rep.partners.name) : ''}</td>
-      <td><span class="tag tag-${status==='published'?'published':'draft'}">${status}</span></td>
-      <td><span onclick="event.stopPropagation(); duplicatePropertyRow('${p.id}')" style="cursor:pointer; color:#555;">Duplicate</span></td>
+      <td>${propPrice(listing)}</td>
+      <td><span class="tag tag-${LISTING_STATUS_TAG[status] || 'draft'}">${escapeHtml(LISTING_STATUS_PT[status] || status)}</span></td>
+      <td><span onclick="event.stopPropagation(); duplicatePropertyRow('${p.id}')" style="cursor:pointer; color:#555;">Duplicar</span></td>
     </tr>`;
-  }).join('') : '<tr><td colspan="6">No properties yet.</td></tr>';
+  }).join('');
 }
 async function duplicatePropertyRow(id) {
   const result = await window.ZFindServices.admin.duplicateProperty(id);
@@ -1016,10 +1118,10 @@ async function renderAssetEditShell(main, opts) {
       <button class="btn btn-primary" style="margin-top:14px;" onclick="saveFeatures('${opts.kind}','${d.id}')">Save features</button>
     </div>
 
-    <div class="locale-tabs">${LOCALES.map(l => `<div class="locale-tab ${l==='en'?'active':''}" data-locale="${l}" onclick="switchLocaleTab('${l}')">${l.toUpperCase()}</div>`).join('')}</div>
+    <div class="locale-tabs">${LOCALES.map(l => `<div class="locale-tab ${l==='fr'?'active':''}" data-locale="${l}" onclick="switchLocaleTab('${l}')">${l.toUpperCase()}</div>`).join('')}</div>
     <div class="detail-panel" style="margin-bottom:20px;">
       ${listing ? LOCALES.map(l => `
-        <div class="locale-content" data-locale="${l}" ${l!=='en'?'style="display:none"':''}>
+        <div class="locale-content" data-locale="${l}" ${l!=='fr'?'style="display:none"':''}>
           <div class="form-field"><label>Title (${l.toUpperCase()})</label><input type="text" id="content-title-${l}" value="${escapeHtml((contentByLocale[l]||{}).title||'')}"></div>
           <div class="form-field"><label>Description (${l.toUpperCase()})</label><textarea id="content-desc-${l}">${escapeHtml((contentByLocale[l]||{}).description||'')}</textarea></div>
           <button class="btn btn-primary" onclick="saveTranslation('${listing.id}','${l}')">Save ${l.toUpperCase()}</button>
