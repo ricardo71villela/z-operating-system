@@ -147,3 +147,47 @@ input, select, textarea{ font-family:'DM Sans', sans-serif; }
   .login-screen{ grid-template-columns:1fr; }
   .login-editorial{ display:none; }
 }
+
+/* ---------------- Sign-up (inscription autonome) ---------------- */
+.field select{ width:100%; padding:13px 14px; border:1px solid var(--gray-200); border-radius:var(--radius); background:var(--white); font-size:0.95rem; color:var(--gray-900); }
+.field select:focus{ border-color:var(--gold); }
+.login-switch{ margin-top:22px; font-size:0.86rem; color:var(--gray-500); }
+.login-switch a{ color:var(--gold-dark); text-decoration:underline; text-underline-offset:3px; cursor:pointer; }
+.signup-panel{ align-items:flex-start; padding-top:56px; overflow-y:auto; }
+.signup-card{ max-width:460px; }
+.su-steps{ list-style:none; display:flex; gap:6px; margin:6px 0 26px; counter-reset:su; }
+.su-steps li{ flex:1; font-size:0.72rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--gray-400); padding-top:8px; border-top:2px solid var(--gray-200); counter-increment:su; }
+.su-steps li::before{ content:counter(su) ". "; }
+.su-steps li.active{ color:var(--gray-900); border-top-color:var(--gold); }
+.su-steps li.done{ color:var(--gold-dark); border-top-color:var(--gold-light); }
+.su-pane .heading{ font-size:1.6rem; margin-bottom:8px; }
+.su-pane .heading-sub{ color:var(--gray-500); font-size:0.88rem; margin-bottom:22px; }
+.su-choice{ display:flex; gap:10px; margin:14px 0 20px; }
+.su-choice label{ flex:1; display:flex; gap:8px; align-items:center; padding:12px 14px; border:1px solid var(--gray-200); border-radius:var(--radius); background:var(--white); font-size:0.9rem; cursor:pointer; }
+.su-choice label:has(input:checked){ border-color:var(--gold); background:var(--gold-pale); }
+.su-hint{ font-size:0.78rem; color:var(--gray-500); margin-top:6px; line-height:1.45; }
+.su-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.su-actions{ display:flex; align-items:center; justify-content:space-between; gap:16px; margin-top:8px; }
+.su-actions a{ font-size:0.86rem; color:var(--gray-500); cursor:pointer; white-space:nowrap; }
+.su-actions .btn-login{ width:auto; padding:13px 26px; }
+.su-check{ display:flex; gap:10px; align-items:flex-start; font-size:0.84rem; line-height:1.45; margin:0 0 12px; color:var(--gray-700); cursor:pointer; }
+.su-check input{ margin-top:3px; flex:none; }
+.su-privacy{ font-size:0.76rem; color:var(--gray-500); line-height:1.5; margin:6px 0 4px; }
+.su-offer{ border:1px solid var(--gold-light); background:var(--gold-pale); border-radius:var(--radius); padding:14px 16px; font-size:0.86rem; line-height:1.5; margin:4px 0 20px; }
+.su-offer strong{ font-weight:600; }
+.su-manual{ display:inline-block; margin-top:16px; font-size:0.84rem; color:var(--gold-dark); text-decoration:underline; text-underline-offset:3px; cursor:pointer; }
+#su-results{ margin-top:18px; }
+.su-result{ display:block; width:100%; text-align:left; padding:12px 14px; border:1px solid var(--gray-200); border-radius:var(--radius); background:var(--white); margin-bottom:8px; font-size:0.88rem; line-height:1.4; cursor:pointer; }
+.su-result:hover{ border-color:var(--gold); }
+.su-result .n{ font-weight:600; display:block; }
+.su-result .a{ color:var(--gray-500); font-size:0.8rem; }
+.su-result .tag{ display:inline-block; font-size:0.68rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--gold-dark); margin-left:6px; }
+.su-result[disabled]{ opacity:0.55; cursor:default; }
+.su-done-text{ font-size:0.92rem; line-height:1.6; color:var(--gray-700); margin:6px 0 22px; }
+.signup-banner{ border:1px solid var(--gold-light); background:var(--gold-pale); border-radius:var(--radius); padding:14px 18px; font-size:0.9rem; line-height:1.5; margin-bottom:28px; }
+.signup-banner strong{ font-weight:600; }
+@media (max-width:860px){
+  .signup-panel{ padding:28px 16px 48px; }
+  .su-row{ grid-template-columns:1fr; gap:0; }
+  .su-choice{ flex-direction:column; }
+}

@@ -1,11 +1,9 @@
 /* ============================================================
-   Z FIND PARTNER — APP.JS
+   Z FIND PARTNER — APP.JS  (interface en français)
    ============================================================
-   Deliberately small: login + a strict role check + an empty
-   dashboard shell that proves real isolation (Migration 0006/0007),
-   not a promise of it. No property/lead management yet — that's
-   the next announced step, built once this foundation is confirmed
-   working end-to-end in a real browser, not just via curl.
+   Login + strict role check, self sign-up (signup.js), portfolio,
+   listing workspace and leads. RLS does the isolation; publication
+   always stays with the Admin.
    ============================================================ */
 
 async function boot() {
@@ -13,7 +11,9 @@ async function boot() {
   const session = sessionData && sessionData.session;
   if (session) {
     await tryEnterDashboard();
+    return;
   }
+  if (/inscription|signup/.test(window.location.hash)) showSignupView();
 }
 
 async function handlePartnerLogin() {
@@ -24,24 +24,24 @@ async function handlePartnerLogin() {
   errorEl.textContent = '';
 
   if (!email || !password) {
-    errorEl.textContent = 'Enter your email and password.';
+    errorEl.textContent = 'Saisissez votre e-mail et votre mot de passe.';
     return;
   }
 
   btn.disabled = true;
-  btn.textContent = 'Signing in…';
+  btn.textContent = 'Connexion…';
 
   const result = await window.ZFindServices.auth.signIn(email, password);
   if (result.error) {
-    errorEl.textContent = 'Incorrect email or password.';
+    errorEl.textContent = loginErrorMessage(result.error);
     btn.disabled = false;
-    btn.textContent = 'Sign in';
+    btn.textContent = 'Se connecter';
     return;
   }
 
   await tryEnterDashboard();
   btn.disabled = false;
-  btn.textContent = 'Sign in';
+  btn.textContent = 'Se connecter';
 }
 
 
@@ -51,22 +51,330 @@ async function handlePartnerLogin() {
     back out immediately, with a clear reason, never silently let
     through to a dashboard that isn't theirs to use. */
 async function tryEnterDashboard() {
-  const profileResult = await window.ZFindServices.auth.getCurrentProfile();
   const errorEl = document.getElementById('login-error');
+  let profileResult = await window.ZFindServices.auth.getCurrentProfile();
+  let profile = profileResult.data;
 
-  if (profileResult.error || !profileResult.data || profileResult.data.role !== 'partner_user' || !profileResult.data.partner_id) {
+  // First sign-in after a self sign-up: the application waiting in the
+  // account's metadata becomes a partner account (server-side RPC).
+  if (!(profile && profile.role === 'admin') && (!profile || profile.role !== 'partner_user' || !profile.partner_id)) {
+    const done = await window.ZFindServices.partnerSignup.complete();
+    if (done.error) {
+      await window.ZFindServices.auth.signOut();
+      showLoginView();
+      if (errorEl) errorEl.textContent = signupCompletionError(done.error);
+      return;
+    }
+    if (done.data && (done.data.status === 'created' || done.data.status === 'existing')) {
+      profileResult = await window.ZFindServices.auth.getCurrentProfile();
+      profile = profileResult.data;
+    }
+  }
+
+  if (profileResult.error || !profile || profile.role !== 'partner_user' || !profile.partner_id) {
     await window.ZFindServices.auth.signOut();
-    if (errorEl) errorEl.textContent = 'This account is not set up as a Z Find partner.';
+    showLoginView();
+    if (errorEl) errorEl.textContent = 'Ce compte n’est pas un compte partenaire Z Find. Pour inscrire votre agence, utilisez « Inscrire mon agence ».';
     return;
   }
 
-  const partnerId = profileResult.data.partner_id;
+  const partnerId = profile.partner_id;
   const partnerResult = await window.ZFindServices.partnerDashboard.getOwnPartnerSummary(partnerId);
 
   document.getElementById('view-login').style.display = 'none';
+  document.getElementById('view-signup').style.display = 'none';
   document.getElementById('view-dashboard').style.display = '';
   document.getElementById('dash-partner-name').textContent = partnerResult.data ? partnerResult.data.name : '';
+  if (window.location.hash === '#inscription') history.replaceState(null, '', window.location.pathname + window.location.search);
+  renderSignupBanner();
   loadPortfolio();
+}
+
+function signupCompletionError(error) {
+  const msg = String((error && error.message) || '');
+  if (msg.includes('already_registered')) return 'Cet établissement est déjà inscrit sur Z Find. Si vous pensez qu’il s’agit d’une erreur, écrivez-nous à hello@zfind.online.';
+  if (msg.includes('invalid_siret')) return 'Le SIRET de votre inscription est invalide. Écrivez-nous à hello@zfind.online pour la compléter.';
+  return 'Votre inscription n’a pas pu être finalisée. Réessayez dans un instant ou écrivez-nous à hello@zfind.online.';
+}
+
+/* Offer wording comes from the public price list (zfind-web services/pro-offer.js). */
+function signupPrices() { return (window.ZFindServices.proOffer && window.ZFindServices.proOffer.PRICES) || {}; }
+
+function offerSummary(plan, wave) {
+  const p = signupPrices();
+  if (plan === 'founder') {
+    const price = wave === 2 ? p.founderWave2Month : p.founderMonth;
+    return `<strong>Offre Fondateur — ${wave === 2 ? '2e' : '1re'} vague.</strong> ${p.founderFreeMonths} mois gratuits (offre Pro complète), puis ${price} € HT par mois garantis ${p.founderPriceMonths} mois, sans engagement. Moins de ${p.founderMinLeads} contacts reçus pendant la période gratuite : ${p.founderExtensionMonths} mois offerts de plus.`;
+  }
+  if (plan === 'founder_developer') {
+    return `<strong>Promoteur fondateur.</strong> Vos programmes neufs sont gratuits pendant ${p.founderFreeMonths} mois, sans engagement.`;
+  }
+  return `<strong>Programme neuf :</strong> ${p.developmentMonth} € HT par programme et par mois, sans engagement.`;
+}
+
+async function renderSignupBanner() {
+  const el = document.getElementById('signup-banner');
+  if (!el) return;
+  const res = await window.ZFindServices.partnerSignup.ownSignup();
+  const s = res.data;
+  if (!s || s.status === 'verified') { el.style.display = 'none'; return; }
+  if (s.status === 'rejected') {
+    el.innerHTML = '<strong>Votre inscription n’a pas pu être validée.</strong> Écrivez-nous à hello@zfind.online pour en savoir plus.';
+  } else {
+    el.innerHTML = `<strong>Bienvenue sur Z Find.</strong> Nous vérifions votre ${s.role === 'promoter' ? 'inscription' : 'carte professionnelle'}. Vous pouvez déjà préparer vos annonces : elles seront mises en ligne après cette vérification.<br>${offerSummary(s.plan, s.founder_wave)}`;
+  }
+  el.style.display = '';
+}
+
+/* ---------------- Sign-up: SIREN → fiche pré-remplie → compte ---------------- */
+const signupState = { results: [], picked: null, manual: false };
+
+function showLoginView() {
+  document.getElementById('view-signup').style.display = 'none';
+  document.getElementById('view-login').style.display = '';
+}
+
+function showSignupView() {
+  document.getElementById('view-login').style.display = 'none';
+  document.getElementById('view-signup').style.display = '';
+  document.getElementById('su-switch').style.display = '';
+  signupGoto(1);
+  onSignupCountryChange();
+  renderSignupOfferPanel();
+}
+
+function signupRole() {
+  const el = document.querySelector('input[name="su-role"]:checked');
+  return el ? el.value : 'agency';
+}
+function signupCountry() { return document.getElementById('su-country').value; }
+function suVal(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
+function suSet(id, v) { const el = document.getElementById(id); if (el) el.value = v == null ? '' : v; }
+function suShow(id, on) { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; }
+function suError(step, msg) { const el = document.getElementById('su-error-' + step); if (el) el.textContent = msg || ''; }
+
+function signupGoto(step) {
+  ['1', '2', '3', 'done'].forEach(k => suShow('su-pane-' + k, String(step) === k));
+  document.querySelectorAll('.su-steps li').forEach(li => {
+    const n = Number(li.dataset.step);
+    li.classList.toggle('active', n === step);
+    li.classList.toggle('done', typeof step === 'number' && n < step);
+  });
+  if (step === 3) renderSignupOfferBox();
+}
+
+function renderSignupOfferPanel() {
+  const p = signupPrices();
+  const lead = document.getElementById('su-offer-lead');
+  const marks = document.getElementById('su-offer-marks');
+  if (signupRole() === 'promoter') {
+    lead.textContent = `${p.founderDevelopers} promoteurs fondateurs : vos programmes neufs gratuits pendant ${p.founderFreeMonths} mois, sans carte bancaire ni engagement.`;
+    marks.innerHTML = `
+      <div class="mark-row"><span class="k">Ensuite</span><span class="v">${p.developmentMonth} € HT / programme / mois</span></div>
+      <div class="mark-row"><span class="k">Inclus</span><span class="v">Page programme, lots, une semaine « À la une »</span></div>`;
+    return;
+  }
+  lead.textContent = `${p.founderFreeMonths} mois gratuits dès votre inscription : l’offre Pro complète, sans carte bancaire ni engagement.`;
+  marks.innerHTML = `
+    <div class="mark-row"><span class="k">${p.founderSeatsPerCountry} premières agences par pays</span><span class="v">${p.founderMonth} € HT / mois, ${p.founderPriceMonths} mois</span></div>
+    <div class="mark-row"><span class="k">Agences suivantes</span><span class="v">${p.founderWave2Month} € HT / mois, ${p.founderPriceMonths} mois</span></div>
+    <div class="mark-row"><span class="k">Moins de ${p.founderMinLeads} contacts en ${p.founderFreeMonths} mois</span><span class="v">${p.founderExtensionMonths} mois offerts de plus</span></div>`;
+}
+
+function renderSignupOfferBox() {
+  const p = signupPrices();
+  const box = document.getElementById('su-offer-box');
+  const promoter = signupRole() === 'promoter';
+  box.innerHTML = promoter
+    ? `<strong>Votre offre.</strong> Si vous êtes parmi les ${p.founderDevelopers} premiers promoteurs, vos programmes neufs sont gratuits pendant ${p.founderFreeMonths} mois ; sinon ${p.developmentMonth} € HT par programme et par mois. Sans engagement.`
+    : `<strong>Votre offre.</strong> ${p.founderFreeMonths} mois gratuits (offre Pro complète). Ensuite ${p.founderMonth} € HT par mois si vous êtes parmi les ${p.founderSeatsPerCountry} premières agences de votre pays, sinon ${p.founderWave2Month} € HT, garantis ${p.founderPriceMonths} mois. Sans carte bancaire ni engagement.`;
+  document.getElementById('su-certify-text').textContent = promoter
+    ? 'Je certifie représenter cette société et être habilité à l’inscrire.'
+    : 'Je certifie être titulaire de la carte professionnelle indiquée (ou habilité par son titulaire) et représenter cette agence.';
+  document.getElementById('su-terms-text').textContent = promoter
+    ? 'J’accepte les règles de Z Find : annonces de professionnels identifiés, réponse aux demandes sous 24 heures.'
+    : 'J’accepte les conditions de l’offre Fondateur : publier tout mon portefeuille, répondre aux demandes sous 24 heures et autoriser Z Find à citer mon agence comme référence.';
+}
+
+function onSignupRoleChange() {
+  renderSignupOfferPanel();
+  onSignupCountryChange();
+}
+
+function onSignupCountryChange() {
+  const c = signupCountry();
+  const promoter = signupRole() === 'promoter';
+  const label = document.getElementById('su-number-label');
+  const hint = document.getElementById('su-number-hint');
+  suShow('su-number-field', c !== 'LU');
+  suShow('su-lookup-btn', c !== 'LU');
+  if (c === 'FR') {
+    label.textContent = 'SIRET ou SIREN';
+    hint.textContent = 'Le SIRET (14 chiffres) identifie votre agence ; le SIREN (9 chiffres) affiche tous vos établissements.';
+  } else if (c === 'BE') {
+    label.textContent = 'Numéro d’entreprise (BCE)';
+    hint.textContent = '10 chiffres, par exemple 0123.456.789.';
+  }
+  document.getElementById('su-manual').textContent = c === 'LU' ? 'Saisir mes informations' : 'Saisir mes informations à la main';
+  suShow('su-siret-field', c === 'FR');
+  suShow('su-company-field', c !== 'FR');
+  document.getElementById('su-company-label').textContent = c === 'BE' ? 'Numéro d’entreprise (BCE) *' : 'Numéro RCS (B…) *';
+  const card = document.getElementById('su-card-label');
+  if (promoter) {
+    card.textContent = c === 'FR' ? 'N° RCS ou référence de la garantie financière d’achèvement *' : 'Numéro d’immatriculation ou d’autorisation *';
+    suShow('su-card-authority-field', false);
+  } else if (c === 'FR') {
+    card.textContent = 'Carte professionnelle (CPI) n° *';
+    document.getElementById('su-card-authority-label').textContent = 'Délivrée par (CCI)';
+    suShow('su-card-authority-field', true);
+  } else if (c === 'BE') {
+    card.textContent = 'Numéro d’agréation IPI *';
+    suShow('su-card-authority-field', false);
+  } else {
+    card.textContent = 'Autorisation d’établissement n° *';
+    suShow('su-card-authority-field', false);
+  }
+  document.getElementById('su-results').innerHTML = '';
+  suError(1, '');
+}
+
+async function signupLookup() {
+  const c = signupCountry();
+  const raw = suVal('su-number');
+  suError(1, '');
+  const check = window.ZFindServices.partnerSignup.validateNumber(c, raw);
+  if (!check.ok) {
+    suError(1, c === 'FR'
+      ? (check.reason === 'length' ? 'Saisissez un SIRET (14 chiffres) ou un SIREN (9 chiffres).' : 'Ce numéro n’est pas valide : vérifiez les chiffres.')
+      : (check.reason === 'length' ? 'Saisissez votre numéro d’entreprise à 10 chiffres.' : 'Ce numéro d’entreprise n’est pas valide : vérifiez les chiffres.'));
+    return;
+  }
+  const btn = document.getElementById('su-lookup-btn');
+  btn.disabled = true; btn.textContent = 'Recherche…';
+  const res = await window.ZFindServices.partnerSignup.lookup(c, check.digits);
+  btn.disabled = false; btn.textContent = 'Rechercher';
+  const host = document.getElementById('su-results');
+  if (res.error) { suError(1, 'La recherche n’a pas abouti. Réessayez ou saisissez vos informations à la main.'); return; }
+  signupState.results = res.data;
+  if (!res.data.length) {
+    host.innerHTML = '<p class="su-hint">Nous ne trouvons pas ce numéro parmi les agences immobilières de notre base. Vérifiez-le, ou saisissez vos informations à la main.</p>';
+    return;
+  }
+  host.innerHTML = '<p class="su-hint" style="margin-bottom:10px;">Choisissez votre établissement :</p>' + res.data.map((r, i) => `
+    <button type="button" class="su-result" ${r.already_registered ? 'disabled' : ''} onclick="signupPick(${i})">
+      <span class="n">${escapeHtmlPartner(r.trade_name || r.name)}${r.is_head_office ? '<span class="tag">Siège</span>' : ''}${r.already_registered ? '<span class="tag">Déjà inscrit</span>' : ''}</span>
+      <span class="a">${escapeHtmlPartner([streetOnly(r), [r.postcode, r.city].filter(Boolean).join(' ')].filter(Boolean).join(' · '))}</span>
+    </button>`).join('');
+}
+
+/* The registry address often ends with "postcode city": keep the street only. */
+function streetOnly(r) {
+  const address = (r && r.address) || '';
+  return r && r.postcode && address.includes(r.postcode) ? address.slice(0, address.indexOf(r.postcode)).trim() : address;
+}
+
+function signupFillFrom(r) {
+  suSet('su-legal', r ? r.name : '');
+  suSet('su-trade', r ? (r.trade_name || '') : '');
+  suSet('su-siret', r ? (r.establishment_id || '') : '');
+  suSet('su-company', r ? (r.company_id || '') : '');
+  suSet('su-address', r ? streetOnly(r) : '');
+  suSet('su-postcode', r ? r.postcode : '');
+  suSet('su-city', r ? r.city : '');
+}
+
+function signupPick(i) {
+  const r = signupState.results[i];
+  if (!r || r.already_registered) return;
+  signupState.picked = r;
+  signupState.manual = false;
+  signupFillFrom(r);
+  suError(2, '');
+  signupGoto(2);
+}
+
+function signupManual() {
+  signupState.picked = null;
+  signupState.manual = true;
+  const c = signupCountry();
+  const typed = window.ZFindServices.partnerSignup._internals.digits(suVal('su-number'));
+  signupFillFrom(null);
+  if (c === 'FR' && typed.length === 14) suSet('su-siret', typed);
+  if (c === 'BE' && typed.length >= 9) suSet('su-company', typed);
+  suError(2, '');
+  signupGoto(2);
+}
+
+function signupStep2Next() {
+  const c = signupCountry();
+  const v = window.ZFindServices.partnerSignup.validateNumber;
+  if (!suVal('su-legal')) return suError(2, 'Indiquez la raison sociale.');
+  if (c === 'FR') {
+    const d = window.ZFindServices.partnerSignup._internals.digits(suVal('su-siret'));
+    const ok = v('FR', d);
+    if (d.length !== 14 || !ok.ok) return suError(2, 'Indiquez un SIRET valide (14 chiffres).');
+  } else if (c === 'BE') {
+    if (!v('BE', suVal('su-company')).ok) return suError(2, 'Indiquez un numéro d’entreprise BCE valide.');
+  } else if (!suVal('su-company')) {
+    return suError(2, 'Indiquez votre numéro RCS.');
+  }
+  if (!suVal('su-card')) return suError(2, document.getElementById('su-card-label').textContent.replace(' *', '') + ' : champ obligatoire.');
+  suError(2, '');
+  signupGoto(3);
+}
+
+function signupApplication() {
+  const c = signupCountry();
+  const digits = window.ZFindServices.partnerSignup._internals.digits;
+  const picked = signupState.picked;
+  return {
+    version: '2026-10-04',
+    role: signupRole(),
+    country: c,
+    legal_name: suVal('su-legal'),
+    trade_name: suVal('su-trade'),
+    establishment_id: c === 'FR' ? digits(suVal('su-siret')) : '',
+    company_id: c === 'FR' ? digits(suVal('su-siret')).slice(0, 9) : (c === 'BE' ? window.ZFindServices.partnerSignup.validateNumber('BE', suVal('su-company')).digits : suVal('su-company')),
+    agencia_id: picked ? picked.agencia_id : '',
+    address: suVal('su-address'),
+    postcode: suVal('su-postcode'),
+    city: suVal('su-city'),
+    phone: suVal('su-phone'),
+    website: suVal('su-website'),
+    card_number: suVal('su-card'),
+    card_authority: suVal('su-card-authority'),
+    terms_accepted: true
+  };
+}
+
+async function signupSubmit() {
+  const email = suVal('su-email');
+  const pw = document.getElementById('su-password').value;
+  const pw2 = document.getElementById('su-password2').value;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return suError(3, 'Indiquez une adresse e-mail valide.');
+  if (pw.length < 10) return suError(3, 'Le mot de passe doit contenir au moins 10 caractères.');
+  if (pw !== pw2) return suError(3, 'Les deux mots de passe ne correspondent pas.');
+  if (!document.getElementById('su-certify').checked || !document.getElementById('su-terms').checked) {
+    return suError(3, 'Cochez les deux cases pour continuer.');
+  }
+  suError(3, '');
+  const btn = document.getElementById('su-submit');
+  btn.disabled = true; btn.textContent = 'Création…';
+  const redirect = window.location.origin + window.location.pathname;
+  const res = await window.ZFindServices.partnerSignup.register(email, pw, signupApplication(), redirect);
+  btn.disabled = false; btn.textContent = 'Créer mon compte';
+  if (res.error) {
+    const m = String(res.error.message || '').toLowerCase();
+    if (m.includes('already') || m.includes('registered')) return suError(3, 'Un compte existe déjà avec cet e-mail. Connectez-vous, ou utilisez une autre adresse.');
+    if (m.includes('password')) return suError(3, 'Ce mot de passe est trop faible : choisissez-en un plus long ou moins courant.');
+    return suError(3, 'La création du compte a échoué. Réessayez dans un instant.');
+  }
+  if (res.data.existing) return suError(3, 'Un compte existe déjà avec cet e-mail. Connectez-vous, ou utilisez une autre adresse.');
+  if (res.data.session) { await tryEnterDashboard(); return; }
+  document.getElementById('su-done-text').textContent =
+    `Nous avons envoyé un lien de confirmation à ${email}. Cliquez dessus, puis connectez-vous ici avec votre mot de passe : votre espace sera créé automatiquement.`;
+  suShow('su-switch', false);
+  signupGoto('done');
 }
 
 /** Loads the partner's own properties/developments — reuses admin.js's
@@ -85,28 +393,41 @@ async function loadPortfolio() {
   const developments = devsResult.error ? [] : devsResult.data;
 
   if (!properties.length && !developments.length) {
-    listEl.innerHTML = '<div class="portfolio-empty">Nothing here yet — add your first property or development above.</div>';
+    listEl.innerHTML = '<div class="portfolio-empty">Rien pour l’instant — ajoutez votre premier bien ou programme ci-dessus.</div>';
     return;
   }
 
   const propRows = properties.map(p => `
     <div class="portfolio-row" onclick="openDetail('property','${p.id}')">
       <div>
-        <div class="name">${escapeHtmlPartner(p.typology || p.subtype || 'Untitled property')}</div>
-        <div class="meta">${p.zones_lite ? escapeHtmlPartner(p.zones_lite.name + ', ' + p.zones_lite.city) : 'No zone set yet'}${p.area_sqm ? ' · ' + p.area_sqm + ' m²' : ''}</div>
+        <div class="name">${escapeHtmlPartner(p.typology || p.subtype || 'Bien sans titre')}</div>
+        <div class="meta">${p.zones_lite ? escapeHtmlPartner(p.zones_lite.name + ', ' + p.zones_lite.city) : 'Zone à définir'}${p.area_sqm ? ' · ' + p.area_sqm + ' m²' : ''}</div>
       </div>
-      <span class="kind-tag">Property</span>
+      <span class="kind-tag">Bien</span>
     </div>`).join('');
   const devRows = developments.map(d => `
     <div class="portfolio-row" onclick="openDetail('development','${d.id}')">
       <div>
         <div class="name">${escapeHtmlPartner(d.name)}</div>
-        <div class="meta">${d.zones_lite ? escapeHtmlPartner(d.zones_lite.name + ', ' + d.zones_lite.city) : 'No zone set yet'}</div>
+        <div class="meta">${d.zones_lite ? escapeHtmlPartner(d.zones_lite.name + ', ' + d.zones_lite.city) : 'Zone à définir'}</div>
       </div>
-      <span class="kind-tag">Development</span>
+      <span class="kind-tag">Programme neuf</span>
     </div>`).join('');
 
   listEl.innerHTML = propRows + devRows;
+}
+
+const LISTING_STATUS_FR = {
+  draft: 'Brouillon', incomplete: 'Incomplète', pending_review: 'En vérification', ready: 'Prête à publier',
+  published: 'En ligne', suspended: 'Suspendue', archived: 'Archivée'
+};
+const LEAD_STATUS_FR = { new: 'Nouvelle', contacted: 'Contactée', closed: 'Clôturée' };
+function listingStatusLabel(s) { return LISTING_STATUS_FR[s] || s || ''; }
+function leadStatusLabel(s) { return LEAD_STATUS_FR[s] || s || ''; }
+function loginErrorMessage(error) {
+  const msg = String((error && error.message) || '').toLowerCase();
+  if (msg.includes('confirm')) return 'Confirmez d’abord votre adresse e-mail : cliquez sur le lien reçu, puis reconnectez-vous ici.';
+  return 'E-mail ou mot de passe incorrect.';
 }
 
 function escapeHtmlPartner(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
@@ -154,7 +475,7 @@ async function getResidentialDefaultSubtype() {
     return {
       data: null,
       error: new Error(
-        'No enabled Residential Property subtype'
+        'Aucun type de bien résidentiel disponible'
       )
     };
   }
@@ -177,7 +498,7 @@ async function createNewProperty() {
 
   if (subtypeResult.error || !subtypeResult.data) {
     alert(
-      'No Residential Property subtype is currently available.'
+      'Aucun type de bien résidentiel n’est disponible pour le moment.'
     );
     return;
   }
@@ -193,7 +514,7 @@ async function createNewProperty() {
       });
 
   if (result.error) {
-    alert('Could not create property.');
+    alert('Impossible de créer le bien.');
     return;
   }
 
@@ -212,9 +533,9 @@ function closeNewDevelopmentForm() {
 async function saveNewDevelopment() {
   const name = document.getElementById('new-dev-name').value.trim();
   const errorEl = document.getElementById('new-dev-error');
-  if (!name) { errorEl.textContent = 'Enter a name for the development.'; return; }
+  if (!name) { errorEl.textContent = 'Indiquez le nom du programme.'; return; }
   const result = await window.ZFindServices.admin.createDevelopmentForPartner({ name, zoneLiteId: null });
-  if (result.error) { errorEl.textContent = 'Could not create development.'; return; }
+  if (result.error) { errorEl.textContent = 'Impossible de créer le programme.'; return; }
   closeNewDevelopmentForm();
   loadPortfolio();
 }
@@ -239,13 +560,13 @@ async function openDetail(kind, id) {
   document.getElementById('dash-partner-name-2').textContent = document.getElementById('dash-partner-name').textContent;
 
   const result = kind === 'property' ? await window.ZFindServices.admin.getPropertyForEdit(id) : await window.ZFindServices.admin.getDevelopmentForEdit(id);
-  if (result.error) { showStatus('error', 'Could not load.'); backToPortfolio(); return; }
+  if (result.error) { showStatus('error', 'Chargement impossible.'); backToPortfolio(); return; }
   const d = result.data;
 
-  document.getElementById('detail-title').textContent = kind === 'property' ? (d.typology || d.subtype || 'Property') : d.name;
+  document.getElementById('detail-title').textContent = kind === 'property' ? (d.typology || d.subtype || 'Bien') : d.name;
   document.getElementById('detail-extended-fields').innerHTML = kind === 'property'
-    ? window.ZFindServices.fieldForms.renderPropertyExtendedFields(d)
-    : window.ZFindServices.fieldForms.renderDevelopmentExtendedFields(d);
+    ? window.ZFindServices.fieldForms.renderPropertyExtendedFields(d, { locale: 'fr' })
+    : window.ZFindServices.fieldForms.renderDevelopmentExtendedFields(d, { locale: 'fr' });
   loadFeaturesGrid(kind, id);
 
   // Units only make sense for a Development — same analogous feature
@@ -269,13 +590,13 @@ let currentDevelopmentZoneLiteId = null;
 async function loadDetailUnits(developmentId) {
   const listEl = document.getElementById('detail-units-list');
   const result = await window.ZFindServices.admin.listUnitsForDevelopment(developmentId);
-  if (result.error) { listEl.innerHTML = 'Could not load units.'; return; }
-  if (!result.data.length) { listEl.innerHTML = '<p style="color:var(--gray-500);">No units yet.</p>'; return; }
+  if (result.error) { listEl.innerHTML = 'Impossible de charger les lots.'; return; }
+  if (!result.data.length) { listEl.innerHTML = '<p style="color:var(--gray-500);">Aucun lot pour l’instant.</p>'; return; }
   listEl.innerHTML = result.data.map(u => `
     <div class="portfolio-row" onclick="openDetail('property','${u.id}')">
       <div>
-        <div class="name">${escapeHtmlPartner(u.typology || u.subtype || 'Unit')}</div>
-        <div class="meta">${u.area_sqm ? u.area_sqm + ' m²' : ''}${u.floor != null ? ' · Floor ' + u.floor : ''}</div>
+        <div class="name">${escapeHtmlPartner(u.typology || u.subtype || 'Lot')}</div>
+        <div class="meta">${u.area_sqm ? u.area_sqm + ' m²' : ''}${u.floor != null ? ' · Étage ' + u.floor : ''}</div>
       </div>
       <span class="kind-tag">${u.zones_lite ? escapeHtmlPartner(u.zones_lite.name) : ''}</span>
     </div>`).join('');
@@ -291,7 +612,7 @@ async function addUnitToCurrentDevelopment() {
   if (subtypeResult.error || !subtypeResult.data) {
     showStatus(
       'error',
-      'No Residential subtype is available for a new unit.'
+      'Aucun type de bien résidentiel disponible pour un nouveau lot.'
     );
     return;
   }
@@ -309,12 +630,12 @@ async function addUnitToCurrentDevelopment() {
   if (result.error) {
     showStatus(
       'error',
-      'Could not create unit.'
+      'Impossible de créer le lot.'
     );
     return;
   }
 
-  showStatus('success', 'Unit added.');
+  showStatus('success', 'Lot ajouté.');
   loadDetailUnits(detailId);
 }
 
@@ -340,15 +661,15 @@ function ensurePartnerRemoveButton(kind, id) {
   zone.style.borderColor = 'rgba(180,35,24,.25)';
 
   const label = kind === 'development'
-    ? 'Delete development'
-    : 'Delete property';
+    ? 'Supprimer le programme'
+    : 'Supprimer le bien';
 
   zone.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;">
       <div>
-        <div style="font-weight:600;">Remove from your portfolio</div>
+        <div style="font-weight:600;">Retirer de votre portefeuille</div>
         <div style="font-size:.86rem;color:var(--gray-500);margin-top:4px;">
-          Protected leads, verification and audit history are preserved automatically when required.
+          Les demandes, vérifications et historiques protégés sont conservés automatiquement lorsque la loi l’exige.
         </div>
       </div>
       <button
@@ -365,14 +686,14 @@ function ensurePartnerRemoveButton(kind, id) {
 
 async function removePartnerAsset(kind, id) {
   const label = kind === 'development'
-    ? 'development'
-    : 'property';
+    ? 'ce programme'
+    : 'ce bien';
 
   const ok = window.confirm(
-    `Delete this ${label}?\n\n` +
-    'It will disappear from your portfolio and from the market. ' +
-    'If protected commercial or audit records exist, Z Find will ' +
-    'preserve them instead of physically destroying them.'
+    `Supprimer ${label} ?\n\n` +
+    'Il disparaîtra de votre portefeuille et du site. ' +
+    'Si des données commerciales ou d’audit protégées existent, Z Find ' +
+    'les conserve au lieu de les effacer.'
   );
 
   if (!ok) return;
@@ -386,7 +707,7 @@ async function removePartnerAsset(kind, id) {
   if (result.error) {
     showStatus(
       'error',
-      result.error.message || `Could not delete ${label}.`
+      result.error.message || `Impossible de supprimer ${label}.`
     );
     return;
   }
@@ -398,8 +719,8 @@ async function removePartnerAsset(kind, id) {
   showStatus(
     'success',
     physicallyDeleted
-      ? `${label === 'development' ? 'Development' : 'Property'} deleted.`
-      : `${label === 'development' ? 'Development' : 'Property'} removed. Protected history was preserved.`
+      ? `${kind === 'development' ? 'Programme supprimé' : 'Bien supprimé'}.`
+      : `${kind === 'development' ? 'Programme retiré' : 'Bien retiré'}. L’historique protégé a été conservé.`
   );
 
   backToPortfolio();
@@ -412,7 +733,7 @@ async function saveExtendedAttrs(kind, id) {
   const result = kind === 'property'
     ? await window.ZFindServices.admin.updateProperty(id, window.ZFindServices.fieldForms.readPropertyExtendedFieldsFromDOM())
     : await window.ZFindServices.admin.updateDevelopment(id, window.ZFindServices.fieldForms.readDevelopmentExtendedFieldsFromDOM());
-  showStatus(result.error ? 'error' : 'success', result.error ? 'Could not save fields.' : 'Fields saved.');
+  showStatus(result.error ? 'error' : 'success', result.error ? 'Impossible d’enregistrer les champs.' : 'Champs enregistrés.');
 }
 
 async function loadFeaturesGrid(kind, id) {
@@ -422,9 +743,9 @@ async function loadFeaturesGrid(kind, id) {
     window.ZFindServices.admin.listFeatures(),
     kind === 'property' ? window.ZFindServices.admin.getPropertyFeatureIds(id) : window.ZFindServices.admin.getDevelopmentFeatureIds(id),
   ]);
-  if (allFeatures.error) { grid.innerHTML = 'Could not load features.'; return; }
+  if (allFeatures.error) { grid.innerHTML = 'Impossible de charger les équipements.'; return; }
   const linkedIds = new Set((linked.data || []).map(r => r.feature_id));
-  grid.innerHTML = window.ZFindServices.fieldForms.renderFeaturesChecklist(allFeatures.data, linkedIds);
+  grid.innerHTML = window.ZFindServices.fieldForms.renderFeaturesChecklist(allFeatures.data, linkedIds, { locale: 'fr' });
 }
 
 async function saveFeatures(kind, id) {
@@ -432,7 +753,7 @@ async function saveFeatures(kind, id) {
   const result = kind === 'property'
     ? await window.ZFindServices.admin.setPropertyFeatures(id, checked)
     : await window.ZFindServices.admin.setDevelopmentFeatures(id, checked);
-  showStatus(result.error ? 'error' : 'success', result.error ? 'Could not save features.' : `${checked.length} feature(s) saved.`);
+  showStatus(result.error ? 'error' : 'success', result.error ? 'Impossible d’enregistrer les équipements.' : `${checked.length} équipement(s) enregistré(s).`);
 }
 
 
@@ -475,11 +796,11 @@ function renderPartnerListingCommercialEditor(listing) {
         background:#fff;
       "
     >
-      <h3 style="margin:0 0 5px;">Commercial terms</h3>
+      <h3 style="margin:0 0 5px;">Conditions commerciales</h3>
 
       <p style="margin:0 0 14px;color:#777;font-size:.82rem;">
-        You control the commercial terms of your Listing.
-        Publication and lifecycle remain controlled by Z Find.
+        Vous fixez les conditions commerciales de votre annonce.
+        La publication est validée par Z Find.
       </p>
 
       <div
@@ -490,17 +811,17 @@ function renderPartnerListingCommercialEditor(listing) {
         "
       >
         <label>
-          <span>Market</span>
+          <span>Transaction</span>
           <select
             id="partner-listing-transaction-type"
             onchange="syncPartnerRentalPeriodControl()"
           >
             <option value="sale" ${
               transactionType === 'sale' ? 'selected' : ''
-            }>Sale</option>
+            }>Vente</option>
             <option value="rent" ${
               transactionType === 'rent' ? 'selected' : ''
-            }>Rental</option>
+            }>Location</option>
           </select>
         </label>
 
@@ -512,22 +833,22 @@ function renderPartnerListingCommercialEditor(listing) {
               : 'display:none;'
           }"
         >
-          <span>Rental period</span>
+          <span>Type de location</span>
           <select id="partner-listing-rental-period">
             <option value="monthly" ${
               rentalPeriod === 'monthly' ? 'selected' : ''
-            }>Monthly</option>
+            }>Au mois</option>
             <option value="seasonal" ${
               rentalPeriod === 'seasonal' ? 'selected' : ''
-            }>Seasonal</option>
+            }>Saisonnière</option>
             <option value="yearly" ${
               rentalPeriod === 'yearly' ? 'selected' : ''
-            }>Yearly</option>
+            }>À l’année</option>
           </select>
         </label>
 
         <label>
-          <span>Price</span>
+          <span>Prix</span>
           <input
             id="partner-listing-price-current"
             type="number"
@@ -538,7 +859,7 @@ function renderPartnerListingCommercialEditor(listing) {
         </label>
 
         <label>
-          <span>Currency</span>
+          <span>Devise</span>
           <input
             id="partner-listing-currency-iso"
             type="text"
@@ -554,7 +875,7 @@ function renderPartnerListingCommercialEditor(listing) {
             type="checkbox"
             ${listing.price_is_from ? 'checked' : ''}
           >
-          <span>Price is “from”</span>
+          <span>Prix « à partir de »</span>
         </label>
       </div>
 
@@ -567,7 +888,7 @@ function renderPartnerListingCommercialEditor(listing) {
           )
         "
       >
-        Save commercial terms
+        Enregistrer les conditions
       </button>
     </div>
   `;
@@ -644,9 +965,9 @@ async function savePartnerListingCommercial(listingId) {
     result.error
       ? (
           result.error.message ||
-          'Could not save commercial terms.'
+          'Impossible d’enregistrer les conditions.'
         )
-      : 'Commercial terms saved.'
+      : 'Conditions enregistrées.'
   );
 
   if (!result.error) {
@@ -671,10 +992,10 @@ async function loadPartnerListingWorkspace(kind, assetId) {
 
   zone.innerHTML = `
     <div class="page-title" style="font-size:1.05rem;">
-      Listing content & media
+      Annonce : textes et photos
     </div>
     <div id="partner-listing-workspace-body">
-      Loading…
+      Chargement…
     </div>
   `;
 
@@ -699,7 +1020,7 @@ async function loadPartnerListingWorkspace(kind, assetId) {
   if (listingResult.error) {
     body.textContent =
       listingResult.error.message ||
-      'Could not load listing workspace.';
+      'Impossible de charger l’annonce.';
     return;
   }
 
@@ -708,14 +1029,14 @@ async function loadPartnerListingWorkspace(kind, assetId) {
   if (!listing) {
     body.innerHTML = `
       <p style="color:var(--gray-500);margin:0 0 14px;">
-        This asset does not yet have a working Listing.
-        Create a draft to add descriptions and photos.
+        Ce bien n’a pas encore d’annonce.
+        Créez un brouillon pour ajouter textes et photos.
       </p>
       <button
         type="button"
         class="btn btn-primary"
         onclick="createPartnerDraftListing('${kind}','${assetId}')"
-      >Create draft listing</button>
+      >Créer le brouillon d’annonce</button>
     `;
     return;
   }
@@ -731,7 +1052,7 @@ async function loadPartnerListingWorkspace(kind, assetId) {
   ]);
 
   if (languagesResult.error || contentResult.error) {
-    body.textContent = 'Could not load listing content.';
+    body.textContent = 'Impossible de charger les textes de l’annonce.';
     return;
   }
 
@@ -761,7 +1082,7 @@ async function loadPartnerListingWorkspace(kind, assetId) {
         </div>
 
         <div class="form-field" style="margin-bottom:10px;">
-          <label>Title</label>
+          <label>Titre</label>
           <input
             type="text"
             id="partner-content-title-${lang.code}"
@@ -785,7 +1106,7 @@ async function loadPartnerListingWorkspace(kind, assetId) {
               '${listing.id}',
               '${lang.code}'
             )"
-          >Save ${escapeHtmlPartner(lang.code.toUpperCase())}</button>
+          >Enregistrer ${escapeHtmlPartner(lang.code.toUpperCase())}</button>
         </div>
       </div>
     `;
@@ -797,21 +1118,21 @@ async function loadPartnerListingWorkspace(kind, assetId) {
       style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px;"
     >
       <div>
-        <strong>Listing status:</strong>
-        ${escapeHtmlPartner(listing.status)}
+        <strong>Statut de l’annonce :</strong>
+        ${escapeHtmlPartner(listingStatusLabel(listing.status))}
       </div>
       <div style="font-size:.82rem;color:var(--gray-500);">
-        Publication/lifecycle approval remains controlled by Z Find.
+        La publication est validée par Z Find (vérification de conformité).
       </div>
     </div>
 
     <div class="page-title" style="font-size:.95rem;">
-      Descriptions
+      Textes
     </div>
 
     ${
       localePanels ||
-      '<p style="color:var(--gray-500);">No enabled languages.</p>'
+      '<p style="color:var(--gray-500);">Aucune langue activée.</p>'
     }
 
     <div
@@ -837,7 +1158,7 @@ async function loadPartnerListingWorkspace(kind, assetId) {
           '${assetId}',
           '${listing.id}'
         )"
-      >Upload photo</button>
+      >Ajouter la photo</button>
     </div>
 
     <div
@@ -846,7 +1167,7 @@ async function loadPartnerListingWorkspace(kind, assetId) {
       data-asset-id="${assetId}"
       data-listing-id="${listing.id}"
     >
-      Loading photos…
+      Chargement des photos…
     </div>
   `;
 
@@ -866,12 +1187,12 @@ async function createPartnerDraftListing(kind, assetId) {
     showStatus(
       'error',
       result.error.message ||
-      'Could not create draft listing.'
+      'Impossible de créer le brouillon.'
     );
     return;
   }
 
-  showStatus('success', 'Draft listing created.');
+  showStatus('success', 'Brouillon créé.');
   await loadPartnerListingWorkspace(kind, assetId);
 }
 
@@ -901,9 +1222,9 @@ async function savePartnerListingLocale(listingId, locale) {
     result.error
       ? (
           result.error.message ||
-          'Could not save content.'
+          'Impossible d’enregistrer le texte.'
         )
-      : `${locale.toUpperCase()} content saved.`
+      : `Texte ${locale.toUpperCase()} enregistré.`
   );
 }
 
@@ -973,7 +1294,7 @@ async function loadPartnerWorkspaceMedia(
   if (result.error) {
     grid.textContent =
       result.error.message ||
-      'Could not load photos.';
+      'Impossible de charger les photos.';
     return;
   }
 
@@ -984,7 +1305,7 @@ async function loadPartnerWorkspaceMedia(
 
   if (!items.length) {
     grid.innerHTML =
-      '<p style="color:var(--gray-500);">No photos yet.</p>';
+      '<p style="color:var(--gray-500);">Aucune photo pour l’instant.</p>';
     return;
   }
 
@@ -1014,7 +1335,7 @@ async function loadPartnerWorkspaceMedia(
             Photo ${index + 1}
             ${
               m.is_cover
-                ? ' · <strong>Cover</strong>'
+                ? ' · <strong>Couverture</strong>'
                 : ''
             }
           </div>
@@ -1056,7 +1377,7 @@ async function loadPartnerWorkspaceMedia(
                     '${listingId}',
                     '${m.media_asset_id}'
                   )"
-                >Set cover</button>`
+                >Mettre en couverture</button>`
               : ''
           }
 
@@ -1070,7 +1391,7 @@ async function loadPartnerWorkspaceMedia(
               '${listingId}',
               '${m.media_asset_id}'
             )"
-          >Delete</button>
+          >Supprimer</button>
         </div>
       </div>
     `;
@@ -1092,7 +1413,7 @@ async function uploadPartnerWorkspaceMedia(
     input.files[0];
 
   if (!file) {
-    showStatus('error', 'Choose an image first.');
+    showStatus('error', 'Choisissez d’abord une image.');
     return;
   }
 
@@ -1124,13 +1445,13 @@ async function uploadPartnerWorkspaceMedia(
   if (result.error) {
     showStatus(
       'error',
-      result.error.message || 'Could not upload photo.'
+      result.error.message || 'Impossible d’envoyer la photo.'
     );
     return;
   }
 
   input.value = '';
-  showStatus('success', 'Photo uploaded.');
+  showStatus('success', 'Photo ajoutée.');
 
   await loadPartnerWorkspaceMedia(
     kind,
@@ -1183,7 +1504,7 @@ async function movePartnerWorkspaceMedia(
     showStatus(
       'error',
       result.error.message ||
-      'Could not reorder photos.'
+      'Impossible de réordonner les photos.'
     );
     return;
   }
@@ -1217,12 +1538,12 @@ async function setPartnerWorkspaceCover(
     showStatus(
       'error',
       result.error.message ||
-      'Could not set cover.'
+      'Impossible de changer la couverture.'
     );
     return;
   }
 
-  showStatus('success', 'Cover updated.');
+  showStatus('success', 'Couverture mise à jour.');
 
   await loadPartnerWorkspaceMedia(
     kind,
@@ -1237,7 +1558,7 @@ async function deletePartnerWorkspaceMedia(
   listingId,
   mediaAssetId
 ) {
-  const ok = window.confirm('Delete this photo?');
+  const ok = window.confirm('Supprimer cette photo ?');
   if (!ok) return;
 
   const ownerId =
@@ -1256,12 +1577,12 @@ async function deletePartnerWorkspaceMedia(
     showStatus(
       'error',
       result.error.message ||
-      'Could not delete photo.'
+      'Impossible de supprimer la photo.'
     );
     return;
   }
 
-  showStatus('success', 'Photo deleted.');
+  showStatus('success', 'Photo supprimée.');
 
   await loadPartnerWorkspaceMedia(
     kind,
@@ -1275,6 +1596,7 @@ async function handlePartnerSignOut() {
   document.getElementById('view-dashboard').style.display = 'none';
   document.getElementById('view-detail').style.display = 'none';
   document.getElementById('view-leads').style.display = 'none';
+  document.getElementById('view-signup').style.display = 'none';
   document.getElementById('view-login').style.display = '';
   document.getElementById('login-email').value = '';
   document.getElementById('login-password').value = '';
@@ -1303,19 +1625,19 @@ function showLeadsView() {
 async function loadLeadsView() {
   const listEl = document.getElementById('leads-list');
   const result = await window.ZFindServices.admin.listLeads({});
-  if (result.error) { listEl.innerHTML = '<div class="portfolio-empty">Could not load leads.</div>'; return; }
-  if (!result.data.length) { listEl.innerHTML = '<div class="portfolio-empty">No leads yet — they\'ll appear here as soon as someone reaches out about one of your listings.</div>'; return; }
+  if (result.error) { listEl.innerHTML = '<div class="portfolio-empty">Impossible de charger les demandes.</div>'; return; }
+  if (!result.data.length) { listEl.innerHTML = '<div class="portfolio-empty">Aucune demande pour l’instant — elles apparaîtront ici dès qu’un acheteur ou un locataire vous contactera au sujet d’une de vos annonces.</div>'; return; }
 
   listEl.innerHTML = result.data.map(l => {
-    const contact = [l.email, l.phone].filter(Boolean).join(' · ') || 'No contact info';
-    const date = new Date(l.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+    const contact = [l.email, l.phone].filter(Boolean).join(' · ') || 'Pas de coordonnées';
+    const date = new Date(l.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
     return `
     <div class="lead-row">
       <div class="top">
-        <span class="name">${escapeHtmlPartner(l.name || 'Unnamed')}</span>
+        <span class="name">${escapeHtmlPartner(l.name || 'Sans nom')}</span>
         <span class="date">${date}</span>
       </div>
-      <div class="contact">${escapeHtmlPartner(contact)} <span class="lead-status ${l.status}">${escapeHtmlPartner(l.status)}</span></div>
+      <div class="contact">${escapeHtmlPartner(contact)} <span class="lead-status ${l.status}">${escapeHtmlPartner(leadStatusLabel(l.status))}</span></div>
       ${l.message ? `<div class="message">${escapeHtmlPartner(l.message)}</div>` : ''}
     </div>`;
   }).join('');

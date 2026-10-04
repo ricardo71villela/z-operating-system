@@ -101,5 +101,23 @@
     return '﻿' + [EXPORT_COLUMNS.join(';')].concat(rows.map(r => EXPORT_COLUMNS.map(c => cell(r[c])).join(';'))).join('\r\n');
   }
 
-  return Object.freeze({ PAGE, EXPORT_COLUMNS, EXPORT_MAX, overview, list, get, setDoNotContact, updateContacts, exportRows, toCsv, _internals: { applyFilters } });
+  /* Self sign-ups (migration 20261004110000): admin read via RLS,
+     decision via zfind_admin_review_signup() (also (de)activates the partner). */
+  function signups(status) {
+    const client = getSupabaseClient();
+    return safeQuery(() => {
+      let q = client.from('zfind_partner_signups')
+        .select('id,created_at,role,country,company_id,establishment_id,legal_name,trade_name,address,postcode,city,phone,email,website,card_number,card_authority,plan,founder_wave,status,review_note,reviewed_at,partner_id,agencia_id')
+        .order('created_at', { ascending: false }).limit(200);
+      if (status) q = q.eq('status', status);
+      return q;
+    }, 'prospection.signups', { allowNullData: true });
+  }
+
+  function reviewSignup(id, decision, note) {
+    const client = getSupabaseClient();
+    return safeQuery(() => client.rpc('zfind_admin_review_signup', { p_signup_id: id, p_decision: decision, p_note: note || null }), 'prospection.reviewSignup');
+  }
+
+  return Object.freeze({ PAGE, EXPORT_COLUMNS, EXPORT_MAX, overview, list, get, setDoNotContact, updateContacts, exportRows, toCsv, signups, reviewSignup, _internals: { applyFilters } });
 });

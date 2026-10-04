@@ -104,3 +104,8 @@ table.compact th,table.compact td{padding:5px 8px;font-size:.8rem;}
 .pager{display:flex;gap:10px;align-items:center;margin-top:12px;font-size:.85rem;}
 tr.row-muted td{opacity:.55;}
 @media (max-width:900px){.ops-grid{grid-template-columns:1fr;}}
+
+.card .n.seats{font-size:1.05rem;line-height:1.5;}
+.sg-actions{min-width:190px;}
+.sg-actions input{width:100%;margin-bottom:6px;padding:6px 8px;border:1px solid #ddd;border-radius:4px;font-size:.8rem;}
+.sg-actions .btn{margin:0 4px 4px 0;}

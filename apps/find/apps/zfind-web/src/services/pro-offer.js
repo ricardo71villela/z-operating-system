@@ -26,6 +26,9 @@
     founderSeatsPerCountry: 50, founderDevelopers: 10, founderMinLeads: 5, founderExtensionMonths: 3
   });
 
+  /* Self sign-up lives in the Partner app (#inscription opens the form). */
+  const SIGNUP_URL = 'https://partner.zfind.online/#inscription';
+
   const COPY = Object.freeze({
     fr: Object.freeze({
       eyebrow: 'Espace professionnels',
@@ -69,7 +72,7 @@
         `« À la une » offert pendant la période gratuite, en rotation entre les fondateurs.`
       ],
       founderAsk: 'En contrepartie : vous publiez tout votre portefeuille, vous répondez aux demandes sous 24 heures et vous nous autorisez à citer votre agence comme référence.',
-      contact: 'Devenir agence fondatrice', demo: 'Voir la démonstration des emplacements « À la une »',
+      contact: 'Devenir agence fondatrice', signup: 'Inscrire mon agence', write: 'Nous écrire', demo: 'Voir la démonstration des emplacements « À la une »',
       mailSubject: 'Z Find Pro — offre Fondateur'
     }),
     en: Object.freeze({
@@ -114,7 +117,7 @@
         '"Featured" slots free during the free period, rotating among founders.'
       ],
       founderAsk: 'In return: you publish your whole portfolio, answer enquiries within 24 hours and let us name your agency as a reference.',
-      contact: 'Become a founding agency', demo: 'See the "Featured" placements demonstration',
+      contact: 'Become a founding agency', signup: 'Register my agency', write: 'Write to us', demo: 'See the "Featured" placements demonstration',
       mailSubject: 'Z Find Pro — Founder offer'
     })
   });
@@ -137,7 +140,10 @@
           <h2>${esc(c.founderTitle)}</h2>
           <ul>${c.founder(PRICES).map(f => `<li>${esc(f)}</li>`).join('')}</ul>
           <p>${esc(c.founderAsk)}</p>
-          <a class="btn btn-gold" href="mailto:hello@zfind.online?subject=${subject}">${esc(c.contact)}</a>
+          <div class="zpro-actions">
+            <a class="btn btn-gold" href="${SIGNUP_URL}">${esc(c.signup)}</a>
+            <a class="btn btn-outline" href="mailto:hello@zfind.online?subject=${subject}">${esc(c.write)}</a>
+          </div>
         </section>
         <h2>${esc(c.offersTitle)}</h2>
         <div class="zpro-grid">
@@ -152,7 +158,7 @@
         <h2>${esc(c.rulesTitle)}</h2>
         <ul class="zpro-rules">${c.rules.map(r => `<li>${esc(r)}</li>`).join('')}</ul>
         <div class="zpro-actions">
-          <a class="btn btn-gold" href="mailto:hello@zfind.online?subject=${subject}">${esc(c.contact)}</a>
+          <a class="btn btn-gold" href="${SIGNUP_URL}">${esc(c.signup)}</a>
           <a class="btn btn-outline" href="#/${lang}/market/FR?demo=1">${esc(c.demo)}</a>
         </div>
       </div>`;
@@ -164,5 +170,5 @@
     return true;
   }
 
-  return Object.freeze({ COPY, PRICES, pageHTML, render });
+  return Object.freeze({ COPY, PRICES, SIGNUP_URL, pageHTML, render });
 });

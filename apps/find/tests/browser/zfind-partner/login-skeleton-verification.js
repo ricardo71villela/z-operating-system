@@ -66,7 +66,7 @@ async function run() {
     assert(await page.locator('#view-login').isVisible(), 'An admin account is REJECTED from the Partner app, not silently let in');
     assert(!(await page.locator('#view-dashboard').isVisible()), 'Dashboard never shows for a non-partner_user role');
     const errorText = await page.locator('#login-error').textContent();
-    assert(errorText.includes('not set up') || errorText.toLowerCase().includes('partner'), `A specific, honest reason is shown, not a generic error (got: "${errorText}")`);
+    assert(errorText.includes('pas un compte partenaire'), `A specific, honest reason is shown, not a generic error (got: "${errorText}")`);
     await page.close();
   }
 
@@ -85,7 +85,7 @@ async function run() {
     await mockAuth(page, { profileRole: 'partner_user', partnerId: 'partner-1', partnerName: 'Alma Imóveis' });
     await page.route('**/auth/v1/logout**', route => route.fulfill({ status: 204, body: '' }));
     await login(page);
-    await page.click('text=Sign out');
+    await page.click('text=Déconnexion');
     await page.waitForTimeout(300);
     assert(await page.locator('#view-login').isVisible(), 'Returns to the login screen after signing out');
     assert((await page.inputValue('#login-email')) === '', 'Email field cleared after sign out — never leaves a previous session\'s data sitting in the form');
@@ -97,14 +97,14 @@ async function run() {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     await page.goto(FILE_URL);
     await page.waitForTimeout(300);
-    assert(await page.locator('.login-editorial').isVisible(), 'Editorial panel visible on desktop width');
+    assert(await page.locator('#view-login .login-editorial').isVisible(), 'Editorial panel visible on desktop width');
     await page.close();
 
     const mobilePage = await browser.newPage({ viewport: { width: 390, height: 844 } });
     await mobilePage.goto(FILE_URL);
     await mobilePage.waitForTimeout(300);
-    assert(!(await mobilePage.locator('.login-editorial').isVisible()), 'Editorial panel hidden below the 860px breakpoint — the functional form stays the priority on mobile');
-    assert(await mobilePage.locator('.login-form-panel').isVisible(), 'Login form remains visible and usable on mobile');
+    assert(!(await mobilePage.locator('#view-login .login-editorial').isVisible()), 'Editorial panel hidden below the 860px breakpoint — the functional form stays the priority on mobile');
+    assert(await mobilePage.locator('#view-login .login-form-panel').isVisible(), 'Login form remains visible and usable on mobile');
     await mobilePage.close();
   }
 
@@ -119,8 +119,8 @@ async function run() {
     const listText = await page.locator('#portfolio-list').textContent();
     assert(listText.includes('T2') && listText.includes('Boavista'), 'Real property (T2, Boavista) renders');
     assert(listText.includes('Alma Living') && listText.includes('Foz do Douro'), 'Real development renders');
-    assert(await page.locator('.kind-tag:has-text("Property")').count() === 1, 'Property tagged correctly');
-    assert(await page.locator('.kind-tag:has-text("Development")').count() === 1, 'Development tagged correctly');
+    assert(await page.locator('.kind-tag:has-text("Bien")').count() === 1, 'Property tagged correctly');
+    assert(await page.locator('.kind-tag:has-text("Programme neuf")').count() === 1, 'Development tagged correctly');
     await page.close();
   }
 
@@ -149,7 +149,7 @@ await page.route('**/rest/v1/properties**', route => route.fulfill({ status: 200
 await page.route('**/rest/v1/developments**', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
     await login(page);
     await page.waitForTimeout(400);
-    await page.click('text=+ New property');
+    await page.click('text=+ Nouveau bien');
     await page.waitForTimeout(400);
     assert(propertyRpcPayload && propertyRpcPayload.p_subtype === 'apartment', 'Property RPC receives the sensible default subtype (apartment)');
 assert(propertyRpcPayload && propertyRpcPayload.p_typology === null && propertyRpcPayload.p_zone_lite_id === null, 'Property RPC preserves the minimal draft defaults');
@@ -170,7 +170,7 @@ await page.route('**/rest/v1/rpc/zfind_partner_create_development', route => {
 await page.route('**/rest/v1/developments**', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
 await login(page);
     await page.waitForTimeout(400);
-    await page.click('text=+ New development');
+    await page.click('text=+ Nouveau programme');
     await page.waitForTimeout(200);
     assert(await page.locator('#new-dev-form').isVisible(), 'Development form opens');
     await page.click('#new-dev-save');
@@ -229,7 +229,7 @@ assert(!(await page.locator('#new-dev-form').isVisible()), 'Form closes after a 
     await page.click('.portfolio-row');
     await page.waitForTimeout(400);
     await page.fill('#attr-bedrooms', '4');
-    await page.click('button:has-text("Save all fields above")');
+    await page.click('button:has-text("Enregistrer ces champs")');
     await page.waitForTimeout(300);
     assert(patchSent && patchSent.bedrooms === 4, 'Edited field reaches the real PATCH payload');
     assert(await page.locator('.toast').count() === 1, 'A confirmation toast appears');
@@ -252,7 +252,7 @@ assert(!(await page.locator('#new-dev-form').isVisible()), 'Form closes after a 
     await page.waitForTimeout(400);
     await page.click('.portfolio-row');
     await page.waitForTimeout(300);
-    await page.click('text=← Back to portfolio');
+    await page.click('text=← Retour au portefeuille');
     await page.waitForTimeout(300);
     assert(await page.locator('#view-dashboard').isVisible(), 'Returns to the portfolio list');
     assert(!(await page.locator('#view-detail').isVisible()), 'Detail view hides');
@@ -282,7 +282,7 @@ assert(!(await page.locator('#new-dev-form').isVisible()), 'Form closes after a 
     await page.waitForTimeout(400);
     assert(await page.locator('#detail-units-section').isVisible(), 'Units section visible for a Development');
     const unitsText = await page.locator('#detail-units-list').textContent();
-    assert(unitsText.includes('T1') && unitsText.includes('55 m²') && unitsText.includes('Floor 2'), `Real unit data renders — got: "${unitsText}"`);
+    assert(unitsText.includes('T1') && unitsText.includes('55 m²') && unitsText.includes('Étage 2'), `Real unit data renders — got: "${unitsText}"`);
     await page.close();
   }
 
@@ -309,7 +309,7 @@ assert(!(await page.locator('#new-dev-form').isVisible()), 'Form closes after a 
     await page.waitForTimeout(400);
     await page.click('.portfolio-row');
     await page.waitForTimeout(400);
-    await page.click('text=+ Add unit');
+    await page.click('text=+ Ajouter un lot');
     await page.waitForTimeout(400);
     assert(insertPayload && insertPayload.development_id === 'dev-1', 'New unit correctly linked to this development');
     assert(insertPayload && insertPayload.zone_lite_id === 'z1', 'Inherits the development\'s zone by default, same as Admin');
@@ -328,7 +328,7 @@ assert(!(await page.locator('#new-dev-form').isVisible()), 'Form closes after a 
     await login(page);
     await page.waitForTimeout(400);
     assert(!(await page.locator('#view-leads').isVisible()), 'Leads view hidden by default, Portfolio shows first');
-    await page.click('.dash-nav a:has-text("Leads")');
+    await page.click('.dash-nav a:has-text("Demandes")');
     await page.waitForTimeout(400);
     assert(await page.locator('#view-leads').isVisible(), 'Leads view opens on nav click');
     assert(!(await page.locator('#view-dashboard').isVisible()), 'Portfolio hides behind it');
@@ -349,9 +349,9 @@ assert(!(await page.locator('#new-dev-form').isVisible()), 'Form closes after a 
     await page.route('**/rest/v1/leads**', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
     await login(page);
     await page.waitForTimeout(400);
-    await page.click('.dash-nav a:has-text("Leads")');
+    await page.click('.dash-nav a:has-text("Demandes")');
     await page.waitForTimeout(400);
-    assert((await page.locator('#leads-list').textContent()).toLowerCase().includes('no leads yet'), 'Honest empty state, not a blank screen');
+    assert((await page.locator('#leads-list').textContent()).toLowerCase().includes('aucune demande'), 'Honest empty state, not a blank screen');
     await page.close();
   }
 
@@ -364,9 +364,9 @@ assert(!(await page.locator('#new-dev-form').isVisible()), 'Form closes after a 
     await page.route('**/rest/v1/leads**', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
     await login(page);
     await page.waitForTimeout(400);
-    await page.click('#view-dashboard .dash-nav a:has-text("Leads")');
+    await page.click('#view-dashboard .dash-nav a:has-text("Demandes")');
     await page.waitForTimeout(300);
-    await page.click('#view-leads .dash-nav a:has-text("Portfolio")');
+    await page.click('#view-leads .dash-nav a:has-text("Portefeuille")');
     await page.waitForTimeout(300);
     assert(await page.locator('#view-dashboard').isVisible(), 'Returns to Portfolio');
     assert(!(await page.locator('#view-leads').isVisible()), 'Leads view hides');
