@@ -133,11 +133,13 @@ function offerSummary(plan, wave) {
   return `<strong>Programme neuf :</strong> ${p.developmentMonth} € HT par programme et par mois, sans engagement.`;
 }
 
+let partnerCountry = null;
 async function renderSignupBanner() {
   const el = document.getElementById('signup-banner');
   if (!el) return;
   const res = await window.ZFindServices.partnerSignup.ownSignup();
   const s = res.data;
+  if (s && s.country) partnerCountry = s.country;
   if (!s || s.status === 'verified') { el.style.display = 'none'; return; }
   if (s.status === 'rejected') {
     el.innerHTML = '<strong>Votre inscription n’a pas pu être validée.</strong> Écrivez-nous à hello@zfind.online pour en savoir plus.';
@@ -422,7 +424,7 @@ async function loadPortfolio() {
     <div class="portfolio-row" onclick="openDetail('property','${p.id}')">
       <div>
         <div class="name">${escapeHtmlPartner(propertyTitle(p, 'Bien sans titre'))}</div>
-        <div class="meta">${p.zones_lite ? escapeHtmlPartner(p.zones_lite.name + ', ' + p.zones_lite.city) : 'Zone à définir'}${p.area_sqm ? ' · ' + p.area_sqm + ' m²' : ''}</div>
+        <div class="meta">${p.zones_lite ? escapeHtmlPartner(window.ZFindServices.commune.zoneLabel(p.zones_lite)) : 'Commune à définir'}${p.area_sqm ? ' · ' + p.area_sqm + ' m²' : ''}</div>
       </div>
       <span class="kind-tag">Bien</span>
     </div>`).join('');
@@ -430,7 +432,7 @@ async function loadPortfolio() {
     <div class="portfolio-row" onclick="openDetail('development','${d.id}')">
       <div>
         <div class="name">${escapeHtmlPartner(d.name)}</div>
-        <div class="meta">${d.zones_lite ? escapeHtmlPartner(d.zones_lite.name + ', ' + d.zones_lite.city) : 'Zone à définir'}</div>
+        <div class="meta">${d.zones_lite ? escapeHtmlPartner(window.ZFindServices.commune.zoneLabel(d.zones_lite)) : 'Commune à définir'}</div>
       </div>
       <span class="kind-tag">Programme neuf</span>
     </div>`).join('');
@@ -587,7 +589,8 @@ async function openDetail(kind, id) {
   document.getElementById('detail-title').textContent = kind === 'property' ? propertyTitle(d, 'Bien') : d.name;
   document.getElementById('detail-extended-fields').innerHTML = kind === 'property'
     ? renderPropertyCoreFields(d) + window.ZFindServices.fieldForms.renderPropertyExtendedFields(d, { locale: 'fr' })
-    : window.ZFindServices.fieldForms.renderDevelopmentExtendedFields(d, { locale: 'fr' });
+    : `<div class="page-title" style="font-size:1.1rem;">Localisation du programme</div><div class="detail-panel" style="margin-bottom:20px;">${renderCommunePicker('development', d)}</div>`
+      + window.ZFindServices.fieldForms.renderDevelopmentExtendedFields(d, { locale: 'fr' });
   loadFeaturesGrid(kind, id);
 
   // Units only make sense for a Development — same analogous feature
@@ -614,6 +617,7 @@ function renderPropertyCoreFields(d) {
   return `
     <div class="page-title" style="font-size:1.1rem;">Le bien</div>
     <div class="detail-panel" style="margin-bottom:20px;">
+      ${renderCommunePicker('property', d)}
       <div class="form-grid">
         <div class="form-field"><label>Type de bien</label><select id="pp-subtype">${codes.map(c => `<option value="${escapeHtmlPartner(c)}" ${d.subtype === c ? 'selected' : ''}>${escapeHtmlPartner(subtypeLabel(c))}</option>`).join('')}</select></div>
         <div class="form-field"><label>Typologie</label><input type="text" id="pp-typology" maxlength="40" placeholder="T3, 4 pièces, studio…" value="${escapeHtmlPartner(d.typology || '')}"></div>
@@ -622,6 +626,53 @@ function renderPropertyCoreFields(d) {
       </div>
       <button class="btn btn-primary" style="margin-top:14px;" onclick="savePropertyCore('${d.id}')">Enregistrer</button>
     </div>`;
+}
+
+/* Commune (FR / BE / LU): search by postcode or name, pick, saved at once. */
+let communeTimer = null;
+function renderCommunePicker(kind, d) {
+  const current = d.zones_lite ? window.ZFindServices.commune.zoneLabel(d.zones_lite) : '';
+  const country = (d.zones_lite && ['FR', 'BE', 'LU'].includes(d.zones_lite.country_iso)) ? d.zones_lite.country_iso : (partnerCountry || 'FR');
+  return `
+    <div class="commune-picker">
+      <div class="commune-current">Commune : <strong id="cm-current">${current ? escapeHtmlPartner(current) : 'à définir'}</strong>${current ? '' : ' <span class="commune-required">— nécessaire pour publier l’annonce</span>'}</div>
+      <div class="commune-search">
+        <select id="cm-country" aria-label="Pays" onchange="communeSearch('${kind}','${d.id}')">
+          ${['FR', 'BE', 'LU'].map(c => `<option value="${c}" ${c === country ? 'selected' : ''}>${{ FR: 'France', BE: 'Belgique', LU: 'Luxembourg' }[c]}</option>`).join('')}
+        </select>
+        <input type="search" id="cm-q" placeholder="Code postal ou nom de la commune" autocomplete="off" oninput="communeSearch('${kind}','${d.id}')">
+      </div>
+      <div id="cm-results" class="commune-results"></div>
+    </div>`;
+}
+
+function communeSearch(kind, id) {
+  clearTimeout(communeTimer);
+  communeTimer = setTimeout(async () => {
+    const host = document.getElementById('cm-results');
+    const country = document.getElementById('cm-country').value;
+    const query = document.getElementById('cm-q').value;
+    if (window.ZFindServices.commune.fold(query).length < 2) { host.innerHTML = ''; return; }
+    const res = await window.ZFindServices.commune.search(country, query);
+    if (res.error) { host.innerHTML = '<p class="commune-empty">La recherche n’a pas abouti. Réessayez dans un instant.</p>'; return; }
+    if (!res.data.length) { host.innerHTML = '<p class="commune-empty">Aucune commune trouvée.</p>'; return; }
+    host.innerHTML = res.data.map(c => `
+      <button type="button" class="commune-option" onclick="communePick('${kind}','${id}','${country}','${escapeHtmlPartner(c.code)}')">
+        <span class="n">${escapeHtmlPartner(c.zone_label)}</span><span class="p">${escapeHtmlPartner(c.parent || '')}</span>
+      </button>`).join('');
+  }, 250);
+}
+
+async function communePick(kind, id, country, code) {
+  const res = await window.ZFindServices.commune.setAsset(kind, id, country, code);
+  if (res.error) { showStatus('error', 'Impossible d’enregistrer la commune.'); return; }
+  const label = res.data.name + (res.data.postcodes && res.data.postcodes.length === 1 ? ' (' + res.data.postcodes[0] + ')' : '');
+  document.getElementById('cm-current').textContent = label;
+  const req = document.querySelector('.commune-required'); if (req) req.remove();
+  document.getElementById('cm-results').innerHTML = '';
+  document.getElementById('cm-q').value = '';
+  if (kind === 'development') currentDevelopmentZoneLiteId = res.data.zone_lite_id;
+  showStatus('success', 'Commune enregistrée : ' + label + '.');
 }
 
 async function savePropertyCore(id) {

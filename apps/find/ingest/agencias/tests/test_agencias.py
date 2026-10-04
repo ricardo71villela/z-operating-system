@@ -17,6 +17,7 @@ import fetch_be_kbo  # noqa: E402
 import fetch_fr_sirene  # noqa: E402
 import fetch_osm  # noqa: E402
 import enrich_websites  # noqa: E402
+import load_communes  # noqa: E402
 
 passed = 0
 
@@ -154,5 +155,18 @@ check("migração: regra de prospeção FR todos / BE-LU só pessoas coletivas /
       "(country = 'FR' or not is_natural_person)" in sql and "not do_not_contact" in sql
       and outreach("FR", True) and not outreach("BE", True) and outreach("LU", False) and not outreach("FR", False, dnc=True))
 check("migração: sem leitura pública (RLS, revoke anon/authenticated)", "enable row level security" in sql and "revoke all on table public.zfind_agencias from anon, authenticated" in sql)
+
+# ------------------------------------------------------------ communes
+check("fold igual ao do site (acentos, hífens, apóstrofos)",
+      load_communes.fold("Évian-les-Bains") == "evian les bains" and load_communes.fold("L’Haÿ-les-Roses") == "l hay les roses")
+_rows = load_communes.to_rows("BE", [["44084", "Aalter", "9910 9880 9881", "Bellem|Knesselare", "Province de Flandre orientale"],
+                                     ["", "Sem código", "", "", ""], ["24001", "Aarschot", "3200", "", ""]])
+check("comunas: códigos postais ordenados, alias dobrados entre |, linhas sem código ignoradas",
+      len(_rows) == 2 and _rows[0]["postcodes"] == ["9880", "9881", "9910"] and _rows[0]["aliases_folded"] == "|bellem|knesselare|"
+      and _rows[1]["aliases_folded"] == "" and _rows[1]["parent"] is None)
+_all = {c: load_communes.load(c) for c in load_communes.COUNTRIES}
+check("índices do site: ~34,9 mil comunas FR, 565 BE, 100 LU, Évian com 74500",
+      len(_all["FR"]) > 34000 and len(_all["BE"]) == 565 and len(_all["LU"]) == 100 and
+      any(r["code"] == "74119" and "74500" in r["postcodes"] and r["name_folded"] == "evian les bains" for r in _all["FR"]))
 
 print(f"\nAGENCIAS: {passed}/{passed} PASSED")
