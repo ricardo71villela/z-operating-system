@@ -10,6 +10,8 @@
    4. Search alerts, on Mondays: the new listings of the past week that
       match each confirmed search; no e-mail when there is nothing new.
    5. Mondays: a short activity summary to Z Find.
+   6. Enquiries not yet sent to their agency (normally sent at once by
+      /api/lead-notify): sent now.
 
    Protected by CRON_SECRET (Vercel sends "Authorization: Bearer …").
    Each step is independent: one failure does not stop the others.
@@ -20,6 +22,7 @@ const S = require('./_lib/server');
 const core = require('./_lib/alerts-core');
 const estimation = require('./estimation.js');
 const engine = require('../src/services/estimation.js');
+const leadNotify = require('./lead-notify.js');
 
 const DAY = 24 * 3600 * 1000;
 const iso = ms => new Date(ms).toISOString();
@@ -155,6 +158,7 @@ async function run(options) {
   };
   await step('purge', () => purge(now));
   if (S.configured(['mail'])) {
+    await step('leads', () => leadNotify._internals.processPending(100));
     await step('invitations', () => sendInvitations(now));
     await step('value', () => sendValueAlerts());
     if (monday) {

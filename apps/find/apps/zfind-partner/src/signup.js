@@ -84,5 +84,13 @@
     } catch (e) { return { data: null, error: e }; }
   }
 
-  return Object.freeze({ validateNumber, lookup, register, complete, ownSignup, _internals: { digits } });
+  /* Enquiries received (total, since sign-up, during the free period). */
+  async function leadStats() {
+    try {
+      const { data, error } = await getSupabaseClient().rpc('zfind_partner_lead_stats');
+      return { data: data || null, error: error || null };
+    } catch (e) { return { data: null, error: e }; }
+  }
+
+  return Object.freeze({ validateNumber, lookup, register, complete, ownSignup, leadStats, _internals: { digits } });
 });

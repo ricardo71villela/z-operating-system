@@ -30,6 +30,10 @@
       "destination": "/api/cron-daily"
     },
     {
+      "source": "/api/lead-notify",
+      "destination": "/api/lead-notify"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
@@ -46,6 +50,9 @@
     },
     "api/reviews.js": {
       "maxDuration": 15
+    },
+    "api/lead-notify.js": {
+      "maxDuration": 30
     },
     "api/cron-daily.js": {
       "includeFiles": "{public/market-data/**,public/geo/search/**,src/services/estimation.js,src/services/search-filters.js,src/services/listing-quality.js,src/services/place-search.js}",

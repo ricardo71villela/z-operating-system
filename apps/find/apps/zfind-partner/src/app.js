@@ -1730,8 +1730,25 @@ function showLeadsView() {
     loadPortfolio: RLS (Migration 0006's "partner: read own leads",
     SELECT-only) does the real restricting, this never adds a
     partner_id filter itself. */
+function renderLeadStats(st) {
+  const el = document.getElementById('leads-stats');
+  if (!el) return;
+  if (!st) { el.innerHTML = ''; return; }
+  const n = v => Number(v || 0);
+  const parts = [`<span><strong>${n(st.total)}</strong> demande${n(st.total) > 1 ? 's' : ''} au total</span>`,
+    `<span><strong>${n(st.last_30_days)}</strong> sur 30 jours</span>`];
+  if (st.free_period_ends) {
+    const end = new Date(st.free_period_ends).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+    const free = n(st.free_period);
+    const min = (signupPrices().founderMinLeads) || 5;
+    parts.push(`<span><strong>${free}</strong> pendant votre période gratuite (jusqu’au ${end})${free < min && new Date(st.free_period_ends) > new Date() ? ` — moins de ${min} : ${(signupPrices().founderExtensionMonths) || 3} mois offerts de plus` : ''}</span>`);
+  }
+  el.innerHTML = parts.join('');
+}
+
 async function loadLeadsView() {
   const listEl = document.getElementById('leads-list');
+  window.ZFindServices.partnerSignup.leadStats().then(r => renderLeadStats(r.data)).catch(() => {});
   const result = await window.ZFindServices.admin.listLeads({});
   if (result.error) { listEl.innerHTML = '<div class="portfolio-empty">Impossible de charger les demandes.</div>'; return; }
   if (!result.data.length) { listEl.innerHTML = '<div class="portfolio-empty">Aucune demande pour l’instant — elles apparaîtront ici dès qu’un acheteur ou un locataire vous contactera au sujet d’une de vos annonces.</div>'; return; }

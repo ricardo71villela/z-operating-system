@@ -3437,6 +3437,7 @@ async function submitEnquiry() {
   }
 
   showEnquiryFeedback('success', 'enquiry.submitSuccess');
+  requestLeadNotification();
   const reviewOptin = document.getElementById('enquiry-review-optin');
   if (reviewOptin && reviewOptin.checked && emailInput && emailInput.value.trim()) {
     requestReviewInvitation(currentListingIdForEnquiry, emailInput.value.trim());
@@ -3697,6 +3698,14 @@ async function renderListingReviews(vm) {
   const loaded = await loadPartnerReviews(partnerId);
   if (!document.body.contains(mount)) return;
   mount.innerHTML = window.ZFindServices.partnerReviews.summaryHTML(state.lang, loaded.reviews, partnerId, { demo: loaded.demo });
+}
+
+/* The enquiry was saved: ask the server to e-mail it to the agency now
+   (it only processes what is pending in the database; never blocks). */
+function requestLeadNotification() {
+  try {
+    fetch('/api/lead-notify', { method: 'POST', keepalive: true }).catch(() => { /* daily job catches up */ });
+  } catch (_) { /* old browsers: the daily job catches up */ }
 }
 
 /* Enquiry form: optional invitation to review the agency a week later. */

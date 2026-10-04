@@ -119,5 +119,10 @@
     return safeQuery(() => client.rpc('zfind_admin_review_signup', { p_signup_id: id, p_decision: decision, p_note: note || null }), 'prospection.reviewSignup');
   }
 
-  return Object.freeze({ PAGE, EXPORT_COLUMNS, EXPORT_MAX, overview, list, get, setDoNotContact, updateContacts, exportRows, toCsv, signups, reviewSignup, _internals: { applyFilters } });
+  function signupLeadCounts() {
+    const client = getSupabaseClient();
+    return safeQuery(() => client.rpc('zfind_admin_signup_lead_counts'), 'prospection.signupLeadCounts', { allowNullData: true });
+  }
+
+  return Object.freeze({ PAGE, EXPORT_COLUMNS, EXPORT_MAX, overview, list, get, setDoNotContact, updateContacts, exportRows, toCsv, signups, reviewSignup, signupLeadCounts, _internals: { applyFilters } });
 });

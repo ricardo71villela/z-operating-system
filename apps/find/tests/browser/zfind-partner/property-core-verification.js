@@ -44,6 +44,8 @@ const PROP = { id: 'prop1', subtype: 'apartment', typology: null, area_sqm: null
     await page.route('**/rest/v1/rpc/zfind_set_asset_commune**', r => { setArgs = r.request().postDataJSON(); return r.fulfill(json({ zone_lite_id: 'z1', name: 'Évian-les-Bains', country: 'FR', code: '74119', postcodes: ['74500'], parent: '74' })); });
     await page.route('**/rest/v1/rpc/zfind_update_asset**', r => { patch = r.request().postDataJSON(); return r.fulfill(json(Object.assign({}, PROP, { subtype: 'villa', typology: 'T4' }))); });
 
+    await page.route('**/rest/v1/rpc/zfind_partner_lead_stats**', r => r.fulfill(json({ total: 3, last_30_days: 2, since_signup: 3, free_period: 2, signup_at: new Date(Date.now() - 20 * 864e5).toISOString(), free_period_ends: new Date(Date.now() + 70 * 864e5).toISOString() })));
+    await page.route('**/rest/v1/leads**', r => r.fulfill(json([])));
     await page.goto(FILE_URL);
     await page.fill('#login-email', 'agence@test.fr');
     await page.fill('#login-password', 'MotDePasse-2026');
@@ -74,6 +76,11 @@ const PROP = { id: 'prop1', subtype: 'apartment', typology: null, area_sqm: null
     check('save sends subtype, typology, surface and floor through zfind_update_asset',
       patch && patch.p_kind === 'property' && patch.p_asset_id === 'prop1' && patch.p_patch.subtype === 'villa' && patch.p_patch.typology === 'T4' && patch.p_patch.area_sqm === 112.5 && patch.p_patch.floor === 2);
     check('title follows the new type', (await page.textContent('#detail-title')) === 'Maison / villa · T4');
+    await page.click('#view-detail .dash-nav a:has-text("Demandes")');
+    await page.waitForFunction(() => document.getElementById('leads-stats').textContent.length > 0);
+    const stats = await page.textContent('#leads-stats');
+    check('leads view: totals, free-period count and the Founder guarantee', stats.includes('3 demandes au total') && stats.includes('2 sur 30 jours') && stats.includes('2 pendant votre période gratuite') && stats.includes('moins de 5 : 3 mois offerts de plus'));
+    check('leads view: tells the agency enquiries also arrive by e-mail', (await page.textContent('#view-leads')).includes('envoyée par e-mail'));
     await page.close();
   }
 

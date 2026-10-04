@@ -199,7 +199,7 @@ async function renderSignupsList() {
         <option value="pending">Por verificar</option><option value="verified">Verificadas</option><option value="rejected">Recusadas</option><option value="">Todas</option>
       </select>
     </div>
-    <table><thead><tr><th>Data</th><th>Quem</th><th>Registo</th><th>Cartão</th><th>Oferta</th><th>Estado</th><th>Decisão</th></tr></thead><tbody id="sg-tbody"><tr><td colspan="7">A carregar…</td></tr></tbody></table>`);
+    <table><thead><tr><th>Data</th><th>Quem</th><th>Registo</th><th>Cartão</th><th>Oferta</th><th>Leads</th><th>Estado</th><th>Decisão</th></tr></thead><tbody id="sg-tbody"><tr><td colspan="8">A carregar…</td></tr></tbody></table>`);
   await loadSignupsList();
 }
 
@@ -210,13 +210,29 @@ function signupRegistryCell(x) {
   return `${escapeHtml(x.country)} ${escapeHtml(x.company_id || '—')}`;
 }
 
+/* Founder rule: fewer than founderMinLeads enquiries during the 3 free months → 3 more months free. */
+function signupLeadsCell(x, c) {
+  if (!c) return '<span class="muted">—</span>';
+  const p = window.ZFindServices.proOffer && window.ZFindServices.proOffer.PRICES;
+  const min = p ? p.founderMinLeads : 5;
+  const freeEnds = new Date(new Date(x.created_at).setMonth(new Date(x.created_at).getMonth() + 3));
+  const ended = freeEnds <= new Date();
+  const flag = x.plan === 'founder' && ended && Number(c.leads_free_period) < min
+    ? `<br><span class="tag tag-draft">+3 meses grátis</span>` : '';
+  return `${fmtN(c.leads_free_period)} em 3 meses<br><span class="muted">${fmtN(c.leads_total)} no total · grátis até ${freeEnds.toLocaleDateString('pt-PT')}</span>${flag}`;
+}
+
 async function loadSignupsList() {
   const tbody = document.getElementById('sg-tbody');
   const status = document.getElementById('sg-status').value;
-  const res = await window.ZFindServices.prospection.signups(status || null);
-  if (res.error) { tbody.innerHTML = '<tr><td colspan="7">Não foi possível carregar as inscrições (a migração 20261004110000 está aplicada?).</td></tr>'; return; }
+  const [res, counts] = await Promise.all([
+    window.ZFindServices.prospection.signups(status || null),
+    window.ZFindServices.prospection.signupLeadCounts()
+  ]);
+  const leadsBy = new Map(((counts && counts.data) || []).map(c => [c.signup_id, c]));
+  if (res.error) { tbody.innerHTML = '<tr><td colspan="8">Não foi possível carregar as inscrições (a migração 20261004110000 está aplicada?).</td></tr>'; return; }
   const rows = res.data || [];
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7" class="muted">Nenhuma inscrição neste estado.</td></tr>'; return; }
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" class="muted">Nenhuma inscrição neste estado.</td></tr>'; return; }
   tbody.innerHTML = rows.map(x => `
     <tr data-signup="${x.id}">
       <td>${new Date(x.created_at).toLocaleString('pt-PT')}</td>
@@ -224,6 +240,7 @@ async function loadSignupsList() {
       <td>${signupRegistryCell(x)}${x.agencia_id ? '<br><span class="muted">na base de agências</span>' : '<br><span class="muted">fora da base</span>'}</td>
       <td>${escapeHtml(x.card_number)}${x.card_authority ? '<br><span class="muted">' + escapeHtml(x.card_authority) + '</span>' : ''}</td>
       <td>${escapeHtml(SIGNUP_PLAN[x.plan] || x.plan)}${x.founder_wave ? ' · ' + x.founder_wave + '.ª vaga' : ''}</td>
+      <td>${signupLeadsCell(x, leadsBy.get(x.id))}</td>
       <td><span class="tag tag-${x.status === 'verified' ? 'active' : x.status === 'rejected' ? 'inactive' : 'draft'}">${escapeHtml(SIGNUP_STATUS[x.status] || x.status)}</span>${x.review_note ? '<br><span class="muted">' + escapeHtml(x.review_note) + '</span>' : ''}</td>
       <td class="sg-actions">
         <input type="text" id="sg-note-${x.id}" placeholder="Nota (opcional)" maxlength="500">
