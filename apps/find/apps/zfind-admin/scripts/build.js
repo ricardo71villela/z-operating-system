@@ -94,6 +94,7 @@ function build() {
     + readWeb('services/image-optimize.js') + '\n'
     + readWeb('services/admin.js') + '\n'
     + readWeb('services/field-forms.js') + '\n'
+    + readWeb('services/pro-offer.js') + '\n' // public price list: Founder seats
     + readAdmin('prospection.js') + '\n'
     + appJs
     + '\n</script>\n</body>\n</html>\n';

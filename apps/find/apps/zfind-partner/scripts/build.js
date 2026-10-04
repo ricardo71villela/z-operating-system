@@ -41,6 +41,7 @@ function build() {
   const css = readPartner('css.txt');
   const body = readPartner('body.html');
   const appJs = readPartner('app.js');
+  const signupJs = readPartner('signup.js');
 
   // Genuinely reused, not copied:
   const vendorSupabase = readWeb('vendor-supabase.js');
@@ -52,6 +53,7 @@ function build() {
   const partnerDashboardService = readWeb('services/partner-dashboard.js');
   const adminService = readWeb('services/admin.js');
   const fieldFormsService = readWeb('services/field-forms.js');
+  const proOfferService = readWeb('services/pro-offer.js'); // one price list for site and sign-up
   const imageOptimizeService = readWeb('services/image-optimize.js');
 
   const supabaseUrl = process.env.SUPABASE_URL;
@@ -77,6 +79,8 @@ function build() {
     + imageOptimizeService + '\n'
     + adminService + '\n'
     + fieldFormsService + '\n'
+    + proOfferService + '\n'
+    + signupJs + '\n'
     + appJs
     + '\n</script>\n</body>\n</html>\n';
 

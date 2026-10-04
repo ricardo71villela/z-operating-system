@@ -274,7 +274,7 @@ check(
 
 check(
   partnerUi.includes(
-    'Publication and lifecycle remain controlled by Z Find.'
+    'La publication est validée par Z Find.'
   ),
   'Partner UI explicitly communicates lifecycle authority boundary'
 );

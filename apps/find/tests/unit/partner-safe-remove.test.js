@@ -168,7 +168,7 @@ check(
 
 check(
   partner.includes(
-    'Protected leads, verification and audit history'
+    'Les demandes, vérifications et historiques protégés sont conservés'
   ),
   'Partner UI explains protected-history behavior'
 );

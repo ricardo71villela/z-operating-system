@@ -94,6 +94,7 @@ function render() {
     partners: adminState.id ? renderPartnerEdit : renderPartnersList,
     leads: adminState.id ? renderLeadDetail : renderLeadsList,
     agencias: adminState.id ? renderAgenciaDetail : renderAgenciasList,
+    inscricoes: renderSignupsList,
   };
   (routes[adminState.view] || renderDashboard)();
 }
@@ -108,6 +109,7 @@ const OPS_LINKS = [
 ];
 const OPS_ROUTINE = [
   ['Todos os dias', [
+    'Inscrições novas: verificar o cartão profissional e o SIRET, depois Validar ou Recusar.',
     'Responder aos pedidos de estimação de proprietários (e-mail «Novo lead») no próprio dia.',
     'Ver os Leads novos (pedidos de contacto sobre anúncios) e confirmar que a agência respondeu.',
     'Moderar as avaliações pendentes (Publicar / Rejeitar no e-mail recebido) em menos de 48 h.',
@@ -162,21 +164,85 @@ async function loadOperationsOverview() {
     return;
   }
   const o = res.data || {};
-  const a = o.agencias || {}, r = o.reviews || {}, al = o.alerts || {}, l = o.leads || {};
+  const a = o.agencias || {}, r = o.reviews || {}, al = o.alerts || {}, l = o.leads || {}, sg = o.signups || {}, seats = sg.founder_seats || {};
   const card = (n, label, view, warn) => `<div class="card${warn ? ' card-warn' : ''}"${view ? ` onclick="navigateAdmin('${view}')" style="cursor:pointer"` : ''}><div class="n">${fmtN(n)}</div><div class="l">${escapeHtml(label)}</div></div>`;
   ops.innerHTML = [
+    card(sg.pending, 'Inscrições por verificar', 'inscricoes', sg.pending > 0),
     card(l.new, 'Leads por tratar', 'leads', l.new > 0),
     card(l.last_7_days, 'Leads (7 dias)', 'leads'),
     card(r.pending, 'Avaliações por moderar', null, r.pending > 0),
     card(al.active, `Alertas ativos (${fmtN(al.pending)} por confirmar)`),
     card(a.active, 'Agências na base', 'agencias'),
     card(a.with_email, 'Agências com e-mail', 'agencias'),
-    card(a.outreach_allowed, 'Prospeção por e-mail permitida', 'agencias')
+    card(a.outreach_allowed, 'Prospeção por e-mail permitida', 'agencias'),
+    `<div class="card" onclick="navigateAdmin('inscricoes')" style="cursor:pointer"><div class="n seats">${['FR', 'BE', 'LU'].map(c => `${c} ${fmtN(seats[c] || 0)}/${founderSeatsPerCountry()}`).join(' · ')}</div><div class="l">Lugares Fundador (1.ª vaga) · promotores ${fmtN(seats.developers || 0)}/${founderDevelopers()}</div></div>`
   ].join('');
   const rows = o.agencias_by_country_type || [];
   agEl.innerHTML = rows.length ? `<table class="compact"><thead><tr><th>País</th><th>Tipo</th><th>Total</th><th>Com e-mail</th><th>Prospeção</th></tr></thead><tbody>${
     rows.map(x => `<tr><td>${x.country}</td><td>${escapeHtml(TYPE_LABELS[x.type] || x.type)}</td><td>${fmtN(x.n)}</td><td>${fmtN(x.with_email)}</td><td>${fmtN(x.outreach)}</td></tr>`).join('')
   }</tbody></table><p class="muted">Última ingestão: ${a.last_ingest ? new Date(a.last_ingest).toLocaleString('pt-PT') : '—'}</p>` : '<p class="muted">Base ainda vazia.</p>';
+}
+
+/* ---------------- Inscrições (self sign-up) ---------------- */
+const SIGNUP_STATUS = { pending: 'Por verificar', verified: 'Verificada', rejected: 'Recusada' };
+const SIGNUP_PLAN = { founder: 'Fundador', founder_developer: 'Promotor fundador', standard: 'Normal' };
+function founderSeatsPerCountry() { const p = window.ZFindServices.proOffer && window.ZFindServices.proOffer.PRICES; return p ? p.founderSeatsPerCountry : 50; }
+function founderDevelopers() { const p = window.ZFindServices.proOffer && window.ZFindServices.proOffer.PRICES; return p ? p.founderDevelopers : 10; }
+
+async function renderSignupsList() {
+  const main = document.getElementById('main');
+  main.insertAdjacentHTML('beforeend', `
+    <div class="page-title">Inscrições</div>
+    <p class="muted" style="margin:-6px 0 14px">Agências e promotores que se inscreveram sozinhos. Antes de validar: confirmar o SIRET / nº de empresa e o cartão profissional. Os anúncios só ficam públicos depois da validação de cada anúncio, como sempre.</p>
+    <div class="toolbar">
+      <select id="sg-status" onchange="loadSignupsList()">
+        <option value="pending">Por verificar</option><option value="verified">Verificadas</option><option value="rejected">Recusadas</option><option value="">Todas</option>
+      </select>
+    </div>
+    <table><thead><tr><th>Data</th><th>Quem</th><th>Registo</th><th>Cartão</th><th>Oferta</th><th>Estado</th><th>Decisão</th></tr></thead><tbody id="sg-tbody"><tr><td colspan="7">A carregar…</td></tr></tbody></table>`);
+  await loadSignupsList();
+}
+
+function signupRegistryCell(x) {
+  if (x.country === 'FR' && x.establishment_id) {
+    return `SIRET <a href="https://annuaire-entreprises.data.gouv.fr/etablissement/${encodeURIComponent(x.establishment_id)}" target="_blank" rel="noopener">${escapeHtml(x.establishment_id)}</a>`;
+  }
+  return `${escapeHtml(x.country)} ${escapeHtml(x.company_id || '—')}`;
+}
+
+async function loadSignupsList() {
+  const tbody = document.getElementById('sg-tbody');
+  const status = document.getElementById('sg-status').value;
+  const res = await window.ZFindServices.prospection.signups(status || null);
+  if (res.error) { tbody.innerHTML = '<tr><td colspan="7">Não foi possível carregar as inscrições (a migração 20261004110000 está aplicada?).</td></tr>'; return; }
+  const rows = res.data || [];
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7" class="muted">Nenhuma inscrição neste estado.</td></tr>'; return; }
+  tbody.innerHTML = rows.map(x => `
+    <tr data-signup="${x.id}">
+      <td>${new Date(x.created_at).toLocaleString('pt-PT')}</td>
+      <td><strong>${escapeHtml(x.trade_name || x.legal_name)}</strong><br><span class="muted">${x.role === 'promoter' ? 'Promotor' : 'Agência'} · ${escapeHtml(x.legal_name)}<br>${escapeHtml([x.address, x.postcode, x.city].filter(Boolean).join(' '))}<br>${escapeHtml(x.email)}${x.phone ? ' · ' + escapeHtml(x.phone) : ''}</span></td>
+      <td>${signupRegistryCell(x)}${x.agencia_id ? '<br><span class="muted">na base de agências</span>' : '<br><span class="muted">fora da base</span>'}</td>
+      <td>${escapeHtml(x.card_number)}${x.card_authority ? '<br><span class="muted">' + escapeHtml(x.card_authority) + '</span>' : ''}</td>
+      <td>${escapeHtml(SIGNUP_PLAN[x.plan] || x.plan)}${x.founder_wave ? ' · ' + x.founder_wave + '.ª vaga' : ''}</td>
+      <td><span class="tag tag-${x.status === 'verified' ? 'active' : x.status === 'rejected' ? 'inactive' : 'draft'}">${escapeHtml(SIGNUP_STATUS[x.status] || x.status)}</span>${x.review_note ? '<br><span class="muted">' + escapeHtml(x.review_note) + '</span>' : ''}</td>
+      <td class="sg-actions">
+        <input type="text" id="sg-note-${x.id}" placeholder="Nota (opcional)" maxlength="500">
+        ${x.status !== 'verified' ? `<button class="btn btn-primary" onclick="reviewSignup('${x.id}','verified')">Validar</button>` : ''}
+        ${x.status !== 'rejected' ? `<button class="btn btn-danger" onclick="reviewSignup('${x.id}','rejected')">Recusar</button>` : ''}
+      </td>
+    </tr>`).join('');
+}
+
+async function reviewSignup(id, decision) {
+  if (decision === 'rejected') {
+    const ok = await askConfirm('Recusar esta inscrição?', 'A conta do parceiro fica inativa. Pode voltar a validá-la mais tarde.', 'Recusar');
+    if (!ok) return;
+  }
+  const noteEl = document.getElementById('sg-note-' + id);
+  const res = await window.ZFindServices.prospection.reviewSignup(id, decision, noteEl ? noteEl.value.trim() : '');
+  if (res.error) { showStatus('error', 'Não foi possível guardar a decisão.'); return; }
+  showStatus('success', decision === 'verified' ? 'Inscrição validada.' : 'Inscrição recusada.');
+  loadSignupsList();
 }
 
 /* ---------------- Partners ---------------- */

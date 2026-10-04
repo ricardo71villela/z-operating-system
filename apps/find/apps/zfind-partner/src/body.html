@@ -1,121 +1,216 @@
 <section id="view-login" class="login-screen">
   <div class="login-editorial">
-    <div class="eyebrow">Z Find Partner</div>
-    <h1>Your portfolio, <em>represented properly.</em></h1>
-    <p class="sub">One place for every property and development you represent on Z Find — real leads, real standing, nothing borrowed from anyone else's.</p>
+    <div class="eyebrow">Z Find Partenaires</div>
+    <h1>Votre portefeuille, <em>présenté comme il se doit.</em></h1>
+    <p class="sub">Un seul endroit pour tous les biens et programmes que vous représentez sur Z Find : vos annonces, vos demandes, vos statistiques.</p>
     <div class="marks">
-      <div class="mark-row"><span class="k">Listings</span><span class="v">Yours alone</span></div>
-      <div class="mark-row"><span class="k">Leads</span><span class="v">Never shared</span></div>
-      <div class="mark-row"><span class="k">Standing</span><span class="v">Earned, not bought</span></div>
+      <div class="mark-row"><span class="k">Annonces</span><span class="v">Uniquement des professionnels</span></div>
+      <div class="mark-row"><span class="k">Demandes</span><span class="v">Jamais partagées</span></div>
+      <div class="mark-row"><span class="k">Visibilité</span><span class="v">Résultats neutres</span></div>
     </div>
   </div>
   <div class="login-form-panel">
     <div class="login-form-card">
       <div class="logo">Z <em>Find</em></div>
-      <div class="heading">Sign in</div>
-      <div class="heading-sub">Manage your listings, leads, and performance.</div>
+      <div class="heading">Connexion</div>
+      <div class="heading-sub">Gérez vos annonces, vos demandes et vos résultats.</div>
       <div class="field">
-        <label for="login-email">Email</label>
+        <label for="login-email">E-mail</label>
         <input type="email" id="login-email" autocomplete="username">
       </div>
       <div class="field">
-        <label for="login-password">Password</label>
+        <label for="login-password">Mot de passe</label>
         <input type="password" id="login-password" autocomplete="current-password">
       </div>
-      <button class="btn-login" id="login-btn" onclick="handlePartnerLogin()">Sign in</button>
+      <button class="btn-login" id="login-btn" onclick="handlePartnerLogin()">Se connecter</button>
       <div class="login-error" id="login-error"></div>
+      <div class="login-switch">Pas encore de compte ? <a id="go-signup" onclick="showSignupView()">Inscrire mon agence</a></div>
+    </div>
+  </div>
+</section>
+
+<section id="view-signup" class="login-screen" style="display:none;">
+  <div class="login-editorial">
+    <div class="eyebrow">Offre de lancement « Fondateur »</div>
+    <h1>Inscrivez votre agence <em>en 10 minutes.</em></h1>
+    <p class="sub" id="su-offer-lead"></p>
+    <div class="marks" id="su-offer-marks"></div>
+  </div>
+  <div class="login-form-panel signup-panel">
+    <div class="login-form-card signup-card">
+      <div class="logo">Z <em>Find</em></div>
+      <ol class="su-steps" aria-label="Étapes">
+        <li data-step="1" class="active">Votre structure</li>
+        <li data-step="2">Vos coordonnées</li>
+        <li data-step="3">Votre compte</li>
+      </ol>
+
+      <div class="su-pane" id="su-pane-1">
+        <div class="heading">Votre structure</div>
+        <div class="su-choice" role="radiogroup" aria-label="Vous êtes">
+          <label><input type="radio" name="su-role" value="agency" checked onchange="onSignupRoleChange()"> Agence immobilière</label>
+          <label><input type="radio" name="su-role" value="promoter" onchange="onSignupRoleChange()"> Promoteur</label>
+        </div>
+        <div class="field">
+          <label for="su-country">Pays</label>
+          <select id="su-country" onchange="onSignupCountryChange()">
+            <option value="FR">France</option>
+            <option value="BE">Belgique</option>
+            <option value="LU">Luxembourg</option>
+          </select>
+        </div>
+        <div class="field" id="su-number-field">
+          <label for="su-number" id="su-number-label">SIRET ou SIREN</label>
+          <input type="text" id="su-number" inputmode="numeric" autocomplete="off" onkeydown="if(event.key==='Enter')signupLookup()">
+          <div class="su-hint" id="su-number-hint">Le SIRET (14 chiffres) identifie votre agence ; le SIREN (9 chiffres) affiche tous vos établissements.</div>
+        </div>
+        <button class="btn-login" id="su-lookup-btn" onclick="signupLookup()">Rechercher</button>
+        <div class="login-error" id="su-error-1"></div>
+        <div id="su-results"></div>
+        <a class="su-manual" id="su-manual" onclick="signupManual()">Saisir mes informations à la main</a>
+      </div>
+
+      <div class="su-pane" id="su-pane-2" style="display:none;">
+        <div class="heading">Vos coordonnées</div>
+        <div class="heading-sub">Vérifiez et complétez : ces informations apparaîtront sur votre page agence.</div>
+        <div class="field"><label for="su-legal">Raison sociale *</label><input type="text" id="su-legal" maxlength="200"></div>
+        <div class="field"><label for="su-trade">Enseigne (nom affiché)</label><input type="text" id="su-trade" maxlength="200"></div>
+        <div class="field" id="su-siret-field"><label for="su-siret">SIRET de l’établissement *</label><input type="text" id="su-siret" inputmode="numeric" maxlength="20"></div>
+        <div class="field" id="su-company-field" style="display:none;"><label for="su-company" id="su-company-label">Numéro d’entreprise</label><input type="text" id="su-company" maxlength="40"></div>
+        <div class="field"><label for="su-address">Adresse</label><input type="text" id="su-address" maxlength="300" autocomplete="street-address"></div>
+        <div class="su-row">
+          <div class="field"><label for="su-postcode">Code postal</label><input type="text" id="su-postcode" maxlength="12" autocomplete="postal-code"></div>
+          <div class="field"><label for="su-city">Ville</label><input type="text" id="su-city" maxlength="120"></div>
+        </div>
+        <div class="su-row">
+          <div class="field"><label for="su-phone">Téléphone</label><input type="tel" id="su-phone" maxlength="40" autocomplete="tel"></div>
+          <div class="field"><label for="su-website">Site internet</label><input type="url" id="su-website" maxlength="300" placeholder="https://"></div>
+        </div>
+        <div class="field"><label for="su-card" id="su-card-label">Carte professionnelle (CPI) n° *</label><input type="text" id="su-card" maxlength="60"></div>
+        <div class="field" id="su-card-authority-field"><label for="su-card-authority" id="su-card-authority-label">Délivrée par (CCI)</label><input type="text" id="su-card-authority" maxlength="120"></div>
+        <div class="login-error" id="su-error-2"></div>
+        <div class="su-actions">
+          <a onclick="signupGoto(1)">← Retour</a>
+          <button class="btn-login" onclick="signupStep2Next()">Continuer</button>
+        </div>
+      </div>
+
+      <div class="su-pane" id="su-pane-3" style="display:none;">
+        <div class="heading">Votre compte</div>
+        <div class="su-offer" id="su-offer-box"></div>
+        <div class="field"><label for="su-email">E-mail de connexion *</label><input type="email" id="su-email" autocomplete="email"></div>
+        <div class="field"><label for="su-password">Mot de passe * (10 caractères minimum)</label><input type="password" id="su-password" autocomplete="new-password"></div>
+        <div class="field"><label for="su-password2">Confirmez le mot de passe *</label><input type="password" id="su-password2" autocomplete="new-password"></div>
+        <label class="su-check"><input type="checkbox" id="su-certify"> <span id="su-certify-text"></span></label>
+        <label class="su-check"><input type="checkbox" id="su-terms"> <span id="su-terms-text"></span></label>
+        <p class="su-privacy">Vos données servent à créer votre compte, à vérifier votre habilitation professionnelle et à vous informer sur le service. Elles ne sont ni vendues ni cédées. Pour y accéder, les corriger ou les supprimer : hello@zfind.online.</p>
+        <div class="login-error" id="su-error-3"></div>
+        <div class="su-actions">
+          <a onclick="signupGoto(2)">← Retour</a>
+          <button class="btn-login" id="su-submit" onclick="signupSubmit()">Créer mon compte</button>
+        </div>
+      </div>
+
+      <div class="su-pane" id="su-pane-done" style="display:none;">
+        <div class="heading">Vérifiez votre boîte e-mail</div>
+        <p class="su-done-text" id="su-done-text"></p>
+        <button class="btn-login" onclick="showLoginView()">Aller à la connexion</button>
+      </div>
+
+      <div class="login-switch" id="su-switch">Déjà inscrit ? <a onclick="showLoginView()">Se connecter</a></div>
     </div>
   </div>
 </section>
 
 <section id="view-dashboard" class="dash-shell" style="display:none;">
   <div class="dash-header">
-    <div class="logo">Z <em>Find</em> Partner</div>
+    <div class="logo">Z <em>Find</em> Partenaires</div>
     <nav class="dash-nav">
-      <a class="active" onclick="showPortfolioView()">Portfolio</a>
-      <a onclick="showLeadsView()">Leads</a>
+      <a class="active" onclick="showPortfolioView()">Portefeuille</a>
+      <a onclick="showLeadsView()">Demandes</a>
     </nav>
     <div class="who">
       <span id="dash-partner-name"></span>
-      <a class="signout" onclick="handlePartnerSignOut()">Sign out</a>
+      <a class="signout" onclick="handlePartnerSignOut()">Déconnexion</a>
     </div>
   </div>
   <div class="dash-body wide">
+    <div class="signup-banner" id="signup-banner" style="display:none;"></div>
     <div class="portfolio-top">
       <div>
-        <div class="eyebrow">Your portfolio</div>
-        <h2>Everything you <em>represent.</em></h2>
+        <div class="eyebrow">Votre portefeuille</div>
+        <h2>Tout ce que vous <em>représentez.</em></h2>
       </div>
       <div class="new-buttons">
-        <button class="btn-new" onclick="createNewProperty()">+ New property</button>
-        <button class="btn-new" onclick="openNewDevelopmentForm()">+ New development</button>
+        <button class="btn-new" onclick="createNewProperty()">+ Nouveau bien</button>
+        <button class="btn-new" onclick="openNewDevelopmentForm()">+ Nouveau programme</button>
       </div>
     </div>
 
     <div id="new-dev-form" class="new-asset-form" style="display:none;">
-      <div class="field"><label>Development name</label><input type="text" id="new-dev-name"></div>
+      <div class="field"><label>Nom du programme</label><input type="text" id="new-dev-name"></div>
       <div class="new-asset-actions">
-        <button class="btn-login" style="width:auto; padding:11px 22px;" id="new-dev-save" onclick="saveNewDevelopment()">Create</button>
-        <a onclick="closeNewDevelopmentForm()" style="font-size:0.85rem; color:var(--gray-500); text-decoration:underline; text-underline-offset:3px;">Cancel</a>
+        <button class="btn-login" style="width:auto; padding:11px 22px;" id="new-dev-save" onclick="saveNewDevelopment()">Créer</button>
+        <a onclick="closeNewDevelopmentForm()" style="font-size:0.85rem; color:var(--gray-500); text-decoration:underline; text-underline-offset:3px;">Annuler</a>
       </div>
       <div class="login-error" id="new-dev-error"></div>
     </div>
 
-    <div class="ledger-line on-light"><span class="label">Properties &amp; developments</span><div class="rule"></div></div>
-    <div id="portfolio-list">Loading…</div>
+    <div class="ledger-line on-light"><span class="label">Biens et programmes</span><div class="rule"></div></div>
+    <div id="portfolio-list">Chargement…</div>
   </div>
 </section>
 
 <section id="view-leads" class="dash-shell" style="display:none;">
   <div class="dash-header">
-    <div class="logo">Z <em>Find</em> Partner</div>
+    <div class="logo">Z <em>Find</em> Partenaires</div>
     <nav class="dash-nav">
-      <a onclick="showPortfolioView()">Portfolio</a>
-      <a class="active" onclick="showLeadsView()">Leads</a>
+      <a onclick="showPortfolioView()">Portefeuille</a>
+      <a class="active" onclick="showLeadsView()">Demandes</a>
     </nav>
     <div class="who">
       <span id="dash-partner-name-3"></span>
-      <a class="signout" onclick="handlePartnerSignOut()">Sign out</a>
+      <a class="signout" onclick="handlePartnerSignOut()">Déconnexion</a>
     </div>
   </div>
   <div class="dash-body wide">
-    <div class="eyebrow">Your leads</div>
-    <h2 style="margin-bottom:8px;">People who <em>reached out.</em></h2>
-    <p class="sub" style="margin:0 0 32px; max-width:none;">Only leads for your own listings ever appear here — never anyone else's.</p>
-    <div class="ledger-line on-light"><span class="label">Enquiries</span><div class="rule"></div></div>
-    <div id="leads-list">Loading…</div>
+    <div class="eyebrow">Vos demandes</div>
+    <h2 style="margin-bottom:8px;">Ceux qui vous ont <em>contacté.</em></h2>
+    <p class="sub" style="margin:0 0 32px; max-width:none;">Seules les demandes portant sur vos annonces apparaissent ici — jamais celles d’un autre.</p>
+    <div class="ledger-line on-light"><span class="label">Demandes</span><div class="rule"></div></div>
+    <div id="leads-list">Chargement…</div>
   </div>
 </section>
 
 <section id="view-detail" class="dash-shell" style="display:none;">
   <div class="dash-header">
-    <div class="logo">Z <em>Find</em> Partner</div>
+    <div class="logo">Z <em>Find</em> Partenaires</div>
     <nav class="dash-nav">
-      <a class="active" onclick="showPortfolioView()">Portfolio</a>
-      <a onclick="showLeadsView()">Leads</a>
+      <a class="active" onclick="showPortfolioView()">Portefeuille</a>
+      <a onclick="showLeadsView()">Demandes</a>
     </nav>
     <div class="who">
       <span id="dash-partner-name-2"></span>
-      <a class="signout" onclick="handlePartnerSignOut()">Sign out</a>
+      <a class="signout" onclick="handlePartnerSignOut()">Déconnexion</a>
     </div>
   </div>
   <div class="dash-body wide">
-    <a class="detail-back" onclick="backToPortfolio()">← Back to portfolio</a>
+    <a class="detail-back" onclick="backToPortfolio()">← Retour au portefeuille</a>
     <h2 class="detail-title" id="detail-title" style="margin-bottom:28px;"></h2>
     <div id="detail-extended-fields"></div>
 
     <div id="detail-units-section" style="display:none;">
-      <div class="page-title">Units</div>
+      <div class="page-title">Lots</div>
       <div class="detail-panel" style="margin-bottom:20px;">
-        <div id="detail-units-list">Loading…</div>
-        <button class="btn btn-primary" style="margin-top:14px;" onclick="addUnitToCurrentDevelopment()">+ Add unit</button>
+        <div id="detail-units-list">Chargement…</div>
+        <button class="btn btn-primary" style="margin-top:14px;" onclick="addUnitToCurrentDevelopment()">+ Ajouter un lot</button>
       </div>
     </div>
 
-    <div class="page-title">Features</div>
+    <div class="page-title">Équipements</div>
     <div class="detail-panel" style="margin-bottom:20px;">
-      <div id="detail-features-grid">Loading…</div>
-      <button class="btn btn-primary" style="margin-top:14px;" onclick="saveFeatures(detailKind, detailId)">Save features</button>
+      <div id="detail-features-grid">Chargement…</div>
+      <button class="btn btn-primary" style="margin-top:14px;" onclick="saveFeatures(detailKind, detailId)">Enregistrer les équipements</button>
     </div>
   </div>
 </section>

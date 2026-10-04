@@ -235,19 +235,19 @@ check(
 );
 
 check(
-  partner.includes('Create draft listing'),
+  partner.includes('Créer le brouillon d’annonce'),
   'Partner UI can establish a Draft Listing'
 );
 
 check(
-  partner.includes('Descriptions') &&
+  partner.includes('Textes') &&
   partner.includes('Photos'),
   'Partner UI exposes content and media'
 );
 
 check(
   partner.includes(
-    'Publication/lifecycle approval remains controlled by Z Find.'
+    'La publication est validée par Z Find (vérification de conformité).'
   ),
   'Partner UI makes publication authority explicit'
 );
