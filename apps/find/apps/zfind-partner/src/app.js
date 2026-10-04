@@ -7,13 +7,34 @@
    ============================================================ */
 
 async function boot() {
+  const hash = window.location.hash || '';
   const { data: sessionData } = await window.ZFindServices.auth.getSession();
   const session = sessionData && sessionData.session;
+  // The confirmation link lands with tokens (or an error) in the URL:
+  // the SDK has read them by now, so never leave them in the address bar.
+  if (/access_token=|refresh_token=|error_description=/.test(hash)) {
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+  }
   if (session) {
     await tryEnterDashboard();
     return;
   }
-  if (/inscription|signup/.test(window.location.hash)) showSignupView();
+  if (/error_code=otp_expired|error_description=/.test(hash)) {
+    const errorEl = document.getElementById('login-error');
+    if (errorEl) errorEl.textContent = 'Ce lien de confirmation a expiré ou a déjà servi. Connectez-vous avec votre e-mail et votre mot de passe ; si votre adresse n’est pas encore confirmée, écrivez-nous à hello@zfind.online.';
+    return;
+  }
+  if (/inscription|signup/.test(hash)) showSignupView();
+}
+
+/* Property types (property_subtypes codes) in French. */
+const SUBTYPE_FR = {
+  apartment: 'Appartement', villa: 'Maison / villa', office: 'Bureaux', retail: 'Local commercial',
+  industrial_logistics: 'Local d’activité / entrepôt', hospitality: 'Hôtellerie', land: 'Terrain'
+};
+function subtypeLabel(code) { return SUBTYPE_FR[code] || code || ''; }
+function propertyTitle(p, fallback) {
+  return [subtypeLabel(p.subtype), p.typology].filter(Boolean).join(' · ') || fallback;
 }
 
 async function handlePartnerLogin() {
@@ -400,7 +421,7 @@ async function loadPortfolio() {
   const propRows = properties.map(p => `
     <div class="portfolio-row" onclick="openDetail('property','${p.id}')">
       <div>
-        <div class="name">${escapeHtmlPartner(p.typology || p.subtype || 'Bien sans titre')}</div>
+        <div class="name">${escapeHtmlPartner(propertyTitle(p, 'Bien sans titre'))}</div>
         <div class="meta">${p.zones_lite ? escapeHtmlPartner(p.zones_lite.name + ', ' + p.zones_lite.city) : 'Zone à définir'}${p.area_sqm ? ' · ' + p.area_sqm + ' m²' : ''}</div>
       </div>
       <span class="kind-tag">Bien</span>
@@ -563,9 +584,9 @@ async function openDetail(kind, id) {
   if (result.error) { showStatus('error', 'Chargement impossible.'); backToPortfolio(); return; }
   const d = result.data;
 
-  document.getElementById('detail-title').textContent = kind === 'property' ? (d.typology || d.subtype || 'Bien') : d.name;
+  document.getElementById('detail-title').textContent = kind === 'property' ? propertyTitle(d, 'Bien') : d.name;
   document.getElementById('detail-extended-fields').innerHTML = kind === 'property'
-    ? window.ZFindServices.fieldForms.renderPropertyExtendedFields(d, { locale: 'fr' })
+    ? renderPropertyCoreFields(d) + window.ZFindServices.fieldForms.renderPropertyExtendedFields(d, { locale: 'fr' })
     : window.ZFindServices.fieldForms.renderDevelopmentExtendedFields(d, { locale: 'fr' });
   loadFeaturesGrid(kind, id);
 
@@ -585,6 +606,42 @@ async function openDetail(kind, id) {
   loadPartnerListingWorkspace(kind, id);
 }
 
+/* "Le bien": type, typology, surface, floor — the fields a partner may
+   set through zfind_update_asset (subtype, typology, area_sqm, floor). */
+function renderPropertyCoreFields(d) {
+  const codes = Object.keys(SUBTYPE_FR);
+  if (d.subtype && !codes.includes(d.subtype)) codes.push(d.subtype);
+  return `
+    <div class="page-title" style="font-size:1.1rem;">Le bien</div>
+    <div class="detail-panel" style="margin-bottom:20px;">
+      <div class="form-grid">
+        <div class="form-field"><label>Type de bien</label><select id="pp-subtype">${codes.map(c => `<option value="${escapeHtmlPartner(c)}" ${d.subtype === c ? 'selected' : ''}>${escapeHtmlPartner(subtypeLabel(c))}</option>`).join('')}</select></div>
+        <div class="form-field"><label>Typologie</label><input type="text" id="pp-typology" maxlength="40" placeholder="T3, 4 pièces, studio…" value="${escapeHtmlPartner(d.typology || '')}"></div>
+        <div class="form-field"><label>Surface (m²)</label><input type="number" min="0" step="0.01" id="pp-area" value="${d.area_sqm ?? ''}"></div>
+        <div class="form-field"><label>Étage</label><input type="number" min="-5" max="200" id="pp-floor" value="${d.floor ?? ''}"></div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:14px;" onclick="savePropertyCore('${d.id}')">Enregistrer</button>
+    </div>`;
+}
+
+async function savePropertyCore(id) {
+  const num = v => (v === '' || v == null ? null : Number(v));
+  const fields = {
+    subtype: document.getElementById('pp-subtype').value,
+    typology: document.getElementById('pp-typology').value.trim() || null,
+    areaSqm: num(document.getElementById('pp-area').value),
+    floor: num(document.getElementById('pp-floor').value)
+  };
+  if ((fields.areaSqm != null && !(fields.areaSqm >= 0)) || (fields.floor != null && !Number.isInteger(fields.floor))) {
+    showStatus('error', 'Vérifiez la surface et l’étage.');
+    return;
+  }
+  const result = await window.ZFindServices.admin.updateProperty(id, fields);
+  if (result.error) { showStatus('error', 'Impossible d’enregistrer.'); return; }
+  document.getElementById('detail-title').textContent = propertyTitle({ subtype: fields.subtype, typology: fields.typology }, 'Bien');
+  showStatus('success', 'Bien enregistré.');
+}
+
 let currentDevelopmentZoneLiteId = null;
 
 async function loadDetailUnits(developmentId) {
@@ -595,7 +652,7 @@ async function loadDetailUnits(developmentId) {
   listEl.innerHTML = result.data.map(u => `
     <div class="portfolio-row" onclick="openDetail('property','${u.id}')">
       <div>
-        <div class="name">${escapeHtmlPartner(u.typology || u.subtype || 'Lot')}</div>
+        <div class="name">${escapeHtmlPartner(propertyTitle(u, 'Lot'))}</div>
         <div class="meta">${u.area_sqm ? u.area_sqm + ' m²' : ''}${u.floor != null ? ' · Étage ' + u.floor : ''}</div>
       </div>
       <span class="kind-tag">${u.zones_lite ? escapeHtmlPartner(u.zones_lite.name) : ''}</span>
