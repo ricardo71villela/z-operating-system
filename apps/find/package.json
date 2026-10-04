@@ -95,7 +95,8 @@
     "test:static-view-routing-contract": "node tests/unit/static-view-routing-contract.test.js",
     "test:legal-guide-portugal-reaudit": "node tests/unit/legal-guide-portugal-reaudit.test.js",
     "test:partner-signup": "node tests/browser/zfind-partner/signup-verification.js",
-    "test:admin-signups": "node tests/browser/zfind-admin/signups-verification.js"
+    "test:admin-signups": "node tests/browser/zfind-admin/signups-verification.js",
+    "test:partner-property-core": "node tests/browser/zfind-partner/property-core-verification.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.8",
