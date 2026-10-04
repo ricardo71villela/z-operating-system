@@ -54,10 +54,12 @@ const [r1, r2, r3, r4] = rows;
 check('sale row normalised', r1.reference === 'A1' && r1.subtype === 'apartment' && r1.transaction === 'sale' && r1.rentalPeriod === null && r1.price === 350000
   && r1.areaSqm === 72.5 && r1.typology === 'T3' && r1.bedrooms === 2 && r1.postcode === '74500' && r1.energyRating === 'C' && r1.condoFeeMonthly === 120 && r1.propertyTax === 950 && r1.errors.length === 0);
 check('missing title built from typology and commune', r1.title === 'T3 — Évian-les-Bains');
-check('photos are reported, not imported', r1.photos.length === 2 && r1.warnings.some(w => w.includes('2 fotografia')));
-check('rent row: monthly, house typology, own title, no description warning', r2.transaction === 'rent' && r2.rentalPeriod === 'monthly' && r2.price === 1850 && r2.subtype === 'villa' && r2.typology === '5 pièces' && r2.title === 'Maison familiale' && r2.warnings.includes('Sem descrição'));
-check('parking refused (not a Z Find type)', r3.errors.some(e => e.includes('Tipo não aceite')));
-check('no price → blocking error; studio typology; no DPE warning', r4.errors.includes('Preço em falta') && r4.typology === 'Studio' && r4.energyRating === null && r4.warnings.includes('Sem classe DPE'));
+check('photo links kept for the server import', r1.photos.length === 2 && r1.warnings.some(w => w.includes('2 photo')));
+const numbered = imp.normalizeRow({ Prix: '100', 'Photo 1': 'https://a.test/1.jpg', 'Photo 10': 'https://a.test/10.jpg', 'Photo 2': 'https://a.test/2.jpg http://a.test/2b.jpg', 'Photo 3': 'n/a' }, imp.autoMap(['Prix', 'Photo 1', 'Photo 10', 'Photo 2', 'Photo 3']));
+check('numbered photo columns (Photo 1, Photo 2… Photo 10) collected in order, duplicates and non-links dropped', numbered.photos.join() === 'https://a.test/1.jpg,https://a.test/2.jpg,http://a.test/2b.jpg,https://a.test/10.jpg');
+check('rent row: monthly, house typology, own title, no description warning', r2.transaction === 'rent' && r2.rentalPeriod === 'monthly' && r2.price === 1850 && r2.subtype === 'villa' && r2.typology === '5 pièces' && r2.title === 'Maison familiale' && r2.warnings.includes('Sans description'));
+check('parking refused (not a Z Find type)', r3.errors.some(e => e.includes('Type non accepté')));
+check('no price → blocking error; studio typology; no DPE warning', r4.errors.includes('Prix manquant') && r4.typology === 'Studio' && r4.energyRating === null && r4.warnings.includes('Sans classe DPE'));
 
 /* ---------------- import (browser path, fake Supabase) ---------------- */
 (async () => {
@@ -111,11 +113,11 @@ check('no price → blocking error; studio typology; no DPE warning', r4.errors.
   check('row 1: characteristics, reference, address fields, taxe foncière', up.agencyReference === 'A1' && up.bedrooms === 2 && up.energyRating === 'C' && up.postalCode === '74500'
     && up.grossPrivateAreaSqm === 72.5 && up.condoFeeMonthly === 120 && up.imiAnnual === 950 && !('photos' in up));
   check('row 1: commune chosen by name among the postcode\'s communes', rpcs.some(([nme, a]) => nme === 'zfind_set_asset_commune' && a.p_asset_id === 'prop-1' && a.p_code === '74119' && a.p_country === 'FR' && a.p_kind === 'property')
-    && results[0].message === 'Comuna: Évian-les-Bains');
+    && results[0].message === 'Commune : Évian-les-Bains');
   check('row 1: draft listing for the agency, price, French text', log.some(l => l[0] === 'createInitialListing' && l[1] === 'property' && l[2] === 'prop-1' && l[3] === 'partner-1')
     && log.some(l => l[0] === 'updateListingCommercial' && l[1] === 'lst-prop-1' && l[2].transactionType === 'sale' && l[2].priceCurrent === 350000 && l[2].currencyIso === 'EUR' && l[2].rentalPeriod === null)
     && log.some(l => l[0] === 'upsertListingContent' && l[1] === 'lst-prop-1' && l[2] === 'fr' && l[3].title === 'T3 — Évian-les-Bains' && l[3].description.includes('vue lac')));
-  check('a failing step is reported and the run goes on', results[4].status === 'error' && results[4].message.startsWith('preço: boom'));
+  check('a failing step is reported and the run goes on', results[4].status === 'error' && results[4].message.startsWith('prix : boom'));
   check('nothing is ever published', !log.some(l => l[0] === 'setListingStatus'));
 
   // Same reference twice in one file: the second is recognised; unknown commune: imported, commune left to set.
@@ -123,7 +125,7 @@ check('no price → blocking error; studio typology; no DPE warning', r4.errors.
   check('same reference twice in one file: second one skipped', again[0].status === 'ok' && again[1].status === 'duplicate');
   const loose = svc.normalizeRow({ Prix: '99000', Type: 'Appartement', Ville: 'Nulle-Part' }, { price: 'Prix', type: 'Type', city: 'Ville' });
   const [lr] = await svc.importAll([loose], 'partner-1', 'FR', admin);
-  check('unknown commune: still imported as draft, commune left to set by hand', lr.status === 'ok' && lr.message === 'Comuna a definir');
+  check('unknown commune: still imported as draft, commune left to set by hand', lr.status === 'ok' && lr.message === 'Commune à définir');
 
   console.log(`\nLISTING IMPORT: ${passed}/${passed} PASSED`);
 })().catch(e => { console.error(e); process.exit(1); });

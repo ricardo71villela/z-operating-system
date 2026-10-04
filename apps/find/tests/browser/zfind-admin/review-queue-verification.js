@@ -1,5 +1,5 @@
 /* ============================================================
-   Z FIND ADMIN — Bens e anúncios: review queue, filters, French titles
+   Z FIND ADMIN — Biens et annonces: review queue, filters, French titles
    Mocks Auth + REST only.
    ============================================================ */
 'use strict';
@@ -52,9 +52,9 @@ const PROPS = [
   await page.click('#login-btn');
   await page.waitForSelector('#card-review');
   const card = await page.textContent('#card-review');
-  check('dashboard card: listings to review and ready to publish', card.includes('3') && card.includes('Anúncios por rever') && card.includes('1 prontos a publicar'));
+  check('dashboard card: listings to review and ready to publish', card.includes('3') && card.includes('Annonces à vérifier') && card.includes('1 prêtes à publier'));
   check('card is highlighted when something waits', await page.$eval('#card-review', e => e.classList.contains('card-warn')));
-  check('daily routine includes the review queue', (await page.textContent('#main')).includes('Anúncios por rever (enviados pelas agências)'));
+  check('daily routine includes the review queue', (await page.textContent('#main')).includes('Annonces à vérifier (envoyées par les agences)'));
 
   await page.click('#card-review');
   await page.waitForSelector('#props-tbody tr[data-prop]');
@@ -63,25 +63,25 @@ const PROPS = [
   check('status select shows the queue filter', (await page.$eval('#prop-status', s => s.value)) === 'pending_review');
   const body = await page.textContent('#props-tbody');
   check('French title preferred over English', body.includes('T2 centre — sent first') && !body.includes('Old english'));
-  check('Portuguese labels: type, agency, price, status', body.includes('Moradia · 5 pièces') && body.includes('ALPES HABITAT') && body.includes('Por rever') && /420\s?000 €/.test(body.replace(/[  ]/g, ' ')));
+  check('Portuguese labels: type, agency, price, status', body.includes('Maison · 5 pièces') && body.includes('ALPES HABITAT') && body.includes('À vérifier') && /420\s?000 €/.test(body.replace(/[  ]/g, ' ')));
   const chips = await page.textContent('#prop-chips');
-  check('status chips with counts', chips.includes('Por rever 3') && chips.includes('Rascunhos 1') && chips.includes('Publicados 1') && chips.includes('Prontos a publicar 1'));
+  check('status chips with counts', chips.includes('À vérifier 3') && chips.includes('Brouillons 1') && chips.includes('Publiées 1') && chips.includes('Prêtes à publier 1'));
   if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'admin-por-rever.png'), fullPage: true });
 
   await page.selectOption('#prop-partner', 'p-lac');
   ids = await page.$$eval('#props-tbody tr[data-prop]', t => t.map(x => x.dataset.prop));
   check('agency filter combines with status', ids.join(',') === 'a3,a5');
-  check('chips count within the agency', (await page.textContent('#prop-chips')).includes('Por rever 2'));
+  check('chips count within the agency', (await page.textContent('#prop-chips')).includes('À vérifier 2'));
   await page.click('#prop-chips button[data-status="draft"]');
   ids = await page.$$eval('#props-tbody tr[data-prop]', t => t.map(x => x.dataset.prop));
   check('chip switches to drafts (imported listings of the agency)', ids.join(',') === 'a2' && (await page.$eval('#prop-status', s => s.value)) === 'draft');
-  check('draft without commune says "a definir"', (await page.textContent('#props-tbody')).includes('a definir'));
+  check('draft without commune says "a definir"', (await page.textContent('#props-tbody')).includes('à définir'));
   await page.selectOption('#prop-partner', '');
   await page.selectOption('#prop-status', '');
   ids = await page.$$eval('#props-tbody tr[data-prop]', t => t.map(x => x.dataset.prop));
   check('"Todos" lists everything, newest first', ids.join(',') === 'a5,a4,a3,a2,a1,a0');
   const all = await page.textContent('#props-tbody');
-  check('English-only title still shown; listing without title says so', all.includes('English only') && all.includes('(sem título)'));
+  check('English-only title still shown; listing without title says so', all.includes('English only') && all.includes('(sans titre)'));
   await page.fill('#prop-search', 'morzine');
   ids = await page.$$eval('#props-tbody tr[data-prop]', t => t.map(x => x.dataset.prop));
   check('search by title', ids.join(',') === 'a4');
@@ -89,11 +89,11 @@ const PROPS = [
   await page.click('#sidebar a.sub');
   await page.waitForSelector('#props-tbody tr[data-prop]');
   ids = await page.$$eval('#props-tbody tr[data-prop]', t => t.map(x => x.dataset.prop));
-  check('sidebar "Por rever" opens the queue', ids.join(',') === 'a3,a4,a5');
+  check('sidebar "À vérifier" opens the queue', ids.join(',') === 'a3,a4,a5');
   await page.click('#sidebar a[data-view="properties"]');
   await page.waitForSelector('#props-tbody tr[data-prop]');
-  check('sidebar "Bens e anúncios" shows all', (await page.$$('#props-tbody tr[data-prop]')).length === 6);
+  check('sidebar "Biens et annonces" shows all', (await page.$$('#props-tbody tr[data-prop]')).length === 6);
   check('no script error', errors.length === 0);
   await browser.close();
-  console.log(`\nADMIN POR REVER: ${passed}/${passed} PASSED`);
+  console.log(`\nADMIN À VÉRIFIER: ${passed}/${passed} PASSED`);
 })().catch(e => { console.error(e); process.exit(1); });

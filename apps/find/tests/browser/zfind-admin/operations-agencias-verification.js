@@ -68,19 +68,19 @@ const DETAIL = Object.assign({}, ROWS[0], { address: '4 PLACE DU MARCHE 74200 TH
   await page.waitForSelector('#ops-cards .card', { timeout: 10000 });
   const ops = await page.textContent('#ops-cards');
   check('dashboard: operations tiles (leads to handle, reviews to moderate, alerts, agencies, e-mails, outreach)',
-    ops.includes('Leads por tratar') && ops.includes('Avaliações por moderar') && ops.includes('Alertas ativos') && ops.includes('118') && ops.includes('19'));
+    ops.includes('Demandes à traiter') && ops.includes('Avis à modérer') && ops.includes('Alertes actives') && ops.includes('118') && ops.includes('19'));
   const dash = await page.textContent('#main');
-  check('dashboard: daily / weekly / monthly routine and tool links', dash.includes('Todos os dias') && dash.includes('Todas as semanas') && dash.includes('Todos os meses')
+  check('dashboard: daily / weekly / monthly routine and tool links', dash.includes('Chaque jour') && dash.includes('Chaque semaine') && dash.includes('Chaque mois')
     && await page.$('a[href*="supabase.com/dashboard/project/dcdggqyazdddrfuzwavw"]') && await page.$('a[href*="github.com/ricardo71villela/z-operating-system/actions"]'));
-  check('dashboard: base by country and type', (await page.textContent('#ops-agencias')).includes('Mandatário / independente'));
+  check('dashboard: base by country and type', (await page.textContent('#ops-agencias')).includes('Mandataire / indépendant'));
   if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'admin-dashboard.png'), fullPage: true });
 
   await page.click('#sidebar a[data-view="agencias"]');
   await page.waitForSelector('#ag-tbody tr td strong');
   check('agências: list with count, type labels, network tag', (await page.textContent('#ag-count')).includes('1') && (await page.textContent('#ag-tbody')).includes('CENTURY 21 CHABLAIS - LEMAN')
-    && (await page.textContent('#ag-tbody')).includes('Agência de rede'));
-  check('agências: BE natural person flagged "e-mail não permitido"', (await page.textContent('#ag-tbody')).includes('e-mail não permitido'));
-  check('agências: pagination shows pages of 50', (await page.textContent('#ag-page')).includes('de 25'));
+    && (await page.textContent('#ag-tbody')).includes('Agence de réseau'));
+  check('agências: BE natural person flagged "e-mail não permitido"', (await page.textContent('#ag-tbody')).includes('e-mail non autorisé'));
+  check('agências: pagination shows pages of 50', (await page.textContent('#ag-page')).includes('sur 25'));
 
   await page.selectOption('#ag-country', 'FR');
   await page.fill('#ag-postcode', '74');
@@ -99,7 +99,7 @@ const DETAIL = Object.assign({}, ROWS[0], { address: '4 PLACE DU MARCHE 74200 TH
   await page.click('#ag-tbody tr');
   await page.waitForSelector('#ag-detail .detail-panel');
   const det = await page.textContent('#ag-detail');
-  check('detail: sources of each contact, registry source, outreach rule', det.includes('(website)') && det.includes('(osm)') && det.includes('sirene · 12345678900011') && det.includes('permitida'));
+  check('detail: sources of each contact, registry source, outreach rule', det.includes('(website)') && det.includes('(osm)') && det.includes('sirene · 12345678900011') && det.includes('autorisée'));
   page.once('dialog', d => d.dismiss());
   await page.click('button.btn-danger');
   await page.waitForSelector('#confirm-ok');

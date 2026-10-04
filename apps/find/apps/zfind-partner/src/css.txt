@@ -89,6 +89,10 @@ input, select, textarea{ font-family:'DM Sans', sans-serif; }
 .lead-status.new{ background:var(--gold-pale); color:var(--gold-dark); }
 .lead-status.contacted{ background:var(--gray-100); color:var(--gray-500); }
 .lead-status.closed{ background:var(--gray-100); color:var(--gray-400); }
+.lead-late{ font-size:0.72rem; color:#a33; margin-left:6px; }
+.lead-actions{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+.lead-actions .btn-sm{ font:inherit; font-size:0.78rem; padding:6px 12px; border-radius:4px; border:1px solid var(--gold-dark); background:var(--gold-dark); color:#fff; cursor:pointer; }
+.lead-actions .btn-sm.ghost{ background:transparent; color:var(--gray-500); border-color:var(--gray-200); }
 
 .dash-body{ max-width:720px; margin:0 auto; padding:88px 32px; text-align:center; }
 .dash-body.wide{ max-width:920px; text-align:left; padding:56px 40px; }

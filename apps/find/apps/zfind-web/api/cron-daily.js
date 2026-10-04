@@ -11,7 +11,9 @@
       match each confirmed search; no e-mail when there is nothing new.
    5. Mondays: a short activity summary to Z Find.
    6. Enquiries not yet sent to their agency (normally sent at once by
-      /api/lead-notify): sent now.
+      /api/lead-notify): sent now. Same for owner estimation requests the
+      Admin assigned to an agency.
+   7. Enquiries unanswered 24 h after being sent: one reminder to the agency.
 
    Protected by CRON_SECRET (Vercel sends "Authorization: Bearer …").
    Each step is independent: one failure does not stop the others.
@@ -132,19 +134,19 @@ async function summary(report) {
   const to = S.env('ZFIND_LEAD_NOTIFY_EMAIL');
   if (!to) return 'skipped';
   const lines = [
-    ['Alertas de pesquisa ativas', await count('zfind_alert_subscriptions', 'status=eq.active&kind=eq.search')],
-    ['Alertas de valor ativos', await count('zfind_alert_subscriptions', 'status=eq.active&kind=eq.value')],
-    ['Pedidos por confirmar', await count('zfind_alert_subscriptions', 'status=eq.pending')],
-    ['E-mails de pesquisa enviados hoje', report.search && report.search.sent != null ? report.search.sent : '—'],
-    ['Novos anúncios (8 dias)', report.search && report.search.newListings != null ? report.search.newListings : '—'],
-    ['Avis publicados', await count('zfind_partner_reviews', 'status=eq.published')],
-    ['Avis a moderar', await count('zfind_partner_reviews', 'status=eq.pending')],
-    ['Convites de avis por enviar', await count('zfind_partner_reviews', 'status=eq.invited&invite_sent_at=is.null')]
+    ['Alertes de recherche actives', await count('zfind_alert_subscriptions', 'status=eq.active&kind=eq.search')],
+    ['Alertes de valeur actives', await count('zfind_alert_subscriptions', 'status=eq.active&kind=eq.value')],
+    ['Inscriptions à confirmer', await count('zfind_alert_subscriptions', 'status=eq.pending')],
+    ['E-mails de recherche envoyés aujourd’hui', report.search && report.search.sent != null ? report.search.sent : '—'],
+    ['Nouvelles annonces (8 jours)', report.search && report.search.newListings != null ? report.search.newListings : '—'],
+    ['Avis publiés', await count('zfind_partner_reviews', 'status=eq.published')],
+    ['Avis à modérer', await count('zfind_partner_reviews', 'status=eq.pending')],
+    ['Invitations d’avis à envoyer', await count('zfind_partner_reviews', 'status=eq.invited&invite_sent_at=is.null')]
   ];
   await S.sendMail({
-    to: [to], subject: 'Z Find — resumo semanal (alertas e avis)',
-    html: S.mailHtml('fr', 'Resumo semanal', `<table style="border-collapse:collapse">${lines.map(([k, v]) => `<tr><td style="padding:6px 18px 6px 0;color:#7a7266">${S.esc(k)}</td><td style="padding:6px 0;font-weight:600">${S.esc(v)}</td></tr>`).join('')}</table>`, 'Z Find'),
-    text: lines.map(([k, v]) => `${k}: ${v}`).join('\n')
+    to: [to], subject: 'Z Find — résumé hebdomadaire (alertes et avis)',
+    html: S.mailHtml('fr', 'Résumé hebdomadaire', `<table style="border-collapse:collapse">${lines.map(([k, v]) => `<tr><td style="padding:6px 18px 6px 0;color:#7a7266">${S.esc(k)}</td><td style="padding:6px 0;font-weight:600">${S.esc(v)}</td></tr>`).join('')}</table>`, 'Z Find'),
+    text: lines.map(([k, v]) => `${k} : ${v}`).join('\n')
   });
   return 'sent';
 }
@@ -159,6 +161,8 @@ async function run(options) {
   await step('purge', () => purge(now));
   if (S.configured(['mail'])) {
     await step('leads', () => leadNotify._internals.processPending(100));
+    await step('estimations', () => leadNotify._internals.processEstimations(50));
+    await step('reminders', () => leadNotify._internals.processReminders(100));
     await step('invitations', () => sendInvitations(now));
     await step('value', () => sendValueAlerts());
     if (monday) {

@@ -8,8 +8,9 @@
    zfind_update_asset, zfind_set_asset_commune,
    zfind_admin_create_initial_listing, listing commercial terms and
    French content). Nothing is published: publication stays the usual
-   compliance review. Photos are not imported yet (the agency adds them
-   in its panel). Rows already imported for the agency (same agency
+   compliance review. Photo links (if the file has them) are queued by
+   the Admin after the import and fetched by the site's server
+   (/api/media-import); otherwise the agency adds photos in its panel. Rows already imported for the agency (same agency
    reference) are skipped.
    Pure helpers (parse, map, normalise) are testable in Node.
    ============================================================ */
@@ -93,26 +94,26 @@
   /* ---------------- column mapping ---------------- */
 
   const FIELDS = [
-    ['reference', 'Referência (n.º de mandato)', ['reference', 'ref', 'reference annonce', 'reference agence', 'mandat', 'n mandat', 'numero mandat', 'numero de mandat', 'no mandat', 'id annonce', 'identifiant']],
-    ['transaction', 'Venda / arrendamento', ['type d annonce', 'type annonce', 'transaction', 'type transaction', 'type de transaction', 'nature', 'vente location', 'offre']],
-    ['type', 'Tipo de bem', ['type de bien', 'type bien', 'type', 'categorie', 'type de propriete', 'bien', 'famille']],
-    ['price', 'Preço / renda (€)', ['prix', 'prix de vente', 'prix fai', 'prix honoraires inclus', 'price', 'montant', 'loyer', 'loyer cc', 'loyer charges comprises', 'loyer mensuel']],
-    ['area', 'Superfície (m²)', ['surface', 'surface habitable', 'surface m2', 'surface m²', 'sh', 'superficie', 'surface carrez', 'surface loi carrez']],
-    ['rooms', 'Divisões (pièces)', ['pieces', 'nb pieces', 'nombre de pieces', 'nb de pieces', 'nbre pieces']],
-    ['bedrooms', 'Quartos (chambres)', ['chambres', 'nb chambres', 'nombre de chambres', 'nb de chambres']],
-    ['bathrooms', 'Casas de banho', ['salles de bain', 'nb salles de bain', 'salle de bain', 'salles d eau', 'nb salles d eau']],
-    ['plot', 'Terreno (m²)', ['surface terrain', 'terrain', 'surface du terrain']],
-    ['floor', 'Andar (étage)', ['etage', 'niveau', 'num etage']],
-    ['postcode', 'Código postal', ['code postal', 'cp', 'zip', 'code postal du bien']],
-    ['city', 'Comuna (ville)', ['ville', 'commune', 'localite', 'ville du bien']],
-    ['address', 'Morada', ['adresse', 'adresse du bien', 'rue']],
-    ['title', 'Título', ['titre', 'libelle', 'intitule', 'title', 'titre annonce', 'accroche']],
-    ['description', 'Descrição', ['description', 'descriptif', 'texte', 'texte annonce', 'annonce', 'description fr']],
-    ['dpe', 'DPE (classe energia)', ['dpe', 'classe energie', 'classe energetique', 'dpe classe', 'etiquette energie', 'dpe lettre', 'consommation energie classe']],
-    ['year', 'Ano de construção', ['annee de construction', 'annee construction', 'construction']],
-    ['charges', 'Despesas de condomínio / mês (€)', ['charges', 'charges mensuelles', 'charges copropriete', 'charges de copropriete']],
-    ['tax', 'Taxe foncière / ano (€)', ['taxe fonciere']],
-    ['photos', 'Fotografias (URL)', ['photos', 'photo', 'images', 'url photos', 'photos url', 'url images']]
+    ['reference', 'Référence (n° de mandat)', ['reference', 'ref', 'reference annonce', 'reference agence', 'mandat', 'n mandat', 'numero mandat', 'numero de mandat', 'no mandat', 'id annonce', 'identifiant']],
+    ['transaction', 'Vente / location', ['type d annonce', 'type annonce', 'transaction', 'type transaction', 'type de transaction', 'nature', 'vente location', 'offre']],
+    ['type', 'Type de bien', ['type de bien', 'type bien', 'type', 'categorie', 'type de propriete', 'bien', 'famille']],
+    ['price', 'Prix / loyer (€)', ['prix', 'prix de vente', 'prix fai', 'prix honoraires inclus', 'price', 'montant', 'loyer', 'loyer cc', 'loyer charges comprises', 'loyer mensuel']],
+    ['area', 'Surface habitable (m²)', ['surface', 'surface habitable', 'surface m2', 'surface m²', 'sh', 'superficie', 'surface carrez', 'surface loi carrez']],
+    ['rooms', 'Pièces', ['pieces', 'nb pieces', 'nombre de pieces', 'nb de pieces', 'nbre pieces']],
+    ['bedrooms', 'Chambres', ['chambres', 'nb chambres', 'nombre de chambres', 'nb de chambres']],
+    ['bathrooms', 'Salles de bain', ['salles de bain', 'nb salles de bain', 'salle de bain', 'salles d eau', 'nb salles d eau']],
+    ['plot', 'Terrain (m²)', ['surface terrain', 'terrain', 'surface du terrain']],
+    ['floor', 'Étage', ['etage', 'niveau', 'num etage']],
+    ['postcode', 'Code postal', ['code postal', 'cp', 'zip', 'code postal du bien']],
+    ['city', 'Commune (ville)', ['ville', 'commune', 'localite', 'ville du bien']],
+    ['address', 'Adresse', ['adresse', 'adresse du bien', 'rue']],
+    ['title', 'Titre', ['titre', 'libelle', 'intitule', 'title', 'titre annonce', 'accroche']],
+    ['description', 'Description', ['description', 'descriptif', 'texte', 'texte annonce', 'annonce', 'description fr']],
+    ['dpe', 'DPE (classe énergie)', ['dpe', 'classe energie', 'classe energetique', 'dpe classe', 'etiquette energie', 'dpe lettre', 'consommation energie classe']],
+    ['year', 'Année de construction', ['annee de construction', 'annee construction', 'construction']],
+    ['charges', 'Charges de copropriété / mois (€)', ['charges', 'charges mensuelles', 'charges copropriete', 'charges de copropriete']],
+    ['tax', 'Taxe foncière / an (€)', ['taxe fonciere']],
+    ['photos', 'Photos (liens)', ['photos', 'photo', 'images', 'url photos', 'photos url', 'url images']]
   ];
 
   function autoMap(headers) {
@@ -189,18 +190,21 @@
     const warnings = []; const errors = [];
     const typeValue = get('type');
     const subtype = subtypeOf(typeValue);
-    if (subtype === null) errors.push('Tipo não aceite no Z Find (parque, garagem, cave)');
+    if (subtype === null) errors.push('Type non accepté sur Z Find (parking, garage, cave)');
     const transaction = transactionOf(get('transaction'));
     const price = num(get('price'));
-    if (!(price > 0)) errors.push('Preço em falta');
+    if (!(price > 0)) errors.push('Prix manquant');
     const rooms = int(get('rooms'));
     const title = get('title') || [typologyOf(subtype, typeValue, rooms) || typeValue, get('city')].filter(Boolean).join(' — ');
-    if (!get('postcode') && !get('city')) warnings.push('Sem código postal nem comuna: localizar à mão');
-    if (!get('description')) warnings.push('Sem descrição');
-    const photos = get('photos') ? get('photos').split(/[\s|;,]+/).filter(u => /^https?:\/\//i.test(u)) : [];
-    if (photos.length) warnings.push(`${photos.length} fotografia(s) a acrescentar pela agência`);
+    if (!get('postcode') && !get('city')) warnings.push('Ni code postal ni commune : à localiser à la main');
+    if (!get('description')) warnings.push('Sans description');
+    // One column with several links, and/or numbered columns (Photo 1, Photo 2… as many exports do).
+    const photoCells = [get('photos')].concat(Object.keys(record).filter(h => h !== map.photos && /^(photos?|images?|img|url photos?|url images?|lien photo) ?\d{1,2}$/.test(fold(h)))
+      .sort((a, b) => Number(fold(a).replace(/\D/g, '')) - Number(fold(b).replace(/\D/g, ''))).map(h => String(record[h] || '').trim()));
+    const photos = [...new Set(photoCells.join(' ').split(/[\s|;,]+/).filter(u => /^https?:\/\//i.test(u)))];
+    if (photos.length) warnings.push(`${photos.length} photo(s) à importer depuis les liens`);
     const dpe = dpeOf(get('dpe'));
-    if (!dpe && subtype !== 'land') warnings.push('Sem classe DPE');
+    if (!dpe && subtype !== 'land') warnings.push('Sans classe DPE');
     return {
       reference: get('reference') || null,
       subtype, transaction, price, rentalPeriod: transaction === 'rent' ? 'monthly' : null,
@@ -237,10 +241,10 @@
   }
 
   async function importRow(row, partnerId, country, admin) {
-    const step = async (label, fn) => { const r = await fn(); if (r && r.error) throw new Error(`${label}: ${r.error.message || r.error.type || 'erro'}`); return r && r.data; };
-    const prop = await step('bem', () => admin.createProperty({ subtype: row.subtype, typology: row.typology, areaSqm: row.areaSqm, floor: row.floor }));
+    const step = async (label, fn) => { const r = await fn(); if (r && r.error) throw new Error(`${label} : ${r.error.message || r.error.type || 'erreur'}`); return r && r.data; };
+    const prop = await step('bien', () => admin.createProperty({ subtype: row.subtype, typology: row.typology, areaSqm: row.areaSqm, floor: row.floor }));
     const propertyId = prop && (prop.id || (Array.isArray(prop) && prop[0] && prop[0].id));
-    if (!propertyId) throw new Error('bem: sem identificador');
+    if (!propertyId) throw new Error('bien : identifiant manquant');
     const extra = {};
     if (row.bedrooms != null) extra.bedrooms = row.bedrooms;
     if (row.bathrooms != null) extra.bathrooms = row.bathrooms;
@@ -253,17 +257,17 @@
     if (row.postcode) extra.postalCode = row.postcode;
     if (row.address) extra.streetAddress = row.address;
     if (row.reference) extra.agencyReference = row.reference;
-    if (Object.keys(extra).length) await step('características', () => admin.updateProperty(propertyId, extra));
+    if (Object.keys(extra).length) await step('caractéristiques', () => admin.updateProperty(propertyId, extra));
     let commune = null;
     const found = await resolveCommune(country, row.postcode, row.city);
     if (found) {
       const set = await client().rpc('zfind_set_asset_commune', { p_kind: 'property', p_asset_id: propertyId, p_country: country, p_code: found.code });
       if (!set.error) commune = found.name;
     }
-    const listing = await step('anúncio', () => admin.createInitialListing('property', propertyId, partnerId));
+    const listing = await step('annonce', () => admin.createInitialListing('property', propertyId, partnerId));
     const listingId = listing && listing.id;
-    await step('preço', () => admin.updateListingCommercial(listingId, { transactionType: row.transaction, rentalPeriod: row.rentalPeriod, priceCurrent: row.price, currencyIso: 'EUR', priceIsFrom: false }));
-    await step('texto', () => admin.upsertListingContent(listingId, 'fr', { title: row.title, description: row.description || '' }));
+    await step('prix', () => admin.updateListingCommercial(listingId, { transactionType: row.transaction, rentalPeriod: row.rentalPeriod, priceCurrent: row.price, currencyIso: 'EUR', priceIsFrom: false }));
+    await step('texte', () => admin.upsertListingContent(listingId, 'fr', { title: row.title, description: row.description || '' }));
     return { propertyId, listingId, commune };
   }
 
@@ -275,12 +279,12 @@
       const row = rows[i];
       let result;
       if (row.errors.length) result = { status: 'skipped', message: row.errors.join(' · ') };
-      else if (row.reference && known.has(row.reference.toLowerCase())) result = { status: 'duplicate', message: 'Já importado (mesma referência)' };
+      else if (row.reference && known.has(row.reference.toLowerCase())) result = { status: 'duplicate', message: 'Déjà importée (même référence)' };
       else {
         try {
           const r = await importRow(row, partnerId, country, admin);
           if (row.reference) known.add(row.reference.toLowerCase());
-          result = Object.assign({ status: 'ok', message: r.commune ? `Comuna: ${r.commune}` : 'Comuna a definir' }, r);
+          result = Object.assign({ status: 'ok', message: r.commune ? `Commune : ${r.commune}` : 'Commune à définir' }, r);
         } catch (e) { result = { status: 'error', message: e.message }; }
       }
       results.push(result);

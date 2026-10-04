@@ -92,5 +92,13 @@
     } catch (e) { return { data: null, error: e }; }
   }
 
-  return Object.freeze({ validateNumber, lookup, register, complete, ownSignup, leadStats, _internals: { digits } });
+  /* « Répondue » / « Clôturée » on one of the agency's own enquiries (checked by the database). */
+  async function setLeadStatus(leadId, status) {
+    try {
+      const { data, error } = await getSupabaseClient().rpc('zfind_partner_set_lead_status', { p_lead_id: leadId, p_status: status });
+      return { data: data || null, error: error || null };
+    } catch (e) { return { data: null, error: e }; }
+  }
+
+  return Object.freeze({ validateNumber, lookup, register, complete, ownSignup, leadStats, setLeadStatus, _internals: { digits } });
 });

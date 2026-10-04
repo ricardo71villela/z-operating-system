@@ -147,18 +147,18 @@ function mockRes() {
     !expected.adjustments.some(a => a.key === 'ground_floor') &&
     (await engine.estimate(Object.assign({}, good.input, { floor: 0 }), load)).adjustments.some(a => a.key === 'ground_floor'));
   check('API: report subject names the commune; notification in Portuguese',
-    sent[1].body.subject === 'Votre estimation Z Find — Évian-les-Bains' && sent[0].body.subject.startsWith('Novo lead proprietário — Évian-les-Bains (FR)'));
+    sent[1].body.subject === 'Votre estimation Z Find — Évian-les-Bains' && sent[0].body.subject.startsWith('Nouveau contact propriétaire — Évian-les-Bains (FR)'));
   check('API: without the separate agency consent, the lead says NOT to pass it on and the report says nothing about it',
-    sent[0].body.text.includes('Partilha com agência parceira: NÃO autorizada') && !sent[1].body.text.includes('agence partenaire'));
+    sent[0].body.text.includes('Mise en relation avec une agence : NON autorisée') && !sent[1].body.text.includes('agence partenaire'));
 
   sent.length = 0;
   res = mockRes(); await handler(mockReq(Object.assign({}, good, { contact: Object.assign({}, good.contact, { agencyConsent: true }) })), res);
   check('API: owner who ticked the agency consent — lead marked AUTHORISED (one agency), report confirms and explains how to withdraw',
-    res.statusCode === 200 && sent[0].body.text.includes('Partilha com agência parceira: AUTORIZADA') && sent[0].body.text.includes('uma só agência') &&
+    res.statusCode === 200 && sent[0].body.text.includes('Mise en relation avec une agence : AUTORISÉE') && sent[0].body.text.includes('une seule agence') &&
     sent[1].body.text.includes('mis en relation avec une agence partenaire') && sent[1].body.text.includes('retirer votre accord'));
   sent.length = 0;
   res = mockRes(); await handler(mockReq(Object.assign({}, good, { mode: 'buyer', input: Object.assign({}, good.input, { askingPrice: 300000 }), contact: Object.assign({}, good.contact, { agencyConsent: true }) })), res);
-  check('API: a buyer can never be passed on as a seller lead', sent.length === 2 && sent[0].body.text.includes('NÃO autorizada'));
+  check('API: a buyer can never be passed on as a seller lead', sent.length === 2 && sent[0].body.text.includes('NON autorisée'));
   const cFr = page.COPY.fr, cEn = page.COPY.en;
   check('page: separate optional agency consent (owners only), and the privacy notice no longer says data is never passed on',
     /Facultatif/.test(cFr.agencyConsent) && /Optional/.test(cEn.agencyConsent) && !/ni vendues ni cédées/.test(cFr.rgpd) && /une seule agence partenaire/.test(cFr.rgpd) && /single partner agency/.test(cEn.rgpd));
@@ -235,7 +235,7 @@ function mockRes() {
   const cleaned = handler._internals.cleanInput(Object.assign({}, good.input, { refine: { view: 'lake', parking: 'garage', hack: 1 } }));
   const leadRefined = handler._internals.leadEmail('fr', 'owner', cleaned, await engine.estimate(cleaned, load), 'Évian-les-Bains', { email: 'a@b.fr' });
   check('API: the detailed answers reach the server (cleaned) and the lead e-mail, in Portuguese',
-    JSON.stringify(cleaned.refine) === '{"view":"lake","parking":"garage"}' && leadRefined.text.includes('Detalhes (afinar): vista: lago panorâmica · estacionamento: garagem/box'));
+    JSON.stringify(cleaned.refine) === '{"view":"lake","parking":"garage"}' && leadRefined.text.includes('Précisions (affiner) : vue : lac panoramique · stationnement : garage / box'));
   // ---------------- House layout (France / Luxembourg) ----------------
   const houseBase = { market: 'FR', communeCode: '74281', type: 'house', surface: 140 };
   const detached = await engine.estimate(Object.assign({}, houseBase, { houseKind: 'detached' }), load);
