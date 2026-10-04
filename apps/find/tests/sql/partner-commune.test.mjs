@@ -9,6 +9,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 const ROOT = process.env.ZOS_ROOT || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
 const MIGRATION = path.join(ROOT, 'infrastructure', 'supabase', 'migrations', '20261004140000_z_find_partner_commune_v1.sql');
+const FIX = path.join(ROOT, 'infrastructure', 'supabase', 'migrations', '20261004170000_z_find_commune_search_postcode_v1.sql');
 
 const db = new PGlite();
 let pass = 0;
@@ -43,6 +44,7 @@ insert into public.zones_lite (name, city, country_iso, geography_entity_id, geo
   ('Boavista','Porto','PT',null,'unbound');
 `);
 await db.exec(fs.readFileSync(MIGRATION, 'utf8'));
+await db.exec(fs.readFileSync(FIX, 'utf8'));
 check('migration applies; existing linked zone gets its INSEE code', (await q(`select commune_code from zones_lite where name='Saint-Denis'`))[0].commune_code === '97411');
 await db.exec(`
 insert into public.zfind_communes (country, code, name, name_folded, postcodes, aliases, aliases_folded, parent) values
@@ -60,7 +62,11 @@ const prop = (await q(`insert into properties (owner) values ($1) returning id`,
 const dev = (await q(`insert into developments (owner) values ($1) returning id`, [P1]))[0].id;
 const as = async (role, uid, fn) => { await db.exec(`set role ${role}; select set_config('test.uid', '${uid || ''}', false);`); try { return await fn(); } finally { await db.exec('reset role'); } };
 
+await db.exec(`insert into public.zfind_communes (country, code, name, name_folded, postcodes, parent) select 'FR', '7490' || g, 'Aaa' || g, 'aaa' || g, '{74500}', '74' from generate_series(1, 14) g;`);
 let r = await as('anon', null, () => q(`select * from zfind_commune_search('FR','74500')`));
+check('a postcode shared by 16 communes lists them all, Évian included, alphabetically', r.length === 16 && r.some(x => x.name === 'Évian-les-Bains') && r[0].name === 'Aaa1');
+await db.exec(`delete from public.zfind_communes where code like '7490%'`);
+r = await as('anon', null, () => q(`select * from zfind_commune_search('FR','74500')`));
 check('search by postcode: both communes of 74500', r.length === 2 && r.map(x => x.name).includes('Évian-les-Bains') && r[0].zone_label.includes('(74500)'));
 r = await as('anon', null, () => q(`select * from zfind_commune_search('FR','evian')`));
 check('search by name prefix (accents folded by the client)', r.length === 1 && r[0].code === '74119');
