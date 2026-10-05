@@ -84,6 +84,22 @@ global.fetch = async (url, opts) => {
   check('daily job: estimations and reminders steps', /step\('estimations'/.test(cronSrc) && /step\('reminders'/.test(cronSrc));
   check('lead-notify endpoint also forwards assigned estimations', /await processEstimations\(10\)/.test(fs.readFileSync(path.join(WEB, 'api', 'lead-notify.js'), 'utf8')));
 
+  /* ---------------- review decisions: the agency is told ---------------- */
+  routes['rpc/zfind_pending_review_notices'] = [
+    { notice_id: 'n1', decision: 'reject', reason: 'Photos floues\nDPE <manquant>', listing_title: 'T3 vue lac', partner_name: 'LAC IMMO', recipients: ['agent@lac-immo.fr', 'pas-un-mail'] },
+    { notice_id: 'n2', decision: 'approve', reason: null, listing_title: 'Maison', partner_name: 'LAC IMMO', recipients: ['agent@lac-immo.fr'] },
+    { notice_id: 'n3', decision: 'reject', reason: 'x', listing_title: 'Sans compte', partner_name: 'X', recipients: [] }
+  ];
+  routes['rpc/zfind_mark_review_notices'] = 1;
+  mails.length = 0; calls.length = 0;
+  const rv = await ln._internals.processReviewNotices(20);
+  check('review notices: two sent, the one without agency account skipped', rv.sent === 2 && rv.skipped === 1 && mails.length === 2);
+  check('refusal mail: subject, reason shown (escaped), asks to correct and resend', mails[0].subject === 'Annonce à compléter : T3 vue lac' && mails[0].html.includes('Photos floues') && mails[0].html.includes('DPE &lt;manquant&gt;') && !mails[0].html.includes('<manquant>') && mails[0].text.includes('renvoyez-la en vérification') && mails[0].to.join() === 'agent@lac-immo.fr');
+  check('approval mail: validated, ready to publish, no reason block, not published yet', mails[1].subject === 'Annonce validée : Maison' && mails[1].text.includes('prête à être publiée') && !mails[1].html.includes('white-space:pre-wrap'));
+  const marks = calls.filter(c => /zfind_mark_review_notices/.test(c.url)).map(c => c.body.p_ids[0] + ':' + c.body.p_delivered);
+  check('each notice marked delivered (no recipient: not retried forever)', marks.join() === 'n1:true,n2:true,n3:true');
+  check('notices go out right after a decision (endpoint) and in the daily job', /await processReviewNotices\(10\)/.test(fs.readFileSync(path.join(WEB, 'api', 'lead-notify.js'), 'utf8')) && /step\('review-notices'/.test(cronSrc));
+
   /* ---------------- media import ---------------- */
   const mi = require(path.join(WEB, 'api', 'media-import.js'));
   const P = mi._internals;

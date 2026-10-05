@@ -183,6 +183,44 @@ async function processReminders(limit) {
   return report;
 }
 
+/* ---------------- Review decisions: the agency learns what happened to its listing ---------------- */
+function reviewEmail(row) {
+  const title = S.oneLine(row.listing_title || 'votre annonce', 120);
+  const approved = row.decision === 'approve';
+  const heading = approved ? 'Votre annonce est validée' : 'Votre annonce doit être complétée';
+  const intro = approved
+    ? `Votre annonce « ${title} » a été vérifiée par Z Find : elle est prête à être publiée. Nous la mettons en ligne très prochainement.`
+    : `Votre annonce « ${title} » a été vérifiée par Z Find et n’est pas encore publiable. Voici ce qu’il faut corriger :`;
+  const reason = !approved && row.reason ? `<div style="white-space:pre-wrap;line-height:1.5;background:#faf7f0;border:1px solid #e7e1d4;border-radius:6px;padding:12px;margin:12px 0">${S.esc(String(row.reason).slice(0, 2000))}</div>` : '';
+  const next = approved ? '' : 'Corrigez l’annonce dans votre espace puis renvoyez-la en vérification : nous la regardons dès que possible.';
+  const html = S.mailHtml('fr', heading,
+    `<p style="line-height:1.6">${S.esc(intro)}</p>${reason}${next ? `<p style="line-height:1.6;color:#4a453d">${S.esc(next)}</p>` : ''}` + (approved ? '' : S.button(partnerUrl(), 'Ouvrir mon espace')),
+    'Vous recevez cet e-mail parce que votre agence est partenaire de Z Find. Z Find · hello@zfind.online');
+  const text = [heading, '', intro, !approved && row.reason ? `\n${row.reason}\n` : '', next, approved ? '' : `\nMon espace : ${partnerUrl()}`].filter(x => x !== '').join('\n');
+  return { to: row.recipients, subject: S.oneLine(`${approved ? 'Annonce validée' : 'Annonce à compléter'} : ${title}`, 150), html, text };
+}
+
+async function processReviewNotices(limit) {
+  const report = { sent: 0, failed: 0, skipped: 0 };
+  const found = await S.db('rpc/zfind_pending_review_notices', { method: 'POST', body: { p_limit: limit || 20 } });
+  const rows = Array.isArray(found) ? found : [];
+  const mark = (id, delivered) => S.db('rpc/zfind_mark_review_notices', { method: 'POST', body: { p_ids: [id], p_delivered: delivered } });
+  for (const row of rows) {
+    const recipients = (row.recipients || []).filter(e => S.EMAIL_RE.test(e)).slice(0, 5);
+    if (!recipients.length) { await mark(row.notice_id, true); report.skipped += 1; continue; } // no agency account: nothing to send
+    try {
+      await S.sendMail(reviewEmail(Object.assign({}, row, { recipients })));
+      await mark(row.notice_id, true);
+      report.sent += 1;
+    } catch (e) {
+      console.error('lead-notify: review notice', row.notice_id, e.message);
+      await mark(row.notice_id, false).catch(() => {});
+      report.failed += 1;
+    }
+  }
+  return report;
+}
+
 async function handler(req, res) {
   if (req.method !== 'POST' && req.method !== 'GET') return S.sendJson(res, 405, { ok: false });
   if (!S.configured(['db', 'mail'])) return S.sendJson(res, 503, { ok: false, error: 'not_configured' });
@@ -191,6 +229,8 @@ async function handler(req, res) {
     await processPending(10);
     // Also called by the Admin right after assigning an owner's request to an agency.
     await processEstimations(10).catch(e => console.error('lead-notify: estimations', e.message));
+    // And right after the Admin approves / refuses listings in the review queue.
+    await processReviewNotices(10).catch(e => console.error('lead-notify: review notices', e.message));
     return S.sendJson(res, 200, { ok: true });
   } catch (e) {
     console.error('lead-notify', e.message);
@@ -199,4 +239,4 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-module.exports._internals = { processPending, leadEmail, price, processEstimations, estimationEmail, processReminders, reminderEmail };
+module.exports._internals = { processPending, leadEmail, price, processEstimations, estimationEmail, processReminders, reminderEmail, processReviewNotices, reviewEmail };

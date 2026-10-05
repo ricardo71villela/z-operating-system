@@ -54,6 +54,15 @@
     return safeQuery(() => getSupabaseClient().rpc('zfind_admin_moderate_review', { p_id: id, p_decision: decision }), 'followup.moderateReview');
   }
 
+  /* ---------------- review queue decisions ---------------- */
+  /* decision: 'approve' (→ ready to publish) | 'reject' (→ incomplete, reason required). Returns one result per listing. */
+  function reviewListings(listingIds, decision, reason) {
+    return safeQuery(() => getSupabaseClient().rpc('zfind_admin_review_listings', { p_listing_ids: listingIds, p_decision: decision, p_reason: reason == null || reason === '' ? null : reason }), 'followup.reviewListings');
+  }
+  function reviewHistory(partnerId) {
+    return safeQuery(() => getSupabaseClient().rpc('zfind_admin_review_history', { p_limit: 200, p_partner: partnerId || null }), 'followup.reviewHistory', { allowNullData: true });
+  }
+
   /* ---------------- photo links ---------------- */
   function queuePhotos(listingId, urls) {
     const rows = (urls || []).slice(0, 40).map((url, i) => ({ listing_id: listingId, url, position: i }));
@@ -78,5 +87,5 @@
   const runPhotoImport = () => nudge('/api/media-import');
   const sendToAgencies = () => nudge('/api/lead-notify');
 
-  return Object.freeze({ estimations, assignEstimation, setEstimationStatus, leads, setLeadStatus, reviews, moderateReview, queuePhotos, photoProgress, runPhotoImport, sendToAgencies, SITE });
+  return Object.freeze({ estimations, assignEstimation, setEstimationStatus, leads, setLeadStatus, reviews, moderateReview, reviewListings, reviewHistory, queuePhotos, photoProgress, runPhotoImport, sendToAgencies, SITE });
 });

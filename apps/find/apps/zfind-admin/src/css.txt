@@ -121,3 +121,4 @@ tr.row-late td{background:#fff6f6;}
 .stars-cell{color:#c58b00;white-space:nowrap;letter-spacing:1px;}
 .est-agency select{max-width:200px;margin-bottom:4px;}
 #est-tbody .btn{padding:5px 9px;font-size:.78rem;}
+.quick-reasons{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px;}

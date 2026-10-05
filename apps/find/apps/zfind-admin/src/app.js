@@ -45,6 +45,34 @@ function askConfirm(title, body, okLabel) {
   });
 }
 
+/* Same overlay, with a free-text reason (and quick reasons to start from). Resolves to the text, or null if cancelled. */
+function askReason(title, body, okLabel, quick) {
+  return new Promise(resolve => {
+    const overlay = document.getElementById('confirm-overlay');
+    overlay.innerHTML = `
+      <div class="confirm-box">
+        <h4>${escapeHtml(title)}</h4>
+        <p>${escapeHtml(body)}</p>
+        <div class="quick-reasons">${(quick || []).map((q, i) => `<button type="button" class="chip" data-q="${i}">${escapeHtml(q)}</button>`).join('')}</div>
+        <textarea id="reason-text" rows="4" style="width:100%;box-sizing:border-box" placeholder="Motif envoyé à l’agence"></textarea>
+        <div class="actions">
+          <button class="btn" id="confirm-cancel">Annuler</button>
+          <button class="btn btn-danger" id="confirm-ok" disabled>${escapeHtml(okLabel || 'Confirmer')}</button>
+        </div>
+      </div>`;
+    overlay.classList.remove('hidden');
+    const ta = document.getElementById('reason-text'), ok = document.getElementById('confirm-ok');
+    const sync = () => { ok.disabled = !ta.value.trim(); };
+    ta.oninput = sync;
+    overlay.querySelectorAll('[data-q]').forEach(b => { b.onclick = () => { const t = quick[Number(b.dataset.q)]; if (!ta.value.includes(t)) ta.value = (ta.value.trim() ? ta.value.trim() + '\n' : '') + t; sync(); ta.focus(); }; });
+    const cleanup = result => { overlay.classList.add('hidden'); overlay.innerHTML = ''; resolve(result); };
+    ok.onclick = () => cleanup(ta.value.trim());
+    document.getElementById('confirm-cancel').onclick = () => cleanup(null);
+    overlay.onclick = e => { if (e.target === overlay) cleanup(null); };
+    ta.focus();
+  });
+}
+
 /* ---------------- Auth gate ---------------- */
 async function handleLogin() {
   const email = document.getElementById('login-email').value.trim();
@@ -930,6 +958,8 @@ async function renderPropertiesList() {
       <select id="prop-partner" aria-label="Agence" onchange="adminState.propFilter.partner=this.value; renderPropRows()"><option value="">Toutes les agences</option></select>
     </div>
     <div id="new-prop-form"></div>
+    <div id="review-bar"></div>
+    <div id="review-history"></div>
     <table><thead><tr><th>Titre</th><th>Bien</th><th>Zone</th><th>Agence</th><th>Prix</th><th>Statut</th><th></th></tr></thead><tbody id="props-tbody"><tr><td colspan="7">Chargement…</td></tr></tbody></table>`);
   await loadPropertiesList();
 }
@@ -971,6 +1001,10 @@ function renderPropRows() {
   });
   // The review queue reads oldest first: whoever waited longest is checked first.
   if (f.status === 'pending_review') rows.reverse();
+  const reviewMode = f.status === 'pending_review';
+  const visibleIds = reviewMode ? rows.map(p => (propListing(p).listing || {}).id).filter(Boolean) : [];
+  reviewState.selected = new Set([...reviewState.selected].filter(id => visibleIds.includes(id)));
+  renderReviewBar(visibleIds);
   if (!rows.length) {
     tbody.innerHTML = `<tr><td colspan="7" class="muted">${f.status === 'pending_review' ? 'Aucune annonce à vérifier. 👍' : 'Aucun bien avec ces filtres.'}</td></tr>`;
     return;
@@ -979,8 +1013,9 @@ function renderPropRows() {
     const { rep, listing } = propListing(p);
     const status = propStatus(p);
     const title = propTitle(p);
+    const pick = reviewMode && listing ? `<input type="checkbox" class="rv-pick" data-listing="${escapeHtml(listing.id)}" aria-label="Sélectionner"${reviewState.selected.has(listing.id) ? ' checked' : ''} onclick="event.stopPropagation(); reviewToggle('${escapeHtml(listing.id)}', this.checked)"> ` : '';
     return `<tr data-prop="${p.id}" onclick="navigateAdmin('properties','${p.id}')" style="cursor:pointer">
-      <td>${title ? escapeHtml(title) : '<span class="muted">(sans titre)</span>'}</td>
+      <td>${pick}${title ? escapeHtml(title) : '<span class="muted">(sans titre)</span>'}</td>
       <td>${escapeHtml(SUBTYPE_FR[p.subtype] || p.subtype || '')}${p.typology ? ' · ' + escapeHtml(p.typology) : ''}${p.area_sqm ? '<br><span class="muted">' + fmtN(p.area_sqm) + ' m²</span>' : ''}</td>
       <td>${p.zones_lite ? escapeHtml(p.zones_lite.name) : '<span class="muted">à définir</span>'}</td>
       <td>${rep && rep.partners ? escapeHtml(rep.partners.name) : ''}</td>
@@ -990,6 +1025,77 @@ function renderPropRows() {
     </tr>`;
   }).join('');
 }
+/* ---------- « À vérifier » : décisions en lot, motif, historique ---------- */
+const reviewState = { selected: new Set(), history: false };
+const REFUSAL_REASONS = ['Photos insuffisantes ou de mauvaise qualité', 'Description trop courte ou absente', 'Classe DPE manquante', 'Prix ou surface incohérents', 'Localisation manquante ou imprécise'];
+
+function renderReviewBar(visibleIds) {
+  const bar = document.getElementById('review-bar');
+  if (!bar) return;
+  if (adminState.propFilter.status !== 'pending_review') { bar.innerHTML = ''; const h = document.getElementById('review-history'); if (h) h.innerHTML = ''; reviewState.history = false; return; }
+  const n = reviewState.selected.size;
+  bar.innerHTML = `<div class="toolbar wrap" id="review-batch">
+    <label><input type="checkbox" id="rv-all" onchange="reviewToggleAll(this.checked)"${visibleIds.length && n === visibleIds.length ? ' checked' : ''}${visibleIds.length ? '' : ' disabled'}> Tout sélectionner (${fmtN(visibleIds.length)})</label>
+    <span class="muted" id="rv-count">${n ? fmtN(n) + ' sélectionnée' + (n > 1 ? 's' : '') : 'Aucune sélection'}</span>
+    <button class="btn btn-primary" id="rv-approve" onclick="reviewDecide('approve')"${n ? '' : ' disabled'}>Approuver</button>
+    <button class="btn btn-danger" id="rv-reject" onclick="reviewDecide('reject')"${n ? '' : ' disabled'}>Refuser…</button>
+    <button class="btn" id="rv-history-btn" onclick="reviewToggleHistory()">${reviewState.history ? 'Masquer l’historique' : 'Historique des décisions'}</button>
+  </div>`;
+}
+function reviewToggle(listingId, on) {
+  if (on) reviewState.selected.add(listingId); else reviewState.selected.delete(listingId);
+  renderReviewBar([...document.querySelectorAll('.rv-pick')].map(x => x.dataset.listing));
+}
+function reviewToggleAll(on) {
+  reviewState.selected = new Set(on ? [...document.querySelectorAll('.rv-pick')].map(x => x.dataset.listing) : []);
+  renderPropRows();
+}
+async function reviewDecide(decision) {
+  const ids = [...reviewState.selected];
+  if (!ids.length) return;
+  const plural = ids.length > 1 ? 's' : '';
+  let reason = null;
+  if (decision === 'approve') {
+    const ok = await askConfirm(`Approuver ${ids.length} annonce${plural} ?`, 'Elles passent en « prête à publier » et l’agence en est avertie par e-mail. Rien n’est publié : la publication reste une action distincte.', 'Approuver');
+    if (!ok) return;
+  } else {
+    reason = await askReason(`Refuser ${ids.length} annonce${plural} ?`, 'Elles repassent en « incomplète ». Le motif est envoyé à l’agence par e-mail (le même pour toute la sélection).', 'Refuser', REFUSAL_REASONS);
+    if (!reason) return;
+  }
+  const res = await window.ZFindServices.followup.reviewListings(ids, decision, reason);
+  if (res.error) { showStatus('error', res.error.message || 'Décision impossible.'); return; }
+  const results = res.data || [];
+  const done = results.filter(r => r.ok).length, failed = results.filter(r => !r.ok);
+  window.ZFindServices.followup.sendToAgencies();
+  reviewState.selected = new Set();
+  showStatus(failed.length ? 'error' : 'success', `${done} annonce${done > 1 ? 's' : ''} ${decision === 'approve' ? 'approuvée' : 'refusée'}${done > 1 ? 's' : ''}${failed.length ? ` · ${failed.length} non traitée${failed.length > 1 ? 's' : ''} (${[...new Set(failed.map(f => f.error))].join(', ')})` : ''}.`);
+  await loadPropertiesList();
+  if (reviewState.history) loadReviewHistory();
+}
+function reviewToggleHistory() {
+  reviewState.history = !reviewState.history;
+  const host = document.getElementById('review-history');
+  const btn = document.getElementById('rv-history-btn');
+  if (btn) btn.textContent = reviewState.history ? 'Masquer l’historique' : 'Historique des décisions';
+  if (!reviewState.history) { host.innerHTML = ''; return; }
+  loadReviewHistory();
+}
+async function loadReviewHistory() {
+  const host = document.getElementById('review-history');
+  if (!host) return;
+  host.innerHTML = '<div class="detail-panel"><p class="muted">Chargement…</p></div>';
+  const res = await window.ZFindServices.followup.reviewHistory(adminState.propFilter.partner || null);
+  if (res.error) { host.innerHTML = '<div class="detail-panel"><p>Historique indisponible (la migration 20261005100000 est-elle appliquée ?).</p></div>'; return; }
+  const rows = res.data || [];
+  host.innerHTML = `<div class="detail-panel" id="review-history-panel"><h4>Historique des décisions${adminState.propFilter.partner ? ' (agence filtrée)' : ''}</h4>${rows.length ? `<table class="compact"><thead><tr><th>Date</th><th>Annonce</th><th>Agence</th><th>Décision</th><th>Motif</th><th>Avis agence</th></tr></thead><tbody>${rows.map(r => `<tr data-decision="${r.decision}">
+    <td>${escapeHtml(new Date(r.decided_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }))}</td>
+    <td>${r.listing_title ? escapeHtml(r.listing_title) : '<span class="muted">(sans titre)</span>'}</td>
+    <td>${escapeHtml(r.partner_name || '')}</td>
+    <td><span class="tag tag-${r.decision === 'approve' ? 'active' : 'inactive'}">${r.decision === 'approve' ? 'Approuvée' : 'Refusée'}</span></td>
+    <td>${escapeHtml(r.reason || '')}</td>
+    <td>${r.notified_at ? 'Envoyé' : '<span class="muted">en attente</span>'}</td></tr>`).join('')}</tbody></table>` : '<p class="muted">Aucune décision enregistrée pour l’instant.</p>'}</div>`;
+}
+
 async function duplicatePropertyRow(id) {
   const result = await window.ZFindServices.admin.duplicateProperty(id);
   showStatus(result.error ? 'error' : 'success', result.error ? 'Impossible de dupliquer.' : 'Dupliqué.');

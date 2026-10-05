@@ -103,6 +103,7 @@
     "test:admin-review-queue": "node tests/browser/zfind-admin/review-queue-verification.js",
     "test:admin-followup-server": "node tests/unit/admin-followup-server.test.js",
     "test:admin-followup": "node tests/browser/zfind-admin/followup-verification.js",
+    "test:admin-review-decisions": "node tests/browser/zfind-admin/review-decisions-verification.js",
     "test:partner-leads-followup": "node tests/browser/zfind-partner/leads-followup-verification.js"
   },
   "dependencies": {
