@@ -448,9 +448,33 @@ async function importRun() {
   const p = document.getElementById('imp-progress');
   if (p) p.innerHTML = `<strong>${fmtN(counts.ok)} créées en brouillon</strong> · ${fmtN(counts.duplicate)} déjà présentes · ${fmtN(counts.skipped)} non importées · ${fmtN(counts.error)} en erreur. Étape suivante : l’agence complète et envoie chaque annonce en vérification ; elles apparaissent dans « À vérifier ».`;
   showStatus(counts.error ? 'error' : 'success', `${counts.ok} annonces créées en brouillon${counts.error ? `, ${counts.error} en erreur` : ''}.`);
+  importState.created = results.filter(r => r.status === 'ok' && r.propertyId).map(r => r.propertyId);
+  if (importState.created.length && p) p.insertAdjacentHTML('afterend', `<p id="imp-undo-box"><button class="btn" id="imp-undo" onclick="importUndo()">Annuler cet import (supprimer les ${fmtN(importState.created.length)} brouillons créés)</button></p>`);
   renderImportPreview();
   await importPhotos(rows, results);
   return results;
+}
+
+/* Undo: deletes the properties this import just created, one by one, through
+   the same safe delete as by hand (refused when a property already has leads). */
+async function importUndo() {
+  const ids = importState.created || [];
+  if (!ids.length || importState.running) return;
+  const ok = await askConfirm(`Annuler l’import ?`, `${ids.length} biens et leurs annonces en brouillon seront supprimés définitivement. Les biens qui ont déjà reçu une demande sont conservés.`, 'Supprimer');
+  if (!ok) return;
+  importState.running = true;
+  const btn = document.getElementById('imp-undo');
+  if (btn) btn.disabled = true;
+  let removed = 0; const kept = [];
+  for (const id of ids) {
+    const r = await window.ZFindServices.admin.deleteProperty(id);
+    if (r.error) kept.push(id); else removed += 1;
+  }
+  importState.running = false;
+  importState.created = kept;
+  const box = document.getElementById('imp-undo-box');
+  if (box) box.innerHTML = `<strong>${fmtN(removed)} brouillons supprimés</strong>${kept.length ? ` · ${fmtN(kept.length)} conservés (déjà utilisés)` : ''}. Vous pouvez corriger le fichier et le réimporter.`;
+  showStatus(kept.length ? 'error' : 'success', `${removed} brouillons supprimés${kept.length ? `, ${kept.length} conservés` : ''}.`);
 }
 
 /* Photo links of the created listings: queued, then fetched by the site's

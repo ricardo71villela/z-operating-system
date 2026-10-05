@@ -271,16 +271,24 @@
     return { propertyId, listingId, commune };
   }
 
+  /* Rows without a reference cannot be matched by it: same type, price, area and place inside one file is the same property. */
+  function fingerprint(row) {
+    return [row.transaction, row.subtype, row.price, row.areaSqm, row.rooms || row.typology, fold(row.postcode || row.city), fold(row.address)].map(v => v == null ? '' : v).join('|');
+  }
+
   /* rows: normalised rows; onProgress(i, result). Sequential, one row never stops the others. */
   async function importAll(rows, partnerId, country, admin, onProgress) {
     const known = await existingReferences(partnerId);
+    const seenLoose = new Set();
     const results = [];
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       let result;
       if (row.errors.length) result = { status: 'skipped', message: row.errors.join(' · ') };
       else if (row.reference && known.has(row.reference.toLowerCase())) result = { status: 'duplicate', message: 'Déjà importée (même référence)' };
+      else if (!row.reference && seenLoose.has(fingerprint(row))) result = { status: 'duplicate', message: 'Doublon dans le fichier (même bien, même prix, même lieu)' };
       else {
+        if (!row.reference) seenLoose.add(fingerprint(row));
         try {
           const r = await importRow(row, partnerId, country, admin);
           if (row.reference) known.add(row.reference.toLowerCase());
@@ -318,5 +326,5 @@
     return readCsvBytes(bytes);
   }
 
-  return Object.freeze({ FIELDS, fold, decodeBytes, detectDelimiter, parseCsv, toTable, readCsvBytes, autoMap, num, transactionOf, subtypeOf, typologyOf, dpeOf, normalizeRow, resolveCommune, importRow, importAll, readFile });
+  return Object.freeze({ FIELDS, fold, decodeBytes, detectDelimiter, parseCsv, toTable, readCsvBytes, autoMap, num, transactionOf, subtypeOf, typologyOf, dpeOf, normalizeRow, fingerprint, resolveCommune, importRow, importAll, readFile });
 });

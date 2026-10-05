@@ -127,5 +127,11 @@ check('no price → blocking error; studio typology; no DPE warning', r4.errors.
   const [lr] = await svc.importAll([loose], 'partner-1', 'FR', admin);
   check('unknown commune: still imported as draft, commune left to set by hand', lr.status === 'ok' && lr.message === 'Commune à définir');
 
+  // No reference: the same property twice in one file (same type, price, area, place) is imported once.
+  const twin = () => svc.normalizeRow({ Prix: '250000', Type: 'Appartement', Surface: '60', CP: '74500' }, { price: 'Prix', type: 'Type', area: 'Surface', postcode: 'CP' });
+  const other = svc.normalizeRow({ Prix: '251000', Type: 'Appartement', Surface: '60', CP: '74500' }, { price: 'Prix', type: 'Type', area: 'Surface', postcode: 'CP' });
+  const dup = await svc.importAll([twin(), twin(), other], 'partner-1', 'FR', admin);
+  check('no reference: identical row in the file is a duplicate, a different price is not', dup.map(r => r.status).join(',') === 'ok,duplicate,ok' && /Doublon/.test(dup[1].message));
+
   console.log(`\nLISTING IMPORT: ${passed}/${passed} PASSED`);
 })().catch(e => { console.error(e); process.exit(1); });

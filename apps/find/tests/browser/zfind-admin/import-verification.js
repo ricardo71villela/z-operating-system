@@ -66,6 +66,11 @@ const CSV_BYTES = Buffer.from([...CSV].map(c => (c === '€' ? 0x80 : c.charCode
     const st = polls === 1 ? ['processing', 'pending'] : ['done', 'failed'];
     return r.fulfill(json([{ listing_id: 'lst-prop-1', url: 'https://img.agence.test/a.jpg', status: st[0], error: null }, { listing_id: 'lst-prop-1', url: 'https://img.agence.test/b.jpg', status: st[1], error: st[1] === 'failed' ? 'HTTP 404' : null }]));
   });
+  seen.deleted = [];
+  await page.route('**/rest/v1/rpc/zfind_admin_delete_asset**', r => {
+    const b = r.request().postDataJSON(); seen.deleted.push(b);
+    return b.p_asset_id === 'prop-2' ? r.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ message: 'asset has leads' }) }) : r.fulfill(json({ deleted: true }));
+  });
   await page.route('https://zfind.online/api/**', r => { seen.nudges.push(r.request().url()); return r.fulfill({ status: 200, body: '{}' }); });
 
   await page.goto(FILE_URL);
@@ -126,6 +131,15 @@ const CSV_BYTES = Buffer.from([...CSV].map(c => (c === '€' ? 0x80 : c.charCode
   await page.waitForFunction(() => /photos ajoutées/.test((document.getElementById('imp-photos-progress') || {}).textContent || ''), null, { timeout: 15000 });
   const ph = await page.textContent('#imp-photos');
   check('photo progress ends with done / failed counts and the failed links', ph.includes('1 photos ajoutées') && ph.includes('1 liens en échec') && ph.includes('https://img.agence.test/b.jpg') && ph.includes('HTTP 404'));
+  check('undo offered with the number of drafts created', (await page.textContent('#imp-undo')).includes('2 brouillons'));
+  await page.click('#imp-undo');
+  await page.waitForSelector('#confirm-ok');
+  check('undo asks for confirmation and warns about used properties', (await page.textContent('#confirm-overlay')).includes('2 biens') && (await page.textContent('#confirm-overlay')).includes('demande'));
+  await page.click('#confirm-ok');
+  await page.waitForFunction(() => /supprimés/.test((document.getElementById('imp-undo-box') || {}).textContent || ''));
+  const undone = await page.textContent('#imp-undo-box');
+  check('undo deletes exactly the created properties through the safe delete', seen.deleted.length === 2 && seen.deleted.every(d => d.p_kind === 'property') && seen.deleted[0].p_asset_id === 'prop-1' && seen.deleted[1].p_asset_id === 'prop-2');
+  check('undo reports removed and kept (refused) properties', undone.includes('1 brouillons supprimés') && undone.includes('1 conservés'));
   if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'admin-import-results.png'), fullPage: true });
   check('no script error', errors.length === 0);
   await browser.close();
