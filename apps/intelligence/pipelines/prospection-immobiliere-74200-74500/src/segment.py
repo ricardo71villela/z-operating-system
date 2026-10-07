@@ -131,7 +131,8 @@ def merge_dvf(adresses, dvf):
     d = dvf.dropna(subset=["annee_mutation"]).copy()
 
     detail = [c for c in ["type_local", "surface_reelle_bati",
-                          "nombre_pieces_principales", "valeur_fonciere"]
+                          "nombre_pieces_principales", "valeur_fonciere",
+                          "id_mutation"]
               if c in d.columns]
 
     # Tri par annee, puis priorite maison/appartement > dependance, puis
@@ -155,6 +156,7 @@ def merge_dvf(adresses, dvf):
                 "surface_reelle_bati": "surface_m2",
                 "nombre_pieces_principales": "nb_pieces",
                 "valeur_fonciere": "prix_derniere_vente",
+                "id_mutation": "_id_mutation",
             }))
 
     out = adresses.merge(last,
@@ -237,6 +239,8 @@ def _dvf_points_by_mutation(dvf):
               if c in d.columns]
     keep = ["code_commune", "longitude", "latitude", "annee_mutation"] + detail
     group_key = "id_mutation" if "id_mutation" in d.columns else keep[:2]
+    if "id_mutation" in d.columns:
+        keep = keep + ["id_mutation"]
     return d.groupby(group_key, dropna=False).tail(1)[keep]
 
 
@@ -249,12 +253,42 @@ _DETAIL_TO_TARGET = {
 }
 
 
+def _nearest_in(ax, ay, bx, by, block=2000):
+    """Pour chaque point A, indice et distance du point B le plus proche
+    (calcul par blocs pour ne pas creer une matrice geante en memoire)."""
+    idx = np.empty(len(ax), dtype=int)
+    dist = np.empty(len(ax))
+    for s0 in range(0, len(ax), block):
+        dx = ax[s0:s0 + block, None] - bx[None, :]
+        dy = ay[s0:s0 + block, None] - by[None, :]
+        dd = np.sqrt(dx ** 2 + dy ** 2)
+        j = dd.argmin(axis=1)
+        idx[s0:s0 + block] = j
+        dist[s0:s0 + block] = dd[np.arange(len(j)), j]
+    return idx, dist
+
+
 def spatial_fallback_match(out, dvf, radius_m=SPATIAL_MATCH_RADIUS_M):
     """Comble par proximite geographique les adresses non appariees par cle
-    (numero, voie). Ajoute une colonne 'methode_appariement' (cle / spatial /
-    NA) pour que l'origine de chaque donnee reste tracable."""
-    out["methode_appariement"] = np.where(
-        out["derniere_vente_connue"].notna(), "cle", pd.NA)
+    (numero, voie) ni par parcelle. Ajoute/complete 'methode_appariement'
+    (cle / parcelle / spatial / NA) pour que l'origine reste tracable.
+
+    BUG CORRIGE (audit surfaces 2026-10-08, signale par Ricardo : surfaces
+    des maisons tres en dessous de la realite) : chaque adresse prenait la
+    vente DVF la plus proche a moins de 40 m, SANS que cette vente soit
+    reservee a une seule adresse. Verifie sur l'execution du 5/10 :
+    10 663 adresses appariees ainsi pour seulement 4 213 ventes distinctes,
+    9 124 adresses partageant leur vente avec au moins une autre (jusqu'a
+    19 adresses pour un meme appartement de 60 m2). La plupart des maisons
+    affichaient donc la surface, le type et le prix de la vente d'un VOISIN
+    — souvent un appartement ou une petite maison — d'ou des surfaces trop
+    faibles. Desormais l'appariement est RECIPROQUE : la vente doit etre la
+    plus proche de l'adresse ET l'adresse la plus proche de la vente (parmi
+    toutes les adresses de la commune), et une vente deja rattachee par cle
+    ou par parcelle n'est plus jamais reattribuee a une autre adresse."""
+    if "methode_appariement" not in out.columns:
+        out["methode_appariement"] = np.where(
+            out["derniere_vente_connue"].notna(), "cle", pd.NA)
 
     if not {"lon", "lat", "code_insee"} <= set(out.columns):
         return out
@@ -262,6 +296,9 @@ def spatial_fallback_match(out, dvf, radius_m=SPATIAL_MATCH_RADIUS_M):
     points = _dvf_points_by_mutation(dvf)
     if points.empty:
         return out
+    if "id_mutation" in points.columns and "_id_mutation" in out.columns:
+        deja = set(out["_id_mutation"].dropna())
+        points = points[~points["id_mutation"].isin(deja)]
 
     out["_lon"] = pd.to_numeric(out["lon"], errors="coerce")
     out["_lat"] = pd.to_numeric(out["lat"], errors="coerce")
@@ -273,20 +310,24 @@ def spatial_fallback_match(out, dvf, radius_m=SPATIAL_MATCH_RADIUS_M):
         if cand.empty:
             continue
         grp = out.loc[idx]
-        todo = grp[grp["derniere_vente_connue"].isna()
-                   & grp["_lon"].notna() & grp["_lat"].notna()]
+        geo = grp[grp["_lon"].notna() & grp["_lat"].notna()]
+        todo = geo[geo["derniere_vente_connue"].isna()]
         if todo.empty:
             continue
 
         lat0 = float(cand["latitude"].mean())
         cx, cy = _local_xy_m(cand["longitude"].to_numpy(), cand["latitude"].to_numpy(), 0.0, lat0)
-        ax, ay = _local_xy_m(todo["_lon"].to_numpy(), todo["_lat"].to_numpy(), 0.0, lat0)
+        gx, gy = _local_xy_m(geo["_lon"].to_numpy(), geo["_lat"].to_numpy(), 0.0, lat0)
+        tx, ty = _local_xy_m(todo["_lon"].to_numpy(), todo["_lat"].to_numpy(), 0.0, lat0)
 
-        dist = np.sqrt((ax[:, None] - cx[None, :]) ** 2 + (ay[:, None] - cy[None, :]) ** 2)
-        nearest = dist.argmin(axis=1)
-        nearest_dist = dist[np.arange(len(todo)), nearest]
+        # vente la plus proche de chaque adresse a completer
+        nearest, nearest_dist = _nearest_in(tx, ty, cx, cy)
+        # adresse (parmi TOUTES celles de la commune) la plus proche de chaque vente
+        back, _ = _nearest_in(cx, cy, gx, gy)
+        geo_pos = {lbl: k for k, lbl in enumerate(geo.index)}
+        todo_pos_in_geo = np.array([geo_pos[lbl] for lbl in todo.index])
 
-        ok = nearest_dist <= radius_m
+        ok = (nearest_dist <= radius_m) & (back[nearest] == todo_pos_in_geo)
         if not ok.any():
             continue
 
@@ -306,9 +347,113 @@ def spatial_fallback_match(out, dvf, radius_m=SPATIAL_MATCH_RADIUS_M):
             out["prix_derniere_vente"] / out["surface_m2"].replace(0, pd.NA)
         ).round(0)
 
-    print(f"  Rapprochement spatial (repli, <= {radius_m:.0f} m) : "
-          f"{n_recupere:,} adresses recuperees en plus (voirie renumerotee "
-          f"depuis les ventes DVF historiques).")
+    print(f"  Rapprochement spatial (repli reciproque, <= {radius_m:.0f} m) : "
+          f"{n_recupere:,} adresses recuperees en plus (une vente = une adresse).")
+    return out
+
+
+def parcel_match(out, dvf, cadastre):
+    """Rattache une vente DVF a une adresse non appariee par cle quand la
+    vente porte sur LA parcelle cadastrale de cette adresse (audit surfaces
+    2026-10-08). Plus sur que la proximite : la parcelle ne change pas quand
+    la voie est renumerotee. Seulement pour les parcelles a une seule
+    adresse — sur une parcelle partagee (lotissement, copropriete), la vente
+    peut concerner une autre adresse."""
+    if "methode_appariement" not in out.columns:
+        out["methode_appariement"] = np.where(
+            out["derniere_vente_connue"].notna(), "cle", pd.NA)
+    need_c = {"k_num", "k_voie", "code_insee", "parcela_id"}
+    if cadastre is None or cadastre.empty or not need_c <= set(cadastre.columns) \
+            or "id_parcelle" not in dvf.columns:
+        print("  Rapprochement par parcelle : non disponible (pas de parcelle "
+              "cadastre ou DVF sans id_parcelle).")
+        return out
+
+    c = cadastre.dropna(subset=["parcela_id"])[list(need_c)].drop_duplicates()
+    n_adr = c.groupby("parcela_id")[["k_num", "k_voie"]].apply(
+        lambda g: len(g.drop_duplicates())).rename("_n_adr")
+    c = c.merge(n_adr, left_on="parcela_id", right_index=True)
+    c = c[c["_n_adr"] == 1].drop_duplicates(subset=["k_num", "k_voie", "code_insee"])
+
+    d = dvf.dropna(subset=["annee_mutation", "id_parcelle"]).copy()
+    if "id_mutation" in out.columns or "_id_mutation" in out.columns:
+        deja = set(out.get("_id_mutation", pd.Series(dtype=str)).dropna())
+        if "id_mutation" in d.columns:
+            d = d[~d["id_mutation"].isin(deja)]
+    sort_cols = ["annee_mutation"]
+    if "type_local" in d.columns:
+        d["_type_priority"] = d["type_local"].apply(_type_priority)
+        sort_cols.append("_type_priority")
+    if "surface_reelle_bati" in d.columns:
+        d["surface_reelle_bati"] = pd.to_numeric(d["surface_reelle_bati"], errors="coerce")
+        sort_cols.append("surface_reelle_bati")
+    detail = [c_ for c_ in ["type_local", "surface_reelle_bati",
+                            "nombre_pieces_principales", "valeur_fonciere", "id_mutation"]
+              if c_ in d.columns]
+    last = (d.sort_values(sort_cols).groupby("id_parcelle").tail(1)
+            [["id_parcelle", "annee_mutation"] + detail])
+
+    todo = out["derniere_vente_connue"].isna()
+    if not todo.any():
+        return out
+    sub = out.loc[todo, ["k_num", "k_voie", "code_insee"]].reset_index()
+    sub = sub.merge(c[["k_num", "k_voie", "code_insee", "parcela_id"]],
+                    on=["k_num", "k_voie", "code_insee"], how="inner")
+    sub = sub.merge(last, left_on="parcela_id", right_on="id_parcelle", how="inner")
+    if sub.empty:
+        print("  Rapprochement par parcelle : 0 adresse.")
+        return out
+    sub = sub.set_index("index")
+    target = dict(_DETAIL_TO_TARGET, id_mutation="_id_mutation")
+    for col in ["annee_mutation"] + detail:
+        out.loc[sub.index, target[col]] = sub[col].to_numpy()
+    out.loc[sub.index, "methode_appariement"] = "parcelle"
+
+    if {"prix_derniere_vente", "surface_m2"} <= set(out.columns):
+        out["prix_derniere_vente"] = pd.to_numeric(out["prix_derniere_vente"], errors="coerce")
+        out["surface_m2"] = pd.to_numeric(out["surface_m2"], errors="coerce")
+        out["prix_m2_derniere_vente"] = (
+            out["prix_derniere_vente"] / out["surface_m2"].replace(0, pd.NA)
+        ).round(0)
+    print(f"  Rapprochement par parcelle cadastrale : {len(sub):,} adresses.")
+    return out
+
+
+def choose_surface(out):
+    """Surface habitable retenue (audit surfaces 2026-10-08).
+
+    La surface du DVF (`surface_reelle_bati`) vient des fichiers fonciers :
+    elle n'est pas mesuree a la vente et oublie souvent combles amenages,
+    extensions ou verandas — elle sous-estime surtout les maisons. Le DPE,
+    lui, porte la surface habitable mesuree par le diagnostiqueur. Ordre
+    retenu : DPE rattache a l'adresse exacte > DVF par cle ou parcelle >
+    DPE rattache par proximite > DVF par proximite. La surface DVF d'origine
+    reste dans `surface_dvf` et sert toujours au prix/m2 de la vente."""
+    dvf_s = pd.to_numeric(out.get("surface_m2"), errors="coerce")
+    dpe_s = pd.to_numeric(out.get("surface_dpe"), errors="coerce") \
+        if "surface_dpe" in out.columns else pd.Series(np.nan, index=out.index)
+    m_dvf = out.get("methode_appariement", pd.Series(pd.NA, index=out.index)).astype("object")
+    m_dpe = out.get("methode_dpe", pd.Series(pd.NA, index=out.index)).astype("object")
+    dpe_ok = dpe_s.notna() & (dpe_s >= 9)
+    dvf_ok = dvf_s.notna() & (dvf_s > 0)
+
+    surface = pd.Series(np.nan, index=out.index)
+    source = pd.Series(pd.NA, index=out.index, dtype="object")
+    steps = [
+        (dpe_ok & (m_dpe == "cle"), dpe_s, "DPE"),
+        (dvf_ok & m_dvf.isin(["cle", "parcelle"]), dvf_s, "DVF"),
+        (dpe_ok, dpe_s, "DPE"),
+        (dvf_ok, dvf_s, "DVF"),
+    ]
+    for cond, val, lab in steps:
+        pick = cond & surface.isna()
+        surface[pick] = val[pick]
+        source[pick] = lab
+    out["surface_dvf"] = dvf_s
+    out["surface_m2"] = surface
+    out["source_surface"] = source
+    n = source.value_counts(dropna=False).to_dict()
+    print(f"  Surface habitable retenue : {n}")
     return out
 
 
@@ -666,7 +811,9 @@ def quality_report(adresses, dvf, dpe, merged):
     if "methode_appariement" in merged.columns:
         n_cle = (merged["methode_appariement"] == "cle").sum()
         n_spatial = (merged["methode_appariement"] == "spatial").sum()
+        n_parc = (merged["methode_appariement"] == "parcelle").sum()
         print(f"    dont par clé (numéro+voie)    : {n_cle:,}")
+        print(f"    dont par parcelle cadastrale  : {n_parc:,}")
         print(f"    dont par repli spatial        : {n_spatial:,}")
     if "methode_dpe" in merged.columns:
         n_dpe_spatial = (merged["methode_dpe"] == "spatial").sum()
@@ -730,7 +877,8 @@ def quality_report(adresses, dvf, dpe, merged):
 EXPORT_COLS = [
     "adresse_complete", "nom_commune_ref", "code_postal_secteur",
     "priorite", "score_prospection", "motifs_score", "segment_prospection",
-    "derniere_vente_connue", "methode_appariement", "type_bien", "surface_m2", "nb_pieces",
+    "derniere_vente_connue", "methode_appariement", "type_bien", "surface_m2",
+    "source_surface", "surface_dvf", "nb_pieces",
     "prix_derniere_vente", "prix_m2_derniere_vente", "prix_ecarte",
     "dpe_classe", "ges_classe", "methode_dpe", "passoire_thermique", "annee_construction",
     "surface_dpe",
@@ -876,10 +1024,12 @@ def main():
             print(f"    {p}")
 
     merged = merge_dvf(adresses, dvf)
+    merged = parcel_match(merged, dvf, cadastre)
     merged = spatial_fallback_match(merged, dvf)
     merged = filter_implausible_price(merged)
     merged = merge_dpe(merged, dpe)
     merged = spatial_fallback_dpe(merged, dpe)
+    merged = choose_surface(merged)
 
     # BUG CORRIGE (audit 2026-09-11) : type_bien ne venait QUE du DVF — vide
     # pour toute adresse "jamais vendue" (55,5 % de la liste prioritaire),

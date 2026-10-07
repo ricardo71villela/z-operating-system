@@ -1,7 +1,12 @@
 name: Z Intelligence — Prospection Immobiliere 74200/74500
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      publicar_site:
+        description: "Atualizar o site immoradar.online (dashboard + fichas PDF) e fazer commit no ramo escolhido"
+        type: boolean
+        default: false
   schedule:
     # Semanal : toda segunda-feira às 03:00 UTC (04:00/05:00 em França,
     # consoante a hora de verão) -- horário de baixo tráfego, fora do
@@ -35,10 +40,13 @@ jobs:
         run: |
           python test_pricing.py
           python test_argumentaire.py
+          python test_segment_surface.py
 
   ingest:
     needs: tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     defaults:
       run:
         working-directory: apps/intelligence/pipelines/prospection-immobiliere-74200-74500
@@ -93,3 +101,26 @@ jobs:
           name: prospection-74200-74500-output
           path: apps/intelligence/pipelines/prospection-immobiliere-74200-74500/output/
           retention-days: 30
+
+      # Publicacao no site (so em execucao manual com "publicar_site") :
+      # recalcula o dashboard e gera uma ficha PDF por morada, depois faz
+      # commit no ramo em que o workflow foi lancado (nunca diretamente em
+      # main por defeito : lancar num ramo e abrir um pull request).
+      - name: Atualizar o site Radar Leman (dashboard + fichas)
+        if: success() && github.event_name == 'workflow_dispatch' && inputs.publicar_site
+        working-directory: .
+        run: |
+          python apps/intelligence/radar-leman-web/scripts/update-from-pipeline.py \
+            --output apps/intelligence/pipelines/prospection-immobiliere-74200-74500/output \
+            --pipeline-src apps/intelligence/pipelines/prospection-immobiliere-74200-74500/src
+          cd apps/intelligence/radar-leman-web && node scripts/split-dashboard.js
+
+      - name: Commit da atualizacao do site
+        if: success() && github.event_name == 'workflow_dispatch' && inputs.publicar_site
+        working-directory: .
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/intelligence/radar-leman-web/private
+          git commit -m "Radar Léman: dados do pipeline de $(date -u +%Y-%m-%d) (run ${{ github.run_id }})"
+          git push origin HEAD:${{ github.ref_name }}

@@ -48,7 +48,16 @@ l'exécution du 5 octobre. Limites connues de l'artefact :
     n'est pas lancé par le workflow : il couvre encore les 26 communes
     d'origine.
 
-Prochaine étape : automatiser cette publication dans le workflow.
+Depuis le 8 octobre, la publication peut se faire depuis le workflow :
+lancement manuel avec l'option `publicar_site`, sur un autre ramo que
+`main` (voir `apps/intelligence/radar-leman-web/README.md`).
+
+**Surfaces (8 octobre)** : `surface_m2` est désormais la surface habitable
+retenue (`source_surface` = DPE ou DVF ; la surface DVF d'origine reste
+dans `surface_dvf`). Les ventes DVF sont rattachées par clé, puis par
+parcelle cadastrale, puis par proximité réciproque (une vente = une
+adresse) — voir `segment.py::parcel_match`, `spatial_fallback_match` et
+`choose_surface`.
 
 ---
 
