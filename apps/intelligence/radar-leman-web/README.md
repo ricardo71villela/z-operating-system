@@ -139,6 +139,28 @@ abaixo — não precisa de tocar em mais nada).
    regenerar `private/chunks/` com `node scripts/split-dashboard.js`.
 5. `git add -A && git commit -m "..." && git push`.
 
+## Atualizar o site a partir do pipeline (8/out)
+
+`scripts/update-from-pipeline.py` faz tudo a partir da pasta `output/` do
+pipeline: dados do dashboard (moradas, comunas, indicadores e, se existir,
+terrenos livres) e uma ficha PDF por morada em `private/fichas/`. Depois:
+`node scripts/split-dashboard.js`.
+
+No GitHub: Actions → "Z Intelligence — Prospection Immobiliere" → Run
+workflow → escolher um ramo (não `main`) e marcar **publicar_site**. O
+workflow corre o pipeline, atualiza o site e faz commit nesse ramo; basta
+depois abrir/fazer merge do pull request.
+
+## Correção das superfícies (8/out)
+
+As superfícies (sobretudo das moradias) ficavam muito abaixo da realidade:
+o repli espacial dava a cada morada a venda DVF mais próxima a menos de
+40 m, muitas vezes a de um vizinho (até 19 moradas com a mesma venda de um
+apartamento de 60 m²). Agora: venda ligada pela parcela cadastral, senão
+por proximidade recíproca (uma venda = uma morada), e a superfície
+habitável medida no DPE tem prioridade sobre a dos ficheiros fiscais
+(DVF). A origem aparece no detalhe de cada morada (coluna `sourceSurface`).
+
 ## Atualização de 7/out — Sciez e 74550
 
 Dados da execução do pipeline de 5/out (31 comunas, 27 758 moradas,

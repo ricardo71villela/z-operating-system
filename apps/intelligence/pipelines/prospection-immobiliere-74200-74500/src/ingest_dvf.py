@@ -24,6 +24,10 @@ DVF_COLUMNS_KEEP = [
     "adresse_numero", "adresse_nom_voie", "code_postal", "code_commune",
     "nom_commune", "type_local", "surface_reelle_bati",
     "nombre_pieces_principales", "longitude", "latitude",
+    # id_parcelle (audit surfaces 2026-10-08) : permet de rattacher une vente
+    # a une adresse par la parcelle cadastrale (segment.py::parcel_match),
+    # au lieu du point DVF le plus proche, qui est souvent celui du voisin.
+    "id_parcelle",
 ]
 
 CACHE_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "_cache")
