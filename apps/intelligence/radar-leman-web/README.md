@@ -18,7 +18,7 @@ radar-leman-web/
     _auth.js                <- valida a password (partilhado, não é uma rota)
     index.js                <- Vercel Function: valida a password, devolve a página que monta o dashboard
     chunk.js                <- Vercel Function: devolve um pedaço de dashboard.html, também com password
-    ficha.js                 <- Vercel Function: devolve uma ficha PDF individual (?n=0..1667), também com password
+    ficha.js                 <- Vercel Function: devolve uma ficha PDF individual (?n=0..27795), também com password
   scripts/
     split-dashboard.js      <- gera private/chunks/ a partir de private/dashboard.html
     split-fichas.py         <- gera private/fichas/ a partir de uma pasta de PDFs (ver abaixo)
@@ -102,7 +102,7 @@ qualquer Node instalado na máquina.
 Cada morada de Prioridade A tem um link "Télécharger la fiche PDF" no
 dashboard (dentro do detalhe de cada linha da tabela), que abre
 `/api/ficha?n=<índice>` — a mesma password do dashboard aplica-se, pedido a
-pedido. O `<índice>` (0 a 1667, ordenado por score decrescente) fica
+pedido. O `<índice>` (0 a 27795, ordenado por score decrescente) fica
 embutido no próprio `private/dashboard.html`, como uma coluna extra
 (`fichaIdx`) nas linhas de Prioridade A — as de Prioridade B não têm fiche
 gerada ainda, por isso não mostram o link.
@@ -111,7 +111,7 @@ As fichas em si (geradas por
 `apps/intelligence/pipelines/prospection-immobiliere-74200-74500/src/fiche_pdf.py`)
 são convertidas para base64 e agrupadas em `private/fichas/shard-N.js`
 (~50 fichas por pedaço, module.exports = array de strings base64), com
-`private/fichas/index.js` a juntar tudo num único array indexado 0..1667.
+`private/fichas/index.js` a juntar tudo num único array indexado 0..27795.
 `api/ficha.js` decodifica a ficha pedida e devolve-a como `application/pdf`
 — cada resposta é uma única ficha (~20-30 KB), bem abaixo do limite de
 4,5 MB da Vercel, por isso não precisa de paginação como o dashboard.
