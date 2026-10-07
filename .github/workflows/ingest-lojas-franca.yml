@@ -1,38 +1,70 @@
 name: Ingestao Lojas Franca
 
+# Base das lojas francesas para o Z Fashion (tabela lojas no Supabase ZOS):
+# roupa, calçado, marroquinaria, desporto, cosmética e perfumes.
+# Todas as segundas-feiras às 06:00 UTC, ou à mão no separador Actions.
+# Num pull request que mexa no pipeline, só corre os testes.
+
 on:
   schedule:
-    # Corre todas as segundas-feiras às 06:00 UTC
     - cron: "0 6 * * 1"
-  workflow_dispatch: {}  # permite correr manualmente a partir do separador Actions
+  workflow_dispatch:
+    inputs:
+      steps:
+        description: "Passos (all, sirene, enrich)"
+        required: false
+        default: "all"
+      dept:
+        description: "Só este departamento (ex. 74) — vazio = todos"
+        required: false
+        default: ""
+      enrich_limit:
+        description: "Lojas a enriquecer nesta execução"
+        required: false
+        default: "300"
+  pull_request:
+    paths:
+      - "90-platform-engineering/lojas-franca-ingest/**"
+      - ".github/workflows/ingest-lojas-franca.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lojas-franca-ingest
+  cancel-in-progress: false
 
 jobs:
   ingest:
     runs-on: ubuntu-latest
+    timeout-minutes: 350
     defaults:
       run:
         working-directory: 90-platform-engineering/lojas-franca-ingest
+    env:
+      ZFIND_SUPABASE_SERVICE_KEY: ${{ secrets.ZFIND_SUPABASE_SERVICE_KEY }}
+      STEPS: ${{ github.event.inputs.steps || 'all' }}
+      DEPT: ${{ github.event.inputs.dept || '' }}
+      ENRICH_LIMIT: ${{ github.event.inputs.enrich_limit || '300' }}
     steps:
-      - name: Checkout do repositório
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Configurar Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Instalar dependências
-        run: pip install requests psycopg2-binary
+        run: pip install -r requirements.txt
 
-      - name: Obter dados da SIRENE
-        run: python src/fetch_sirene.py
+      - name: Testes
+        id: tests
+        run: python tests/test_lojas.py
 
-      - name: Carregar no Supabase
-        env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-        run: python src/dedupe_and_load.py
+      - name: SIRENE — lojas ativas por setor e departamento
+        if: ${{ !cancelled() && steps.tests.outcome == 'success' && github.event_name != 'pull_request' && (env.STEPS == 'all' || contains(env.STEPS, 'sirene')) }}
+        run: |
+          if [ -n "$DEPT" ]; then python src/fetch_sirene.py --dept "$DEPT"; else python src/fetch_sirene.py; fi
 
-      - name: Enriquecer contactos (OpenStreetMap + scraping)
-        env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-        run: python src/enrich_osm.py
+      - name: Contactos — OpenStreetMap e sites
+        if: ${{ !cancelled() && steps.tests.outcome == 'success' && github.event_name != 'pull_request' && (env.STEPS == 'all' || contains(env.STEPS, 'enrich')) }}
+        run: python src/enrich_osm.py --limit "$ENRICH_LIMIT"
