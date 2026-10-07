@@ -1,7 +1,8 @@
 # Radar Léman / ImmoRadar — site protegido por password
 
 Dashboard "Radar Léman" — análise de prospeção imobiliária para os concelhos
-de Thonon-les-Bains / Évian-les-Bains (74200 / 74500). Desde 10/set, o acesso
+de Thonon-les-Bains / Évian-les-Bains (74200 / 74500), Cervens / Draillant /
+Orcier / Perrignier (74550) e Sciez (74140) — 31 comunas desde 7/out. Desde 10/set, o acesso
 exige password (ver secção "Proteção por password" abaixo) — deixou de ser
 um site estático simples, por isso a estrutura da pasta mudou.
 
@@ -17,7 +18,7 @@ radar-leman-web/
     _auth.js                <- valida a password (partilhado, não é uma rota)
     index.js                <- Vercel Function: valida a password, devolve a página que monta o dashboard
     chunk.js                <- Vercel Function: devolve um pedaço de dashboard.html, também com password
-    ficha.js                 <- Vercel Function: devolve uma ficha PDF individual (?n=0..1667), também com password
+    ficha.js                 <- Vercel Function: devolve uma ficha PDF individual (?n=0..27795), também com password
   scripts/
     split-dashboard.js      <- gera private/chunks/ a partir de private/dashboard.html
     split-fichas.py         <- gera private/fichas/ a partir de uma pasta de PDFs (ver abaixo)
@@ -101,7 +102,7 @@ qualquer Node instalado na máquina.
 Cada morada de Prioridade A tem um link "Télécharger la fiche PDF" no
 dashboard (dentro do detalhe de cada linha da tabela), que abre
 `/api/ficha?n=<índice>` — a mesma password do dashboard aplica-se, pedido a
-pedido. O `<índice>` (0 a 1667, ordenado por score decrescente) fica
+pedido. O `<índice>` (0 a 27795, ordenado por score decrescente) fica
 embutido no próprio `private/dashboard.html`, como uma coluna extra
 (`fichaIdx`) nas linhas de Prioridade A — as de Prioridade B não têm fiche
 gerada ainda, por isso não mostram o link.
@@ -110,7 +111,7 @@ As fichas em si (geradas por
 `apps/intelligence/pipelines/prospection-immobiliere-74200-74500/src/fiche_pdf.py`)
 são convertidas para base64 e agrupadas em `private/fichas/shard-N.js`
 (~50 fichas por pedaço, module.exports = array de strings base64), com
-`private/fichas/index.js` a juntar tudo num único array indexado 0..1667.
+`private/fichas/index.js` a juntar tudo num único array indexado 0..27795.
 `api/ficha.js` decodifica a ficha pedida e devolve-a como `application/pdf`
 — cada resposta é uma única ficha (~20-30 KB), bem abaixo do limite de
 4,5 MB da Vercel, por isso não precisa de paginação como o dashboard.
@@ -137,6 +138,20 @@ abaixo — não precisa de tocar em mais nada).
    `fichaIdx` no `private/dashboard.html` (mapeamento morada → índice) e
    regenerar `private/chunks/` com `node scripts/split-dashboard.js`.
 5. `git add -A && git commit -m "..." && git push`.
+
+## Atualização de 7/out — Sciez e 74550
+
+Dados da execução do pipeline de 5/out (31 comunas, 27 758 moradas,
+2 812 em Prioridade A). O artefacto do pipeline não traz `dashboard.html`
+nem as fichas todas, por isso:
+
+- `_LEADS_B64`, `_STATS_B64` e `_KPIS_B64` foram recalculados a partir de
+  `mailing_complet.csv` e `stats_marche_communes.csv` (mesmas colunas de
+  sempre); `_TERRENOS_B64` ficou igual (26 comunas de origem).
+- As fichas existentes mantêm o índice (`fichaIdx` 0..23366, mesma morada →
+  mesma ficha). As 4 429 moradas novas têm fichas novas, nos índices
+  23367..27795, acrescentadas em `private/fichas/` sem tocar nos pedaços
+  antigos. `api/ficha.js` aceita agora `n` de 0 a 27795.
 
 ## Deploy no Vercel
 

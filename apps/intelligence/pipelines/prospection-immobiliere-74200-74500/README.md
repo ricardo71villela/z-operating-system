@@ -26,48 +26,31 @@ modification de code.
 
 ---
 
-## 🔴 État opérationnel — audit du 2026-10-01
+## 🟢 État opérationnel — 7 octobre 2026
 
-**Le pipeline automatisé (GitHub Actions, `.github/workflows/intelligence-prospection-imobiliaria.yml`,
-exécution hebdomadaire le lundi 03h00 UTC) échoue sur l'étape d'ingestion
-depuis au moins 4 exécutions consécutives** (07/09, 14/09, 21/09, 28/09/2026)
-— c'est-à-dire tout le mois écoulé. Le job `tests` passe systématiquement
-(auto-tests de normalisation/scoring/pricing OK) ; c'est le job `ingest`
-(`python src/main.py`, qui télécharge BAN/DVF puis calcule) qui échoue, et
-très vite (54 s à 2 min 21 — bien avant la durée normale de 5-15 min),
-ce qui pointe vers un échec précoce (import, dépendance, ou premier appel
-réseau) plutôt qu'un problème survenant en cours de calcul.
+Le pipeline automatisé (GitHub Actions, `.github/workflows/intelligence-prospection-imobiliaria.yml`,
+exécution hebdomadaire le lundi 03h00 UTC) fonctionne de nouveau : les
+exécutions du 1er et du 5 octobre 2026 ont réussi, avec les 31 communes
+(Sciez et les quatre communes du 74550 comprises). Les échecs de septembre
+(07/09 au 28/09) sont résolus.
 
-Cause exacte **non confirmée** : cet audit n'a pas pu lire le détail de
-l'erreur — le téléchargement des logs GitHub Actions passe par un domaine
-(`results-receiver.actions.githubusercontent.com`) bloqué par le proxy
-réseau de cet environnement, indépendamment de l'authentification. Deux
-pistes à vérifier en priorité, par ordre de probabilité vu la rapidité de
-l'échec :
-  1. **Dépendance cassée par une nouvelle version** : `requirements.txt` ne
-     plafonne aucune version (`pandas>=2.0.0`, `shapely>=2.0.0`, etc.) — une
-     sortie récente d'un de ces paquets (shapely et son lien natif à GEOS
-     est le suspect le plus probable, utilisé par `enrich_cadastre.py` et
-     `enrich_terrenos_livres.py`) peut casser l'import sur le runner
-     `ubuntu-latest` sans qu'aucun changement n'ait eu lieu dans ce dépôt.
-  2. **Un des portails sources a changé d'URL/schéma** sans que le repli
-     "échec silencieux" ne s'applique — ce repli existe pour le DPE et les
-     enrichissements optionnels (cadastre/géorisques/RNB), mais **pas** pour
-     `ingest_ban.main()` ni `ingest_dvf.main()` eux-mêmes (appelés sans
-     `try/except` dans `main.py`) : un 404/structure changée sur le flux BAN
-     ou DVF ferait échouer tout le pipeline, PDFs et dashboard inclus.
+**Publication sur immoradar.online : encore manuelle.** Le workflow produit
+l'artefact `prospection-74200-74500-output` (dossier `output/`), mais ne met
+pas à jour le site `apps/intelligence/radar-leman-web/`. La mise à jour du
+7 octobre (31 communes, 27 758 adresses) a été faite à la main à partir de
+l'exécution du 5 octobre. Limites connues de l'artefact :
+  - il ne contient pas de `dashboard.html` : les données du site
+    (`_LEADS_B64`, `_STATS_B64`, `_KPIS_B64`) sont recalculées à partir de
+    `mailing_complet.csv` et `stats_marche_communes.csv` ;
+  - il ne contient que 50 fiches PDF (`NB_FICHES_PDF`) : les fiches
+    manquantes sont générées avec `fiche_pdf.build_html` ;
+  - l'onglet « Terrains libres » vient de `enrich_terrenos_livres.py`, qui
+    n'est pas lancé par le workflow : il couvre encore les 26 communes
+    d'origine.
 
-**Action recommandée** : ouvrir
-[le dernier run](https://github.com/ricardo71villela/z-operating-system/actions/runs/36404480506)
-dans un navigateur connecté à GitHub (les logs n'y demandent qu'une
-connexion, pas de droits particuliers sur un dépôt public), copier le
-message d'erreur de l'étape "Correr o pipeline", et le transmettre pour
-diagnostic précis — ou relancer manuellement (`workflow_dispatch`) en
-observant le job en direct.
+Prochaine étape : automatiser cette publication dans le workflow.
 
 ---
-
-
 
 ## ⚖️ Cadre légal
 
