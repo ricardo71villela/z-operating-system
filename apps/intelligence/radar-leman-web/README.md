@@ -1,7 +1,8 @@
 # Radar Léman / ImmoRadar — site protegido por password
 
 Dashboard "Radar Léman" — análise de prospeção imobiliária para os concelhos
-de Thonon-les-Bains / Évian-les-Bains (74200 / 74500). Desde 10/set, o acesso
+de Thonon-les-Bains / Évian-les-Bains (74200 / 74500), Cervens / Draillant /
+Orcier / Perrignier (74550) e Sciez (74140) — 31 comunas desde 7/out. Desde 10/set, o acesso
 exige password (ver secção "Proteção por password" abaixo) — deixou de ser
 um site estático simples, por isso a estrutura da pasta mudou.
 
@@ -137,6 +138,20 @@ abaixo — não precisa de tocar em mais nada).
    `fichaIdx` no `private/dashboard.html` (mapeamento morada → índice) e
    regenerar `private/chunks/` com `node scripts/split-dashboard.js`.
 5. `git add -A && git commit -m "..." && git push`.
+
+## Atualização de 7/out — Sciez e 74550
+
+Dados da execução do pipeline de 5/out (31 comunas, 27 758 moradas,
+2 812 em Prioridade A). O artefacto do pipeline não traz `dashboard.html`
+nem as fichas todas, por isso:
+
+- `_LEADS_B64`, `_STATS_B64` e `_KPIS_B64` foram recalculados a partir de
+  `mailing_complet.csv` e `stats_marche_communes.csv` (mesmas colunas de
+  sempre); `_TERRENOS_B64` ficou igual (26 comunas de origem).
+- As fichas existentes mantêm o índice (`fichaIdx` 0..23366, mesma morada →
+  mesma ficha). As 4 429 moradas novas têm fichas novas, nos índices
+  23367..27795, acrescentadas em `private/fichas/` sem tocar nos pedaços
+  antigos. `api/ficha.js` aceita agora `n` de 0 a 27795.
 
 ## Deploy no Vercel
 
