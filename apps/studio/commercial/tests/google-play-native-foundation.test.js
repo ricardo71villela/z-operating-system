@@ -30,7 +30,7 @@ test('Google Play catalog is exactly the frozen Z Studio subscription authority'
   assert.deepEqual(resolveGooglePlayPlan('weekly'), {
     planCode: 'weekly',
     billingCadence: 'weekly',
-    commercialTargetPriceMinor: 599,
+    commercialTargetPriceMinor: 390,
     currency: 'EUR',
     trialDays: 3,
     productId: 'zstudio.access',
@@ -39,8 +39,8 @@ test('Google Play catalog is exactly the frozen Z Studio subscription authority'
     offerType: 'free_trial',
     eligibility: 'never_had_subscription',
   });
-  assert.equal(resolveGooglePlayPlan('monthly').commercialTargetPriceMinor, 1499);
-  assert.equal(resolveGooglePlayPlan('annual').commercialTargetPriceMinor, 11999);
+  assert.equal(resolveGooglePlayPlan('monthly').commercialTargetPriceMinor, 990);
+  assert.equal(resolveGooglePlayPlan('annual').commercialTargetPriceMinor, 8990);
   assert.equal(
     resolveGooglePlayBasePlan('zstudio.access', 'monthly').planCode,
     'monthly',
