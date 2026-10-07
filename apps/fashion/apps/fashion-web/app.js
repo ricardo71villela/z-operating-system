@@ -121,7 +121,7 @@ $('#searchClose').addEventListener('click',closeSearch);
 $('#searchInput').addEventListener('input',e=>search(e.target.value));
 $('#accountButton').addEventListener('click',()=>toast('Conta ZOS · autenticação live ainda não ativada'));
 $('#memberButton').addEventListener('click',()=>toast('Venda Privada · Preview'));
-$$('[data-corner]').forEach(b=>b.addEventListener('click',()=>toast(`${b.dataset.corner} · Corner Preview`)));
+$$('[data-corner]').forEach(b=>b.addEventListener('click',()=>{location.href='/corner/'+b.dataset.corner.toLowerCase().trim().replace(/\s+/g,'-')}));
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawers();closeSearch()}});
 
 applyLocale(localStorage.getItem('zfashion_locale')||'pt');
