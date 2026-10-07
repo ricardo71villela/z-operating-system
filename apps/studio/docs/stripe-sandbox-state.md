@@ -14,7 +14,7 @@ This document records non-secret test-resource identifiers only. It does not con
 - annual €119.99: `price_1U6hayLelsX3mv7iJ7kluTSE`
 
 > **⚠️ Preço-alvo mudou em 2026-10-07** (antes, desde 2026-09-07: €3.99/€9.99/€89.99):
-> weekly €4.90, monthly €9.90, annual €99.00 — ver
+> weekly €3.90, monthly €9.90, annual €89.90 — ver
 > `commercial/store-products.v1.json`, que já reflete os novos valores. Os
 > `price_...` acima foram criados no Stripe sandbox com os valores ANTIGOS —
 > objetos Price no Stripe são imutáveis, por isso não dá para só editar o
@@ -24,9 +24,9 @@ This document records non-secret test-resource identifiers only. It does not con
 
 Suggested sandbox runtime env mapping (IDs por recriar aos novos preços — ver nota acima):
 - `STRIPE_ENVIRONMENT=sandbox`
-- `STRIPE_PRICE_WEEKLY=price_1U6haiLelsX3mv7ivtJpIntG` (€5.99 — substituir por um novo Price a €4.90)
+- `STRIPE_PRICE_WEEKLY=price_1U6haiLelsX3mv7ivtJpIntG` (€5.99 — substituir por um novo Price a €3.90)
 - `STRIPE_PRICE_MONTHLY=price_1U6haqLelsX3mv7i60H6VWAH` (€14.99 — substituir por um novo Price a €9.90)
-- `STRIPE_PRICE_ANNUAL=price_1U6hayLelsX3mv7iJ7kluTSE` (€119.99 — substituir por um novo Price a €99.00)
+- `STRIPE_PRICE_ANNUAL=price_1U6hayLelsX3mv7iJ7kluTSE` (€119.99 — substituir por um novo Price a €89.90)
 
 ## Still pending
 - hosted commercial runtime URL

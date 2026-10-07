@@ -12,7 +12,7 @@ Este runbook não autoriza deployment, mutação Supabase live nem publicação 
 - trial offer id: `trial-3d`
 - trial: 3 dias
 - moeda comercial alvo: EUR
-- preços alvo: weekly €4.90; monthly €9.90; annual €99.00 (revisto em 2026-10-07; antes €3.99/€9.99/€89.99)
+- preços alvo: weekly €3.90; monthly €9.90; annual €89.90 (revisto em 2026-10-07; antes €3.99/€9.99/€89.99)
 - trial Z Studio: uma utilização lifetime global por pessoa em produção, transversal a Web/Apple/Google
 - Play Console não é autoridade para a elegibilidade global do trial; o servidor ZOS decide se envia `use_trial_offer=true`
 
