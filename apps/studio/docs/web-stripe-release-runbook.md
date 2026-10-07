@@ -23,11 +23,11 @@ Set only after the production activation gate is authorized:
 
 ## Stripe catalog
 Create exactly three recurring EUR prices matching the source authority (`commercial/store-products.v1.json`):
-- weekly: EUR 3.99
-- monthly: EUR 9.99
-- annual: EUR 89.99
+- weekly: EUR 4.90
+- monthly: EUR 9.90
+- annual: EUR 99.00
 
-(Preço revisto em 2026-09-07 para ficar abaixo do Canva Pro/Adobe Express — os Price sandbox antigos a €5.99/€14.99/€119.99 em `docs/stripe-sandbox-state.md` ficam obsoletos e precisam de ser recriados a estes valores.)
+(Preço revisto em 2026-10-07: €4.90 / €9.90 / €99.00 — os Price sandbox antigos a €5.99/€14.99/€119.99 em `docs/stripe-sandbox-state.md` ficam obsoletos e precisam de ser recriados a estes valores.)
 
 Do not encode the lifetime-trial decision in a browser-controlled Stripe parameter. The Checkout server decides whether the exact session receives the 3-day trial after global ZOS preflight.
 
