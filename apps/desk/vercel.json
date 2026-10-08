@@ -1,0 +1,4 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "ignoreCommand": "B=${VERCEL_GIT_PREVIOUS_SHA:-HEAD^};[ \"$B\" = \"$VERCEL_GIT_COMMIT_SHA\" ]&&exit 1;git cat-file -e \"$B^{commit}\" 2>/dev/null||exit 1;git diff --quiet \"$B\" HEAD -- ':(top)apps/desk/**' ':(top)package-lock.json'"
+}
