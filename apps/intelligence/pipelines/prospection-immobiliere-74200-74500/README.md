@@ -52,6 +52,15 @@ Depuis le 8 octobre, la publication peut se faire depuis le workflow :
 lancement manuel avec l'option `publicar_site`, sur un autre ramo que
 `main` (voir `apps/intelligence/radar-leman-web/README.md`).
 
+**BDNB (8 octobre)** : `enrich_bdnb.py` récupère pour chaque bâtiment
+(API ouverte de la BDNB, sans clé) l'emprise au sol, le nombre de niveaux,
+le nombre de logements et l'année de construction, rattachés à l'adresse
+par la clé BAN. Pour une maison (un seul logement, usage résidentiel
+individuel), `surface_bdnb_estimee` = emprise × niveaux × 0,8 — utilisée
+seulement quand ni le DPE ni le DVF ne donnent de surface
+(`source_surface` = BDNB). L'année de construction et le type de bien
+manquants sont aussi complétés par la BDNB.
+
 **Surfaces (8 octobre)** : `surface_m2` est désormais la surface habitable
 retenue (`source_surface` = DPE ou DVF ; la surface DVF d'origine reste
 dans `surface_dvf`). Les ventes DVF sont rattachées par clé, puis par

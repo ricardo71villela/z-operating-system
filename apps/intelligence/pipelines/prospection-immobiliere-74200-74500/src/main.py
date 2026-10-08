@@ -11,6 +11,7 @@ Etapes :
   4. Cadastre — surface de terrain par parcelle (potentiel de valorisation)
   5. Géorisques — information reglementaire ERP (purement informative)
   6. RNB — identifiant de batiment (brique de robustesse)
+  6b. BDNB — emprise, niveaux, logements par batiment (surface estimee)
   7. Segmentation + scoring + grille de prix par rue
   8. Statistiques de marche par commune
   9. Export cartographique (GeoJSON + carte HTML)
@@ -31,6 +32,7 @@ import enrich_dpe
 import enrich_cadastre
 import enrich_georisques
 import enrich_rnb
+import enrich_bdnb
 import segment
 import market_stats
 import export_map
@@ -84,6 +86,8 @@ def run(skip_dpe=False):
 
     banner(6, total, "RNB (identifiant de bâtiment)")
     _etape_optionnelle("rnb_74200_74500.csv", enrich_rnb.main, "RNB")
+    print("\n--- BDNB (emprise, niveaux, logements) ---")
+    _etape_optionnelle("bdnb_74200_74500.csv", enrich_bdnb.main, "BDNB")
 
     banner(7, total, "Segmentation, scoring et grille de prix par rue")
     segment.main()

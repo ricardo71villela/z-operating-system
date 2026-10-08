@@ -701,7 +701,7 @@ function rowDetail(r, idx){
   blocks.push({h:'Motifs du score', p:r[IDX.motivos] || '—'});
   if(r[IDX.comparaveis]) blocks.push({h:'Ventes comparables (prix réel de l\'année)', p:r[IDX.comparaveis]});
   const compTxt = r[IDX.nbComp] ? `${r[IDX.nbComp]} vente(s) comparable(s) dans la rue/commune` : 'Aucun comparable direct dans cette rue';
-  const srcLbl = {DPE:'DPE — surface habitable mesurée', DVF:'DVF — fichiers fonciers, souvent sous-estimée'};
+  const srcLbl = {DPE:'DPE — surface habitable mesurée', DVF:'DVF — fichiers fonciers, souvent sous-estimée', BDNB:'BDNB — estimation : emprise au sol × niveaux × 0,8'};
   const surfaceInfo = r[IDX.superficie]!=null ? `${Math.round(r[IDX.superficie])} m² (${srcLbl[r[IDX.sourceSurface]] || 'DVF'})` : (r[IDX.superficieDpe]!=null ? `${Math.round(r[IDX.superficieDpe])} m² (DPE)` : 'surface inconnue');
   return `<div class="detail-grid">
     ${blocks.map(b=>`<div class="detail-block"><h4>${b.h}</h4><p class="argument-quote">${b.p}</p></div>`).join('')}
