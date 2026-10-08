@@ -185,6 +185,10 @@ function mapSupabasePropertyRowToCard(row, lang) {
     assetId: row.id,
     kind,
     subtype: row.subtype || null,
+    // Search map: the published position, else the centre of the zone (commune).
+    latitude: row.latitude == null ? null : row.latitude,
+    longitude: row.longitude == null ? null : row.longitude,
+    zoneLiteId: row.zone_lite_id || null,
     areaSqm: facts.areaSqm,
     rooms: facts.rooms,
     bedrooms: facts.bedrooms,
@@ -229,6 +233,7 @@ function mapSupabaseDevelopmentRowToCard(row, lang) {
     assetId: row.id,
     kind: 'Development',
     subtype: null,
+    zoneLiteId: row.zone_lite_id || null,
     transactionType: listing.transaction_type || 'sale',
     rentalPeriod: listing.rental_period || null,
     title: content.title || row.name || '',

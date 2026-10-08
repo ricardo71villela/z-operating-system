@@ -9,6 +9,9 @@ A tabela serve o painel dos parceiros: pesquisar a comuna de um bem por código
 postal ou nome (zfind_commune_search) e ligá-lo a ela (zfind_set_asset_commune),
 sem que o browser possa inventar uma comuna. Idempotente (upsert por país+código).
 
+Cada comuna leva também o seu centro (latitude, longitude) para o mapa da pesquisa
+(migração 20261008120000_z_find_map_search_v1).
+
 Uso: python src/load_communes.py [--dry-run]
 """
 
@@ -22,6 +25,9 @@ import unicodedata
 from common import Supabase
 
 GEO_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "apps", "zfind-web", "public", "geo", "search")
+# Centre of each commune (scripts/geography/build_commune_centres.py, GeoNames CC BY 4.0):
+# where a listing without an exact position is shown on the search map.
+CENTRES = os.path.join(os.path.dirname(__file__), "..", "data", "commune_centres.json")
 COUNTRIES = ("FR", "BE", "LU")
 
 
@@ -55,9 +61,32 @@ def to_rows(country, records):
     return list(rows.values())
 
 
+_centres = None
+
+
+def centres(country):
+    """{code: (lat, lng)} for the country; empty when the data file is absent."""
+    global _centres
+    if _centres is None:
+        try:
+            with open(CENTRES, encoding="utf-8") as fh:
+                _centres = json.load(fh)
+        except FileNotFoundError:
+            _centres = {}
+    return {r[0]: (r[1], r[2]) for r in _centres.get(country, []) if isinstance(r, list) and len(r) == 3}
+
+
+def with_centres(country, rows):
+    found = centres(country)
+    for row in rows:
+        lat_lng = found.get(row["code"])
+        row["latitude"], row["longitude"] = (lat_lng if lat_lng else (None, None))
+    return rows
+
+
 def load(country):
     with open(os.path.join(GEO_DIR, f"{country.lower()}.json"), encoding="utf-8") as fh:
-        return to_rows(country, json.load(fh))
+        return with_centres(country, to_rows(country, json.load(fh)))
 
 
 def main():
@@ -67,7 +96,7 @@ def main():
     all_rows = []
     for country in COUNTRIES:
         rows = load(country)
-        print(f"{country}: {len(rows)} comunas")
+        print(f"{country}: {len(rows)} comunas, {sum(1 for r in rows if r['latitude'] is not None)} com centro (mapa)")
         all_rows.extend(rows)
     if args.dry_run:
         return 0
