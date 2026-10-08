@@ -13,15 +13,17 @@ radar-leman-web/
   private/
     dashboard.html          <- o dashboard gerado pelo pipeline (nunca servido diretamente)
     chunks/                 <- dashboard.html dividido em pedaços < 4,5 MB (gerado, ver abaixo)
-    fichas/                 <- fichas PDF individuais em base64, agrupadas em pedaços (gerado, ver abaixo)
+    fichas-data/            <- dados de cada morada para a ficha PDF (~6 MB, gerado por build-fichas-data.js)
   api/
     _auth.js                <- valida a password (partilhado, não é uma rota)
     index.js                <- Vercel Function: valida a password, devolve a página que monta o dashboard
     chunk.js                <- Vercel Function: devolve um pedaço de dashboard.html, também com password
-    ficha.js                 <- Vercel Function: devolve uma ficha PDF individual (?n=0..27795), também com password
+    ficha.js                 <- Vercel Function: gera a ficha PDF de uma morada a pedido (?n=fichaIdx), com password
+    _fiche-pdf.js            <- desenho da ficha (PDFKit, fonte Arimo em api/_fonts/)
   scripts/
     split-dashboard.js      <- gera private/chunks/ a partir de private/dashboard.html
-    split-fichas.py         <- gera private/fichas/ a partir de uma pasta de PDFs (ver abaixo)
+    build-fichas-data.js    <- gera private/fichas-data/ a partir de private/dashboard.html
+    update-from-pipeline.py <- atualiza private/dashboard.html a partir da pasta output/ do pipeline
   public/.gitkeep            <- pasta de saída estática, propositadamente vazia
   vercel.json                 <- liga tudo: todos os pedidos passam pelas funções
 ```
@@ -97,57 +99,39 @@ git push
 `scripts/split-dashboard.js` não tem dependências (Node puro) — corre com
 qualquer Node instalado na máquina.
 
-## Fichas PDF individuais (11/set)
+## Fichas PDF geradas a pedido (8/out)
 
-Cada morada de Prioridade A tem um link "Télécharger la fiche PDF" no
-dashboard (dentro do detalhe de cada linha da tabela), que abre
-`/api/ficha?n=<índice>` — a mesma password do dashboard aplica-se, pedido a
-pedido. O `<índice>` (0 a 27795, ordenado por score decrescente) fica
-embutido no próprio `private/dashboard.html`, como uma coluna extra
-(`fichaIdx`) nas linhas de Prioridade A — as de Prioridade B não têm fiche
-gerada ainda, por isso não mostram o link.
+Cada morada tem um link "Télécharger la fiche PDF" no detalhe da linha, que
+abre `/api/ficha?n=<fichaIdx>` (mesma password). Até 8/out as ~27 000 fichas
+eram PDFs guardados em base64 no repositório (`private/fichas/`, cerca de
+700 MB a cada atualização). Agora `api/ficha.js` desenha a ficha no momento
+(PDFKit, ~5 ms, ~17 KB) a partir de `private/fichas-data/` — só os campos
+que a ficha mostra, ~6 MB no total. Conteúdo e apresentação iguais aos de
+`fiche_pdf.py` do pipeline.
 
-As fichas em si (geradas por
-`apps/intelligence/pipelines/prospection-immobiliere-74200-74500/src/fiche_pdf.py`)
-são convertidas para base64 e agrupadas em `private/fichas/shard-N.js`
-(~50 fichas por pedaço, module.exports = array de strings base64), com
-`private/fichas/index.js` a juntar tudo num único array indexado 0..27795.
-`api/ficha.js` decodifica a ficha pedida e devolve-a como `application/pdf`
-— cada resposta é uma única ficha (~20-30 KB), bem abaixo do limite de
-4,5 MB da Vercel, por isso não precisa de paginação como o dashboard.
+- Para mudar o texto ou o aspeto da ficha: `api/_fiche-pdf.js`.
+- Dados da agência (`[Votre agence]`, `[téléphone]`…): constante `CABINET`
+  em `api/_fiche-pdf.js`.
+- Depois de mudar `private/dashboard.html`: `node scripts/build-fichas-data.js`.
+- As dependências (`pdfkit`) estão em `package.json`; a Vercel instala-as
+  sozinha. Localmente: `npm install`.
 
-**Dados da agência ainda por preencher**: as fichas atuais têm
-`[Votre agence]` / `[téléphone]` / `[email]` / `[adresse]` como marcador em
-`fiche_pdf.py::CABINET` — a atualizar quando o Ricardo confirmar os dados
-reais da DECORDIER IMMOBILIER (só editar esse dicionário e regerar, ver
-abaixo — não precisa de tocar em mais nada).
-
-**Como regerar** (nova password/agência, ou para gerar a Prioridade B):
-
-1. Editar `CABINET` em `fiche_pdf.py` (nome, telefone, email, morada), ou
-   ajustar o filtro de prioridade em `scripts/split-fichas.py` para incluir
-   a banda B.
-2. Correr `fiche_pdf.py` sobre `output/prospection_prioritaire.csv` (precisa
-   de WeasyPrint + `pango` instalados — no Mac isto ficou bloqueado pelo
-   macOS 12 já não ser suportado pelo Homebrew; a alternativa usada foi
-   correr num ambiente Linux, ex. `apt install` dos pacotes pango e
-   `pip install weasyprint`).
-3. `python3 scripts/split-fichas.py` (lê a pasta de PDFs gerados, escreve
-   `private/fichas/`).
-4. Se o número de fichas mudou, também é preciso voltar a embutir a coluna
-   `fichaIdx` no `private/dashboard.html` (mapeamento morada → índice) e
-   regenerar `private/chunks/` com `node scripts/split-dashboard.js`.
-5. `git add -A && git commit -m "..." && git push`.
+Nota: o histórico do git continua a guardar as fichas antigas (o repositório
+não encolhe por apagar a pasta); só as próximas atualizações deixam de o
+fazer crescer.
 
 ## Atualizar o site a partir do pipeline (8/out)
 
-`scripts/update-from-pipeline.py` faz tudo a partir da pasta `output/` do
-pipeline: dados do dashboard (moradas, comunas, indicadores e, se existir,
-terrenos livres) e uma ficha PDF por morada em `private/fichas/`. Depois:
-`node scripts/split-dashboard.js`.
+`scripts/update-from-pipeline.py` atualiza o dashboard a partir da pasta
+`output/` do pipeline (moradas, comunas, indicadores e, se existir,
+terrenos livres — só das comunas tratadas nessa execução; as outras mantêm
+os terrenos já publicados). Depois: `node scripts/split-dashboard.js` e
+`node scripts/build-fichas-data.js`.
 
 No GitHub: Actions → "Z Intelligence — Prospection Immobiliere" → Run
-workflow → escolher um ramo (não `main`) e marcar **publicar_site**. O
+workflow → escolher um ramo (não `main`) e marcar **publicar_site**. Opção
+**terrenos**: `nenhum` (por defeito), `novas` (Sciez e as 4 comunas do 74550,
+~10 min) ou `todas` (31 comunas, várias horas). O
 workflow corre o pipeline, atualiza o site e faz commit nesse ramo; basta
 depois abrir/fazer merge do pull request.
 

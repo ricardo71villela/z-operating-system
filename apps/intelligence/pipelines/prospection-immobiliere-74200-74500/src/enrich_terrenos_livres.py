@@ -621,8 +621,17 @@ def main():
     n_excl_libelong = 0
     print(f"Procura de terrenos livres (>= {TERRENO_LIVRE_SURFACE_MIN} m², "
           f"zona {'/'.join(sorted(GPU_ZONAS_INCLUIDAS))}) em "
-          f"{len(ALL_COMMUNES)} comunas...")
-    for code, nome in ALL_COMMUNES.items():
+          f"{len(ALL_COMMUNES) if not os.environ.get('TERRENOS_COMMUNES') else os.environ['TERRENOS_COMMUNES'].count(',') + 1} comunas...")
+    # TERRENOS_COMMUNES (8/out/2026) : lista de códigos INSEE separados por
+    # vírgulas para correr só algumas comunas (ex. as novas de Sciez e do
+    # 74550). O site (scripts/update-from-pipeline.py) junta o resultado aos
+    # terrenos já publicados das outras comunas.
+    so = [c.strip() for c in os.environ.get("TERRENOS_COMMUNES", "").split(",") if c.strip()]
+    communes = {c: n for c, n in ALL_COMMUNES.items() if not so or c in so}
+    if so and len(communes) != len(so):
+        print(f"AVISO : códigos desconhecidos em TERRENOS_COMMUNES ignorados : "
+              f"{sorted(set(so) - set(communes))}")
+    for code, nome in communes.items():
         path_livres, path_excl = _progresso_paths(code)
         if not FORCE_REDOWNLOAD and os.path.exists(path_livres) and os.path.exists(path_excl):
             rows_livres = pd.read_csv(path_livres).to_dict("records") if os.path.getsize(path_livres) else []
@@ -648,6 +657,11 @@ def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     out = os.path.join(OUTPUT_DIR, "terrenos_livres_potencial.csv")
     df.to_csv(out, index=False)
+
+    # Comunas tratadas nesta execução (mesmo as sem nenhum terreno livre) :
+    # o site substitui os terrenos destas comunas e mantém os das outras.
+    pd.DataFrame([{"code_insee": c, "commune": n} for c, n in communes.items()]).to_csv(
+        os.path.join(OUTPUT_DIR, "terrenos_communes_traitees.csv"), index=False)
 
     df_excl = pd.DataFrame(excluidos_rows, columns=EXCLUIDOS_COLUMNS)
     if not df_excl.empty:

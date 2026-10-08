@@ -2,23 +2,24 @@
 """Met a jour le site Radar Leman a partir d'une execution du pipeline.
 
 Le pipeline (apps/intelligence/pipelines/prospection-immobiliere-74200-74500)
-produit des CSV dans output/, mais pas le dashboard du site ni toutes les
-fiches PDF. Ce script :
+produit des CSV dans output/, mais pas le dashboard du site. Ce script
+recalcule les donnees du dashboard (private/dashboard.html) :
 
-  1. recalcule les donnees du dashboard (LEADS, STATS, KPIS et, si le
-     fichier existe, TERRENOS) dans private/dashboard.html, a partir de
-     output/mailing_complet.csv, output/stats_marche_communes.csv et
-     output/terrenos_livres_potencial.csv ;
-  2. genere une fiche PDF par adresse (meme gabarit que fiche_pdf.py) et
-     reconstruit private/fichas/ (index n = position de l'adresse dans le
-     dashboard, priorite A puis B puis le reste, par score decroissant).
+  - LEADS, STATS et KPIS a partir de output/mailing_complet.csv et
+    output/stats_marche_communes.csv ;
+  - TERRENOS a partir de output/terrenos_livres_potencial.csv, s'il existe :
+    les communes presentes dans ce fichier remplacent les leurs, les autres
+    communes gardent les terrains deja publies (on peut donc relancer la
+    recherche de terrains sur quelques communes seulement).
 
-Ensuite : node scripts/split-dashboard.js (regenere private/chunks/).
+Les fiches PDF ne sont plus stockees (8/10/2026) : api/ficha.js les genere a
+la demande. Ensuite, dans cet ordre :
+    node scripts/split-dashboard.js      (private/chunks/)
+    node scripts/build-fichas-data.js    (private/fichas-data/)
 
-Uso (depuis la racine du depot, avec pandas + weasyprint installes) :
+Uso (depuis la racine du depot, Python 3 sans dependances) :
     python3 apps/intelligence/radar-leman-web/scripts/update-from-pipeline.py \\
-        --output apps/intelligence/pipelines/prospection-immobiliere-74200-74500/output \\
-        --pipeline-src apps/intelligence/pipelines/prospection-immobiliere-74200-74500/src
+        --output apps/intelligence/pipelines/prospection-immobiliere-74200-74500/output
 """
 import argparse
 import base64
@@ -27,13 +28,11 @@ import json
 import math
 import os
 import re
-import shutil
-import sys
-import tempfile
-from concurrent.futures import ProcessPoolExecutor
 
 SITE = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-SHARD_SIZE = 50
+# Comunas acrescentadas a 7/10/2026 (Sciez e 74550) : quando os terrenos
+# delas forem calculados, o aviso "couvre encore les 26 communes" desaparece.
+NOVAS_2026_10 = {"Sciez", "Cervens", "Draillant", "Orcier", "Perrignier"}
 
 
 def num(v, kind=float):
@@ -72,78 +71,12 @@ def b64(o):
                             .encode("utf-8")).decode()
 
 
-# ------------------------------------------------------------ fiches PDF ---
+def unb64(s, key):
+    m = re.search(key + r"\s*=\s*'([^']*)'", s)
+    if not m:
+        raise SystemExit(f"{key} nao encontrado em dashboard.html")
+    return json.loads(base64.b64decode(m.group(1)).decode("utf-8"))
 
-_W = {}
-
-
-def _init_worker(pipeline_src, csv_path):
-    sys.path.insert(0, pipeline_src)
-    import pandas as pd
-    import fiche_pdf
-    fiche_pdf.CABINET.update({"nom": "[Votre agence]",
-                              "contact": "[téléphone] · [email] · [adresse]"})
-    _W["fp"] = fiche_pdf
-    _W["df"] = pd.read_csv(csv_path, low_memory=False).set_index("adresse_complete", drop=False)
-
-
-def _parse_comps(s):
-    out = []
-    if not isinstance(s, str):
-        return out
-    for part in s.split(" ; "):
-        m = re.match(r"(\d{4}) — ([\d\s  ]+) m² — ([\d\s  ]+) €/m²", part.strip())
-        if not m:
-            continue
-        surf = int(re.sub(r"\D", "", m.group(2)))
-        pm2 = int(re.sub(r"\D", "", m.group(3)))
-        out.append({"annee": m.group(1), "type": None, "surface": surf,
-                    "prix": round(surf * pm2 / 100) * 100, "prix_m2": pm2, "distance_m": 400})
-    return out
-
-
-def _make_fiche(item):
-    n, addr, out_dir = item
-    path = os.path.join(out_dir, f"{n:06d}.pdf")
-    row = _W["df"].loc[addr]
-    if getattr(row, "ndim", 1) > 1:
-        row = row.iloc[0]
-    fp = _W["fp"]
-    return fp._html_to_pdf(fp.build_html(row, _parse_comps(row.get("comparables"))), path)
-
-
-def build_fichas(rows, args):
-    tmp = tempfile.mkdtemp(prefix="fiches-")
-    items = [(i, r[0], tmp) for i, r in enumerate(rows)]
-    with ProcessPoolExecutor(args.jobs, initializer=_init_worker,
-                             initargs=(args.pipeline_src, os.path.join(args.output, "mailing_complet.csv"))) as ex:
-        ok = sum(ex.map(_make_fiche, items, chunksize=25))
-    if ok != len(items):
-        raise SystemExit(f"fiches : {ok}/{len(items)} generees — arret")
-    out_dir = os.path.join(SITE, "private", "fichas")
-    shutil.rmtree(out_dir, ignore_errors=True)
-    os.makedirs(out_dir)
-    n_shards = 0
-    for s0 in range(0, len(items), SHARD_SIZE):
-        arr = []
-        for i in range(s0, min(s0 + SHARD_SIZE, len(items))):
-            with open(os.path.join(tmp, f"{i:06d}.pdf"), "rb") as f:
-                arr.append(base64.b64encode(f.read()).decode())
-        with open(os.path.join(out_dir, f"shard-{n_shards}.js"), "w") as f:
-            f.write("module.exports = " + json.dumps(arr) + ";\n")
-        n_shards += 1
-    with open(os.path.join(out_dir, "index.js"), "w", encoding="utf-8") as f:
-        f.write("// Gerado por scripts/update-from-pipeline.py — nao editar a mao.\n"
-                "// n = posicao da morada no dashboard (Prioridade A, depois B, depois o resto,\n"
-                "// cada grupo por score decrescente).\nmodule.exports = [\n")
-        for k in range(n_shards):
-            f.write(f"  ...require('./shard-{k}.js'),\n")
-        f.write("];\n")
-    shutil.rmtree(tmp, ignore_errors=True)
-    print(f"fiches : {ok} PDF em {n_shards} pedaços")
-
-
-# ------------------------------------------------------------- dashboard ---
 
 def update_dashboard(rows, args):
     path = os.path.join(SITE, "private", "dashboard.html")
@@ -171,16 +104,30 @@ def update_dashboard(rows, args):
     put("_STATS_B64", b64(stats))
     put("_KPIS_B64", b64(kpis))
 
+    # Terrains : on remplace commune par commune (celles traitees par cette
+    # execution de enrich_terrenos_livres.py), les autres restent telles quelles.
     terr = os.path.join(args.output, "terrenos_livres_potencial.csv")
+    traitees_path = os.path.join(args.output, "terrenos_communes_traitees.csv")
     if os.path.exists(terr):
-        tl = []
+        new = []
         with open(terr, encoding="utf-8") as f:
             for d in csv.DictReader(f):
-                tl.append([d.get("parcela_id"), d.get("commune"), num(d.get("area_m2")),
-                           txt(d.get("zona_plu")), txt(d.get("zona_libelle")),
-                           txt(d.get("poi_alerta")), txt(d.get("link_mapa"))])
-        put("_TERRENOS_B64", b64(tl))
-        print(f"terrenos : {len(tl)}")
+                new.append([d.get("parcela_id"), d.get("commune"), num(d.get("area_m2"), int),
+                            txt(d.get("zona_plu")), txt(d.get("zona_libelle")),
+                            txt(d.get("poi_alerta")), txt(d.get("link_mapa"))])
+        traitees = {r[1] for r in new}
+        if os.path.exists(traitees_path):
+            with open(traitees_path, encoding="utf-8") as f:
+                traitees |= {d["commune"] for d in csv.DictReader(f)}
+        if traitees:
+            terrenos = [r for r in unb64(s, "_TERRENOS_B64") if r[1] not in traitees] + new
+            terrenos.sort(key=lambda r: -(r[2] or 0))
+            put("_TERRENOS_B64", b64(terrenos))
+            print(f"terrenos : {len(new)} em {len(traitees)} comunas tratadas ({sorted(traitees)}), "
+                  f"{len(terrenos)} no total")
+            if NOVAS_2026_10 <= traitees:
+                s = s.replace(" L'onglet Terrains libres couvre encore les 26 communes d'origine.", "")
+                s = s.replace("sub:'sur les 26 communes d\\'origine'", "sub:'sur ' + STATS.length + ' communes du secteur'")
 
     fr = lambda n: f"{n:,}".replace(",", " ")
     n_b = sum(r[3] == "B" for r in rows)
@@ -195,12 +142,9 @@ def update_dashboard(rows, args):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--output", required=True, help="pasta output/ do pipeline")
-    ap.add_argument("--pipeline-src", required=True, help="pasta src/ do pipeline (fiche_pdf.py)")
-    ap.add_argument("--jobs", type=int, default=os.cpu_count() or 2)
-    ap.add_argument("--skip-fiches", action="store_true")
+    ap.add_argument("--pipeline-src", help="(ignorado — as fichas ja nao sao geradas aqui)")
     args = ap.parse_args()
     args.output = os.path.abspath(args.output)
-    args.pipeline_src = os.path.abspath(args.pipeline_src)
 
     with open(os.path.join(args.output, "mailing_complet.csv"), encoding="utf-8") as f:
         rows = [to_row(d) for d in csv.DictReader(f)]
@@ -208,9 +152,6 @@ def main():
     rows.sort(key=lambda r: (rank.get(r[3], 2), -(r[4] or 0)))
     for i, r in enumerate(rows):
         r[25] = i
-
-    if not args.skip_fiches:
-        build_fichas(rows, args)
     update_dashboard(rows, args)
 
 
