@@ -67,6 +67,43 @@ def test_choose_surface_prefers_measured_dpe():
     assert list(out["surface_dvf"].fillna(-1)) == [95, 95, 95, -1, 80]
 
 
+def test_pipeline_chain_with_csv_text_columns():
+    """Meme enchainement que segment.main(), avec les colonnes lues en texte
+    comme dans le pipeline reel (dtype=str) — c'est ce qui a fait echouer
+    les executions du 8/10 sous pandas 3."""
+    import io
+    adr = pd.read_csv(io.StringIO(
+        "numero,nom_voie,code_insee,lon,lat\n"
+        "1,Rue A,74281,6.50000,46.37000\n"
+        "3,Rue A,74281,6.50013,46.37000\n"
+        "10,Chemin X,74263,6.40000,46.30000\n"), dtype=str)
+    dvf = pd.read_csv(io.StringIO(
+        "id_mutation,date_mutation,valeur_fonciere,adresse_numero,adresse_nom_voie,code_postal,"
+        "code_commune,nom_commune,type_local,surface_reelle_bati,nombre_pieces_principales,"
+        "longitude,latitude,id_parcelle\n"
+        "m1,2022-05-01,300000,7,Rue B,74200,74281,Thonon,Appartement,60,3,6.50001,46.37000,P-A1\n"
+        "m2,2021-03-01,600000,99,Vieux chemin,74140,74263,Sciez,Maison,150,6,6.41,46.31,P-S1\n"
+        "m3,2023-03-01,250000,1,Rue A,74200,74281,Thonon,Maison,80,4,6.5,46.37,P-A2\n"), dtype=str)
+    dvf["date_mutation"] = pd.to_datetime(dvf["date_mutation"])
+    dvf["annee_mutation"] = dvf["date_mutation"].dt.year
+    adr, dvf = sg.add_match_keys(adr, dvf)
+    cad = pd.DataFrame({"k_num": [adr.loc[2, "k_num"]], "k_voie": [adr.loc[2, "k_voie"]],
+                        "code_insee": ["74263"], "parcela_id": ["P-S1"]}).astype(str)
+    m = sg.merge_dvf(adr, dvf)
+    m = sg.parcel_match(m, dvf, cad)
+    m = sg.spatial_fallback_match(m, dvf)
+    m = sg.filter_implausible_price(m)
+    m["surface_dpe"] = np.nan
+    m["methode_dpe"] = pd.NA
+    m = sg.choose_surface(m)
+    # n.3 ne recoit pas la vente m1 : l'adresse la plus proche de m1 est le n.1
+    # (deja apparie par cle) — mieux vaut pas de donnee qu'une donnee du voisin.
+    assert m.loc[0, "methode_appariement"] == "cle" and m.loc[0, "surface_m2"] == 80
+    assert pd.isna(m.loc[1, "surface_m2"])
+    assert m.loc[2, "methode_appariement"] == "parcelle" and m.loc[2, "surface_m2"] == 150
+    assert m.loc[2, "prix_derniere_vente"] == 600000
+
+
 if __name__ == "__main__":
     n = 0
     for name, fn in list(globals().items()):

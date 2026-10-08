@@ -387,6 +387,11 @@ def parcel_match(out, dvf, cadastre):
     if "surface_reelle_bati" in d.columns:
         d["surface_reelle_bati"] = pd.to_numeric(d["surface_reelle_bati"], errors="coerce")
         sort_cols.append("surface_reelle_bati")
+    # Le DVF est lu en texte (dtype=str) : sans conversion, ecrire le prix
+    # dans la colonne numerique prix_derniere_vente fait echouer pandas 3
+    # ("Invalid value '600000' for dtype float64") — erreur des runs du 8/10.
+    if "valeur_fonciere" in d.columns:
+        d["valeur_fonciere"] = pd.to_numeric(d["valeur_fonciere"], errors="coerce")
     detail = [c_ for c_ in ["type_local", "surface_reelle_bati",
                             "nombre_pieces_principales", "valeur_fonciere", "id_mutation"]
               if c_ in d.columns]
