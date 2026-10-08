@@ -17,9 +17,9 @@ test('all four surfaces share one frozen plan/trial authority',()=>{
   assert.equal(catalog.commercialTargetCurrency,'EUR');
   assert.equal(catalog.trialDays,3);
   assert.deepEqual(Object.keys(catalog.plans).sort(),['annual','monthly','weekly']);
-  assert.equal(catalog.plans.weekly.commercialTargetPriceMinor,490);
+  assert.equal(catalog.plans.weekly.commercialTargetPriceMinor,390);
   assert.equal(catalog.plans.monthly.commercialTargetPriceMinor,990);
-  assert.equal(catalog.plans.annual.commercialTargetPriceMinor,9900);
+  assert.equal(catalog.plans.annual.commercialTargetPriceMinor,8990);
 });
 
 test('provider routing is explicit: Apple StoreKit, Google Play, Web and Microsoft Stripe',()=>{

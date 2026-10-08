@@ -18,7 +18,7 @@ test('Google Play catalog authority is exact and single-product/base-plan based'
   assert.equal(authority.appId, 'com.zoperatingsystem.zstudio');
   assert.equal(authority.commercialTargetCurrency, 'EUR');
   assert.equal(authority.trialDays, 3);
-  const prices = { weekly: 490, monthly: 990, annual: 9900 };
+  const prices = { weekly: 390, monthly: 990, annual: 8990 };
   for (const [plan, expectedPrice] of Object.entries(prices)) {
     const item = authority.plans[plan];
     assert.equal(item.commercialTargetPriceMinor, expectedPrice);
