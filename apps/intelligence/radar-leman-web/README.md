@@ -107,10 +107,14 @@ qualquer Node instalado na máquina.
   nos próximos 7 dias, courrier envoyé, RDV, mandat…).
 - **Cartas:** caixas de seleção em cada linha (e « selecionar a página »,
   ou « Préparer les courriers de cet itinéraire » no itinerário do dia).
-  « Générer les courriers (PDF) » devolve um PDF com, para cada morada, a
-  carta « Au propriétaire » e a ficha de estimativa (2 páginas, frente e
-  verso). As moradas ficam marcadas « Courrier envoyé » com a data do dia;
-  as marcadas « Ne plus contacter » são sempre retiradas. Máx. 100 por vez.
+  « Textes des courriers (à copier) » mostra o texto de cada carta
+  « Au propriétaire » (sem cabeçalho), com « Copier » / « Tout copier », para
+  colar no modelo Word da agência (papel timbrado). « Fiches d'estimation
+  (PDF) » dá as fichas a juntar. No detalhe de cada morada, « Texte du
+  courrier » faz o mesmo para uma só morada (sem a marcar). As cartas em lote
+  marcam as moradas « Courrier envoyé » com a data do dia; as marcadas « Ne
+  plus contacter » são sempre retiradas. Máx. 100 por vez. (A API aceita
+  ainda `format: "pdf"` — carta + ficha num só PDF.)
 - Nenhum nome de proprietário é usado (dados públicos apenas); a carta e a
   ficha dizem como deixar de receber correio.
 

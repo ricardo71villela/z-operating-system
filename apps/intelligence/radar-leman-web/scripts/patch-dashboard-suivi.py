@@ -41,6 +41,17 @@ CSS = MARK + """
   background:transparent;color:#fff;cursor:pointer}
 .sel-bar button.primary{background:#AD8A45;border-color:#AD8A45;color:#101820;font-weight:700}
 .sel-bar button:disabled{opacity:.5;cursor:default}
+.lt-modal{position:fixed;inset:0;z-index:60;background:rgba(16,24,32,.55);display:flex;align-items:flex-start;justify-content:center;
+  padding:24px 16px;overflow:auto}
+.lt-panel{background:#fff;color:#141413;border-radius:14px;max-width:820px;width:100%;padding:1rem 1.2rem;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+.lt-head{display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.6rem}
+.lt-head h3{margin:0;font-size:1.05rem}
+.lt-panel button{font:inherit;font-size:.82rem;padding:.4rem .8rem;border-radius:8px;border:1px solid #D8DEE4;background:#fff;cursor:pointer}
+.lt-panel button.primary{background:#101820;color:#fff;border-color:#101820}
+.lt-item{border-top:1px solid #E8EBEE;padding:.7rem 0}
+.lt-item h4{margin:0 0 .4rem 0;font-size:.85rem;display:flex;justify-content:space-between;gap:.6rem;align-items:center}
+.lt-item textarea{width:100%;box-sizing:border-box;min-height:260px;font:13px/1.45 Georgia,serif;padding:.6rem;border:1px solid #D8DEE4;border-radius:8px}
+.lt-hint{font-size:.78rem;color:#4C5F73;margin:.2rem 0 .4rem}
 .suivi-warn{margin:.6rem 0;padding:.5rem .8rem;border-radius:8px;background:#FFF1D6;color:#7A4B00;font-size:.8rem}
 """
 
@@ -127,6 +138,7 @@ function suiviForm(r){
     <textarea data-f="note" placeholder="Note (échange, attentes, projet…)">${escHtml(s.note||'')}</textarea>
     <div class="suivi-actions">
       <button type="button" data-act="save">Enregistrer</button>
+      <button type="button" data-act="lettre" style="background:#AD8A45;color:#101820">Texte du courrier</button>
       <span class="suivi-msg" data-f="msg">${escHtml(maj + courrier)}</span>
     </div>
   </div>`;
@@ -154,15 +166,18 @@ function renderSelBar(){
   if(!bar){
     bar = document.createElement('div'); bar.id = 'selBar'; bar.className = 'sel-bar';
     bar.innerHTML = `<span id="selCount"></span>
-      <button type="button" class="primary" id="selLetters">Générer les courriers (PDF)</button>
+      <button type="button" class="primary" id="selLetters">Textes des courriers (à copier)</button>
+      <button type="button" id="selFiches">Fiches d'estimation (PDF)</button>
       <button type="button" id="selClear">Vider la sélection</button>`;
     document.body.appendChild(bar);
     document.getElementById('selClear').addEventListener('click', ()=>{ SELECTION.clear(); renderSelBar(); render(); });
-    document.getElementById('selLetters').addEventListener('click', generateLetters);
+    document.getElementById('selLetters').addEventListener('click', ()=>generateLetters([...SELECTION], true));
+    document.getElementById('selFiches').addEventListener('click', generateFiches);
   }
   bar.hidden = SELECTION.size === 0;
   document.getElementById('selCount').textContent = `${SELECTION.size} adresse(s) sélectionnée(s)` + (SELECTION.size > SEL_MAX ? ` — maximum ${SEL_MAX}` : '');
   document.getElementById('selLetters').disabled = SELECTION.size > SEL_MAX;
+  document.getElementById('selFiches').disabled = SELECTION.size > SEL_MAX;
 }
 
 function toggleSel(n, on){
@@ -171,27 +186,69 @@ function toggleSel(n, on){
   renderSelBar();
 }
 
-async function generateLetters(){
-  const btn = document.getElementById('selLetters');
-  const ns = [...SELECTION];
+async function postLettres(ns, format, marquer){
+  const res = await fetch('/api/lettres', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({n: ns, format, marquer})});
+  if(!res.ok){ let m = 'HTTP '+res.status; try{ m = (await res.json()).error || m; }catch(_){} throw new Error(m); }
+  return res;
+}
+
+// Texto das cartas, para copiar e colar no papel timbrado da agencia.
+async function generateLetters(ns, marquer){
   if(!ns.length) return;
-  btn.disabled = true; const old = btn.textContent; btn.textContent = 'Préparation…';
+  const btn = document.getElementById('selLetters'); const old = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Préparation…';
+  try{
+    const j = await (await postLettres(ns, 'texte', marquer)).json();
+    showLetters(j.lettres || [], marquer);
+    if(marquer){ SELECTION.clear(); await loadSuivi(); renderSelBar(); render(); }
+    if(j.retirees) alertMsg(`${j.retirees} adresse(s) « Ne plus contacter » retirée(s).`);
+  }catch(e){ alertMsg('Courriers non générés : ' + e.message); }
+  finally{ btn.textContent = old; btn.disabled = SELECTION.size > SEL_MAX; }
+}
+
+async function copyText(t, btn){
+  try{ await navigator.clipboard.writeText(t); }
+  catch(_){ const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+  if(btn){ const o = btn.textContent; btn.textContent = 'Copié ✓'; setTimeout(()=>btn.textContent = o, 1500); }
+}
+
+function showLetters(lettres, marquees){
+  const old = document.getElementById('ltModal'); if(old) old.remove();
+  const m = document.createElement('div'); m.id = 'ltModal'; m.className = 'lt-modal';
+  m.innerHTML = `<div class="lt-panel" role="dialog" aria-label="Textes des courriers">
+    <div class="lt-head"><h3>${lettres.length} courrier(s) à coller sur votre papier à en-tête</h3>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        ${lettres.length>1 ? '<button type="button" class="primary" data-lt="all">Tout copier</button>' : ''}
+        <button type="button" data-lt="close">Fermer</button></div></div>
+    <p class="lt-hint">Copiez chaque texte et collez-le dans le modèle Word de l'agence (en-tête et coordonnées déjà imprimés).
+      La fiche d'estimation de chaque adresse se joint avec « Fiches d'estimation (PDF) ».${marquees ? ' Ces adresses sont marquées « Courrier envoyé ».' : ''}</p>
+    ${lettres.map((l,i)=>`<div class="lt-item"><h4><span>${i+1}. ${escHtml(l.adresse)}</span>
+      <button type="button" data-lt="one" data-i="${i}">Copier</button></h4>
+      <textarea readonly>${escHtml(l.texte)}</textarea></div>`).join('')}
+  </div>`;
+  document.body.appendChild(m);
+  m.addEventListener('click', (e)=>{
+    const b = e.target.closest('[data-lt]');
+    if(e.target === m || (b && b.dataset.lt === 'close')) return m.remove();
+    if(!b) return;
+    if(b.dataset.lt === 'one') copyText(lettres[parseInt(b.dataset.i,10)].texte, b);
+    if(b.dataset.lt === 'all') copyText(lettres.map(l=>l.texte).join(String.fromCharCode(10,10,12,10)), b);
+  });
+}
+
+// Fichas de estimativa (PDF) das moradas selecionadas, a juntar as cartas.
+async function generateFiches(){
+  const ns = [...SELECTION]; if(!ns.length) return;
+  const btn = document.getElementById('selFiches'); const old = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Préparation…';
   const win = window.open('', '_blank');
   try{
-    const res = await fetch('/api/lettres', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({n: ns, marquer: true})});
-    if(!res.ok){ let m = 'HTTP '+res.status; try{ m = (await res.json()).error || m; }catch(_){} throw new Error(m); }
-    const blob = await res.blob();
+    const blob = await (await postLettres(ns, 'fiches', false)).blob();
     const url = URL.createObjectURL(blob);
-    const retirees = parseInt(res.headers.get('X-Radar-Retirees')||'0',10);
-    if(win) win.location = url; else { const a = document.createElement('a'); a.href = url; a.download = 'courriers.pdf'; a.click(); }
-    SELECTION.clear();
-    await loadSuivi();
-    renderSelBar(); render();
-    if(retirees) alertMsg(`${retirees} adresse(s) « Ne plus contacter » retirée(s) des courriers.`);
-  }catch(e){
-    if(win) win.close();
-    alertMsg('Courriers non générés : ' + e.message);
-  }finally{ btn.textContent = old; btn.disabled = SELECTION.size > SEL_MAX; }
+    if(win) win.location = url; else { const a = document.createElement('a'); a.href = url; a.download = 'fiches.pdf'; a.click(); }
+  }catch(e){ if(win) win.close(); alertMsg('Fiches non générées : ' + e.message); }
+  finally{ btn.textContent = old; btn.disabled = SELECTION.size > SEL_MAX; }
 }
 
 function alertMsg(t){
@@ -214,8 +271,9 @@ function initSuivi(){
   });
   tbody.addEventListener('click', (e)=>{
     if(e.target.closest('.sel-td')) return;
-    const btn = e.target.closest('[data-act="save"]'); if(!btn) return;
+    const btn = e.target.closest('[data-act]'); if(!btn) return;
     const box = btn.closest('.suivi-box'); const n = parseInt(box.dataset.suiviFor,10);
+    if(btn.dataset.act === 'lettre') return generateLetters([n], false);
     const r = LEADS.find(x=>x[IDX.fichaIdx]===n); if(r) saveSuivi(box, r);
   }, true);
   const selPage = document.getElementById('selPage');

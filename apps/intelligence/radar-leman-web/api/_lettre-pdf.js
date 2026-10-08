@@ -28,7 +28,7 @@ function corps(row) {
   p.push(tendance
     ? `Le marché immobilier de ${commune} évolue : dans votre secteur, ${tendance}.`
     : `Le marché immobilier de ${commune} évolue, et plusieurs ventes ont été enregistrées récemment près de chez vous.`);
-  p.push("Vous trouverez au verso une estimation indicative de votre bien, établie à partir des ventes réelles publiées par " +
+  p.push("Vous trouverez ci-joint une estimation indicative de votre bien, établie à partir des ventes réelles publiées par " +
     "l'administration fiscale et des données publiques du bâtiment. Ce n'est qu'une fourchette : seule une visite permet de " +
     "tenir compte de l'état, de l'exposition et des prestations.");
   const dpe = String(row[F.dpe] || '').toUpperCase();
@@ -85,9 +85,27 @@ function drawLettre(doc, row, now = new Date()) {
 
   // Rodape (RGPD)
   doc.font('R').fontSize(7.5).fillColor(LIGHT);
-  text("Ce courrier est adressé au propriétaire de ce logement à partir de données publiques (adresse, ventes " +
-    "enregistrées, diagnostics) ; aucune donnée personnelle n'a été utilisée. Pour ne plus recevoir de courrier de notre " +
-    'part, il vous suffit de nous le signaler.', L, doc.page.height - MARGINS.bottom - 30, { width: W });
+  text(RGPD, L, doc.page.height - MARGINS.bottom - 30, { width: W });
+}
+
+const RGPD = "Ce courrier est adressé au propriétaire de ce logement à partir de données publiques (adresse, ventes " +
+  "enregistrées, diagnostics) ; aucune donnée personnelle n'a été utilisée. Pour ne plus recevoir de courrier de notre " +
+  'part, il vous suffit de nous le signaler.';
+
+// Texto simples da carta, para copiar e colar no papel timbrado da agencia
+// (sem o bloco do remetente, que ja esta no papel).
+function lettreTexte(row, now = new Date()) {
+  const [ligne1, ligne2] = splitAdresse(row[F.adresse]);
+  return [
+    'Au propriétaire', ligne1, ligne2, '',
+    (CABINET.ville ? CABINET.ville + ', le ' : 'Le ') + dateFr(now), '',
+    'Objet : votre bien au ' + clean(row[F.adresse]) + ' — estimation offerte', '',
+    'Madame, Monsieur,', '',
+    corps(row).join('\n\n'), '',
+    "Je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.", '',
+    CABINET.signataire, '', '',
+    RGPD
+  ].join('\n');
 }
 
 // Carta + ficha para cada morada, num so documento.
@@ -96,4 +114,4 @@ function drawLettreEtFiche(doc, row, now) {
   drawFiche(doc, row, now);
 }
 
-module.exports = { drawLettre, drawLettreEtFiche, splitAdresse, corps };
+module.exports = { drawLettre, drawLettreEtFiche, lettreTexte, splitAdresse, corps };
