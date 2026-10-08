@@ -89,6 +89,11 @@ jobs:
       # do 74550 (acrescentadas a 7/10/2026) ; o site guarda os das outras.
       - name: Terrenos livres
         if: success() && github.event_name == 'workflow_dispatch' && inputs.terrenos != 'nenhum'
+        # Milhares de chamadas a APIs publicas (PLU, IGN) : se demorar demais ou
+        # falhar, o site e publicado na mesma, com os terrenos ja existentes
+        # (run de 8/10/2026 : mais de 2 h so para as 5 comunas novas).
+        timeout-minutes: 90
+        continue-on-error: true
         env:
           TERRENOS_COMMUNES: ${{ inputs.terrenos == 'novas' && '74263,74053,74106,74206,74210' || '' }}
         run: python src/enrich_terrenos_livres.py
