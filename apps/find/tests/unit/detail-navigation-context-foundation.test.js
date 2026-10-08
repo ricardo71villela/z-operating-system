@@ -79,7 +79,9 @@ check(
   ).join(',') ===
     'market,q,subtype,transactionType,rentalPeriod,budget,page,' +
     // Advanced search (2026-09-30): commune, price, surface, rooms, energy, features, order.
-    'commune,priceMin,priceMax,areaMin,rooms,beds,dpe,outdoor,parking,lift,sort'
+    'commune,priceMin,priceMax,areaMin,rooms,beds,dpe,outdoor,parking,lift,sort,' +
+    // Search « Carte » (2026-10-08): the return lands back on the map.
+    'view'
 );
 
 const source = {

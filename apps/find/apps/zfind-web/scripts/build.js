@@ -97,6 +97,7 @@ function build() {
   const marketFeaturedService = read('services/market-featured.js');
   const searchPaginationService = read('services/search-pagination.js');
   const searchMapViewportService = read('services/search-map-viewport.js');
+  const searchMapClusteringService = read('services/search-map-clustering.js');
   const marketSearchScopeService = read('services/market-search-scope.js');
   const listingQualityService = read('services/listing-quality.js');
   const placeSearchService = read('services/place-search.js');
@@ -230,6 +231,7 @@ function build() {
     + '\n' + zosEcosystemFooterService
     + '\n' + publicListingComplianceService
     + '\n' + websiteLegalRuntimeService
+    + '\n' + searchMapClusteringService
     + '\n' + searchMapUiService
     + '\n</script>\n</body>\n</html>\n';
 
@@ -268,7 +270,7 @@ function build() {
   console.log('Market guide footer + French mobile CTA hotfix: injected');
   console.log('Public listing compliance: CSS + runtime injected');
   console.log('Website legal runtime: RGPD first layer + cookie policy injected');
-  console.log('Search Map UI V1: viewport + responsive OpenStreetMap surface injected');
+  console.log('Search Map V2: « Carte » view (Leaflet self-hosted, price pins, clusters, commune centres)');
 
   if (APPROVED_REFERENCE) {
     if (!fs.existsSync(APPROVED_REFERENCE)) {

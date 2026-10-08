@@ -165,6 +165,11 @@ check("comunas: códigos postais ordenados, alias dobrados entre |, linhas sem c
       len(_rows) == 2 and _rows[0]["postcodes"] == ["9880", "9881", "9910"] and _rows[0]["aliases_folded"] == "|bellem|knesselare|"
       and _rows[1]["aliases_folded"] == "" and _rows[1]["parent"] is None)
 _all = {c: load_communes.load(c) for c in load_communes.COUNTRIES}
+_centred = {c: sum(1 for r in _all[c] if r["latitude"] is not None) for c in load_communes.COUNTRIES}
+_evian = next(r for r in _all["FR"] if r["code"] == "74119")
+check("comunas: centro para o mapa (FR ≥ 99 %, BE e LU todas; Évian no sítio certo)",
+      _centred["FR"] >= 0.99 * len(_all["FR"]) and _centred["BE"] == len(_all["BE"]) and _centred["LU"] == len(_all["LU"])
+      and abs(_evian["latitude"] - 46.40) < 0.03 and abs(_evian["longitude"] - 6.59) < 0.03)
 check("índices do site: ~34,9 mil comunas FR, 565 BE, 100 LU, Évian com 74500",
       len(_all["FR"]) > 34000 and len(_all["BE"]) == 565 and len(_all["LU"]) == 100 and
       any(r["code"] == "74119" and "74500" in r["postcodes"] and r["name_folded"] == "evian les bains" for r in _all["FR"]))

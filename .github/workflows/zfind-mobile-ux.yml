@@ -38,7 +38,7 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Verify Search Map UI V1
+      - name: Verify Search Map UI V2
         run: node apps/find/tests/unit/search-map-ui.test.js
 
       - name: Build Z Find public web

@@ -442,7 +442,9 @@ const SEARCH_RETURN_QUERY_KEYS = Object.freeze([
   'outdoor',
   'parking',
   'lift',
-  'sort'
+  'sort',
+  // Liste / Carte (2026-10-08)
+  'view'
 ]);
 
 // Advanced search parameters, in the address and in the results cache key.
@@ -1759,8 +1761,42 @@ async function renderSearchFeaturedRail(marketKey) {
     );
 }
 
+/* ---------------- Search: Liste / Carte (2026-10-08) ----------------
+   « Carte » shows every result on a map (searchMapUi). The choice is in the
+   address (?view=map) and remembered for the next searches of the visit. */
+let searchViewPreference = (() => { try { return sessionStorage.getItem('zfind_search_view') === 'map' ? 'map' : 'list'; } catch (_) { return 'list'; } })();
+
+function searchViewMode(q) {
+  if (q && q.view === 'map') return 'map';
+  if (q && q.view === 'list') return 'list';
+  return searchViewPreference;
+}
+
+function setSearchViewMode(mode) {
+  searchViewPreference = mode === 'map' ? 'map' : 'list';
+  try { sessionStorage.setItem('zfind_search_view', searchViewPreference); } catch (_) { /* private mode */ }
+  const next = Object.assign({}, state.query || {});
+  delete next.page;
+  if (searchViewPreference === 'map') next.view = 'map'; else delete next.view;
+  navigate('search', null, next);
+}
+
+function renderSearchViewToggle(mode) {
+  const host = document.getElementById('search-view-toggle');
+  const map = window.ZFindServices.searchMapUi;
+  if (host && map) host.innerHTML = map.toggleHTML(state.lang, mode);
+}
+
+function setSearchMapLayout(on) {
+  const layout = document.querySelector('#view-search .search-results-layout');
+  if (layout) layout.classList.toggle('is-map-mode', Boolean(on));
+  if (!on && window.ZFindServices.searchMapUi) window.ZFindServices.searchMapUi.hideMap();
+}
+
 async function renderSearch() {
   const q = state.query || {};
+  const viewMode = searchViewMode(q);
+  renderSearchViewToggle(viewMode);
 
   const transactionType =
     effectiveTransactionType(q);
@@ -1935,6 +1971,7 @@ async function renderSearch() {
   }
 
   if (result.error) {
+    setSearchMapLayout(false);
     console.error(
       'Search failed:',
       result.error
@@ -1953,6 +1990,7 @@ async function renderSearch() {
     state.query || q;
 
   if (result.scopeUnavailable) {
+    setSearchMapLayout(false);
     // Scope-unavailable has no organic pages. Canonicalize any
     // stale/forged page query to page 1 without re-fetching.
     if (presentationQuery.page) {
@@ -2031,6 +2069,23 @@ async function renderSearch() {
         market: selectedMarketLabel
       }
     );
+
+  // « Carte »: every result on the map, no pages.
+  if (viewMode === 'map' && fullCards.length && window.ZFindServices.searchMapUi) {
+    const gridEl = document.getElementById('search-grid');
+    gridEl.innerHTML = '';
+    gridEl.style.display = 'none';
+    clearSearchPagination();
+    setSearchStatus('none');
+    setSearchMapLayout(true);
+    await window.ZFindServices.searchMapUi.showMap(
+      document.querySelector('#view-search .search-results-main'),
+      fullCards,
+      { lang: state.lang, onOpen: navigateSearchOriginDetail, resolveImages: resolveCardImages }
+    );
+    return;
+  }
+  setSearchMapLayout(false);
 
   const pagination =
     SEARCH_PAGINATION_SERVICE.paginate(

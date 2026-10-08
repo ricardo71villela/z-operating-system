@@ -1,8 +1,67 @@
-/* Z FIND — Search Map UI V1 */
-.search-map-v1{margin:0 0 28px;padding:18px;border:1px solid var(--gray-200);border-radius:20px;background:#fff;box-shadow:0 10px 30px rgba(0,0,0,.04)}
-.search-map-v1-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px}.search-map-v1-head .eyebrow{display:block;margin-bottom:4px}.search-map-v1-count{font-size:.82rem;color:var(--gray-500)}
-.search-map-v1-fit{width:38px;height:38px;border:1px solid var(--gray-200);border-radius:999px;background:#fff;cursor:pointer;font-size:1rem}.search-map-v1-layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(250px,.8fr);gap:14px;min-width:0}.search-map-v1-canvas{height:430px;min-width:0;border-radius:16px;overflow:hidden;background:var(--gray-100,#f5f5f5)}
-.search-map-v1-list{max-height:430px;overflow:auto;display:flex;flex-direction:column;gap:8px}.search-map-v1-item{width:100%;text-align:left;border:1px solid var(--gray-200);border-radius:14px;background:#fff;padding:12px;cursor:pointer;transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease}.search-map-v1-item:hover,.search-map-v1-item:focus-visible,.search-map-v1-item.is-active{border-color:#b8954f;box-shadow:0 6px 18px rgba(0,0,0,.08);transform:translateY(-1px);outline:none}.search-map-v1-item-title,.search-map-v1-item-price,.search-map-v1-item-open{display:block}.search-map-v1-item-title{font-size:.88rem;font-weight:650;line-height:1.35}.search-map-v1-item-price{margin-top:6px;font-size:.82rem}.search-map-v1-item-open{margin-top:8px;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:#9a7a3f}.search-map-v1-attribution{margin:10px 2px 0;font-size:.67rem;color:var(--gray-500)}.search-map-v1-empty{padding:18px;border:1px dashed var(--gray-200);border-radius:14px;color:var(--gray-500);font-size:.82rem}.search-result-row.map-selected{outline:2px solid rgba(184,149,79,.55);outline-offset:3px}
-.search-map-v1 .leaflet-container{font:inherit}.search-map-v1 .leaflet-popup-content{font-size:.8rem;line-height:1.45}
-@media(max-width:900px){.search-map-v1-layout{grid-template-columns:1fr}.search-map-v1-canvas{height:360px}.search-map-v1-list{max-height:240px;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(220px,75%);overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity}.search-map-v1-item{scroll-snap-align:start}}
-@media(max-width:640px){.search-map-v1{margin:0 0 22px;padding:12px;border-radius:16px}.search-map-v1-canvas{height:320px;border-radius:13px}.search-map-v1-head{align-items:flex-start}.search-map-v1-list{grid-auto-columns:minmax(210px,88%)}}
+/* Z FIND — Search « Carte » (V2) */
+.block-head{gap:16px}
+.search-view-toggle{display:flex;align-items:flex-end}
+.smap-toggle{display:inline-flex;border:1px solid var(--gray-300);border-radius:999px;padding:3px;background:#fff;gap:2px}
+.smap-toggle-btn{display:inline-flex;align-items:center;gap:7px;border:0;background:transparent;padding:8px 16px;border-radius:999px;font:inherit;font-size:.82rem;letter-spacing:.02em;color:var(--gray-700);cursor:pointer;transition:background .18s ease,color .18s ease}
+.smap-toggle-btn span{font-size:.95rem;line-height:1}
+.smap-toggle-btn:hover{background:var(--gray-100)}
+.smap-toggle-btn.is-active{background:var(--gray-900);color:#fff}
+.smap-toggle-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+#view-search .search-results-layout.is-map-mode{display:block}
+#view-search .search-results-layout.is-map-mode .search-results-aside,
+#view-search .search-results-layout.is-map-mode .search-results-aside[aria-hidden="false"]{display:none}
+
+.smap{margin:0 0 28px}
+.smap-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:12px}
+.smap-count{font-size:.9rem;font-weight:600;color:var(--gray-900)}
+.smap-fit{border:1px solid var(--gray-300);background:#fff;border-radius:999px;padding:8px 14px;font:inherit;font-size:.78rem;cursor:pointer;color:var(--gray-700)}
+.smap-fit:hover{border-color:var(--gray-900);color:var(--gray-900)}
+.smap-layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,1fr);gap:16px;min-width:0}
+.smap-canvas{height:min(72vh,680px);min-height:420px;border:1px solid var(--gray-200);border-radius:14px;overflow:hidden;background:var(--gray-100);position:sticky;top:84px}
+.smap-list{max-height:min(72vh,680px);min-height:420px;overflow:auto;display:flex;flex-direction:column;gap:10px;padding-right:2px}
+.smap-item{display:grid;grid-template-columns:112px minmax(0,1fr);gap:12px;border:1px solid var(--gray-200);border-radius:12px;background:#fff;padding:9px;cursor:pointer;transition:border-color .18s ease,box-shadow .18s ease}
+.smap-item:hover,.smap-item:focus-visible,.smap-item.is-active{border-color:var(--gold);box-shadow:0 8px 22px rgba(26,25,22,.08);outline:none}
+.smap-item-thumb{width:112px;height:84px;border-radius:8px;overflow:hidden;background:linear-gradient(135deg,var(--gray-100),var(--gold-pale))}
+.smap-item-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.smap-item-body{min-width:0;display:flex;flex-direction:column;gap:3px}
+.smap-item-price{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.2rem;font-weight:600;color:var(--gray-900)}
+.smap-item-title{font-size:.86rem;font-weight:600;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.smap-item-loc,.smap-item-meta{font-size:.76rem;color:var(--gray-500)}
+.smap-approx-tag{display:inline-block;margin-left:4px;color:var(--gold-dark);font-weight:700}
+.smap-empty,.smap-more{padding:16px;border:1px dashed var(--gray-300);border-radius:12px;color:var(--gray-500);font-size:.82rem;text-align:center}
+.smap-more{border-style:solid;background:var(--gray-50)}
+.smap-note{margin:12px 2px 0;font-size:.76rem;color:var(--gray-500)}
+.smap-note:empty{display:none}
+.smap-attribution{margin:4px 2px 0;font-size:.66rem;color:var(--gray-400)}
+
+/* Markers: price pins and clusters (Leaflet divIcon) */
+.smap .leaflet-container{font:inherit}
+.smap-marker{background:none;border:0}
+.smap-pin{display:inline-block;transform:translate(-50%,-115%);white-space:nowrap;padding:5px 9px;border-radius:999px;background:var(--gray-900);color:#fff;font-size:.74rem;font-weight:600;box-shadow:0 3px 10px rgba(0,0,0,.25);position:relative}
+.smap-pin::after{content:"";position:absolute;left:50%;bottom:-5px;margin-left:-5px;border:5px solid transparent;border-bottom:0;border-top-color:var(--gray-900)}
+.smap-pin.approx{background:#fff;color:var(--gray-900);border:1.5px dashed var(--gray-700)}
+.smap-pin.approx::after{border-top-color:var(--gray-700)}
+.smap-cluster{display:flex;align-items:center;justify-content:center;transform:translate(-50%,-50%);width:40px;height:40px;border-radius:50%;background:var(--gold);color:#fff;font-weight:700;font-size:.85rem;border:3px solid rgba(255,255,255,.9);box-shadow:0 0 0 5px rgba(184,147,90,.28),0 3px 10px rgba(0,0,0,.2)}
+.smap-cluster.approx{background:var(--gold-dark)}
+.smap-marker.is-active .smap-pin{background:var(--gold);color:#fff;border-color:var(--gold);z-index:2}
+.smap-marker.is-active .smap-pin::after{border-top-color:var(--gold)}
+.smap-marker.is-active .smap-cluster{box-shadow:0 0 0 6px rgba(26,25,22,.35)}
+.smap-popup{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow:auto}
+.smap-popup-item{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border:1px solid var(--gray-200);background:#fff;border-radius:10px;padding:8px 10px;cursor:pointer;font:inherit}
+.smap-popup-item:hover{border-color:var(--gold)}
+.smap-popup-item strong{font-size:.92rem}.smap-popup-item span{font-size:.8rem;line-height:1.3}.smap-popup-item em{font-style:normal;font-size:.72rem;color:var(--gray-500)}.smap-popup-item u{font-size:.7rem;text-decoration:none;text-transform:uppercase;letter-spacing:.08em;color:var(--gold-dark)}
+.smap-popup-more{margin:0;font-size:.72rem;color:var(--gray-500)}
+
+@media(max-width:900px){
+  .block-head{flex-wrap:wrap}
+  .smap-layout{grid-template-columns:1fr}
+  .smap-canvas{position:relative;top:auto;height:58vh;min-height:340px}
+  .smap-list{max-height:none;min-height:0;overflow:visible}
+}
+@media(max-width:640px){
+  .smap-head{flex-wrap:wrap}
+  .smap-item{grid-template-columns:92px minmax(0,1fr)}
+  .smap-item-thumb{width:92px;height:72px}
+  .smap-toggle-btn{padding:8px 13px}
+}
