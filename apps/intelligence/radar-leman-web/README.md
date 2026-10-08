@@ -99,6 +99,35 @@ git push
 `scripts/split-dashboard.js` não tem dependências (Node puro) — corre com
 qualquer Node instalado na máquina.
 
+## Seguimento das moradas e cartas em lote (8/out)
+
+- **Seguimento:** no detalhe de cada morada há um bloco « Suivi du contact »
+  (estado, data para voltar a contactar, nota). Os estados aparecem como
+  etiqueta na lista e há um filtro « Suivi » (não contactadas, a relançar
+  nos próximos 7 dias, courrier envoyé, RDV, mandat…).
+- **Cartas:** caixas de seleção em cada linha (e « selecionar a página »,
+  ou « Préparer les courriers de cet itinéraire » no itinerário do dia).
+  « Générer les courriers (PDF) » devolve um PDF com, para cada morada, a
+  carta « Au propriétaire » e a ficha de estimativa (2 páginas, frente e
+  verso). As moradas ficam marcadas « Courrier envoyé » com a data do dia;
+  as marcadas « Ne plus contacter » são sempre retiradas. Máx. 100 por vez.
+- Nenhum nome de proprietário é usado (dados públicos apenas); a carta e a
+  ficha dizem como deixar de receber correio.
+
+Configuração (uma vez):
+1. Supabase → SQL Editor: correr
+   `infrastructure/supabase/migrations/20261008230000_radar_leman_suivi_v1.sql`.
+2. Vercel → projeto radar-leman → Settings → Environment Variables:
+   `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (obrigatórias para o
+   seguimento) e, para assinar as cartas e as fichas: `RADAR_AGENCE_NOM`,
+   `RADAR_AGENCE_CONTACT`, `RADAR_SIGNATAIRE`, `RADAR_AGENCE_VILLE`
+   (opcional `RADAR_AGENCE_BASELINE`). Sem elas aparecem `[Votre agence]`…
+3. Redeploy.
+
+O código do ecrã está em `private/dashboard.html` (aplicado por
+`scripts/patch-dashboard-suivi.py`, idempotente) e nas funções
+`api/suivi.js`, `api/lettres.js`, `api/_lettre-pdf.js`.
+
 ## Fichas PDF geradas a pedido (8/out)
 
 Cada morada tem um link "Télécharger la fiche PDF" no detalhe da linha, que

@@ -2,8 +2,30 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "outputDirectory": "public",
   "rewrites": [
-    { "source": "/api/chunk", "destination": "/api/chunk" },
-    { "source": "/api/ficha", "destination": "/api/ficha" },
-    { "source": "/(.*)", "destination": "/api/index" }
-  ]
+    {
+      "source": "/api/chunk",
+      "destination": "/api/chunk"
+    },
+    {
+      "source": "/api/ficha",
+      "destination": "/api/ficha"
+    },
+    {
+      "source": "/api/suivi",
+      "destination": "/api/suivi"
+    },
+    {
+      "source": "/api/lettres",
+      "destination": "/api/lettres"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/api/index"
+    }
+  ],
+  "functions": {
+    "api/lettres.js": {
+      "maxDuration": 60
+    }
+  }
 }
