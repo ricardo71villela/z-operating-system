@@ -43,6 +43,7 @@ function build() {
   const appJs = readPartner('app.js');
   const signupJs = readPartner('signup.js');
   const communeJs = readPartner('commune.js');
+  const complianceJs = readPartner('compliance.js'); // « Mentions obligatoires (France) »
 
   // Genuinely reused, not copied:
   const vendorSupabase = readWeb('vendor-supabase.js');
@@ -56,6 +57,7 @@ function build() {
   const fieldFormsService = readWeb('services/field-forms.js');
   const proOfferService = readWeb('services/pro-offer.js'); // one price list for site and sign-up
   const imageOptimizeService = readWeb('services/image-optimize.js');
+  const listingComplianceService = readWeb('services/listing-compliance.js'); // shared with Admin
 
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
@@ -81,8 +83,10 @@ function build() {
     + adminService + '\n'
     + fieldFormsService + '\n'
     + proOfferService + '\n'
+    + listingComplianceService + '\n'
     + signupJs + '\n'
     + communeJs + '\n'
+    + complianceJs + '\n'
     + appJs
     + '\n</script>\n</body>\n</html>\n';
 

@@ -420,13 +420,18 @@ async function loadPortfolio() {
     return;
   }
 
+  // « Mentions : … » badge slot per listing (France), filled by compliance.js.
+  const complianceSlot = row => {
+    const listingId = assetListingId(row);
+    return listingId ? `<span class="compliance-slot" data-compliance-listing="${escapeHtmlPartner(listingId)}"></span>` : '';
+  };
   const propRows = properties.map(p => `
     <div class="portfolio-row" onclick="openDetail('property','${p.id}')">
       <div>
         <div class="name">${escapeHtmlPartner(propertyTitle(p, 'Bien sans titre'))}</div>
         <div class="meta">${p.zones_lite ? escapeHtmlPartner(window.ZFindServices.commune.zoneLabel(p.zones_lite)) : 'Commune à définir'}${p.area_sqm ? ' · ' + p.area_sqm + ' m²' : ''}</div>
       </div>
-      <span class="kind-tag">Bien</span>
+      <div class="row-tags">${complianceSlot(p)}<span class="kind-tag">Bien</span></div>
     </div>`).join('');
   const devRows = developments.map(d => `
     <div class="portfolio-row" onclick="openDetail('development','${d.id}')">
@@ -434,10 +439,11 @@ async function loadPortfolio() {
         <div class="name">${escapeHtmlPartner(d.name)}</div>
         <div class="meta">${d.zones_lite ? escapeHtmlPartner(window.ZFindServices.commune.zoneLabel(d.zones_lite)) : 'Commune à définir'}</div>
       </div>
-      <span class="kind-tag">Programme neuf</span>
+      <div class="row-tags">${complianceSlot(d)}<span class="kind-tag">Programme neuf</span></div>
     </div>`).join('');
 
   listEl.innerHTML = propRows + devRows;
+  decoratePortfolioCompliance();
 }
 
 const LISTING_STATUS_FR = {
@@ -585,6 +591,7 @@ async function openDetail(kind, id) {
   const result = kind === 'property' ? await window.ZFindServices.admin.getPropertyForEdit(id) : await window.ZFindServices.admin.getDevelopmentForEdit(id);
   if (result.error) { showStatus('error', 'Chargement impossible.'); backToPortfolio(); return; }
   const d = result.data;
+  complianceState.property = kind === 'property' ? d : null;
 
   document.getElementById('detail-title').textContent = kind === 'property' ? propertyTitle(d, 'Bien') : d.name;
   document.getElementById('detail-extended-fields').innerHTML = kind === 'property'
@@ -1080,6 +1087,10 @@ async function savePartnerListingCommercial(listingId) {
 
   if (!result.error) {
     syncPartnerRentalPeriodControl();
+    // Sale or rent decides which French profile applies: reload the section.
+    if (document.getElementById('partner-compliance-section')) {
+      loadPartnerCompliance(Object.assign({}, complianceState.listing || {}, result.data || {}));
+    }
   }
 }
 
@@ -1234,6 +1245,8 @@ async function loadPartnerListingWorkspace(kind, assetId) {
       </div>
     </div>
 
+    ${complianceHostHtml()}
+
     <div class="page-title" style="font-size:.95rem;">
       Textes
     </div>
@@ -1278,6 +1291,8 @@ async function loadPartnerListingWorkspace(kind, assetId) {
       Chargement des photos…
     </div>
   `;
+
+  loadPartnerCompliance(listing);
 
   await loadPartnerWorkspaceMedia(
     kind,

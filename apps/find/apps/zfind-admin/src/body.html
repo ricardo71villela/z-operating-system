@@ -12,6 +12,7 @@
     <a data-view="dashboard" onclick="navigateAdmin('dashboard')">Tableau de bord</a>
     <a data-view="properties" onclick="adminState.propFilter.status=''; navigateAdmin('properties')">Biens et annonces</a>
     <a class="sub" onclick="openReviewQueue()">↳ À vérifier</a>
+    <a class="sub" data-view="conformite" onclick="openComplianceQueue('pending')">↳ Mentions obligatoires à valider</a>
     <a data-view="developments" onclick="adminState.devFilter.status=''; navigateAdmin('developments')">Programmes neufs</a>
     <a class="sub" id="nav-dev-review" onclick="openDevReviewQueue()">↳ À vérifier</a>
     <a data-view="partners" onclick="navigateAdmin('partners')">Partenaires</a>
