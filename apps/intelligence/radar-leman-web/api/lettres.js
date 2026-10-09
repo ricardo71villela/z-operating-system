@@ -25,6 +25,13 @@ function fail(res, status, msg) {
 
 module.exports = async (req, res) => {
   if (!checkAuth(req, res)) return;
+  if (req.method === 'GET') {
+    // Verificacao rapida no browser : /api/lettres deve responder isto.
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    return res.end(JSON.stringify({ ok: true, fonction: 'lettres', adresses: rows.length,
+      suivi: !!store.config() }));
+  }
   if (req.method !== 'POST') return fail(res, 405, 'Méthode non autorisée.');
 
   let body;

@@ -190,6 +190,12 @@ async function postLettres(ns, format, marquer){
   const res = await fetch('/api/lettres', {method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({n: ns, format, marquer})});
   if(!res.ok){ let m = 'HTTP '+res.status; try{ m = (await res.json()).error || m; }catch(_){} throw new Error(m); }
+  const ct = res.headers.get('content-type') || '';
+  if(format === 'texte' && !ct.includes('json')){
+    // Diagnostic (9/10/2026) : reponse HTML au lieu de JSON -> la fonction
+    // /api/lettres n'a pas repondu (pagina servida por outra rota).
+    throw new Error(`réponse inattendue du serveur (${res.status}, ${ct||'sans type'}, ${res.url}). Recharger la page et réessayer.`);
+  }
   return res;
 }
 
