@@ -13,31 +13,32 @@
     try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) {}
   };
 
-  let favourites = new Set(read(KEYS.favourites, ['p1','p4']));
-  let bag = read(KEYS.bag, [
-    {productId:'p5',size:'41',qty:1},
-    {productId:'p8',size:'38',qty:1}
-  ]);
+  // Shared by the home page (launch.html) and every customer-shell route:
+  // a first visit starts with an empty bag and no favourites.
+  const readFavourites = () => { const v = read(KEYS.favourites, []); return new Set(Array.isArray(v) ? v : []); };
+  const readBag = () => { const v = read(KEYS.bag, []); return Array.isArray(v) ? v.filter(item => item && item.productId && item.qty > 0) : []; };
+  let favourites = readFavourites();
+  let bag = readBag();
 
   const demoProfile = {
-    firstName:'Camille',lastName:'Martin',email:'camille.preview@example.com',phone:'+33 6 00 00 00 00',locale:'fr'
+    firstName:'Camille',lastName:'Martin',email:'camille.martin@example.com',phone:'+33 6 00 00 00 00',locale:'fr'
   };
   const demoAddresses = [
-    {id:'addr-1',label:'Domicile · Preview',line1:'12 rue de Démonstration',postalCode:'75008',city:'Paris',country:'France',default:true},
-    {id:'addr-2',label:'Bureau · Preview',line1:'8 avenue Exemple',postalCode:'75001',city:'Paris',country:'France',default:false}
+    {id:'addr-1',label:'Domicile',line1:'12 rue de Démonstration',postalCode:'75008',city:'Paris',country:'France',default:true},
+    {id:'addr-2',label:'Bureau',line1:'8 avenue Exemple',postalCode:'75001',city:'Paris',country:'France',default:false}
   ];
   const demoOrders = [
     {
-      id:'ZF-PREVIEW-260001',placedAt:'2026-08-18',status:'delivered',total:520,
+      id:'ZF-DEMO-260001',placedAt:'2026-08-18',status:'delivered',total:520,
       packages:[
-        {partnerId:'atelier-27',status:'delivered',tracking:'PREVIEW-A27-001',items:[{productId:'p1',size:'38',qty:1}]},
-        {partnerId:'linea-44',status:'delivered',tracking:'PREVIEW-L44-001',items:[{productId:'p8',size:'38',qty:1}]}
+        {partnerId:'atelier-27',status:'delivered',tracking:'DEMO-A27-001',items:[{productId:'p1',size:'38',qty:1}]},
+        {partnerId:'linea-44',status:'delivered',tracking:'DEMO-L44-001',items:[{productId:'p8',size:'38',qty:1}]}
       ]
     },
     {
-      id:'ZF-PREVIEW-260002',placedAt:'2026-08-23',status:'in_transit',total:420,
+      id:'ZF-DEMO-260002',placedAt:'2026-08-23',status:'in_transit',total:420,
       packages:[
-        {partnerId:'maison-nord',status:'in_transit',tracking:'PREVIEW-MN-002',items:[{productId:'p2',size:'M',qty:1}]}
+        {partnerId:'maison-nord',status:'in_transit',tracking:'DEMO-MN-002',items:[{productId:'p2',size:'M',qty:1}]}
       ]
     }
   ];
@@ -74,8 +75,13 @@
     write(KEYS.favourites,[]); write(KEYS.bag,[]); emit();
   };
 
+  // Re-read storage when another tab changes it or when the page is restored from the back/forward cache.
+  const reload = () => { favourites = readFavourites(); bag = readBag(); emit(); };
+  window.addEventListener('storage', e => { if (e.key === KEYS.favourites || e.key === KEYS.bag) reload(); });
+  window.addEventListener('pageshow', e => { if (e.persisted) reload(); });
+
   window.ZFashionCustomerState = {
-    snapshot,toggleFavourite,addBag,setBagQty,removeBag,clearPreviewState,
+    snapshot,toggleFavourite,addBag,setBagQty,removeBag,clearPreviewState,reload,
     mode:'PREVIEW_LOCAL_ONLY'
   };
   window.Z_FASHION_CUSTOMER_STATE = 'PREVIEW_LOCAL_ONLY';

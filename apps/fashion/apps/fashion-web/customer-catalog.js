@@ -142,7 +142,7 @@
       id:'p12',slug:'baume-linea-44-nuit',brand:'Linea 44 Beauty',category:'beauty',price:52,partnerId:'linea-44',sizes:['50 ml'],badge:'private',isNew:false,sale:true,privateSale:true,compareAt:65,
       image:'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?auto=format&fit=crop&w=1000&q=86',
       copy:{
-        fr:{name:'Baume Nuit 02',description:'Baume nourrissant à la texture enveloppante, sélectionné pour la Vente privée Preview.'},
+        fr:{name:'Baume Nuit 02',description:'Baume nourrissant à la texture enveloppante, sélectionné pour la Vente privée.'},
         pt:{name:'Bálsamo Nuit 02',description:'Bálsamo nutritivo de textura envolvente, selecionado para a Venda privada Preview.'},
         en:{name:'Nuit Balm 02',description:'Nourishing balm with an enveloping texture, selected for the Private Sale Preview.'},
         es:{name:'Bálsamo Nuit 02',description:'Bálsamo nutritivo de textura envolvente, seleccionado para la Venta privada Preview.'},

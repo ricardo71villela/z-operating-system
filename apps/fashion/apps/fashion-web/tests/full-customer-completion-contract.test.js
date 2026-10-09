@@ -22,10 +22,9 @@ for (const pathname of ['/checkout','/checkout/livraison','/checkout/paiement','
 }
 assert.match(runtime, /checkout-progress/);
 assert.match(runtime, /checkout-summary/);
-assert.match(runtime, /ZF-PREVIEW-NOT-CREATED/);
-assert.match(runtime, /Payment: Disabled/);
-assert.match(runtime, /Stock reservation: Disabled/);
-assert.match(runtime, /Order creation: Disabled/);
+assert.match(runtime, /ZF-DEMO-NOT-CREATED/);
+assert.match(runtime, /checkout-safety"><span>\$\{c\('secure'\)\}<\/span><span>\$\{c\('noOrder'\)\}<\/span>/);
+assert.doesNotMatch(runtime, /Payment: Disabled|Stock reservation: Disabled|Order creation: Disabled/, 'safety strip must be localized');
 assert.match(runtime, /No real order will be created|Aucune commande réelle ne sera créée/);
 
 for (const id of ['delivery','refunds','help']) assert.match(runtime, new RegExp(`route\.id === '${id}'`));

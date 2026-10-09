@@ -7,12 +7,12 @@
   const page=document.getElementById('pageContent');
 
   const copy={
-    fr:{add:'Ajouter au panier Preview',added:'Ajouté au panier Preview',choose:'Choisissez une taille.',save:'Ajouter aux favoris',saved:'Ajouté aux favoris',removed:'Retiré des favoris'},
-    pt:{add:'Adicionar ao carrinho Preview',added:'Adicionado ao carrinho Preview',choose:'Escolha um tamanho.',save:'Adicionar aos favoritos',saved:'Adicionado aos favoritos',removed:'Removido dos favoritos'},
-    en:{add:'Add to Preview bag',added:'Added to Preview bag',choose:'Choose a size.',save:'Add to favourites',saved:'Added to favourites',removed:'Removed from favourites'},
-    es:{add:'Añadir al carrito Preview',added:'Añadido al carrito Preview',choose:'Elige una talla.',save:'Añadir a favoritos',saved:'Añadido a favoritos',removed:'Eliminado de favoritos'},
-    it:{add:'Aggiungi al carrello Preview',added:'Aggiunto al carrello Preview',choose:'Scegli una taglia.',save:'Aggiungi ai preferiti',saved:'Aggiunto ai preferiti',removed:'Rimosso dai preferiti'},
-    de:{add:'Zum Preview-Warenkorb',added:'Zum Preview-Warenkorb hinzugefügt',choose:'Bitte Größe wählen.',save:'Zu Favoriten',saved:'Zu Favoriten hinzugefügt',removed:'Aus Favoriten entfernt'}
+    fr:{add:'Ajouter au panier',added:'Ajouté au panier',choose:'Choisissez une taille.',save:'Ajouter aux favoris',saved:'Ajouté aux favoris',removed:'Retiré des favoris'},
+    pt:{add:'Adicionar ao carrinho',added:'Adicionado ao carrinho',choose:'Escolha um tamanho.',save:'Adicionar aos favoritos',saved:'Adicionado aos favoritos',removed:'Removido dos favoritos'},
+    en:{add:'Add to bag',added:'Added to bag',choose:'Choose a size.',save:'Add to favourites',saved:'Added to favourites',removed:'Removed from favourites'},
+    es:{add:'Añadir al carrito',added:'Añadido al carrito',choose:'Elige una talla.',save:'Añadir a favoritos',saved:'Añadido a favoritos',removed:'Eliminado de favoritos'},
+    it:{add:'Aggiungi al carrello',added:'Aggiunto al carrello',choose:'Scegli una taglia.',save:'Aggiungi ai preferiti',saved:'Aggiunto ai preferiti',removed:'Rimosso dai preferiti'},
+    de:{add:'In den Warenkorb',added:'Zum Warenkorb hinzugefügt',choose:'Bitte Größe wählen.',save:'Zu Favoriten',saved:'Zu Favoriten hinzugefügt',removed:'Aus Favoriten entfernt'}
   };
   const locale=()=>document.documentElement.dataset.locale||'fr';
   const t=key=>copy[locale()]?.[key]||copy.fr[key];
@@ -73,6 +73,7 @@
   observer.observe(page,{childList:true,subtree:true});
   document.getElementById('localeSelect')?.addEventListener('change',()=>queueMicrotask(()=>{if(route?.group==='customer')renderCustomerArea();enhanceCommerce();syncCounts();}));
   document.addEventListener('zfashion:preview-state',syncCounts);
+  window.addEventListener('pageshow',e=>{if(e.persisted&&route?.group==='customer')renderCustomerArea();});
 
   renderCustomerArea();enhanceCommerce();syncCounts();
   window.Z_FASHION_CUSTOMER_INTERACTIONS='PREVIEW_PASS';
