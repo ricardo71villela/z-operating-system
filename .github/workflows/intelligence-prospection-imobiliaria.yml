@@ -7,6 +7,11 @@ on:
         description: "Atualizar o site immoradar.online (dashboard + fichas PDF) e fazer commit no ramo escolhido"
         type: boolean
         default: false
+      terrenos:
+        description: "Terrenos livres a recalcular (demora : ~10 min as novas, varias horas todas)"
+        type: choice
+        options: [nenhum, novas, todas]
+        default: nenhum
   schedule:
     # Semanal : toda segunda-feira às 03:00 UTC (04:00/05:00 em França,
     # consoante a hora de verão) -- horário de baixo tráfego, fora do
@@ -41,6 +46,7 @@ jobs:
           python test_pricing.py
           python test_argumentaire.py
           python test_segment_surface.py
+          python test_terrenos_filtro.py
 
   ingest:
     needs: tests
@@ -78,6 +84,15 @@ jobs:
           set -o pipefail
           python src/main.py 2>&1 | tee pipeline_output.log
 
+      # Terrenos livres (cadastre + PLU + BD TOPO) : so a pedido, porque faz
+      # milhares de chamadas a APIs publicas. "novas" = Sciez e as 4 comunas
+      # do 74550 (acrescentadas a 7/10/2026) ; o site guarda os das outras.
+      - name: Terrenos livres
+        if: success() && github.event_name == 'workflow_dispatch' && inputs.terrenos != 'nenhum'
+        env:
+          TERRENOS_COMMUNES: ${{ inputs.terrenos == 'novas' && '74263,74053,74106,74206,74210' || '' }}
+        run: python src/enrich_terrenos_livres.py
+
       # Diagnostic ajoute le 2026-10-01 : le job echoue systematiquement
       # depuis 4 executions (07/09 a 28/09) sur cette etape, trop vite
       # (54s-2min) pour un vrai probleme de donnees. Cette etape garde le
@@ -106,14 +121,15 @@ jobs:
       # recalcula o dashboard e gera uma ficha PDF por morada, depois faz
       # commit no ramo em que o workflow foi lancado (nunca diretamente em
       # main por defeito : lancar num ramo e abrir um pull request).
-      - name: Atualizar o site Radar Leman (dashboard + fichas)
+      - name: Atualizar o site Radar Leman (dashboard + dados das fichas)
         if: success() && github.event_name == 'workflow_dispatch' && inputs.publicar_site
         working-directory: .
         run: |
           python apps/intelligence/radar-leman-web/scripts/update-from-pipeline.py \
-            --output apps/intelligence/pipelines/prospection-immobiliere-74200-74500/output \
-            --pipeline-src apps/intelligence/pipelines/prospection-immobiliere-74200-74500/src
-          cd apps/intelligence/radar-leman-web && node scripts/split-dashboard.js
+            --output apps/intelligence/pipelines/prospection-immobiliere-74200-74500/output
+          cd apps/intelligence/radar-leman-web
+          node scripts/split-dashboard.js
+          node scripts/build-fichas-data.js
 
       - name: Commit da atualizacao do site
         if: success() && github.event_name == 'workflow_dispatch' && inputs.publicar_site
@@ -121,6 +137,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add apps/intelligence/radar-leman-web/private
+          git add -A apps/intelligence/radar-leman-web/private
           git commit -m "Radar Léman: dados do pipeline de $(date -u +%Y-%m-%d) (run ${{ github.run_id }})"
           git push origin HEAD:${{ github.ref_name }}

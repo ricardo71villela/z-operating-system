@@ -104,6 +104,37 @@ def test_pipeline_chain_with_csv_text_columns():
     assert m.loc[2, "prix_derniere_vente"] == 600000
 
 
+def test_bdnb_house_estimate_and_fallback():
+    import enrich_bdnb
+    rows = enrich_bdnb.rows_for_addresses([
+        {"batiment_groupe_id": "bg1", "l_cle_interop_adr": ["74263_0320_01004"], "nb_log": 1, "nb_niveau": 2,
+         "surface_emprise_sol": 98, "fiabilite_emprise_sol": "MOYENNE", "annee_construction": 1972,
+         "usage_principal_bdnb_open": "Résidentiel individuel"},
+        {"batiment_groupe_id": "bg2", "l_cle_interop_adr": ["74263_0320_01006", "74263_0320_01008"], "nb_log": 12,
+         "nb_niveau": 4, "surface_emprise_sol": 400, "usage_principal_bdnb_open": "Résidentiel collectif"},
+    ], "74263")
+    assert [r["ban_id"] for r in rows] == ["74263_0320_01004", "74263_0320_01006", "74263_0320_01008"]
+    bdnb = pd.DataFrame(rows).astype(str)
+    df = pd.DataFrame({"id": ["74263_0320_01004", "74263_0320_01006", "x"],
+                       "surface_m2": [np.nan, np.nan, np.nan], "surface_dpe": [np.nan, np.nan, np.nan],
+                       "methode_appariement": [pd.NA] * 3, "methode_dpe": [pd.NA] * 3,
+                       "annee_construction": [np.nan, 1990.0, np.nan]})
+    df = sg.merge_bdnb(df, bdnb)
+    assert df.loc[0, "surface_bdnb_estimee"] == 157          # 98 x 2 x 0,8
+    assert pd.isna(df.loc[1, "surface_bdnb_estimee"])        # immeuble : pas d'estimation par logement
+    assert df.loc[0, "annee_construction"] == 1972 and df.loc[1, "annee_construction"] == 1990
+    df = sg.choose_surface(df)
+    assert df.loc[0, "surface_m2"] == 157 and df.loc[0, "source_surface"] == "BDNB"
+    assert pd.isna(df.loc[2, "surface_m2"])
+
+
+def test_bdnb_never_overrides_measured_surface():
+    df = pd.DataFrame({"surface_m2": [95.0], "surface_dpe": [np.nan], "methode_appariement": ["cle"],
+                       "methode_dpe": [pd.NA], "surface_bdnb_estimee": [180.0]})
+    df = sg.choose_surface(df)
+    assert df.loc[0, "surface_m2"] == 95 and df.loc[0, "source_surface"] == "DVF"
+
+
 if __name__ == "__main__":
     n = 0
     for name, fn in list(globals().items()):

@@ -59,6 +59,7 @@ def load_data():
     cadastre_path = os.path.join(DATA_DIR, "cadastre_74200_74500.csv")
     georisques_path = os.path.join(DATA_DIR, "georisques_74200_74500.csv")
     rnb_path = os.path.join(DATA_DIR, "rnb_74200_74500.csv")
+    bdnb_path = os.path.join(DATA_DIR, "bdnb_74200_74500.csv")
 
     for p in (adr_path, dvf_path):
         if not os.path.exists(p):
@@ -84,8 +85,9 @@ def load_data():
     cadastre = _load_optional_csv(cadastre_path, "cadastre")
     georisques = _load_optional_csv(georisques_path, "Géorisques")
     rnb = _load_optional_csv(rnb_path, "RNB")
+    bdnb = _load_optional_csv(bdnb_path, "BDNB")
 
-    return adresses, dvf, dpe, cadastre, georisques, rnb
+    return adresses, dvf, dpe, cadastre, georisques, rnb, bdnb
 
 
 def add_match_keys(adresses, dvf):
@@ -424,6 +426,48 @@ def parcel_match(out, dvf, cadastre):
     return out
 
 
+# Rapport surface habitable / surface de plancher brute (emprise x niveaux) :
+# murs, escaliers, combles non amenages. 0,8 est la valeur prudente
+# habituelle pour une maison individuelle.
+BDNB_RATIO_HABITABLE = 0.8
+
+
+def merge_bdnb(df, bdnb):
+    """Ajoute les donnees BDNB du batiment de l'adresse (cle BAN `id`) et une
+    SURFACE ESTIMEE pour les maisons (audit 8/10/2026) : emprise au sol x
+    nombre de niveaux x BDNB_RATIO_HABITABLE, seulement pour un batiment a un
+    seul logement, d'usage residentiel individuel, dont l'emprise n'est pas
+    jugee peu fiable. Les immeubles collectifs n'ont pas d'estimation par
+    logement (la repartition entre appartements est inconnue)."""
+    cols = ["bdnb_id", "bdnb_nb_logements", "bdnb_nb_niveaux", "bdnb_emprise_sol_m2",
+            "bdnb_annee_construction", "bdnb_usage", "surface_bdnb_estimee"]
+    if bdnb is None or bdnb.empty or "id" not in df.columns or "ban_id" not in bdnb.columns:
+        for c in cols:
+            df[c] = pd.NA
+        return df
+    b = bdnb.rename(columns={"ban_id": "id"}).drop_duplicates(subset=["id"])
+    keep = ["id"] + [c for c in cols[:-1] if c in b.columns] + \
+        [c for c in ("bdnb_fiabilite_emprise",) if c in b.columns]
+    df = df.merge(b[keep], on="id", how="left")
+    nlog = pd.to_numeric(df.get("bdnb_nb_logements"), errors="coerce")
+    niv = pd.to_numeric(df.get("bdnb_nb_niveaux"), errors="coerce")
+    emp = pd.to_numeric(df.get("bdnb_emprise_sol_m2"), errors="coerce")
+    usage = df.get("bdnb_usage", pd.Series(pd.NA, index=df.index)).astype("object").fillna("")
+    fiab = df.get("bdnb_fiabilite_emprise", pd.Series(pd.NA, index=df.index)).astype("object").fillna("")
+    maison = (nlog == 1) & usage.str.contains("individuel", case=False, regex=False)
+    ok = maison & emp.between(20, 1000) & niv.between(1, 4) & ~fiab.str.upper().eq("MAUVAISE")
+    est = (emp * niv * BDNB_RATIO_HABITABLE).round(0)
+    df["surface_bdnb_estimee"] = est.where(ok)
+    # Annee de construction : la BDNB comble les adresses sans DPE.
+    if "annee_construction" in df.columns:
+        an = pd.to_numeric(df["annee_construction"], errors="coerce")
+        an_b = pd.to_numeric(df.get("bdnb_annee_construction"), errors="coerce")
+        df["annee_construction"] = an.fillna(an_b.where(an_b.between(1000, 2030)))
+    print(f"  BDNB : {df['bdnb_id'].notna().sum():,} adresses rattachees, "
+          f"{df['surface_bdnb_estimee'].notna().sum():,} surfaces de maison estimees")
+    return df.drop(columns=[c for c in ("bdnb_fiabilite_emprise",) if c in df.columns])
+
+
 def choose_surface(out):
     """Surface habitable retenue (audit surfaces 2026-10-08).
 
@@ -432,7 +476,8 @@ def choose_surface(out):
     extensions ou verandas — elle sous-estime surtout les maisons. Le DPE,
     lui, porte la surface habitable mesuree par le diagnostiqueur. Ordre
     retenu : DPE rattache a l'adresse exacte > DVF par cle ou parcelle >
-    DPE rattache par proximite > DVF par proximite. La surface DVF d'origine
+    DPE rattache par proximite > DVF par proximite > estimation BDNB
+    (maisons seulement, voir merge_bdnb). La surface DVF d'origine
     reste dans `surface_dvf` et sert toujours au prix/m2 de la vente."""
     dvf_s = pd.to_numeric(out.get("surface_m2"), errors="coerce")
     dpe_s = pd.to_numeric(out.get("surface_dpe"), errors="coerce") \
@@ -440,6 +485,9 @@ def choose_surface(out):
     m_dvf = out.get("methode_appariement", pd.Series(pd.NA, index=out.index)).astype("object")
     m_dpe = out.get("methode_dpe", pd.Series(pd.NA, index=out.index)).astype("object")
     dpe_ok = dpe_s.notna() & (dpe_s >= 9)
+    bdnb_s = pd.to_numeric(out["surface_bdnb_estimee"], errors="coerce") \
+        if "surface_bdnb_estimee" in out.columns else pd.Series(np.nan, index=out.index)
+    bdnb_ok = bdnb_s.notna() & (bdnb_s >= 20)
     dvf_ok = dvf_s.notna() & (dvf_s > 0)
 
     surface = pd.Series(np.nan, index=out.index)
@@ -449,6 +497,7 @@ def choose_surface(out):
         (dvf_ok & m_dvf.isin(["cle", "parcelle"]), dvf_s, "DVF"),
         (dpe_ok, dpe_s, "DPE"),
         (dvf_ok, dvf_s, "DVF"),
+        (bdnb_ok, bdnb_s, "BDNB"),
     ]
     for cond, val, lab in steps:
         pick = cond & surface.isna()
@@ -883,7 +932,8 @@ EXPORT_COLS = [
     "adresse_complete", "nom_commune_ref", "code_postal_secteur",
     "priorite", "score_prospection", "motifs_score", "segment_prospection",
     "derniere_vente_connue", "methode_appariement", "type_bien", "surface_m2",
-    "source_surface", "surface_dvf", "nb_pieces",
+    "source_surface", "surface_dvf", "surface_bdnb_estimee", "bdnb_nb_logements",
+    "bdnb_nb_niveaux", "nb_pieces",
     "prix_derniere_vente", "prix_m2_derniere_vente", "prix_ecarte",
     "dpe_classe", "ges_classe", "methode_dpe", "passoire_thermique", "annee_construction",
     "surface_dpe",
@@ -999,7 +1049,7 @@ def main():
     ok, total = self_test()
     print(f"Auto-test normalisation : {ok}/{total} OK\n")
 
-    adresses, dvf, dpe, cadastre, georisques, rnb = load_data()
+    adresses, dvf, dpe, cadastre, georisques, rnb, bdnb = load_data()
     adresses, dvf = add_match_keys(adresses, dvf)
 
     # ------------------------------------------------------------------
@@ -1034,6 +1084,7 @@ def main():
     merged = filter_implausible_price(merged)
     merged = merge_dpe(merged, dpe)
     merged = spatial_fallback_dpe(merged, dpe)
+    merged = merge_bdnb(merged, bdnb)
     merged = choose_surface(merged)
 
     # BUG CORRIGE (audit 2026-09-11) : type_bien ne venait QUE du DVF — vide
@@ -1051,6 +1102,15 @@ def main():
         repli_type = merged["type_batiment"].astype(str).str.strip().str.capitalize()
         repli_type = repli_type.where(merged["type_batiment"].notna())
         merged["type_bien"] = merged["type_bien"].fillna(repli_type)
+    # Dernier repli (8/10/2026) : le type du batiment selon la BDNB — un
+    # batiment residentiel individuel a un seul logement est une maison.
+    if "bdnb_usage" in merged.columns:
+        u = merged["bdnb_usage"].astype("object").fillna("")
+        n = pd.to_numeric(merged.get("bdnb_nb_logements"), errors="coerce")
+        repli_bdnb = pd.Series(pd.NA, index=merged.index, dtype="object")
+        repli_bdnb[u.str.contains("individuel", case=False, regex=False) & (n == 1)] = "Maison"
+        repli_bdnb[u.str.contains("collectif", case=False, regex=False) & (n >= 2)] = "Appartement"
+        merged["type_bien"] = merged["type_bien"].fillna(repli_bdnb)
     merged = merge_cadastre(merged, cadastre)
     merged = merge_georisques(merged, georisques)
     merged = merge_rnb(merged, rnb)
