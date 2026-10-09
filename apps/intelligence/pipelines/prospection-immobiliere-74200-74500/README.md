@@ -53,7 +53,8 @@ lancement manuel avec l'option `publicar_site`, sur un autre ramo que
 `main` (voir `apps/intelligence/radar-leman-web/README.md`).
 
 **BDNB (8 octobre)** : `enrich_bdnb.py` récupère pour chaque bâtiment
-(API ouverte de la BDNB, sans clé) l'emprise au sol, le nombre de niveaux,
+(export départemental CSV de la BDNB, Licence Ouverte — l'API ouverte
+ne renvoie que 10 bâtiments par requête) l'emprise au sol, le nombre de niveaux,
 le nombre de logements et l'année de construction, rattachés à l'adresse
 par la clé BAN. Pour une maison (un seul logement, usage résidentiel
 individuel), `surface_bdnb_estimee` = emprise × niveaux × 0,8 — utilisée

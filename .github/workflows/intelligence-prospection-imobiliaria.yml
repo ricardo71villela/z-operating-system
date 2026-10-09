@@ -47,6 +47,7 @@ jobs:
           python test_argumentaire.py
           python test_segment_surface.py
           python test_terrenos_filtro.py
+          python test_bdnb_export.py
 
   ingest:
     needs: tests

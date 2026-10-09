@@ -105,16 +105,14 @@ def test_pipeline_chain_with_csv_text_columns():
 
 
 def test_bdnb_house_estimate_and_fallback():
-    import enrich_bdnb
-    rows = enrich_bdnb.rows_for_addresses([
-        {"batiment_groupe_id": "bg1", "l_cle_interop_adr": ["74263_0320_01004"], "nb_log": 1, "nb_niveau": 2,
-         "surface_emprise_sol": 98, "fiabilite_emprise_sol": "MOYENNE", "annee_construction": 1972,
-         "usage_principal_bdnb_open": "Résidentiel individuel"},
-        {"batiment_groupe_id": "bg2", "l_cle_interop_adr": ["74263_0320_01006", "74263_0320_01008"], "nb_log": 12,
-         "nb_niveau": 4, "surface_emprise_sol": 400, "usage_principal_bdnb_open": "Résidentiel collectif"},
-    ], "74263")
-    assert [r["ban_id"] for r in rows] == ["74263_0320_01004", "74263_0320_01006", "74263_0320_01008"]
-    bdnb = pd.DataFrame(rows).astype(str)
+    # Format de data/bdnb_74200_74500.csv (enrich_bdnb.OUT_COLUMNS), lu en texte.
+    bdnb = pd.DataFrame([
+        {"ban_id": "74263_0320_01004", "bdnb_id": "bg1", "bdnb_nb_logements": "1", "bdnb_nb_niveaux": "2",
+         "bdnb_emprise_sol_m2": "98", "bdnb_fiabilite_emprise": "MOYENNE", "bdnb_annee_construction": "1972",
+         "bdnb_usage": "Résidentiel individuel"},
+        {"ban_id": "74263_0320_01006", "bdnb_id": "bg2", "bdnb_nb_logements": "12", "bdnb_nb_niveaux": "4",
+         "bdnb_emprise_sol_m2": "400", "bdnb_usage": "Résidentiel collectif"},
+    ])
     df = pd.DataFrame({"id": ["74263_0320_01004", "74263_0320_01006", "x"],
                        "surface_m2": [np.nan, np.nan, np.nan], "surface_dpe": [np.nan, np.nan, np.nan],
                        "methode_appariement": [pd.NA] * 3, "methode_dpe": [pd.NA] * 3,
