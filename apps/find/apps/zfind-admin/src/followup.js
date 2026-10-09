@@ -55,8 +55,10 @@
   }
 
   /* ---------------- photo links ---------------- */
-  function queuePhotos(listingId, urls) {
-    const rows = (urls || []).slice(0, 40).map((url, i) => ({ listing_id: listingId, url, position: i }));
+  /* offset: photos already queued for the listing (re-import adds new links after them; at most 40 per listing). */
+  function queuePhotos(listingId, urls, offset) {
+    const start = Math.max(0, Math.min(Number(offset) || 0, 40));
+    const rows = (urls || []).slice(0, 40 - start).map((url, i) => ({ listing_id: listingId, url, position: start + i }));
     if (!rows.length) return Promise.resolve({ data: [], error: null });
     return safeQuery(() => getSupabaseClient().from('zfind_media_import_queue').upsert(rows, { onConflict: 'listing_id,url', ignoreDuplicates: true }), 'followup.queuePhotos', { allowNullData: true });
   }

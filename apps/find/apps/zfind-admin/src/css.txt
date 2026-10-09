@@ -137,3 +137,22 @@ table.cq-facts tr:hover td{background:transparent;}
 .asset-compliance-line{background:#fff;border-radius:6px;padding:10px 14px;margin:-6px 0 16px;font-size:.85rem;display:flex;gap:8px;align-items:center;flex-wrap:wrap;max-width:900px;}
 .page-title.cq-title{justify-content:flex-start;gap:12px;}
 #cq-tbody .tag,#props-tbody .tag{white-space:nowrap;}
+
+/* Importer des annonces: preview of the synchronisation */
+.imp-panel{max-width:none;margin-bottom:16px;}
+.imp-panel h5{margin:16px 0 6px;font-size:.85rem;}
+.imp-scroll{overflow-x:auto;}
+.imp-group th{background:#f6f6f6;text-align:left;font-size:.75rem;text-transform:uppercase;letter-spacing:.03em;color:#555;}
+.imp-row-bad{background:#fdf1f1;}
+.imp-bad{color:#a33;}
+.imp-warn{color:#8a6100;}
+.imp-ok{color:#2a6b2a;}
+.imp-full{display:flex;gap:8px;align-items:flex-start;font-size:.85rem;margin:4px 0 2px;}
+.imp-full input{margin-top:3px;}
+.imp-note{margin:0 0 12px 22px;font-size:.78rem;}
+.imp-counts{margin:12px 0 8px;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));}
+.imp-counts .card{padding:12px 14px;}
+.imp-changes{margin:0;padding-left:16px;}
+.imp-changes li{margin:1px 0;}
+td.nowrap{white-space:nowrap;}
+#imp-results-table .tag,#imp-plan-panel .tag{white-space:nowrap;}
