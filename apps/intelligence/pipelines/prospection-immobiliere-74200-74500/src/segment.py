@@ -468,6 +468,41 @@ def merge_bdnb(df, bdnb):
     return df.drop(columns=[c for c in ("bdnb_fiabilite_emprise",) if c in df.columns])
 
 
+BDNB_CALIB_MIN_N = 200
+BDNB_CALIB_BORNES = (0.45, 0.95)
+
+
+def calibrer_bdnb(out, bdnb_s, mesuree):
+    """Recalibre l'estimation BDNB sur nos propres maisons (9/10/2026).
+
+    Le rapport fixe de 0,8 donnait une mediane de 157 m2 pour les maisons
+    estimees, contre ~110 m2 pour les maisons mesurees : l'emprise BDNB est
+    celle du groupe de batiments (garage, annexes accolees) et les niveaux
+    comptent les combles. On prend donc, sur les maisons qui ont a la fois une
+    surface MESUREE (DPE de l'adresse exacte) et une estimation BDNB, la
+    mediane de surface mesuree / (emprise x niveaux), et on l'applique a
+    toutes les estimations. Sans assez de paires, on garde 0,8."""
+    if bdnb_s.notna().sum() == 0 or "bdnb_emprise_sol_m2" not in out.columns:
+        return bdnb_s
+    brute = pd.to_numeric(out["bdnb_emprise_sol_m2"], errors="coerce") * \
+        pd.to_numeric(out.get("bdnb_nb_niveaux"), errors="coerce")
+    paires = bdnb_s.notna() & mesuree.notna() & (brute > 0)
+    n = int(paires.sum())
+    if n < BDNB_CALIB_MIN_N:
+        print(f"  BDNB : {n} maisons mesurees seulement, rapport {BDNB_RATIO_HABITABLE} garde")
+        return bdnb_s
+    ratio = float((mesuree[paires] / brute[paires]).median())
+    ratio = min(max(ratio, BDNB_CALIB_BORNES[0]), BDNB_CALIB_BORNES[1])
+    cal = (brute * ratio).round(0).where(bdnb_s.notna())
+    msg = (f"BDNB : rapport habitable recalibre {ratio:.2f} sur {n:,} maisons mesurees "
+           f"(au lieu de {BDNB_RATIO_HABITABLE}), mediane estimee {cal.median():.0f} m2")
+    print("  " + msg)
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        print(f"::notice title=BDNB::{msg}")
+    out["surface_bdnb_estimee"] = cal
+    return cal
+
+
 def choose_surface(out):
     """Surface habitable retenue (audit surfaces 2026-10-08).
 
@@ -487,6 +522,7 @@ def choose_surface(out):
     dpe_ok = dpe_s.notna() & (dpe_s >= 9)
     bdnb_s = pd.to_numeric(out["surface_bdnb_estimee"], errors="coerce") \
         if "surface_bdnb_estimee" in out.columns else pd.Series(np.nan, index=out.index)
+    bdnb_s = calibrer_bdnb(out, bdnb_s, dpe_s.where(dpe_ok & (m_dpe == "cle")))
     bdnb_ok = bdnb_s.notna() & (bdnb_s >= 20)
     dvf_ok = dvf_s.notna() & (dvf_s > 0)
 

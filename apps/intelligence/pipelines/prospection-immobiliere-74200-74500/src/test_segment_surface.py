@@ -133,6 +133,19 @@ def test_bdnb_never_overrides_measured_surface():
     assert df.loc[0, "surface_m2"] == 95 and df.loc[0, "source_surface"] == "DVF"
 
 
+def test_bdnb_calibrated_on_measured_houses():
+    n = 250
+    emp = np.full(n + 1, 100.0); niv = np.full(n + 1, 2.0)
+    dpe = np.r_[np.full(n, 120.0), np.nan]          # mesure = 0,6 x (emprise x niveaux)
+    df = pd.DataFrame({"surface_m2": np.nan, "surface_dpe": dpe,
+                       "methode_appariement": pd.NA, "methode_dpe": ["cle"] * n + [pd.NA],
+                       "bdnb_emprise_sol_m2": emp, "bdnb_nb_niveaux": niv,
+                       "surface_bdnb_estimee": emp * niv * 0.8})
+    df = sg.choose_surface(df)
+    assert df.loc[n, "source_surface"] == "BDNB" and df.loc[n, "surface_m2"] == 120   # 200 x 0,6
+    assert df.loc[0, "source_surface"] == "DPE" and df.loc[0, "surface_m2"] == 120
+
+
 if __name__ == "__main__":
     n = 0
     for name, fn in list(globals().items()):
