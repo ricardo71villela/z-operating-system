@@ -748,7 +748,8 @@ async function renderDevelopmentsList() {
       <select id="dev-partner" aria-label="Promoteur" onchange="adminState.devFilter.partner=this.value; renderDevRows()"><option value="">Tous les promoteurs</option></select>
     </div>
     <div id="new-dev-form"></div>
-    <table><thead><tr><th>Nom</th><th>Zone</th><th>Promoteur</th><th>Prix</th><th>Statut</th></tr></thead><tbody id="devs-tbody"><tr><td colspan="5">Chargement…</td></tr></tbody></table>`);
+    ${bulkBarHtml('devs')}
+    <table><thead><tr>${bulkHeadCell('devs')}<th>Nom</th><th>Zone</th><th>Promoteur</th><th>Prix</th><th>Statut</th></tr></thead><tbody id="devs-tbody"><tr><td colspan="6">Chargement…</td></tr></tbody></table>`);
   await loadDevelopmentsList();
 }
 
@@ -758,7 +759,7 @@ async function loadDevelopmentsList() {
   const result = await window.ZFindServices.admin.listDevelopments();
   const tbody = document.getElementById('devs-tbody');
   if (!tbody) return;
-  if (result.error) { tbody.innerHTML = '<tr><td colspan="5">Chargement impossible.</td></tr>'; return; }
+  if (result.error) { tbody.innerHTML = '<tr><td colspan="6">Chargement impossible.</td></tr>'; return; }
   devRowsCache = result.data || [];
   const partners = new Map();
   devRowsCache.forEach(d => { const id = devPartnerId(d); if (id) partners.set(id, (d.partners && d.partners.name) || id); });
@@ -786,12 +787,13 @@ function renderDevRows() {
     return [d.name, propTitle(d), d.zones_lite && d.zones_lite.name, d.zones_lite && d.zones_lite.city, d.partners && d.partners.name].filter(Boolean).join(' ').toLowerCase().includes(needle);
   });
   if (f.status === 'pending_review') rows.reverse();
-  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="5" class="muted">${f.status === 'pending_review' ? 'Aucun programme à vérifier. 👍' : 'Aucun programme avec ces filtres.'}</td></tr>`; return; }
+  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="6" class="muted">${f.status === 'pending_review' ? 'Aucun programme à vérifier. 👍' : 'Aucun programme avec ces filtres.'}</td></tr>`; bulkAfterRows('devs'); return; }
   tbody.innerHTML = rows.map(d => {
     const { listing } = propListing(d);
     const status = propStatus(d);
     const title = propTitle(d);
     return `<tr data-dev="${d.id}" onclick="navigateAdmin('developments','${d.id}')" style="cursor:pointer">
+      ${bulkRowCell('devs', listing && listing.id)}
       <td>${escapeHtml(d.name)}${title && title !== d.name ? `<br><span class="muted">${escapeHtml(title)}</span>` : ''}</td>
       <td>${d.zones_lite ? escapeHtml(d.zones_lite.name) : '<span class="muted">à définir</span>'}</td>
       <td>${d.partners ? escapeHtml(d.partners.name) : ''}</td>
@@ -799,6 +801,7 @@ function renderDevRows() {
       <td><span class="tag tag-${LISTING_STATUS_TAG[status] || 'draft'}">${escapeHtml(LISTING_STATUS_FR[status] || status)}</span></td>
     </tr>`;
   }).join('');
+  bulkAfterRows('devs'); // bulk.js
 }
 async function showNewDevelopmentForm() {
   const zones = await getZonesCached();
@@ -1048,7 +1051,8 @@ async function renderPropertiesList() {
       <select id="prop-compliance" aria-label="Mentions obligatoires" onchange="adminState.propFilter.compliance=this.value; renderPropRows()">${PROP_COMPLIANCE_FILTERS.map(([v, l]) => `<option value="${v}"${v === (f.compliance || '') ? ' selected' : ''}>${l}</option>`).join('')}</select>
     </div>
     <div id="new-prop-form"></div>
-    <table><thead><tr><th>Titre</th><th>Bien</th><th>Zone</th><th>Agence</th><th>Prix</th><th>Statut</th><th>Mentions FR</th><th></th></tr></thead><tbody id="props-tbody"><tr><td colspan="8">Chargement…</td></tr></tbody></table>`);
+    ${bulkBarHtml('props')}
+    <table><thead><tr>${bulkHeadCell('props')}<th>Titre</th><th>Bien</th><th>Zone</th><th>Agence</th><th>Prix</th><th>Statut</th><th>Mentions FR</th><th></th></tr></thead><tbody id="props-tbody"><tr><td colspan="9">Chargement…</td></tr></tbody></table>`);
   await loadPropertiesList();
 }
 
@@ -1056,7 +1060,7 @@ async function loadPropertiesList() {
   const result = await window.ZFindServices.admin.listProperties();
   const tbody = document.getElementById('props-tbody');
   if (!tbody) return;
-  if (result.error) { tbody.innerHTML = '<tr><td colspan="8">Chargement impossible.</td></tr>'; return; }
+  if (result.error) { tbody.innerHTML = '<tr><td colspan="9">Chargement impossible.</td></tr>'; return; }
   propRowsCache = result.data || [];
   const partners = new Map();
   propRowsCache.forEach(p => { const { rep } = propListing(p); if (rep && rep.partner_id) partners.set(rep.partner_id, rep.partners ? rep.partners.name : rep.partner_id); });
@@ -1091,7 +1095,8 @@ function renderPropRows() {
   // The review queue reads oldest first: whoever waited longest is checked first.
   if (f.status === 'pending_review') rows.reverse();
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="8" class="muted">${f.status === 'pending_review' ? 'Aucune annonce à vérifier. 👍' : 'Aucun bien avec ces filtres.'}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="muted">${f.status === 'pending_review' ? 'Aucune annonce à vérifier. 👍' : 'Aucun bien avec ces filtres.'}</td></tr>`;
+    bulkAfterRows('props');
     return;
   }
   tbody.innerHTML = rows.map(p => {
@@ -1099,6 +1104,7 @@ function renderPropRows() {
     const status = propStatus(p);
     const title = propTitle(p);
     return `<tr data-prop="${p.id}" onclick="navigateAdmin('properties','${p.id}')" style="cursor:pointer">
+      ${bulkRowCell('props', listing && listing.id)}
       <td>${title ? escapeHtml(title) : '<span class="muted">(sans titre)</span>'}</td>
       <td>${escapeHtml(SUBTYPE_FR[p.subtype] || p.subtype || '')}${p.typology ? ' · ' + escapeHtml(p.typology) : ''}${p.area_sqm ? '<br><span class="muted">' + fmtN(p.area_sqm) + ' m²</span>' : ''}</td>
       <td>${p.zones_lite ? escapeHtml(p.zones_lite.name) : '<span class="muted">à définir</span>'}</td>
@@ -1109,6 +1115,7 @@ function renderPropRows() {
       <td><span onclick="event.stopPropagation(); duplicatePropertyRow('${p.id}')" style="cursor:pointer; color:#555;">Dupliquer</span></td>
     </tr>`;
   }).join('');
+  bulkAfterRows('props'); // bulk.js
 }
 async function duplicatePropertyRow(id) {
   const result = await window.ZFindServices.admin.duplicateProperty(id);

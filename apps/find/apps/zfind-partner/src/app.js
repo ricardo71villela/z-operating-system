@@ -431,7 +431,7 @@ async function loadPortfolio() {
         <div class="name">${escapeHtmlPartner(propertyTitle(p, 'Bien sans titre'))}</div>
         <div class="meta">${p.zones_lite ? escapeHtmlPartner(window.ZFindServices.commune.zoneLabel(p.zones_lite)) : 'Commune à définir'}${p.area_sqm ? ' · ' + p.area_sqm + ' m²' : ''}</div>
       </div>
-      <div class="row-tags">${complianceSlot(p)}<span class="kind-tag">Bien</span></div>
+      <div class="row-tags">${complianceSlot(p)}${submissionSlotHtml(p, 'property')}<span class="kind-tag">Bien</span></div>
     </div>`).join('');
   const devRows = developments.map(d => `
     <div class="portfolio-row" onclick="openDetail('development','${d.id}')">
@@ -439,16 +439,17 @@ async function loadPortfolio() {
         <div class="name">${escapeHtmlPartner(d.name)}</div>
         <div class="meta">${d.zones_lite ? escapeHtmlPartner(window.ZFindServices.commune.zoneLabel(d.zones_lite)) : 'Commune à définir'}</div>
       </div>
-      <div class="row-tags">${complianceSlot(d)}<span class="kind-tag">Programme neuf</span></div>
+      <div class="row-tags">${complianceSlot(d)}${submissionSlotHtml(d, 'development')}<span class="kind-tag">Programme neuf</span></div>
     </div>`).join('');
 
   listEl.innerHTML = propRows + devRows;
   decoratePortfolioCompliance();
+  decoratePortfolioSubmission(); // submission.js: status + « Soumettre à validation »
 }
 
 const LISTING_STATUS_FR = {
-  draft: 'Brouillon', incomplete: 'Incomplète', pending_review: 'En vérification', ready: 'Prête à publier',
-  published: 'En ligne', suspended: 'Suspendue', archived: 'Archivée'
+  draft: 'Brouillon', incomplete: 'À compléter', pending_review: 'En attente de validation', ready: 'Prête à publier',
+  published: 'Publiée', suspended: 'Suspendue', archived: 'Archivée'
 };
 const LEAD_STATUS_FR = { new: 'À répondre', contacted: 'Répondue', closed: 'Clôturée' };
 function listingStatusLabel(s) { return LISTING_STATUS_FR[s] || s || ''; }
@@ -680,6 +681,15 @@ async function communePick(kind, id, country, code) {
   document.getElementById('cm-q').value = '';
   if (kind === 'development') currentDevelopmentZoneLiteId = res.data.zone_lite_id;
   showStatus('success', 'Commune enregistrée : ' + label + '.');
+  // The commune decides the country (mentions obligatoires, checklist): refresh the listing section.
+  if (complianceState.property && kind === 'property') complianceState.property.zones_lite = Object.assign({}, complianceState.property.zones_lite, { country_iso: country });
+  if (complianceState.listing && document.getElementById('partner-listing-workspace')) {
+    if (!document.getElementById('partner-compliance-section')) {
+      const anchor = document.getElementById('partner-submission-panel');
+      if (anchor) anchor.insertAdjacentHTML('afterend', complianceHostHtml());
+    }
+    loadPartnerCompliance(complianceState.listing);
+  }
 }
 
 async function savePropertyCore(id) {
@@ -1086,6 +1096,7 @@ async function savePartnerListingCommercial(listingId) {
   );
 
   if (!result.error) {
+    submissionSetListing(result.data);
     syncPartnerRentalPeriodControl();
     // Sale or rent decides which French profile applies: reload the section.
     if (document.getElementById('partner-compliance-section')) {
@@ -1233,17 +1244,10 @@ async function loadPartnerListingWorkspace(kind, assetId) {
 
   body.innerHTML = `
       ${renderPartnerListingCommercialEditor(listing)}
-    <div
-      style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px;"
-    >
-      <div>
-        <strong>Statut de l’annonce :</strong>
-        ${escapeHtmlPartner(listingStatusLabel(listing.status))}
-      </div>
-      <div style="font-size:.82rem;color:var(--gray-500);">
-        La publication est validée par Z Find (vérification de conformité).
-      </div>
-    </div>
+    <p style="font-size:.82rem;color:var(--gray-500);margin:0 0 12px;">
+      La publication est validée par Z Find (vérification de conformité).
+    </p>
+    ${submissionPanelHostHtml()}
 
     ${complianceHostHtml()}
 
@@ -1292,6 +1296,7 @@ async function loadPartnerListingWorkspace(kind, assetId) {
     </div>
   `;
 
+  initSubmission(kind, assetId, listing, rows); // submission.js
   loadPartnerCompliance(listing);
 
   await loadPartnerWorkspaceMedia(
@@ -1343,12 +1348,16 @@ async function savePartnerListingLocale(listingId, locale) {
   showStatus(
     result.error ? 'error' : 'success',
     result.error
-      ? (
-          result.error.message ||
-          'Impossible d’enregistrer le texte.'
-        )
+      ? 'Impossible d’enregistrer le texte.'
       : `Texte ${locale.toUpperCase()} enregistré.`
   );
+  if (!result.error) {
+    submissionSetText(
+      locale,
+      titleEl ? titleEl.value.trim() : '',
+      descriptionEl ? descriptionEl.value.trim() : ''
+    );
+  }
 }
 
 function _partnerWorkspaceMediaFns(kind) {
@@ -1415,9 +1424,7 @@ async function loadPartnerWorkspaceMedia(
   const result = await fns.list(ownerId);
 
   if (result.error) {
-    grid.textContent =
-      result.error.message ||
-      'Impossible de charger les photos.';
+    grid.textContent = 'Impossible de charger les photos.';
     return;
   }
 
@@ -1425,6 +1432,7 @@ async function loadPartnerWorkspaceMedia(
     (a, b) =>
       (a.position || 0) - (b.position || 0)
   );
+  submissionSetPhotos(items.length); // « Au moins une photo » in the checklist
 
   if (!items.length) {
     grid.innerHTML =

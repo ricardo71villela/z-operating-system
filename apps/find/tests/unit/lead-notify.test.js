@@ -9,7 +9,7 @@ const WEB = path.join(__dirname, '..', '..', 'apps', 'zfind-web');
 let passed = 0;
 function check(label, value) { assert(value, label); passed += 1; console.log('PASS:', label); }
 
-const mails = []; const calls = []; let pending = []; let failMailTo = null;
+const mails = []; const calls = []; let pending = []; let notices = []; let failMailTo = null;
 global.fetch = async (url, opts) => {
   const body = opts && opts.body ? JSON.parse(opts.body) : null;
   if (String(url).startsWith('https://api.resend.com/')) {
@@ -18,7 +18,7 @@ global.fetch = async (url, opts) => {
     return { ok: true, status: 200, json: async () => ({ id: 'm' }), text: async () => '{}' };
   }
   calls.push({ url: String(url), body, headers: opts.headers });
-  const data = /zfind_pending_lead_notifications/.test(url) ? pending : 1;
+  const data = /zfind_pending_lead_notifications/.test(url) ? pending : /zfind_pending_listing_review_notices/.test(url) ? notices : 1;
   return { ok: true, status: 200, text: async () => JSON.stringify(data), json: async () => data };
 };
 function req(method) { const r = new EventEmitter(); r.method = method; r.headers = { 'x-forwarded-for': '10.9.9.' + Math.floor(Math.random() * 200) }; r.query = {}; r.url = '/api/lead-notify'; return r; }
@@ -70,5 +70,26 @@ const row = o => Object.assign({ lead_id: 'l1', created_at: '2026-10-04T10:00:00
   check('enquiry form triggers the notification; route before the SPA fallback; ignore step within 256 characters',
     /showEnquiryFeedback\('success', 'enquiry\.submitSuccess'\);\n  requestLeadNotification\(\);/.test(app) &&
     vercel.rewrites.findIndex(x => x.source === '/api/lead-notify') < vercel.rewrites.findIndex(x => x.source === '/(.*)') && vercel.ignoreCommand.length <= 256);
+
+  /* ---------- Z Find decisions on a listing (migration 20261009180000) ---------- */
+  const notice = o => Object.assign({ notice_id: 'n1', created_at: '2026-10-09T10:00:00Z', kind: 'returned_to_draft', reason: 'Photos floues <i>merci</i>\nAjoutez la façade.', listing_id: 'x',
+    listing_status: 'draft', listing_title: 'T3 vue lac', agency_reference: 'EV-001', transaction_type: 'sale', price: 472000, currency: 'EUR', partner_id: 'p', partner_name: 'LAC IMMO',
+    partner_active: true, recipients: ['agent@lac-immo.fr'] }, o);
+  mails.length = 0; calls.length = 0; pending = [];
+  notices = [notice(), notice({ notice_id: 'n2', kind: 'compliance_rejected', reason: 'Montant des honoraires à corriger' }), notice({ notice_id: 'n3', recipients: [] }), notice({ notice_id: 'n4', partner_active: false })];
+  const rv = await api._internals.processReviewNotices(20);
+  const back = mails.find(m => m.subject.startsWith('Annonce renvoyée'));
+  const refused = mails.find(m => m.subject.startsWith('Mentions obligatoires refusées'));
+  check('return to draft: French e-mail to the agency with the reason (escaped), the next step and its space', back && back.to[0] === 'agent@lac-immo.fr' && back.subject === 'Annonce renvoyée en brouillon : T3 vue lac'
+    && back.html.includes('Photos floues &lt;i&gt;merci&lt;/i&gt;') && back.html.includes('(réf. EV-001)') && back.html.includes('« Soumettre à validation »') && back.html.includes('https://partner.zfind.online') && back.text.includes('Motif :'));
+  check('refused mentions: its own French e-mail', refused && refused.subject === 'Mentions obligatoires refusées : T3 vue lac' && refused.html.includes('Montant des honoraires à corriger') && refused.html.includes('Mentions obligatoires (France)'));
+  check('the agency can answer Z Find directly (Reply-To)', back.reply_to === 'leads@zfind.online');
+  const nmarks = calls.filter(c => /zfind_mark_listing_review_notices/.test(c.url));
+  check('every notice marked once (no account / inactive agency: skipped, reason stays in the partner space)', rv.sent === 2 && rv.skipped === 2 && nmarks.length === 4 && nmarks.every(m => m.body.p_delivered === true));
+  mails.length = 0; calls.length = 0; failMailTo = 'agent@lac-immo.fr'; notices = [notice()];
+  const rv2 = await api._internals.processReviewNotices(20);
+  check('send failure: counted as an attempt, retried later', rv2.failed === 1 && calls.find(c => /zfind_mark_listing_review_notices/.test(c.url)).body.p_delivered === false);
+  failMailTo = null; notices = [];
+  check('daily job also sends the listing decisions', /step\('reviewNotices'/.test(require('fs').readFileSync(path.join(WEB, 'api', 'cron-daily.js'), 'utf8')));
   console.log(`\nLEAD NOTIFY: ${passed}/${passed} PASSED`);
 })().catch(e => { console.error(e); process.exit(1); });

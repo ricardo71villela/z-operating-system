@@ -101,6 +101,8 @@ function build() {
     + readAdmin('followup.js') + '\n' // estimations, leads follow-up, reviews, photo links
     + readWeb('services/listing-compliance.js') + '\n' // French mandatory listing information (shared with Partner)
     + readAdmin('compliance.js') + '\n' // « Mentions obligatoires à valider » queue and review
+    + readWeb('services/listing-submission.js') + '\n' // statuses, bulk plans / runner / summary (shared with Partner)
+    + readAdmin('bulk.js') + '\n' // actions groupées: approuver, publier, renvoyer en brouillon, valider
     + appJs
     + '\n</script>\n</body>\n</html>\n';
 

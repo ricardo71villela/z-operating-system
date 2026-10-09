@@ -50,7 +50,9 @@ const TAXONOMY = { classes: [{ code: 'residential', enabled: true, sort_order: 1
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => { if (m.type() === 'error' && !/status of 400/.test(m.text())) errors.push(m.text()); });
-  const reviews = []; let transition = null;
+  const reviews = []; let transition = null; let notified = 0;
+  // The refusal nudges the site's /api/lead-notify (e-mail with the reason to the agency): no network here.
+  await page.route('https://zfind.online/api/lead-notify', r => { notified += 1; return r.fulfill({ status: 200, body: '{"ok":true}' }); });
   await page.route('**/rest/v1/**', r => r.fulfill(json([])));
   await page.route('**/auth/v1/token**', r => r.fulfill(json({ access_token: 't', token_type: 'bearer', expires_in: 3600, refresh_token: 'r', user: USER })));
   await page.route('**/rest/v1/profiles**', r => r.fulfill(json({ id: USER.id, partner_id: null, role: 'admin' })));
@@ -112,6 +114,8 @@ const TAXONOMY = { classes: [{ code: 'residential', enabled: true, sort_order: 1
   await page.click('#confirm-ok');
   await page.waitForFunction(() => document.getElementById('toast-host').textContent.includes('Mentions refusées'));
   check('Refuser calls zfind_admin_review_listing_compliance(rejected, reason)', reviews[0].p_listing_id === 'l-sale' && reviews[0].p_decision === 'rejected' && reviews[0].p_note === 'Classe GES à vérifier sur le DPE joint');
+  await page.waitForTimeout(100);
+  check('… and asks the site to e-mail the reason to the agency (/api/lead-notify)', notified === 1);
   await page.waitForSelector('.cq-facts');
   await page.click('#cq-approve');
   await page.waitForFunction(() => document.getElementById('toast-host').textContent.includes('Mentions validées'));

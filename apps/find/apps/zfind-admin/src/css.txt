@@ -156,3 +156,31 @@ table.cq-facts tr:hover td{background:transparent;}
 .imp-changes li{margin:1px 0;}
 td.nowrap{white-space:nowrap;}
 #imp-results-table .tag,#imp-plan-panel .tag{white-space:nowrap;}
+
+/* ---- Actions groupées ---- */
+.bulk-cell{width:34px;padding-right:0;}
+.bulk-cell input{width:16px;height:16px;cursor:pointer;vertical-align:middle;}
+.bulk-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:40px;padding:6px 12px;margin-bottom:10px;border-radius:6px;background:#fff;border:1px dashed #d5d5d5;}
+.bulk-bar.on{border:1px solid #111;background:#f7f7f2;position:sticky;top:0;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,.06);}
+.bulk-bar strong{margin-right:6px;font-size:.88rem;}
+.bulk-clear{cursor:pointer;color:#555;text-decoration:underline;text-underline-offset:3px;font-size:.8rem;margin-left:auto;}
+.bulk-result:empty{display:none;}
+.bulk-result{margin-bottom:12px;}
+.bulk-progress{display:flex;align-items:center;gap:12px;background:#fff;border-radius:6px;padding:10px 14px;font-size:.85rem;}
+.bulk-track{flex:0 0 240px;height:8px;border-radius:4px;background:#eee;overflow:hidden;}
+.bulk-track span{display:block;height:100%;background:#111;transition:width .2s;}
+.bulk-summary{background:#f0f9f0;border:1px solid #cfe5d3;border-radius:6px;padding:10px 14px;font-size:.85rem;}
+.bulk-summary.has-failed{background:#fff8ec;border-color:#f0d9a8;}
+.bulk-summary-head{display:flex;align-items:center;gap:12px;}
+.bulk-summary details{margin-top:6px;}
+.bulk-summary summary{cursor:pointer;color:#555;font-size:.8rem;}
+.bulk-list{list-style:none;margin:8px 0 2px;padding:0;max-height:280px;overflow-y:auto;}
+.bulk-list li{display:flex;gap:8px;padding:4px 0;border-top:1px solid rgba(0,0,0,.05);}
+.bulk-list .mk{width:16px;flex:none;font-weight:700;text-align:center;}
+.bulk-list li.ok .mk{color:#2a6b2a;}
+.bulk-list li.bad .mk{color:#a33;}
+.bulk-list li.skip .mk{color:#999;}
+.reason-box{max-width:440px;width:92vw;}
+.reason-box textarea{width:100%;min-height:90px;padding:8px 10px;border:1px solid #ccc;border-radius:4px;font:inherit;font-size:.85rem;margin-bottom:4px;}
+.reason-error{color:#a33;font-size:.8rem;min-height:1.1em;margin-bottom:10px;}
+.asset-compliance-line .btn{margin-left:auto;}
