@@ -21,6 +21,23 @@ const translations = {
 let locale="pt", activeFilter="all", wishlist=new Set(), cart=[];
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 
+// Shared cart/favourites: when customer-state.js is loaded (launch.html), the home page reads and writes
+// the same browser storage as the customer-shell routes, so counters and contents match on every page.
+const store=window.ZFashionCustomerState||null, catalog=window.ZFashionCustomerCatalog||null;
+function productById(id){
+  const p=products.find(x=>x.id===id); if(p)return p;
+  const c=catalog?.products.find(x=>x.id===id); if(!c)return null;
+  const copy=c.copy[locale]||c.copy.fr, partner=catalog.partners.find(x=>x.id===c.partnerId);
+  return {id:c.id,slug:c.slug,brand:c.brand,name:copy.name,price:c.price,image:c.image,sizes:c.sizes,corner:partner?partner.name:''};
+}
+function loadState(){
+  if(!store)return; const s=store.snapshot();
+  wishlist=new Set(s.favourites.filter(id=>productById(id)));
+  cart=s.bag.filter(item=>productById(item.productId)).map(item=>({id:item.productId,size:item.size,qty:item.qty}));
+}
+function syncCounts(){$('#wishlistCount').textContent=wishlist.size;$('#cartCount').textContent=cart.reduce((n,x)=>n+x.qty,0)}
+function onStateChange(){loadState();syncCounts();$$('[data-wish]').forEach(b=>{const on=wishlist.has(b.dataset.wish);b.classList.toggle('saved',on);b.textContent=on?'♥':'♡'});renderCart();renderWishlist()}
+
 function money(v){return new Intl.NumberFormat(locale==="en"?"en-IE":locale==="fr"?"fr-FR":locale==="de"?"de-DE":locale==="it"?"it-IT":locale==="es"?"es-ES":"pt-PT",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(v)}
 function t(key){return translations[locale]?.[key]||translations.pt[key]||key}
 function applyLocale(next){
@@ -73,25 +90,26 @@ function openProduct(id){
   $('#productDialog').showModal();
 }
 function toggleWish(id){
-  wishlist.has(id)?wishlist.delete(id):wishlist.add(id);
-  $('#wishlistCount').textContent=wishlist.size; renderProducts(); renderWishlist(); toast(wishlist.has(id)?'Adicionado à Wishlist':'Removido da Wishlist');
+  if(store)store.toggleFavourite(id); else {wishlist.has(id)?wishlist.delete(id):wishlist.add(id); onStateChange();}
+  renderProducts(); toast(wishlist.has(id)?'Adicionado à Wishlist':'Removido da Wishlist');
 }
 function addCart(id){
-  const existing=cart.find(x=>x.id===id); existing?existing.qty++:cart.push({id,qty:1});
-  $('#cartCount').textContent=cart.reduce((n,x)=>n+x.qty,0); renderCart(); toast('Adicionado ao carrinho'); $('#productDialog').close();
+  const size=$('.size-row button.active')?.textContent?.trim()||productById(id)?.sizes?.[0]||'U';
+  if(store)store.addBag(id,size,1); else {const existing=cart.find(x=>x.id===id&&x.size===size); existing?existing.qty++:cart.push({id,size,qty:1}); onStateChange();}
+  toast('Adicionado ao carrinho'); $('#productDialog').close();
 }
 function renderCart(){
   const box=$('#cartItems');
   if(!cart.length){box.innerHTML=`<p class="empty-drawer">O carrinho está vazio. Este Preview permite testar a composição multi-boutique, mas não executa pagamentos.</p>`}
-  else box.innerHTML=cart.map(item=>{const p=products.find(x=>x.id===item.id);return `<div class="mini-item"><img src="${p.image}" alt=""><div><strong>${p.brand}</strong><span>${p.name}</span><small>${p.corner} · ×${item.qty}</small></div><div><span>${money(p.price*item.qty)}</span><button class="mini-remove" data-remove="${p.id}" aria-label="Remover">×</button></div></div>`}).join('');
-  $('#cartTotal').textContent=money(cart.reduce((sum,item)=>sum+products.find(x=>x.id===item.id).price*item.qty,0));
-  $$('[data-remove]',box).forEach(b=>b.addEventListener('click',()=>{cart=cart.filter(x=>x.id!==b.dataset.remove);$('#cartCount').textContent=cart.reduce((n,x)=>n+x.qty,0);renderCart()}));
+  else box.innerHTML=cart.map((item,i)=>{const p=productById(item.id);return `<div class="mini-item"><img src="${p.image}" alt=""><div><strong>${p.brand}</strong><span>${p.name}</span><small>${p.corner} · ×${item.qty}</small></div><div><span>${money(p.price*item.qty)}</span><button class="mini-remove" data-remove="${i}" aria-label="Remover">×</button></div></div>`}).join('');
+  $('#cartTotal').textContent=money(cart.reduce((sum,item)=>sum+productById(item.id).price*item.qty,0));
+  $$('[data-remove]',box).forEach(b=>b.addEventListener('click',()=>{const item=cart[Number(b.dataset.remove)];if(!item)return;if(store)store.removeBag(item.id,item.size);else{cart=cart.filter(x=>x!==item);onStateChange();}}));
 }
 function renderWishlist(){
   const box=$('#wishlistItems');
   if(!wishlist.size){box.innerHTML=`<p class="empty-drawer">A Wishlist está vazia. Guarde peças para as rever mais tarde.</p>`;return}
-  box.innerHTML=[...wishlist].map(id=>{const p=products.find(x=>x.id===id);return `<div class="mini-item" data-product="${p.id}"><img src="${p.image}" alt=""><div><strong>${p.brand}</strong><span>${p.name}</span><small>${p.corner}</small></div><span>${money(p.price)}</span></div>`}).join('');
-  $$('.mini-item[data-product]',box).forEach(el=>el.addEventListener('click',()=>{closeDrawers();openProduct(el.dataset.product)}));
+  box.innerHTML=[...wishlist].map(id=>{const p=productById(id);return `<div class="mini-item" data-product="${p.id}"><img src="${p.image}" alt=""><div><strong>${p.brand}</strong><span>${p.name}</span><small>${p.corner}</small></div><span>${money(p.price)}</span></div>`}).join('');
+  $$('.mini-item[data-product]',box).forEach(el=>el.addEventListener('click',()=>{const id=el.dataset.product;if(!products.some(x=>x.id===id)){location.href='/produit/'+productById(id).slug;return;}closeDrawers();openProduct(id)}));
 }
 function openDrawer(name){
   closeDrawers(); const el=name==='cart'?$('#cartDrawer'):$('#wishlistDrawer');el.classList.add('open');el.setAttribute('aria-hidden','false');$('#backdrop').hidden=false;document.body.classList.add('locked')
@@ -124,5 +142,7 @@ $('#memberButton').addEventListener('click',()=>toast('Venda Privada · Preview'
 $$('[data-corner]').forEach(b=>b.addEventListener('click',()=>{location.href='/corner/'+b.dataset.corner.toLowerCase().trim().replace(/\s+/g,'-')}));
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawers();closeSearch()}});
 
+document.addEventListener('zfashion:preview-state',onStateChange);
+loadState();
 applyLocale(localStorage.getItem('zfashion_locale')||'pt');
-renderProducts(); renderCart(); renderWishlist();
+renderProducts(); renderCart(); renderWishlist(); syncCounts();

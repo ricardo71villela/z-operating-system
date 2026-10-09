@@ -27,8 +27,8 @@ assert.match(state,/removeBag/);
 assert.match(state,/demoProfile/);
 assert.match(state,/demoAddresses/);
 assert.match(state,/demoOrders/);
-assert.match(state,/ZF-PREVIEW-260001/);
-assert.match(state,/ZF-PREVIEW-260002/);
+assert.match(state,/ZF-DEMO-260001/);
+assert.match(state,/ZF-DEMO-260002/);
 assert.doesNotMatch(state,/fetch\(|XMLHttpRequest|supabase|stripe|signInWith|createOrder/i);
 
 for (const locale of ['fr','pt','en','es','it','de']) assert.match(account,new RegExp(`\\b${locale}:\\{preview:`),`missing account locale ${locale}`);

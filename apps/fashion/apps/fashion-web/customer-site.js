@@ -14,9 +14,11 @@
   const routeTitle = id => AUTH.titles[locale]?.[id] || AUTH.titles.fr[id] || id;
   const sh = key => AUTH.shell[locale]?.[key] || AUTH.shell.fr[key] || key;
   const intro = group => AUTH.groupIntro[locale]?.[group] || AUTH.groupIntro.fr[group] || '';
+  const categoryIntro = id => AUTH.categoryIntro[locale]?.[id] || AUTH.categoryIntro.fr[id] || '';
+  const groupEyebrow = group => AUTH.groupEyebrow[locale]?.[group] || AUTH.groupEyebrow.fr[group] || 'Z Fashion';
 
   const commerceCopy = {
-    fr:{pieces:'pièces',sort:'Trier',featured:'Sélection',priceLow:'Prix ↑',priceHigh:'Prix ↓',boutique:'Boutique',size:'Taille',sizes:'Tailles disponibles',stock:'Stock démonstratif',noReserve:'Aucune réservation de stock',productPreview:'Produit démonstratif',viewProduct:'Voir le produit',viewCorner:'Voir le Corner',allCorners:'Toutes les boutiques',searchPlaceholder:'Marques, pièces, boutiques…',searchHint:'Saisissez une marque, une pièce ou une boutique.',noResults:'Aucun résultat dans le catalogue Preview.',privateIntro:'Sélection confidentielle accessible ici en démonstration. L’accès membre réel reste désactivé.',memberOnly:'Sélection membre',prepareBag:'Voir le panier',save:'Voir les favoris',returns:'Retours définis par boutique',fulfilment:'Expédition identifiée par boutique',salePrice:'Prix Preview',from:'Depuis',catalogue:'Catalogue',results:'Résultats',partnerSelection:'Sélection de la boutique'},
+    fr:{pieces:'pièces',sort:'Trier',featured:'Sélection',priceLow:'Prix ↑',priceHigh:'Prix ↓',boutique:'Boutique',size:'Taille',sizes:'Tailles disponibles',stock:'Stock démonstratif',noReserve:'Aucune réservation de stock',productPreview:'Produit démonstratif',viewProduct:'Voir le produit',viewCorner:'Voir le Corner',allCorners:'Toutes les boutiques',searchPlaceholder:'Marques, pièces, boutiques…',searchHint:'Saisissez une marque, une pièce ou une boutique.',noResults:'Aucun résultat dans le catalogue.',privateIntro:'Sélection confidentielle accessible ici en démonstration. L’accès membre réel reste désactivé.',memberOnly:'Sélection membre',prepareBag:'Voir le panier',save:'Voir les favoris',returns:'Retours définis par boutique',fulfilment:'Expédition identifiée par boutique',salePrice:'Prix réduit',from:'Depuis',catalogue:'Catalogue',results:'Résultats',partnerSelection:'Sélection de la boutique'},
     pt:{pieces:'peças',sort:'Ordenar',featured:'Destaques',priceLow:'Preço ↑',priceHigh:'Preço ↓',boutique:'Boutique',size:'Tamanho',sizes:'Tamanhos disponíveis',stock:'Stock demonstrativo',noReserve:'Sem reserva de stock',productPreview:'Produto demonstrativo',viewProduct:'Ver produto',viewCorner:'Ver Corner',allCorners:'Todas as boutiques',searchPlaceholder:'Marcas, peças, boutiques…',searchHint:'Pesquise uma marca, uma peça ou uma boutique.',noResults:'Nenhum resultado no catálogo Preview.',privateIntro:'Seleção reservada apresentada em modo demonstração. O acesso real de membro continua desativado.',memberOnly:'Seleção de membro',prepareBag:'Ver carrinho',save:'Ver favoritos',returns:'Devoluções definidas por boutique',fulfilment:'Envio identificado por boutique',salePrice:'Preço Preview',from:'Desde',catalogue:'Catálogo',results:'Resultados',partnerSelection:'Seleção da boutique'},
     en:{pieces:'pieces',sort:'Sort',featured:'Featured',priceLow:'Price ↑',priceHigh:'Price ↓',boutique:'Boutique',size:'Size',sizes:'Available sizes',stock:'Demonstrative stock',noReserve:'No stock reservation',productPreview:'Demonstrative product',viewProduct:'View product',viewCorner:'View Corner',allCorners:'All boutiques',searchPlaceholder:'Brands, pieces, boutiques…',searchHint:'Search for a brand, piece or boutique.',noResults:'No results in the Preview catalogue.',privateIntro:'A reserved selection shown in demonstration mode. Real member access remains disabled.',memberOnly:'Member selection',prepareBag:'View bag',save:'View favourites',returns:'Returns defined by boutique',fulfilment:'Shipping identified by boutique',salePrice:'Preview price',from:'From',catalogue:'Catalogue',results:'Results',partnerSelection:'Boutique selection'},
     es:{pieces:'piezas',sort:'Ordenar',featured:'Destacados',priceLow:'Precio ↑',priceHigh:'Precio ↓',boutique:'Boutique',size:'Talla',sizes:'Tallas disponibles',stock:'Stock demostrativo',noReserve:'Sin reserva de stock',productPreview:'Producto demostrativo',viewProduct:'Ver producto',viewCorner:'Ver Corner',allCorners:'Todas las boutiques',searchPlaceholder:'Marcas, piezas, boutiques…',searchHint:'Busca una marca, una pieza o una boutique.',noResults:'Sin resultados en el catálogo Preview.',privateIntro:'Selección reservada mostrada en modo demostración. El acceso real de miembro sigue desactivado.',memberOnly:'Selección de miembro',prepareBag:'Ver carrito',save:'Ver favoritos',returns:'Devoluciones definidas por boutique',fulfilment:'Envío identificado por boutique',salePrice:'Precio Preview',from:'Desde',catalogue:'Catálogo',results:'Resultados',partnerSelection:'Selección de la boutique'},
@@ -49,7 +51,8 @@
 
   const setShellCopy = () => {
     document.querySelectorAll('[data-shell-copy]').forEach(el => {
-      const value = sh(el.dataset.shellCopy);
+      const key = el.dataset.shellCopy;
+      const value = AUTH.shell[locale]?.[key] || AUTH.shell.fr[key];
       if (value) el.textContent = value;
     });
     document.getElementById('brandEndorsement').textContent = sh('brand');
@@ -146,7 +149,7 @@
       <div class="commerce-detail-media"><img src="${product.image}" alt="${copy.name}"></div>
       <div class="commerce-detail-copy">
         <p class="eyebrow">${product.brand} · ${cc('productPreview')}</p>
-        <h2>${copy.name}</h2>
+        <h1>${copy.name}</h1>
         <div class="commerce-detail-price">${product.compareAt ? `<s>${money(product.compareAt)}</s>` : ''}<strong>${money(product.price)}</strong></div>
         <p>${copy.description}</p>
         <a class="commerce-corner-link" href="/corner/${partner.id}">${cc('boutique')}: ${partner.name} · ${partner.city}</a>
@@ -173,7 +176,7 @@
   const renderPrivateSale = () => {
     const products = CATALOG.products.filter(p=>p.privateSale);
     queueMicrotask(()=>wireSort(products));
-    return `<section class="private-sale-banner"><div><p class="eyebrow">Z FASHION · PRIVATE SALE</p><h2>${cc('memberOnly')}</h2><p>${cc('privateIntro')}</p><a class="route-button secondary" href="/connexion">${routeTitle('login')}</a></div></section>${productGrid(products)}`;
+    return `<section class="private-sale-banner"><div><p class="eyebrow">${routeTitle('privateSale')}</p><h2>${cc('memberOnly')}</h2><p>${cc('privateIntro')}</p><a class="route-button secondary" href="/connexion">${routeTitle('login')}</a></div></section>${productGrid(products)}`;
   };
 
   const renderCommerce = type => {
@@ -213,7 +216,7 @@
 
   const renderBreadcrumb = () => {
     const bc = document.getElementById('breadcrumb');
-    const groupLabel = {commerce:'Z Fashion',customer:routeTitle('account'),checkout:'Checkout',service:routeTitle('help'),legal:routeTitle('legalNotice')}[route.group];
+    const groupLabel = {commerce:'Z Fashion',customer:routeTitle('account'),checkout:groupEyebrow('checkout'),service:routeTitle('help'),legal:routeTitle('legalNotice')}[route.group];
     bc.innerHTML = `<a href="/">${sh('home')}</a><span>›</span><span>${groupLabel}</span><span>›</span><strong>${routeTitle(route.id)}</strong>`;
   };
   const renderActions = () => {
@@ -243,7 +246,9 @@
   const render = () => {
     if (!route) { location.replace('/'); return; }
     setShellCopy(); renderBreadcrumb(); markActiveNav();
-    document.getElementById('pageEyebrow').textContent = `Z FASHION · ${route.group.toUpperCase()}`;
+    document.getElementById('pageEyebrow').textContent = groupEyebrow(route.group);
+    // The product page renders its own title block: no generic hero above it.
+    document.querySelector('.page-hero').hidden = route.type === 'product';
     const title = routeTitle(route.id);
     if (route.type === 'product') {
       const product = CATALOG.products.find(p=>p.slug===slug());
@@ -253,7 +258,7 @@
       document.getElementById('pageTitle').textContent = partner?.name || title;
     } else if (route.id === 'order') document.getElementById('pageTitle').textContent = slugLabel();
     else document.getElementById('pageTitle').textContent = title;
-    document.getElementById('pageIntro').textContent = route.type === 'privateSale' ? cc('privateIntro') : intro(route.group);
+    document.getElementById('pageIntro').textContent = route.type === 'privateSale' ? cc('privateIntro') : categoryIntro(route.group === 'commerce' && route.type !== 'category' ? route.type : route.id) || intro(route.group);
     document.title = `${document.getElementById('pageTitle').textContent} — Z Fashion`;
     renderActions();
     const content = document.getElementById('pageContent');
@@ -266,7 +271,12 @@
   };
 
   document.getElementById('localeSelect').addEventListener('change', e => setLocale(e.target.value));
-  document.getElementById('menuButton').addEventListener('click', () => document.querySelector('.customer-category-bar').scrollIntoView({behavior:'smooth',block:'nearest'}));
+  const menuButton = document.getElementById('menuButton');
+  const categoryBar = document.querySelector('.customer-category-bar');
+  const setMenu = open => { categoryBar.classList.toggle('open', open); menuButton.setAttribute('aria-expanded', String(open)); };
+  menuButton.addEventListener('click', () => setMenu(!categoryBar.classList.contains('open')));
+  categoryBar.querySelectorAll('a').forEach(a => a.addEventListener('click', () => setMenu(false)));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') setMenu(false); });
   setLocale(locale);
   window.Z_FASHION_FULL_CUSTOMER_SITE = 'FOUNDATION_PASS';
   window.Z_FASHION_CUSTOMER_COMMERCE = 'PREVIEW_PASS';
