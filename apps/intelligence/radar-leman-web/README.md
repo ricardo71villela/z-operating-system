@@ -122,7 +122,7 @@ Configuração (uma vez):
 1. Supabase → SQL Editor: correr
    `infrastructure/supabase/migrations/20261008230000_radar_leman_suivi_v1.sql`.
 2. Vercel → projeto radar-leman → Settings → Environment Variables:
-   `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (obrigatórias para o
+   `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (a chave `sb_secret_…` em Project Settings → API Keys; a antiga `SUPABASE_SERVICE_ROLE_KEY` também serve) (obrigatórias para o
    seguimento) e, para assinar as cartas e as fichas: `RADAR_AGENCE_NOM`,
    `RADAR_AGENCE_CONTACT`, `RADAR_SIGNATAIRE`, `RADAR_AGENCE_VILLE`
    (opcional `RADAR_AGENCE_BASELINE`). Sem elas aparecem `[Votre agence]`…
