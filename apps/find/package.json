@@ -98,7 +98,7 @@
     "test:admin-signups": "node tests/browser/zfind-admin/signups-verification.js",
     "test:partner-property-core": "node tests/browser/zfind-partner/property-core-verification.js",
     "test:lead-notify": "node tests/unit/lead-notify.test.js",
-    "test:listing-import": "node tests/unit/listing-import.test.js",
+    "test:listing-import": "node tests/unit/listing-import.test.js && node tests/unit/listing-import-poliris.test.js",
     "test:admin-import": "node tests/browser/zfind-admin/import-verification.js",
     "test:admin-review-queue": "node tests/browser/zfind-admin/review-queue-verification.js",
     "test:admin-followup-server": "node tests/unit/admin-followup-server.test.js",

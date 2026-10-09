@@ -96,7 +96,8 @@ function build() {
     + readWeb('services/field-forms.js') + '\n'
     + readWeb('services/pro-offer.js') + '\n' // public price list: Founder seats
     + readAdmin('prospection.js') + '\n'
-    + readAdmin('import.js') + '\n' // « Nous chargeons pour vous »: CSV / Excel import
+    + readAdmin('poliris.js') + '\n' // Poliris / SeLoger annonces.csv reader (agency software exports)
+    + readAdmin('import.js') + '\n' // « Nous chargeons pour vous »: CSV / Excel / Poliris import and portfolio sync
     + readAdmin('followup.js') + '\n' // estimations, leads follow-up, reviews, photo links
     + readWeb('services/listing-compliance.js') + '\n' // French mandatory listing information (shared with Partner)
     + readAdmin('compliance.js') + '\n' // « Mentions obligatoires à valider » queue and review

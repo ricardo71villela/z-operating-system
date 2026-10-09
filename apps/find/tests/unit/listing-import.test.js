@@ -1,8 +1,9 @@
 /* Contract: Admin « Nous chargeons pour vous » (zfind-admin/src/import.js).
    An agency's CSV / Excel export → mapped columns → normalised rows →
    property + DRAFT listing per row through the existing admin commands.
-   Never publishes; skips rows already imported (same agency reference);
-   one failing row never stops the others. No network. */
+   Never publishes; a known agency reference becomes an update (sync);
+   one failing row never stops the others. No network.
+   Poliris, compliance facts and sync decisions: listing-import-poliris.test.js. */
 'use strict';
 const path = require('path');
 const fs = require('fs');
@@ -64,13 +65,20 @@ check('no price → blocking error; studio typology; no DPE warning', r4.errors.
 /* ---------------- import (browser path, fake Supabase) ---------------- */
 (async () => {
   const rpcs = [];
+  const queries = [];
   const fakeClient = {
     from(table) {
       const q = { calls: [['from', table]] };
-      q.select = (...a) => { q.calls.push(['select', ...a]); return q; };
-      q.eq = (...a) => { q.calls.push(['eq', ...a]); return q; };
-      q.then = (ok, ko) => Promise.resolve({ data: [{ properties: { agency_reference: 'a2' } }], error: null }).then(ok, ko);
-      fakeClient.lastQuery = q;
+      ['select', 'eq', 'in'].forEach(m => { q[m] = (...a) => { q.calls.push([m, ...a]); return q; }; });
+      q.then = (ok, ko) => {
+        const data = table === 'representations' ? [{
+          id: 'rep-a2', status: 'active',
+          properties: { id: 'prop-a2', agency_reference: 'a2', area_sqm: 140, typology: '5 pièces', bedrooms: 4, postal_code: '74200', energy_rating: 'D', removed_at: null },
+          listings: [{ id: 'lst-a2', status: 'draft', transaction_type: 'rent', rental_period: 'monthly', price_current: 1900, created_at: '2026-10-01T10:00:00Z', listing_content: [{ locale: 'fr', title: 'Maison familiale', description: '' }] }]
+        }] : [];
+        return Promise.resolve({ data, error: null }).then(ok, ko);
+      };
+      queries.push(q);
       return q;
     },
     async rpc(name, args) {
@@ -83,10 +91,10 @@ check('no price → blocking error; studio typology; no DPE warning', r4.errors.
       return { data: null, error: null };
     }
   };
-  const sandbox = { window: { ZFindServices: { supabaseClient: { getSupabaseClient: () => fakeClient } } }, TextDecoder, console };
+  const sandbox = { window: { ZFindServices: { supabaseClient: { getSupabaseClient: () => fakeClient } } }, TextDecoder, console, Intl };
   vm.runInNewContext(fs.readFileSync(SRC, 'utf8'), sandbox, { filename: 'import.js' });
   const svc = sandbox.window.ZFindServices.listingImport;
-  check('browser build registers window.ZFindServices.listingImport', svc && typeof svc.importAll === 'function');
+  check('browser build registers window.ZFindServices.listingImport', svc && typeof svc.planSync === 'function' && typeof svc.applyPlan === 'function');
 
   const log = [];
   let n = 0;
@@ -99,33 +107,45 @@ check('no price → blocking error; studio typology; no DPE warning', r4.errors.
       return id === 'lst-prop-2' ? { data: null, error: { message: 'boom' } } : { data: {}, error: null };
     },
     async upsertListingContent(id, locale, f) { log.push(['upsertListingContent', id, locale, f]); return { data: {}, error: null }; },
-    async setListingStatus() { throw new Error('must never publish'); }
+    async setListingStatus(id, st) { log.push(['setListingStatus', id, st]); return { data: {}, error: null }; }
   };
-  const extra = svc.normalizeRow({ Ref: 'B9', Prix: '200000', Type: 'Maison', CP: '01210', Ville: 'Ferney' }, { reference: 'Ref', price: 'Prix', type: 'Type', postcode: 'CP', city: 'Ville' });
-  const progress = [];
-  const results = await svc.importAll([r1, r2, r3, r4, extra], 'partner-1', 'FR', admin, (i, r) => progress.push([i, r.status]));
+  const portfolio = await svc.loadPortfolio('partner-1');
+  check('portfolio read for this agency only, then its queued photo links', JSON.stringify(queries[0].calls.slice(2)) === JSON.stringify([['eq', 'partner_id', 'partner-1'], ['eq', 'target_type', 'property']])
+    && queries[0].calls[1][1].includes('properties!inner(') && queries[0].calls[1][1].includes('agency_reference') && queries[0].calls[1][1].includes('listing_content(')
+    && queries[1].calls[0][1] === 'zfind_media_import_queue' && JSON.stringify(queries[1].calls[2]) === JSON.stringify(['in', 'listing_id', ['lst-a2']]));
+  check('portfolio entry keyed by agency reference', portfolio.data.length === 1 && portfolio.data[0].refKey === 'a2' && portfolio.data[0].listing.id === 'lst-a2' && portfolio.data[0].listing.title === 'Maison familiale');
 
-  check('existing references read for this agency only', JSON.stringify(fakeClient.lastQuery.calls) === JSON.stringify([['from', 'representations'], ['select', 'properties!inner(agency_reference)'], ['eq', 'partner_id', 'partner-1'], ['eq', 'target_type', 'property']]));
-  check('statuses: created, already imported (case-insensitive ref), refused type, missing price, failed step',
-    results.map(r => r.status).join(',') === 'ok,duplicate,skipped,skipped,error' && progress.length === 5);
+  const extra = svc.normalizeRow({ Ref: 'B9', Prix: '200000', Type: 'Maison', CP: '01210', Ville: 'Ferney' }, { reference: 'Ref', price: 'Prix', type: 'Type', postcode: 'CP', city: 'Ville' });
+  const plan = svc.planSync([r1, r2, r3, r4, extra], portfolio.data, { country: 'FR' });
+  check('plan: 2 to create, known reference (case-insensitive) to update, refused type and missing price in error',
+    plan.counts.create === 2 && plan.counts.update === 1 && plan.counts.error === 2 && plan.counts.archive === 0 && plan.updates[0].row === r2);
+  check('update shows the rent change in French', plan.updates[0].changes.map(c => svc.changeText(c)).join('|').replace(/[  ]/g, ' ') === 'Loyer : 1 900 € → 1 850 €');
+  check('error lines carry the file line number', plan.errors.map(e => e.line).join(',') === '4,5');
+
+  const progress = [];
+  const out = await svc.applyPlan(plan, { partnerId: 'partner-1', country: 'FR', admin }, (done, total, r) => progress.push([done, total, r.kind]));
+  const results = out.results;
+  check('results: errors, created, failed step, updated', results.map(r => r.kind + ':' + r.status).join(',') === 'error:error,error:error,create:ok,create:error,update:ok' && progress.length === 3);
   check('row 1: property created with type, typology, area', log[0][0] === 'createProperty' && log[0][1].subtype === 'apartment' && log[0][1].typology === 'T3' && log[0][1].areaSqm === 72.5);
   const up = log.find(l => l[0] === 'updateProperty' && l[1] === 'prop-1')[2];
   check('row 1: characteristics, reference, address fields, taxe foncière', up.agencyReference === 'A1' && up.bedrooms === 2 && up.energyRating === 'C' && up.postalCode === '74500'
     && up.grossPrivateAreaSqm === 72.5 && up.condoFeeMonthly === 120 && up.imiAnnual === 950 && !('photos' in up));
   check('row 1: commune chosen by name among the postcode\'s communes', rpcs.some(([nme, a]) => nme === 'zfind_set_asset_commune' && a.p_asset_id === 'prop-1' && a.p_code === '74119' && a.p_country === 'FR' && a.p_kind === 'property')
-    && results[0].message === 'Commune : Évian-les-Bains');
+    && results[2].message.startsWith('Commune : Évian-les-Bains'));
   check('row 1: draft listing for the agency, price, French text', log.some(l => l[0] === 'createInitialListing' && l[1] === 'property' && l[2] === 'prop-1' && l[3] === 'partner-1')
     && log.some(l => l[0] === 'updateListingCommercial' && l[1] === 'lst-prop-1' && l[2].transactionType === 'sale' && l[2].priceCurrent === 350000 && l[2].currencyIso === 'EUR' && l[2].rentalPeriod === null)
     && log.some(l => l[0] === 'upsertListingContent' && l[1] === 'lst-prop-1' && l[2] === 'fr' && l[3].title === 'T3 — Évian-les-Bains' && l[3].description.includes('vue lac')));
-  check('a failing step is reported and the run goes on', results[4].status === 'error' && results[4].message.startsWith('prix : boom'));
-  check('nothing is ever published', !log.some(l => l[0] === 'setListingStatus'));
+  check('a failing step is reported and the run goes on', results[3].status === 'error' && results[3].message.startsWith('prix : boom'));
+  check('known listing: only the rent is written, nothing else', log.filter(l => l[1] === 'lst-a2' || l[1] === 'prop-a2').map(l => l[0] + JSON.stringify(l[2])).join('|') === 'updateListingCommercial{"priceCurrent":1850}');
+  check('photo links of the created listing handed to the queue', out.photoJobs.length === 1 && out.photoJobs[0].listingId === 'lst-prop-1' && out.photoJobs[0].urls.length === 2 && out.photoJobs[0].offset === 0);
+  check('nothing is ever published (no archive without « import complet »)', !log.some(l => l[0] === 'setListingStatus'));
 
-  // Same reference twice in one file: the second is recognised; unknown commune: imported, commune left to set.
-  const again = await svc.importAll([r1, r1], 'partner-1', 'FR', admin);
-  check('same reference twice in one file: second one skipped', again[0].status === 'ok' && again[1].status === 'duplicate');
+  // Same reference twice in one file: the second is an error; unknown commune: imported, commune left to set.
+  const again = svc.planSync([r1, r1], [], { country: 'FR' });
+  check('same reference twice in one file: second one in error', again.counts.create === 1 && again.errors[0].message.includes('Référence en double'));
   const loose = svc.normalizeRow({ Prix: '99000', Type: 'Appartement', Ville: 'Nulle-Part' }, { price: 'Prix', type: 'Type', city: 'Ville' });
-  const [lr] = await svc.importAll([loose], 'partner-1', 'FR', admin);
-  check('unknown commune: still imported as draft, commune left to set by hand', lr.status === 'ok' && lr.message === 'Commune à définir');
+  const lr = (await svc.applyPlan(svc.planSync([loose], [], { country: 'FR' }), { partnerId: 'partner-1', country: 'FR', admin })).results[0];
+  check('unknown commune: still imported as draft, commune left to set by hand', lr.status === 'ok' && lr.message.startsWith('Commune à définir'));
 
   console.log(`\nLISTING IMPORT: ${passed}/${passed} PASSED`);
 })().catch(e => { console.error(e); process.exit(1); });
