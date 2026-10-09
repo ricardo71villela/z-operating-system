@@ -98,6 +98,7 @@ function render() {
     importar: renderImport,
     estimacoes: renderEstimationsList,
     avaliacoes: renderReviewsList,
+    conformite: adminState.id ? renderComplianceDetail : renderComplianceQueue, // compliance.js
   };
   (routes[adminState.view] || renderDashboard)();
 }
@@ -114,6 +115,7 @@ const OPS_ROUTINE = [
   ['Chaque jour', [
     'Nouvelles inscriptions : vérifier la carte professionnelle et le SIRET, puis Valider ou Refuser.',
     'Annonces à vérifier (envoyées par les agences) : contrôler la conformité et publier.',
+    'Mentions obligatoires à valider (annonces en France) : Valider, ou Refuser avec un motif ; sans validation, la publication est refusée.',
     'Fichier d’annonces envoyé par une agence : Importer des annonces (elles restent en brouillon), puis vérifier.',
     'Estimations : confier à une agence les propriétaires qui ont accepté d’être contactés (eux seuls), le jour même.',
     'Demandes sans réponse depuis 24 h : l’agence a déjà reçu une relance automatique ; sinon, l’appeler.',
@@ -156,6 +158,7 @@ async function renderDashboard() {
   }
   await loadOperationsOverview();
   await loadReviewQueueCard();
+  await loadComplianceQueueCard();
   await loadFollowupCards();
 }
 
@@ -860,7 +863,11 @@ const PROP_FILTERS = [
   ['published', 'Publiées'], ['suspended', 'Suspendues'], ['archived', 'Archivées']
 ];
 const SUBTYPE_FR = { apartment: 'Appartement', villa: 'Maison', land: 'Terrain', office: 'Bureau', retail: 'Local commercial', industrial_logistics: 'Entrepôt / local d’activité', hospitality: 'Hôtellerie' };
-adminState.propFilter = { status: '', partner: '', search: '' };
+adminState.propFilter = { status: '', partner: '', search: '', compliance: '' };
+const PROP_COMPLIANCE_FILTERS = [
+  ['', 'Mentions FR : toutes'], ['todo', 'Mentions à compléter'], ['pending', 'Mentions en attente'],
+  ['approved', 'Mentions validées'], ['rejected', 'Mentions refusées'], ['unsupported', 'Mentions : non couvert'], ['none', 'Hors France']
+];
 let propRowsCache = [];
 
 function propListing(p) {
@@ -890,7 +897,7 @@ function propPrice(listing) {
 }
 
 function openReviewQueue() {
-  adminState.propFilter = { status: 'pending_review', partner: '', search: '' };
+  adminState.propFilter = { status: 'pending_review', partner: '', search: '', compliance: '' };
   navigateAdmin('properties');
 }
 
@@ -904,9 +911,10 @@ async function renderPropertiesList() {
       <input type="text" id="prop-search" placeholder="Rechercher par titre, zone, agence…" value="${escapeHtml(f.search)}" oninput="adminState.propFilter.search=this.value; renderPropRows()">
       <select id="prop-status" aria-label="Statut" onchange="adminState.propFilter.status=this.value; renderPropRows()">${PROP_FILTERS.map(([v, l]) => `<option value="${v}"${v === f.status ? ' selected' : ''}>${l}</option>`).join('')}</select>
       <select id="prop-partner" aria-label="Agence" onchange="adminState.propFilter.partner=this.value; renderPropRows()"><option value="">Toutes les agences</option></select>
+      <select id="prop-compliance" aria-label="Mentions obligatoires" onchange="adminState.propFilter.compliance=this.value; renderPropRows()">${PROP_COMPLIANCE_FILTERS.map(([v, l]) => `<option value="${v}"${v === (f.compliance || '') ? ' selected' : ''}>${l}</option>`).join('')}</select>
     </div>
     <div id="new-prop-form"></div>
-    <table><thead><tr><th>Titre</th><th>Bien</th><th>Zone</th><th>Agence</th><th>Prix</th><th>Statut</th><th></th></tr></thead><tbody id="props-tbody"><tr><td colspan="7">Chargement…</td></tr></tbody></table>`);
+    <table><thead><tr><th>Titre</th><th>Bien</th><th>Zone</th><th>Agence</th><th>Prix</th><th>Statut</th><th>Mentions FR</th><th></th></tr></thead><tbody id="props-tbody"><tr><td colspan="8">Chargement…</td></tr></tbody></table>`);
   await loadPropertiesList();
 }
 
@@ -914,7 +922,7 @@ async function loadPropertiesList() {
   const result = await window.ZFindServices.admin.listProperties();
   const tbody = document.getElementById('props-tbody');
   if (!tbody) return;
-  if (result.error) { tbody.innerHTML = '<tr><td colspan="7">Chargement impossible.</td></tr>'; return; }
+  if (result.error) { tbody.innerHTML = '<tr><td colspan="8">Chargement impossible.</td></tr>'; return; }
   propRowsCache = result.data || [];
   const partners = new Map();
   propRowsCache.forEach(p => { const { rep } = propListing(p); if (rep && rep.partner_id) partners.set(rep.partner_id, rep.partners ? rep.partners.name : rep.partner_id); });
@@ -924,6 +932,7 @@ async function loadPropertiesList() {
       .map(([id, name]) => `<option value="${escapeHtml(id)}"${id === adminState.propFilter.partner ? ' selected' : ''}>${escapeHtml(name)}</option>`).join('');
   }
   renderPropRows();
+  loadPropertiesCompliance(propRowsCache); // compliance.js: « Mentions FR » column and filter
 }
 
 function renderPropRows() {
@@ -939,7 +948,7 @@ function renderPropRows() {
       return `<button class="chip${v === f.status ? ' on' : ''}${v === 'pending_review' && n ? ' warn' : ''}" data-status="${v}" onclick="adminState.propFilter.status='${v === f.status ? '' : v}'; document.getElementById('prop-status').value=adminState.propFilter.status; renderPropRows()">${l} <strong>${fmtN(n)}</strong></button>`;
     }).join('');
   }
-  const rows = byPartner.filter(p => propStatusMatches(propStatus(p), f.status)).filter(p => {
+  const rows = byPartner.filter(p => propStatusMatches(propStatus(p), f.status)).filter(p => propComplianceMatches(p, f.compliance)).filter(p => {
     if (!needle) return true;
     const { rep } = propListing(p);
     const hay = [propTitle(p), p.zones_lite && p.zones_lite.name, p.zones_lite && p.zones_lite.city, rep && rep.partners && rep.partners.name, p.id].filter(Boolean).join(' ').toLowerCase();
@@ -948,7 +957,7 @@ function renderPropRows() {
   // The review queue reads oldest first: whoever waited longest is checked first.
   if (f.status === 'pending_review') rows.reverse();
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="muted">${f.status === 'pending_review' ? 'Aucune annonce à vérifier. 👍' : 'Aucun bien avec ces filtres.'}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="muted">${f.status === 'pending_review' ? 'Aucune annonce à vérifier. 👍' : 'Aucun bien avec ces filtres.'}</td></tr>`;
     return;
   }
   tbody.innerHTML = rows.map(p => {
@@ -962,6 +971,7 @@ function renderPropRows() {
       <td>${rep && rep.partners ? escapeHtml(rep.partners.name) : ''}</td>
       <td>${propPrice(listing)}</td>
       <td><span class="tag tag-${LISTING_STATUS_TAG[status] || 'draft'}">${escapeHtml(LISTING_STATUS_FR[status] || status)}</span></td>
+      <td>${complianceTag(propComplianceStatus(p))}</td>
       <td><span onclick="event.stopPropagation(); duplicatePropertyRow('${p.id}')" style="cursor:pointer; color:#555;">Dupliquer</span></td>
     </tr>`;
   }).join('');
@@ -1207,6 +1217,8 @@ async function renderAssetEditShell(main, opts) {
       </span>
     </div>
 
+    ${listing ? '<div class="asset-compliance-line" id="asset-compliance-line"></div>' : ''}
+
     <div class="page-title" style="font-size:1.1rem;">Caractéristiques</div>
     <div class="detail-panel" style="margin-bottom:20px;">
       ${opts.kind === 'property' ? `
@@ -1257,6 +1269,7 @@ async function renderAssetEditShell(main, opts) {
     ${mediaOwnerId ? `<input type="file" id="media-upload-input" accept="image/*" onchange="handleMediaUpload('${mediaOwnerId}','${mediaKind}')">` : '<p style="color:#999;">Les photos sont disponibles une fois l’annonce créée.</p>'}
   `);
   if (mediaOwnerId) loadMediaGrid(mediaOwnerId, mediaKind);
+  if (listing) loadAssetComplianceLine(listing);
   loadFeaturesGrid(opts.kind, d.id);
   if (opts.kind === 'development') loadUnitsList(d.id);
 }
@@ -1640,7 +1653,8 @@ async function transitionListing(listingId, toStatus) {
   showStatus(
     result.error ? 'error' : 'success',
     result.error
-      ? (result.error.message || 'Impossible de changer le statut de l’annonce.')
+      // French wording for the lifecycle and France compliance gate errors (listing-compliance.js).
+      ? window.ZFindServices.listingCompliance.describeError(result.error, 'Impossible de changer le statut de l’annonce.')
       : `Annonce : ${LISTING_STATUS_FR[toStatus] || toStatus}.`
   );
 
