@@ -18,10 +18,14 @@ const TEAL = '#00A0B0';
 const GREY = '#6B7280';
 const LIGHT = '#9AA3AF';
 const FOURCHETTE = 0.07;
+// Identidade do remetente : variaveis de ambiente do projeto Vercel
+// (Settings -> Environment Variables), para mudar sem tocar no codigo.
 const CABINET = {
-  nom: '[Votre agence]',
-  baseline: 'Estimation et transaction — Chablais / Léman',
-  contact: '[téléphone] · [email] · [adresse]'
+  nom: process.env.RADAR_AGENCE_NOM || '[Votre agence]',
+  baseline: process.env.RADAR_AGENCE_BASELINE || 'Estimation et transaction — Chablais / Léman',
+  contact: process.env.RADAR_AGENCE_CONTACT || '[téléphone] · [email] · [adresse]',
+  signataire: process.env.RADAR_SIGNATAIRE || '[Prénom Nom]',
+  ville: process.env.RADAR_AGENCE_VILLE || ''
 };
 const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet',
   'août', 'septembre', 'octobre', 'novembre', 'décembre'];
@@ -55,11 +59,26 @@ function parseComparables(s) {
   return out.slice(0, 5);
 }
 
-function renderFiche(row, now = new Date()) {
-  const doc = new PDFDocument({ font: null, size: 'A4', margins: { top: 42.5, bottom: 42.5, left: 45.4, right: 45.4 },
-    info: { Title: 'Estimation indicative — ' + clean(row[F.adresse]), Producer: 'Radar Léman' } });
+const MARGINS = { top: 42.5, bottom: 42.5, left: 45.4, right: 45.4 };
+
+// Documento A4 com as fontes Arimo registadas ('R' normal, 'B' negrito).
+function newDoc(title) {
+  const doc = new PDFDocument({ font: null, size: 'A4', margins: MARGINS, autoFirstPage: false,
+    info: { Title: clean(title), Producer: 'Radar Léman' } });
   doc.registerFont('R', FONT_R);
   doc.registerFont('B', FONT_B);
+  return doc;
+}
+
+function renderFiche(row, now = new Date()) {
+  const doc = newDoc('Estimation indicative — ' + clean(row[F.adresse]));
+  drawFiche(doc, row, now);
+  return doc;
+}
+
+// Desenha a ficha numa pagina nova do documento `doc`.
+function drawFiche(doc, row, now = new Date()) {
+  doc.addPage({ size: 'A4', margins: MARGINS });
   const L = doc.page.margins.left;
   const W = doc.page.width - L - doc.page.margins.right;
   let y = doc.page.margins.top;
@@ -214,14 +233,11 @@ function renderFiche(row, now = new Date()) {
     'Foncières (DGFiP) et diagnostics de performance énergétique (ADEME). Aucune donnée personnelle n\'a été ' +
     'utilisée. Ce document ne constitue pas une expertise ni une offre d\'achat. Pour ne plus recevoir de ' +
     'courrier de notre part, il vous suffit de nous le signaler.', L, y + 7, { width: W });
-
-  return doc;
 }
 
-// Devolve o PDF como Buffer.
-function ficheBuffer(row, now) {
+// Fecha o documento e devolve o PDF como Buffer.
+function docBuffer(doc) {
   return new Promise((resolve, reject) => {
-    const doc = renderFiche(row, now);
     const parts = [];
     doc.on('data', b => parts.push(b));
     doc.on('end', () => resolve(Buffer.concat(parts)));
@@ -230,4 +246,9 @@ function ficheBuffer(row, now) {
   });
 }
 
-module.exports = { ficheBuffer, parseComparables, FIELDS: F };
+function ficheBuffer(row, now) {
+  return docBuffer(renderFiche(row, now));
+}
+
+module.exports = { ficheBuffer, docBuffer, newDoc, drawFiche, parseComparables, clean, isNum,
+  CABINET, MOIS, MARGINS, NAVY, GREY, LIGHT, FIELDS: F };

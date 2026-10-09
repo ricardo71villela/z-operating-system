@@ -12,4 +12,6 @@ module.exports = [
   require('./chunk-9.js'),
   require('./chunk-10.js'),
   require('./chunk-11.js'),
+  require('./chunk-12.js'),
+  require('./chunk-13.js'),
 ];

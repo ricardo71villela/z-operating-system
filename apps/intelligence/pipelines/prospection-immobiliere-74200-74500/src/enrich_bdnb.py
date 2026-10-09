@@ -1,30 +1,40 @@
 """
-Enrichissement via la BDNB (Base de Données Nationale des Bâtiments, CSTB),
-API « Open » : https://api.bdnb.io/v1/bdnb — sans clé, 10 000 requêtes par
-mois et 120 par minute et par IP. Données publiques (Licence Ouverte).
+Enrichissement via la BDNB (Base de Données Nationale des Bâtiments, CSTB).
 
-VALEUR (8/10/2026) : pour CHAQUE bâtiment, même jamais vendu et sans DPE,
-la BDNB donne l'emprise au sol, le nombre de niveaux, le nombre de logements
-et l'année de construction. On en tire une SURFACE ESTIMÉE pour les maisons
-(emprise × niveaux × 0,8), qui comble une partie des ~16 700 adresses sans
-aucune surface (ni DVF, ni DPE). C'est une estimation : elle n'est utilisée
-qu'en dernier recours (segment.py::choose_surface) et toujours affichée
-comme telle (« BDNB — estimation »).
+SOURCE (9/10/2026) : l'export départemental en CSV (Licence Ouverte), un
+seul téléchargement pour toute la Haute-Savoie :
+    https://bdnb.io/download/  ->  millésime  ->  dep74  ->  csv
+L'API « Open » (api.bdnb.io) ne renvoie que 10 bâtiments par requête : pour
+nos ~31 communes il faudrait des dizaines de milliers de requêtes, au-delà du
+quota mensuel. La première version (8/10) s'arrêtait donc après 10 bâtiments
+par commune (103 maisons estimées sur 16 600 adresses sans surface).
+
+VALEUR : pour CHAQUE bâtiment, même jamais vendu et sans DPE, la BDNB donne
+l'emprise au sol, le nombre de niveaux, le nombre de logements, l'usage et
+l'année de construction. On en tire une SURFACE ESTIMÉE pour les maisons
+(emprise × niveaux × 0,8, voir segment.py::merge_bdnb), utilisée seulement en
+dernier recours et toujours affichée comme estimation.
+
+LECTURE : l'archive contient une table CSV par sujet. On ne lit que les
+tables « une ligne par bâtiment » (batiment_groupe*.csv) qui ont une des
+colonnes voulues, plus rel_batiment_groupe_adresse.csv (bâtiment -> clé BAN),
+par morceaux et en ne gardant que les bâtiments de nos communes. Les noms de
+tables/colonnes varient un peu d'un millésime à l'autre : chaque champ a
+plusieurs noms candidats et on prend le premier trouvé.
 
 RATTACHEMENT : par la clé d'interopérabilité BAN de l'adresse
-(l_cle_interop_adr), la même que la colonne `id` des adresses BAN du
-pipeline. Exact, sans géocodage.
+(cle_interop_adr), la même que la colonne `id` des adresses BAN du pipeline.
 
-QUOTA : une requête par page de PAGE_SIZE bâtiments, ~1 par seconde ; les
-31 communes tiennent en quelques dizaines de requêtes. Cache par commune
-dans data/_cache/bdnb (FORCE_REDOWNLOAD=1 pour le vider).
+Cache : data/_cache/bdnb/<archive>.zip (FORCE_REDOWNLOAD=1 pour le vider).
+Millésime : BDNB_MILLESIME (défaut ci-dessous, puis les précédents).
 
 Usage:
     python enrich_bdnb.py
 """
-import json
+import csv
+import io
 import os
-import time
+import zipfile
 
 import pandas as pd
 import requests
@@ -34,17 +44,29 @@ from config import ALL_COMMUNES
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 CACHE_DIR = os.path.join(DATA_DIR, "_cache", "bdnb")
 OUT_PATH = os.path.join(DATA_DIR, "bdnb_74200_74500.csv")
-BDNB_URL = "https://api.bdnb.io/v1/bdnb/donnees/batiment_groupe_complet"
 FORCE_REDOWNLOAD = os.environ.get("FORCE_REDOWNLOAD") == "1"
-PAGE_SIZE = 1000
-PAUSE_S = 1.0
-TIMEOUT = 90
+DEPARTEMENT = "74"
+MILLESIMES = [m for m in [os.environ.get("BDNB_MILLESIME"), "2026-02-a", "2025-07-a", "2024-10-a"] if m]
+URL = ("https://open-data.s3.fr-par.scw.cloud/bdnb_millesime_{m}/millesime_{m}_dep{d}/"
+       "open_data_millesime_{m}_dep{d}_csv.zip")
+CHUNK = 200_000
 
-SELECT = ",".join([
-    "batiment_groupe_id", "l_cle_interop_adr", "nb_log", "nb_niveau",
-    "surface_emprise_sol", "fiabilite_emprise_sol", "hauteur_mean",
-    "fiabilite_hauteur", "annee_construction", "usage_principal_bdnb_open",
-])
+# Champ de sortie -> noms de colonnes candidats, par ordre de préférence.
+CHAMPS = {
+    "bdnb_nb_logements": ["nb_log", "nb_log_rnc"],
+    "bdnb_nb_niveaux": ["nb_niveau"],
+    "bdnb_emprise_sol_m2": ["surface_emprise_sol", "s_geom_groupe"],
+    "bdnb_fiabilite_emprise": ["fiabilite_emprise_sol"],
+    "bdnb_hauteur_m": ["hauteur_mean"],
+    "bdnb_fiabilite_hauteur": ["fiabilite_hauteur"],
+    "bdnb_annee_construction": ["annee_construction"],
+    "bdnb_usage": ["usage_principal_bdnb_open"],
+}
+
+# Tables lues en premier (sources de référence : fichiers fonciers, usage
+# consolidé, BD TOPO) ; les autres seulement pour un champ encore manquant.
+PRIORITE = ["batiment_groupe", "batiment_groupe_ffo_bat", "batiment_groupe_synthese_propriete_usage",
+            "batiment_groupe_bdtopo_bat"]
 
 OUT_COLUMNS = [
     "ban_id", "code_insee", "bdnb_id", "bdnb_nb_logements", "bdnb_nb_niveaux",
@@ -53,82 +75,141 @@ OUT_COLUMNS = [
 ]
 
 
-def fetch_commune(code_insee, session=None):
-    cache_path = os.path.join(CACHE_DIR, f"{code_insee}.json")
-    if not FORCE_REDOWNLOAD and os.path.exists(cache_path):
-        with open(cache_path, "r", encoding="utf-8") as f:
-            return json.load(f)
+def notice(msg):
+    """Visible dans le log et comme annotation du run GitHub Actions."""
+    print(msg)
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        print(f"::notice title=BDNB::{msg}")
 
-    http = session or requests
-    rows, offset = [], 0
-    while True:
-        params = {"code_commune_insee": f"eq.{code_insee}", "select": SELECT,
-                  "limit": PAGE_SIZE, "offset": offset, "order": "batiment_groupe_id"}
-        r = http.get(BDNB_URL, params=params, timeout=TIMEOUT,
-                     headers={"Accept": "application/json"})
-        if r.status_code == 429:
-            raise RuntimeError("quota BDNB épuisé (HTTP 429)")
-        r.raise_for_status()
-        page = r.json()
-        rows.extend(page)
-        if len(page) < PAGE_SIZE:
-            break
-        offset += PAGE_SIZE
-        time.sleep(PAUSE_S)
 
+def telecharger():
+    """Télécharge (ou reprend du cache) l'archive CSV du département."""
     os.makedirs(CACHE_DIR, exist_ok=True)
-    with open(cache_path, "w", encoding="utf-8") as f:
-        json.dump(rows, f)
-    return rows
+    erreurs = []
+    for m in MILLESIMES:
+        path = os.path.join(CACHE_DIR, f"bdnb_{m}_dep{DEPARTEMENT}_csv.zip")
+        if os.path.exists(path) and not FORCE_REDOWNLOAD and zipfile.is_zipfile(path):
+            return path, m
+        url = URL.format(m=m, d=DEPARTEMENT)
+        try:
+            with requests.get(url, stream=True, timeout=120) as r:
+                if r.status_code == 404:
+                    erreurs.append(f"{m}: 404")
+                    continue
+                r.raise_for_status()
+                tmp = path + ".part"
+                with open(tmp, "wb") as f:
+                    for bloc in r.iter_content(chunk_size=1 << 20):
+                        f.write(bloc)
+            os.replace(tmp, path)
+        except requests.RequestException as e:
+            erreurs.append(f"{m}: {e}")
+            continue
+        if zipfile.is_zipfile(path):
+            notice(f"archive {m} dep{DEPARTEMENT} : {os.path.getsize(path) / 1e6:.0f} Mo")
+            return path, m
+        erreurs.append(f"{m}: pas un zip")
+    raise RuntimeError("archive BDNB introuvable (" + "; ".join(erreurs) + ")")
 
 
-def rows_for_addresses(buildings, code_insee):
-    """Une ligne par adresse BAN rattachée au bâtiment."""
-    out = []
-    for b in buildings:
-        keys = b.get("l_cle_interop_adr") or []
-        if isinstance(keys, str):
-            keys = [keys]
-        for k in keys:
-            if not k:
+def _table(nom):
+    return os.path.splitext(os.path.basename(nom))[0].lower()
+
+
+def _entete(z, nom):
+    with z.open(nom) as f:
+        ligne = io.TextIOWrapper(f, encoding="utf-8-sig", newline="").readline()
+    sep = max([",", ";", "|", "\t"], key=ligne.count)
+    cols = next(csv.reader([ligne], delimiter=sep))
+    return sep, [c.strip().strip('"') for c in cols]
+
+
+def _lire(z, nom, sep, usecols, filtre):
+    """Lit les colonnes `usecols` d'une table, par morceaux, filtrées."""
+    parts = []
+    with z.open(nom) as f:
+        for ch in pd.read_csv(f, sep=sep, usecols=usecols, dtype=str, chunksize=CHUNK,
+                              encoding="utf-8-sig", low_memory=False):
+            ch = filtre(ch)
+            if not ch.empty:
+                parts.append(ch)
+    return pd.concat(parts, ignore_index=True) if parts else pd.DataFrame(columns=usecols)
+
+
+def extraire(zip_path, communes):
+    """Renvoie une ligne par adresse BAN rattachée à un bâtiment de nos communes."""
+    communes = {str(c) for c in communes}
+    with zipfile.ZipFile(zip_path) as z:
+        csvs = [n for n in z.namelist() if n.lower().endswith(".csv")]
+        entetes = {n: _entete(z, n) for n in csvs}
+
+        # 1. Adresses : bâtiment -> clé BAN (dont le préfixe est le code INSEE).
+        rel = [n for n in csvs if _table(n) == "rel_batiment_groupe_adresse"]
+        if not rel:
+            raise RuntimeError("rel_batiment_groupe_adresse.csv absent de l'archive")
+        sep, cols = entetes[rel[0]]
+        cle = "cle_interop_adr" if "cle_interop_adr" in cols else next(
+            c for c in cols if c.startswith("cle_interop_adr"))
+        adr = _lire(z, rel[0], sep, ["batiment_groupe_id", cle],
+                    lambda ch: ch[ch[cle].str[:5].isin(communes)])
+        adr = adr.rename(columns={cle: "ban_id", "batiment_groupe_id": "bdnb_id"})
+        ids = set(adr["bdnb_id"])
+        notice(f"{len(adr):,} liens adresse-bâtiment dans {len(communes)} communes, "
+               f"{len(ids):,} bâtiments")
+
+        # 2. Attributs : tables « une ligne par bâtiment » qui ont un champ voulu.
+        attrs = pd.DataFrame({"bdnb_id": sorted(ids)})
+        trouves = {}
+        tables = sorted((n for n in csvs if _table(n).startswith("batiment_groupe")),
+                        key=lambda n: (PRIORITE.index(_table(n)) if _table(n) in PRIORITE
+                                       else len(PRIORITE), _table(n)))
+        for n in tables:
+            sep, cols = entetes[n]
+            if "batiment_groupe_id" not in cols:
                 continue
-            out.append({
-                "ban_id": k, "code_insee": code_insee, "bdnb_id": b.get("batiment_groupe_id"),
-                "bdnb_nb_logements": b.get("nb_log"), "bdnb_nb_niveaux": b.get("nb_niveau"),
-                "bdnb_emprise_sol_m2": b.get("surface_emprise_sol"),
-                "bdnb_fiabilite_emprise": b.get("fiabilite_emprise_sol"),
-                "bdnb_hauteur_m": b.get("hauteur_mean"),
-                "bdnb_fiabilite_hauteur": b.get("fiabilite_hauteur"),
-                "bdnb_annee_construction": b.get("annee_construction"),
-                "bdnb_usage": b.get("usage_principal_bdnb_open"),
-            })
-    return out
+            voulus = {}
+            for champ, cands in CHAMPS.items():
+                if champ in trouves:
+                    continue
+                c = next((c for c in cands if c in cols), None)
+                if c:
+                    voulus[c] = champ
+            if not voulus:
+                continue
+            t = _lire(z, n, sep, ["batiment_groupe_id"] + list(voulus),
+                      lambda ch: ch[ch["batiment_groupe_id"].isin(ids)])
+            t = t.drop_duplicates(subset=["batiment_groupe_id"])
+            t = t.rename(columns={"batiment_groupe_id": "bdnb_id", **voulus})
+            attrs = attrs.merge(t, on="bdnb_id", how="left")
+            for c, champ in voulus.items():
+                trouves[champ] = f"{_table(n)}.{c}"
+        notice("colonnes : " + ", ".join(f"{k}<-{v}" for k, v in trouves.items()))
+        manquants = [c for c in CHAMPS if c not in trouves]
+        if manquants:
+            notice("colonnes absentes : " + ", ".join(manquants))
+
+    df = adr.merge(attrs, on="bdnb_id", how="left")
+    df["code_insee"] = df["ban_id"].str[:5]
+    for c in OUT_COLUMNS:
+        if c not in df.columns:
+            df[c] = pd.NA
+    df = df[OUT_COLUMNS]
+    # Une adresse peut être rattachée à deux bâtiments voisins : on garde le
+    # plus grand (le bâtiment principal plutôt qu'une annexe).
+    df["_s"] = pd.to_numeric(df["bdnb_emprise_sol_m2"], errors="coerce").fillna(0)
+    df = df.sort_values("_s").drop_duplicates(subset=["ban_id"], keep="last").drop(columns="_s")
+    return df.sort_values("ban_id").reset_index(drop=True)
 
 
 def main():
-    all_rows = []
-    print(f"Téléchargement BDNB pour {len(ALL_COMMUNES)} communes...")
-    session = requests.Session()
-    for code, nom in ALL_COMMUNES.items():
-        try:
-            buildings = fetch_commune(code, session)
-        except (requests.RequestException, ValueError, RuntimeError) as e:
-            print(f"  {nom:26s} interrompu ({e}) — commune sautée")
-            continue
-        rows = rows_for_addresses(buildings, code)
-        all_rows.extend(rows)
-        print(f"  {nom:26s} {len(buildings):>6,} bâtiments, {len(rows):>6,} adresses")
-        time.sleep(PAUSE_S)
-
-    df = pd.DataFrame(all_rows, columns=OUT_COLUMNS)
-    # Une adresse peut apparaître dans deux bâtiments voisins : on garde le
-    # plus grand (le bâtiment principal plutôt qu'une annexe).
-    if not df.empty:
-        df["_s"] = pd.to_numeric(df["bdnb_emprise_sol_m2"], errors="coerce").fillna(0)
-        df = df.sort_values("_s").drop_duplicates(subset=["ban_id"], keep="last").drop(columns="_s")
+    zip_path, m = telecharger()
+    df = extraire(zip_path, ALL_COMMUNES.keys())
     os.makedirs(DATA_DIR, exist_ok=True)
     df.to_csv(OUT_PATH, index=False)
-    print(f"OK — {len(df):,} adresses avec données BDNB -> {OUT_PATH}")
+    ind = (pd.to_numeric(df["bdnb_nb_logements"], errors="coerce") == 1) & \
+        df["bdnb_usage"].fillna("").str.contains("individuel", case=False)
+    notice(f"millésime {m} : {len(df):,} adresses avec données BDNB, "
+           f"{int(ind.sum()):,} maisons individuelles -> {os.path.basename(OUT_PATH)}")
 
 
 if __name__ == "__main__":

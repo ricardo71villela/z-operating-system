@@ -24,6 +24,7 @@ Uso (depuis la racine du depot, Python 3 sans dependances) :
 import argparse
 import base64
 import csv
+import datetime
 import json
 import math
 import os
@@ -130,6 +131,14 @@ def update_dashboard(rows, args):
                 s = s.replace("sub:'sur les 26 communes d\\'origine'", "sub:'sur ' + STATS.length + ' communes du secteur'")
 
     fr = lambda n: f"{n:,}".replace(",", " ")
+    # En-tete : nombre d'adresses et de terrains, date d'execution, sources.
+    n_terr = len(unb64(s, "_TERRENOS_B64"))
+    s = re.sub(r"[\d\u00a0\u202f ]+ adresses du littoral", f"{fr(len(rows))} adresses du littoral", s, count=1)
+    s = re.sub(r"les [\d\u00a0\u202f ]+ terrains libres", f"les {fr(n_terr)} terrains libres", s, count=1)
+    s = re.sub(r"exécution du \d{2}/\d{2}/\d{4}",
+               "exécution du " + datetime.date.today().strftime("%d/%m/%Y"), s, count=1)
+    if "BDNB (CSTB)" not in s:
+        s = s.replace("RNB · Géoportail", "RNB · BDNB (CSTB) · Géoportail", 1)
     n_b = sum(r[3] == "B" for r in rows)
     s, n = re.subn(r"<b>Priorité A</b> — score ≥ 70 \([^)]*\)\. <b>Priorité B</b> — score 40-69 \([^)]*\)\.",
                    f"<b>Priorité A</b> — score ≥ 70 ({fr(kpis['prioridade_a'])} adresses). "
