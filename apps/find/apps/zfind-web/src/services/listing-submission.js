@@ -273,6 +273,66 @@
     return parts.join(', ');
   }
 
+  /* ---------------- Partner « Soumettre toutes les annonces prêtes » ----------------
+     After an import: the listings it created or updated. Readiness is read
+     once (zfind_list_listing_submission_status), then every ready draft is
+     submitted ONE AFTER THE OTHER (zfind_partner_submit_listing); the others
+     are reported with what they miss. Nothing else than draft / incomplete
+     -> « En attente de validation » ever happens here. */
+  const BLOCK_SHORT = Object.freeze({
+    commune: 'commune', title_fr: 'titre', description_fr: 'description', price: 'prix', photo: 'photo',
+    compliance_unsupported: 'type de bien', compliance_facts: 'mentions obligatoires', compliance_rejected: 'mentions refusées'
+  });
+  /** deps: { listStatuses(ids) -> { data: rows, error }, submit(id) -> { data, error } }.
+      → [{ listingId, outcome: 'submitted' | 'blocked' | 'skipped', reason, missing }] */
+  async function submitAllReady(listingIds, deps, options) {
+    const opts = options || {};
+    const ids = Array.from(new Set((listingIds || []).filter(Boolean)));
+    if (!ids.length) return [];
+    const st = await deps.listStatuses(ids);
+    if (st.error) return ids.map(id => ({ listingId: id, outcome: 'blocked', reason: describeError(st.error, 'Lecture des annonces impossible.'), missing: [] }));
+    const byId = new Map((st.data || []).map(r => [r.listing_id, r]));
+    const results = [];
+    for (let i = 0; i < ids.length; i++) {
+      const id = ids[i];
+      const row = byId.get(id);
+      let result;
+      if (!row) result = { listingId: id, outcome: 'skipped', reason: 'annonce introuvable', missing: [] };
+      else if (!canSubmit(row.status)) result = { listingId: id, outcome: 'skipped', reason: `déjà « ${statusLabel(row.status)} »`, missing: [], status: row.status };
+      else {
+        const missing = Array.isArray(row.missing) ? row.missing.filter(c => CODES.includes(c)) : [];
+        if (missing.length) result = { listingId: id, outcome: 'blocked', reason: `il manque ${missingText(missing)}`, missing };
+        else {
+          let r;
+          try { r = await deps.submit(id); } catch (e) { r = { error: { type: 'network_failure', message: e && e.message } }; }
+          if (r && r.error) {
+            const codes = missingFromMessage(r.error.message);
+            result = { listingId: id, outcome: 'blocked', reason: codes.length ? `il manque ${missingText(codes)}` : describeError(r.error), missing: codes };
+          } else result = { listingId: id, outcome: 'submitted', reason: '', missing: [], status: 'pending_review' };
+        }
+      }
+      results.push(result);
+      if (typeof opts.onProgress === 'function') opts.onProgress(i + 1, ids.length, result);
+    }
+    return results;
+  }
+
+  /** « 3 soumises à validation, 2 bloquées (photo : 2 ; mentions obligatoires : 1), 1 ignorée » */
+  function summarizeSubmitAll(results) {
+    const list = results || [];
+    const done = list.filter(r => r.outcome === 'submitted').length;
+    const blocked = list.filter(r => r.outcome === 'blocked');
+    const skipped = list.filter(r => r.outcome === 'skipped').length;
+    const parts = [plural(done, 'soumise à validation', 'soumises à validation')];
+    if (blocked.length) {
+      const counts = new Map();
+      blocked.forEach(r => (r.missing && r.missing.length ? r.missing.map(c => BLOCK_SHORT[c] || c) : ['autre raison']).forEach(k => counts.set(k, (counts.get(k) || 0) + 1)));
+      parts.push(`${plural(blocked.length, 'bloquée', 'bloquées')} (${Array.from(counts.entries()).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} : ${n}`).join(' ; ')})`);
+    }
+    if (skipped) parts.push(plural(skipped, 'ignorée (pas en brouillon)', 'ignorées (pas en brouillon)'));
+    return parts.join(', ');
+  }
+
   /* ---------------- RPC wrappers ---------------- */
   let clientModule = supabaseClientModule;
   function svc() {
@@ -305,7 +365,7 @@
     statusInfo, statusLabel, canSubmit,
     precheck, checklist, missingText, missingFromMessage,
     describeError, shortReason,
-    planBulk, runBulk, summarize,
+    planBulk, runBulk, summarize, submitAllReady, summarizeSubmitAll,
     submitListing, withdrawSubmission, listStatuses, returnToDraft,
     _setClientModuleForTests(m) { clientModule = m; },
     _setComplianceModuleForTests(m) { complianceModule = m; }

@@ -585,6 +585,7 @@ function showStatus(type, message) {
 
 async function openDetail(kind, id) {
   detailKind = kind; detailId = id;
+  hideExtraPartnerViews();
   document.getElementById('view-dashboard').style.display = 'none';
   document.getElementById('view-detail').style.display = '';
   document.getElementById('dash-partner-name-2').textContent = document.getElementById('dash-partner-name').textContent;
@@ -1727,14 +1728,27 @@ async function handlePartnerSignOut() {
   document.getElementById('view-dashboard').style.display = 'none';
   document.getElementById('view-detail').style.display = 'none';
   document.getElementById('view-leads').style.display = 'none';
+  hideExtraPartnerViews();
   document.getElementById('view-signup').style.display = 'none';
   document.getElementById('view-login').style.display = '';
   document.getElementById('login-email').value = '';
   document.getElementById('login-password').value = '';
 }
 
-/* ---------------- Navigation between Portfolio / Detail / Leads ---------------- */
+/* ---------------- Navigation between Portfolio / Detail / Leads / Import / Feed ---------------- */
+function hideExtraPartnerViews() {
+  ['view-import', 'view-feed'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+}
+/** Shows one dashboard section (import.js, feed.js), the agency name in its header. */
+function partnerShowView(id) {
+  document.querySelectorAll('section.dash-shell').forEach(el => { el.style.display = el.id === id ? '' : 'none'; });
+  const name = document.getElementById('dash-partner-name').textContent;
+  document.querySelectorAll('.partner-name-copy').forEach(el => { el.textContent = name; });
+  window.scrollTo(0, 0);
+}
+
 function showPortfolioView() {
+  hideExtraPartnerViews();
   document.getElementById('view-detail').style.display = 'none';
   document.getElementById('view-leads').style.display = 'none';
   document.getElementById('view-dashboard').style.display = '';
@@ -1742,6 +1756,7 @@ function showPortfolioView() {
 }
 
 function showLeadsView() {
+  hideExtraPartnerViews();
   document.getElementById('view-dashboard').style.display = 'none';
   document.getElementById('view-detail').style.display = 'none';
   document.getElementById('view-leads').style.display = '';

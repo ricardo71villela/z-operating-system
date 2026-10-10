@@ -1,7 +1,7 @@
 /* ============================================================
    Z FIND — agency portfolio import / re-import, end to end on an
    in-memory Postgres (PGlite) with a Supabase-shaped stub.
-   The REAL browser code runs: zfind-admin import.js (Poliris reader,
+   The REAL browser code runs: services/listing-import (Poliris reader,
    planSync, applyPlan), zfind-web services/admin.js (the Admin
    commands), listing-compliance.js and zfind-admin followup.js (photo
    queue). The stub only translates supabase-js calls into SQL, as the
@@ -36,7 +36,7 @@ const FIND = path.join(ROOT, 'apps', 'find');
 const MIG = name => fs.readFileSync(path.join(ROOT, 'infrastructure', 'supabase', 'migrations', name), 'utf8');
 const require = createRequire(import.meta.url);
 const C = require(path.join(FIND, 'apps', 'zfind-web', 'src', 'services', 'listing-compliance.js'));
-const P = require(path.join(FIND, 'apps', 'zfind-admin', 'src', 'poliris.js'));
+const P = require(path.join(FIND, 'apps', 'zfind-web', 'src', 'services', 'listing-import', 'poliris.js'));
 const { safeQuery } = require(path.join(FIND, 'apps', 'zfind-web', 'src', 'services', 'supabaseClient.js'));
 const FIX = name => new Uint8Array(fs.readFileSync(path.join(FIND, 'tests', 'fixtures', 'poliris', name)));
 
@@ -206,7 +206,7 @@ C._setClientModuleForTests(sbModule);
 const win = { ZFindServices: { supabaseClient: sbModule, imageOptimize: {}, poliris: P, listingCompliance: C } };
 const sandbox = { window: win, TextDecoder, console, Intl, fetch: async () => ({}) };
 vm.createContext(sandbox);
-for (const f of ['apps/zfind-web/src/services/admin.js', 'apps/zfind-admin/src/import.js', 'apps/zfind-admin/src/followup.js']) vm.runInContext(fs.readFileSync(path.join(FIND, f), 'utf8'), sandbox, { filename: f });
+for (const f of ['apps/zfind-web/src/services/admin.js', 'apps/zfind-web/src/services/listing-import/listing-import.js', 'apps/zfind-admin/src/followup.js']) vm.runInContext(fs.readFileSync(path.join(FIND, f), 'utf8'), sandbox, { filename: f });
 const { admin, listingImport: imp, followup } = win.ZFindServices;
 check('Admin scripts load: admin, listingImport, followup', !!(admin && imp && followup && imp.planSync));
 
