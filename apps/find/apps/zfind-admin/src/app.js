@@ -96,6 +96,7 @@ function render() {
     agencias: adminState.id ? renderAgenciaDetail : renderAgenciasList,
     inscricoes: renderSignupsList,
     importar: renderImport,
+    flux: renderFeeds, // feeds.js
     estimacoes: renderEstimationsList,
     avaliacoes: renderReviewsList,
     conformite: adminState.id ? renderComplianceDetail : renderComplianceQueue, // compliance.js
@@ -365,7 +366,7 @@ async function importReadFile() {
   const svc = window.ZFindServices.listingImport;
   let table;
   try { table = await svc.readFile(file); }
-  catch (e) { showStatus('error', /annonces\.csv/.test(e.message) ? 'Le ZIP ne contient pas de fichier annonces.csv.' : 'Impossible de lire le fichier (Poliris, CSV, ZIP, XLSX, XLS ou ODS).'); return; }
+  catch (e) { showStatus('error', /trop volumineux/.test(e.message) ? e.message : /^Aucun fichier annonces/.test(e.message) ? 'Le ZIP ne contient pas de fichier annonces.csv.' : 'Impossible de lire le fichier (Poliris, CSV, ZIP, XLSX, XLS ou ODS).'); return; }
   if (!table.headers.length || !table.records.length) { showStatus('error', 'Le fichier ne contient aucune ligne d’annonce.'); return; }
   importState.table = table;
   importState.fileName = file.name;

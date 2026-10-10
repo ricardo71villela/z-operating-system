@@ -45,6 +45,8 @@ function build() {
   const communeJs = readPartner('commune.js');
   const complianceJs = readPartner('compliance.js'); // « Mentions obligatoires (France) »
   const submissionJs = readPartner('submission.js'); // « Soumettre à validation »
+  const importJs = readPartner('import.js'); // « Importer mes annonces »
+  const feedJs = readPartner('feed.js'); // « Flux automatique »
 
   // Genuinely reused, not copied:
   const vendorSupabase = readWeb('vendor-supabase.js');
@@ -60,6 +62,8 @@ function build() {
   const imageOptimizeService = readWeb('services/image-optimize.js');
   const listingComplianceService = readWeb('services/listing-compliance.js'); // shared with Admin
   const listingSubmissionService = readWeb('services/listing-submission.js'); // shared with Admin (statuses, readiness, bulk)
+  const polirisService = readWeb('services/listing-import/poliris.js'); // shared with Admin and /api/feed-sync
+  const listingImportService = readWeb('services/listing-import/listing-import.js'); // shared with Admin and /api/feed-sync
 
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
@@ -87,10 +91,14 @@ function build() {
     + proOfferService + '\n'
     + listingComplianceService + '\n'
     + listingSubmissionService + '\n'
+    + polirisService + '\n'
+    + listingImportService + '\n'
     + signupJs + '\n'
     + communeJs + '\n'
     + complianceJs + '\n'
     + submissionJs + '\n'
+    + importJs + '\n'
+    + feedJs + '\n'
     + appJs
     + '\n</script>\n</body>\n</html>\n';
 

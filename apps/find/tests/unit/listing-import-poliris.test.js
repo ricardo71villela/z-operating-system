@@ -1,17 +1,17 @@
 /* Contract: Admin import of an agency portfolio — Poliris / SeLoger format,
    French mandatory information built from the file, and re-import as a
-   synchronisation (create / update / archive), zfind-admin/src/poliris.js
-   + import.js. Fixtures: tests/fixtures/poliris (annonces v1 in UTF-8 and
+   synchronisation (create / update / archive), zfind-web/src/services/listing-import/
+   poliris.js + listing-import.js (shared by Admin, Partner and /api/feed-sync). Fixtures: tests/fixtures/poliris (annonces v1 in UTF-8 and
    Windows-1252, the next export v2, a spreadsheet export with the
    mandatory-information columns, the agency ZIP). No network. */
 'use strict';
 const path = require('path');
 const fs = require('fs');
 const assert = require('assert');
-const ADMIN = path.join(__dirname, '..', '..', 'apps', 'zfind-admin', 'src');
+const ADMIN = path.join(__dirname, '..', '..', 'apps', 'zfind-web', 'src', 'services', 'listing-import');
 const FIX = path.join(__dirname, '..', 'fixtures', 'poliris');
 const P = require(path.join(ADMIN, 'poliris.js'));
-const imp = require(path.join(ADMIN, 'import.js'));
+const imp = require(path.join(ADMIN, 'listing-import.js'));
 const C = require(path.join(__dirname, '..', '..', 'apps', 'zfind-web', 'src', 'services', 'listing-compliance.js'));
 let passed = 0;
 function check(label, value, extra) { if (!value && extra !== undefined) console.error(JSON.stringify(extra, null, 1)); assert(value, label); passed += 1; console.log('PASS:', label); }
@@ -181,7 +181,7 @@ check('portfolio: live listing per reference (French text), no reference / remov
   const fakeSb = { getSupabaseClient: () => ({ rpc: async () => ({ data: {}, error: null }) }) };
   const vm = require('vm');
   const sandbox = { window: { ZFindServices: { supabaseClient: fakeSb, poliris: P, listingCompliance: C } }, TextDecoder, console, Intl };
-  vm.runInNewContext(fs.readFileSync(path.join(ADMIN, 'import.js'), 'utf8'), sandbox, { filename: 'import.js' });
+  vm.runInNewContext(fs.readFileSync(path.join(ADMIN, 'listing-import.js'), 'utf8'), sandbox, { filename: 'import.js' });
   const svc = sandbox.window.ZFindServices.listingImport;
   const plan2 = svc.planSync(rows2, portfolio, { country: 'FR', fullSync: true, lineOffset: 1 });
   const out = await svc.applyPlan(plan2, ctx);

@@ -1,34 +1,52 @@
 /* ============================================================
-   Z FIND ADMIN — services/listingImport (window.ZFindServices.listingImport)
+   Z FIND — services/listing-import (window.ZFindServices.listingImport)
    ============================================================
-   « Nous chargeons pour vous » : an agency sends the export of its
-   software and Z Find loads — then keeps up to date — its portfolio.
+   Shared by the Admin (« Nous chargeons pour vous »), the Partner panel
+   (« Importer mes annonces ») and the site's nightly feed job
+   (/api/feed-sync, « Flux automatique »): an agency's software export
+   becomes — then keeps up to date — its portfolio on Z Find. The same
+   reader, mapping, normalisation, sync plan and writer run in the
+   browser and in Node (no DOM needed outside readFile / loadScript).
 
    Input formats
    - Poliris / SeLoger (annonces.csv, "a"!#"b", no header, fixed
      columns; alone or in the agency’s ZIP with the photo files):
-     services/poliris (window.ZFindServices.poliris), auto-detected;
+     services/listing-import/poliris.js (window.ZFindServices.poliris), auto-detected;
    - any CSV / Excel table with a header row (separators ; , tab |,
-     SheetJS for Excel): the Admin maps the columns once (FIELDS).
+     SheetJS for Excel — browser only): columns mapped once (FIELDS).
    Files are decoded as UTF-8, or Windows-1252 / ISO-8859-1 when they
    are not valid UTF-8 (French Excel and most agency software).
+   Limits (LIMITS): ZIP 50 Mo, CSV / Excel 20 Mo, 2 000 listings per import.
 
    Re-import = synchronisation, per agency (planSync / applyPlan)
    - match: same agency (representations.partner_id) + same agency
      reference (properties.agency_reference, case-insensitive);
-   - new reference → property + DRAFT listing + French content, through
-     the same commands as by hand (zfind_create_property,
-     zfind_update_asset, zfind_set_asset_commune,
-     zfind_admin_create_initial_listing, listing commercial terms,
-     listing_content). Nothing is published;
+   - new reference → property + DRAFT listing + French content. Nothing
+     is published. Who writes is a « writer »:
+       adminWriter: the Admin commands (zfind_create_property,
+         zfind_update_asset, zfind_set_asset_commune,
+         zfind_admin_create_initial_listing, listing commercial terms,
+         listing_content, zfind_admin_transition_listing);
+       rpcWriter: Partner commands only, each one checking that the
+         caller's agency controls the asset (zfind_create_property,
+         zfind_update_asset, zfind_set_asset_commune,
+         zfind_partner_ensure_draft_listing,
+         zfind_partner_update_listing_commercial,
+         zfind_partner_upsert_listing_content,
+         zfind_partner_archive_imported_listing,
+         zfind_partner_queue_listing_photos — migration
+         20261010120000). The Partner panel calls them with its own
+         session; the nightly job calls them through zfind_feed_call,
+         as the agency, never with more rights;
    - known reference → only what changed: price / rent, surfaces, rooms,
      DPE, charges, French title / description, new photo links (queued,
      never twice: zfind_media_import_queue is unique on listing+url) and
      the mandatory information;
    - « Import complet du portefeuille »: that agency’s listings with an
-     agency reference that are absent from the file are archived with
-     the lifecycle command zfind_admin_transition_listing(…,'archived')
-     — never deleted, other agencies never touched.
+     agency reference that are absent from the file are archived —
+     never deleted, other agencies never touched. The nightly job
+     archives nothing when the feed is empty or lost more than half of
+     its listings since the last run (feedSafety: « à vérifier »).
    A preview (planSync, read only) is shown before anything is written.
 
    French mandatory information (France, residential sale / rent)
@@ -37,7 +55,7 @@
      with zfind_save_listing_compliance once the listing exists: the
      listing lands in « Mentions obligatoires à valider ». The RPC
      accepts partial facts; what is missing is reported per row
-     (« mentions incomplètes : … ») so the Admin knows what to ask.
+     (« mentions incomplètes : … »).
      Compliance never blocks the import of the listing itself.
    - on re-import, facts from the file are merged over the stored ones
      (manual answers kept); a PUBLISHED listing’s facts are never
@@ -48,7 +66,7 @@
 
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
-    module.exports = factory(null, require('./poliris'), require('../../zfind-web/src/services/listing-compliance.js'));
+    module.exports = factory(null, require('./poliris.js'), require('../listing-compliance.js'));
   } else {
     root.ZFindServices = root.ZFindServices || {};
     const S = root.ZFindServices;
@@ -137,6 +155,50 @@
     const poliris = P();
     if (poliris && poliris.looksLikePoliris(text)) return poliris.toTable(text);
     return toTable(parseCsv(text, detectDelimiter(text)));
+  }
+
+  /* ---------------- limits ---------------- */
+  const MB = 1024 * 1024;
+  const LIMITS = Object.freeze({ zipBytes: 50 * MB, textBytes: 20 * MB, rows: 2000 });
+  const fmtInt = n => new Intl.NumberFormat('fr-FR').format(n);
+  const isZipName = name => /\.zip$/i.test(String(name || ''));
+  /** ZIP files start with « PK\x03\x04 » (an empty archive with « PK\x05\x06 »). */
+  function looksLikeZip(bytes) {
+    return !!bytes && bytes.length >= 4 && bytes[0] === 0x50 && bytes[1] === 0x4b && (bytes[2] === 3 || bytes[2] === 5) && (bytes[3] === 4 || bytes[3] === 6);
+  }
+  /** French message when a file is too large for one import, else null. */
+  function fileSizeError(name, size, zip) {
+    const asZip = zip === undefined ? isZipName(name) : !!zip;
+    const max = asZip ? LIMITS.zipBytes : LIMITS.textBytes;
+    if (!(Number(size) > 0)) return 'Le fichier est vide.';
+    if (Number(size) > max) return `Fichier trop volumineux (${fmtNum(Number(size) / MB)} Mo) : ${asZip ? 'un ZIP' : 'un fichier CSV ou Excel'} est limité à ${max / MB} Mo. Exportez sans les photos (liens) ou en plusieurs fois.`;
+    return null;
+  }
+  /** French message when a file has more listings than one import takes, else null. */
+  function rowCountError(count) {
+    if (Number(count) > LIMITS.rows) return `Le fichier contient ${fmtInt(count)} annonces : ${fmtInt(LIMITS.rows)} au maximum par import. Exportez votre portefeuille en plusieurs fichiers (par exemple ventes et locations).`;
+    return null;
+  }
+
+  /** Records the import will consider (grouped Poliris files: one agency id). */
+  function recordsInScope(table, agencyId) {
+    const records = (table && table.records) || [];
+    return agencyId ? records.filter(r => !r.agencyId || r.agencyId === agencyId) : records;
+  }
+
+  /* ---------------- feed safety (nightly job) ----------------
+     A feed that suddenly comes back empty, or with less than half of the
+     listings of the last good run, is far more often a broken export
+     than a portfolio sold overnight: nothing is archived that night and
+     the feed is flagged « à vérifier » (the agency and Z Find are told). */
+  function feedSafety(previousCount, currentCount) {
+    const prev = Number(previousCount) || 0;
+    const cur = Number(currentCount) || 0;
+    if (cur <= 0) return { allowArchive: false, flag: 'empty', message: 'Le flux ne contient aucune annonce : aucune annonce n’a été retirée. À vérifier.' };
+    if (prev > 0 && cur < prev * 0.5) {
+      return { allowArchive: false, flag: 'drop', message: `Le flux contient ${fmtInt(cur)} annonce${cur > 1 ? 's' : ''} contre ${fmtInt(prev)} lors de la dernière synchronisation (baisse de plus de moitié) : aucune annonce n’a été retirée. À vérifier.` };
+    }
+    return { allowArchive: true, flag: null, message: '' };
   }
 
   /* ---------------- column mapping (header CSV / Excel) ----------------
@@ -587,7 +649,8 @@
   }
 
   /** rows (normaliseRow) + the agency’s portfolio → the plan shown before anything is written.
-      opts: { country, fullSync, agencyId (grouped Poliris files: only that agency’s lines) }. */
+      opts: { country, fullSync, agencyId (grouped Poliris files: only that agency’s lines),
+      lineOffset, archiveBlockedReason (nothing archived, the reason shown instead) }. */
   function planSync(rows, portfolio, opts) {
     const o = opts || {};
     const byRef = new Map();
@@ -615,7 +678,8 @@
       if (diff.changes.length || diff.notes.some(n => /^Annonce en ligne/.test(n))) plan.updates.push(item); else plan.unchanged.push(item);
     });
     if (plan.fullSync) {
-      if (!seen.size) plan.archiveBlocked = 'Aucune référence reconnue dans le fichier : rien n’est retiré.';
+      if (o.archiveBlockedReason) plan.archiveBlocked = o.archiveBlockedReason;
+      else if (!seen.size) plan.archiveBlocked = 'Aucune référence reconnue dans le fichier : rien n’est retiré.';
       else {
         (portfolio || []).forEach(e => {
           if (!e.refKey || !e.listing || e.listing.status === 'archived' || seen.has(e.refKey)) return;
@@ -649,6 +713,8 @@
         const fr = (live.listing_content || []).find(c => c.locale === 'fr') || (live.listing_content || [])[0] || {};
         Object.assign(entry, { propertyId: p.id, property: p, representationId: rep.id, archivedOnly: false });
         entry.listing = { id: live.id, status: live.status, transactionType: live.transaction_type, rentalPeriod: live.rental_period, price: live.price_current, createdAt: live.created_at, title: fr.title || '', description: fr.description || '' };
+        // zfind_partner_import_portfolio carries the photo links already queued for the listing.
+        if (Array.isArray(live.queued_urls)) entry.queuedUrls = live.queued_urls.map(String);
       } else if (!entry.listing && listings.length) entry.archivedOnly = true;
       byRef.set(key, entry);
     });
@@ -686,23 +752,119 @@
     return entries;
   }
 
-  async function resolveCommune(country, postcode, city) {
+  /** Commune of a row: one match, else the one whose name matches the city. search(country, query) → { data, error }. */
+  async function resolveCommuneWith(search, country, postcode, city) {
     const q = postcode || city;
     if (!q) return null;
-    const { data } = await client().rpc('zfind_commune_search', { p_country: country, p_query: fold(q) });
+    const { data } = await search(country, fold(q));
     const list = data || [];
     if (!list.length) return null;
     if (list.length === 1) return list[0];
     const c = fold(city);
     return list.find(x => fold(x.name) === c) || (c ? list.find(x => fold(x.name).startsWith(c) || c.startsWith(fold(x.name))) : null) || null;
   }
+  const adminCommuneSearch = (country, query) => client().rpc('zfind_commune_search', { p_country: country, p_query: query });
+  async function resolveCommune(country, postcode, city) { return resolveCommuneWith(adminCommuneSearch, country, postcode, city); }
 
-  /* ---------------- writing (browser) ---------------- */
+  /* ---------------- writers ----------------
+     The same plan is written by the Admin (its commands, any agency it
+     picks) or by the agency itself (Partner commands, its own agency
+     only — from the panel, or from the nightly job acting as the agency).
+     Every method returns { data, error } like supabase-js. */
+
+  /** Admin: exactly the calls the Admin import always made. */
+  function adminWriter(admin, partnerId) {
+    return {
+      kind: 'admin',
+      createProperty: f => admin.createProperty(f),
+      updateProperty: (id, f) => admin.updateProperty(id, f),
+      communeSearch: adminCommuneSearch,
+      setCommune: (id, country, code) => client().rpc('zfind_set_asset_commune', { p_kind: 'property', p_asset_id: id, p_country: country, p_code: code }),
+      createListing: propertyId => admin.createInitialListing('property', propertyId, partnerId),
+      updateCommercial: (id, f) => admin.updateListingCommercial(id, f),
+      upsertContent: (id, locale, f) => admin.upsertListingContent(id, locale, f),
+      archive: id => admin.setListingStatus(id, 'archived'),
+      uploadMedia: admin.uploadListingMedia ? (id, file, opts) => admin.uploadListingMedia(id, file, opts) : null
+    };
+  }
+
+  /* Property fields of an import → zfind_update_asset patch (same keys as services/admin.js updateProperty). */
+  const PROPERTY_PATCH = [
+    ['typology', 'typology'], ['areaSqm', 'area_sqm'], ['floor', 'floor'], ['energyRating', 'energy_rating'],
+    ['energyCertificateNumber', 'energy_certificate_number'], ['streetAddress', 'street_address'], ['postalCode', 'postal_code'],
+    ['latitude', 'latitude'], ['longitude', 'longitude'], ['bedrooms', 'bedrooms'], ['bathrooms', 'bathrooms'],
+    ['grossPrivateAreaSqm', 'gross_private_area_sqm'], ['plotAreaSqm', 'plot_area_sqm'], ['yearBuilt', 'year_built'],
+    ['condoFeeMonthly', 'condo_fee_monthly'], ['imiAnnual', 'imi_annual'], ['agencyReference', 'agency_reference']
+  ];
+  function propertyPatch(fields) {
+    const patch = {};
+    PROPERTY_PATCH.forEach(([k, col]) => { if (fields && fields[k] !== undefined) patch[col] = fields[k]; });
+    return patch;
+  }
+  function commercialPatch(fields) {
+    const f = fields || {}; const patch = {};
+    if (f.transactionType !== undefined) { patch.transaction_type = f.transactionType; patch.rental_period = f.transactionType === 'rent' ? (f.rentalPeriod || 'monthly') : null; }
+    else if (f.rentalPeriod !== undefined) patch.rental_period = f.rentalPeriod;
+    if (f.priceCurrent !== undefined) patch.price_current = f.priceCurrent;
+    if (f.currencyIso !== undefined) patch.currency_iso = f.currencyIso;
+    if (f.priceIsFrom !== undefined) patch.price_is_from = f.priceIsFrom;
+    return patch;
+  }
+
+  /** Partner commands only. rpc(name, args) → Promise<{ data, error }>: the
+      Partner panel's supabase-js client (its own session), or the nightly
+      job's zfind_feed_call (as the agency). opts.uploadMedia: ZIP photos. */
+  function rpcWriter(rpc, opts) {
+    const o = opts || {};
+    const communes = new Map();
+    const call = (name, args) => Promise.resolve(rpc(name, args)).then(r => r || { data: null, error: { message: 'no response' } });
+    const compliance = {
+      getListingCompliance: id => call('zfind_get_listing_compliance', { p_listing_id: id }),
+      saveListingCompliance: (id, facts, evidence) => call('zfind_save_listing_compliance', { p_listing_id: id, p_facts: facts || {}, p_source_evidence: evidence || {} }),
+      describeError: (error, fallback) => (C() ? C().describeError(error, fallback) : fallback || 'erreur')
+    };
+    return {
+      kind: 'partner',
+      compliance,
+      createProperty: f => call('zfind_create_property', { p_subtype: f.subtype, p_typology: f.typology == null ? null : f.typology, p_area_sqm: f.areaSqm == null ? null : f.areaSqm, p_floor: f.floor == null ? null : f.floor, p_zone_lite_id: null, p_development_id: null }),
+      updateProperty: (id, f) => call('zfind_update_asset', { p_kind: 'property', p_asset_id: id, p_patch: propertyPatch(f) }),
+      communeSearch: (country, query) => {
+        const key = country + '|' + query;
+        if (!communes.has(key)) communes.set(key, call('zfind_commune_search', { p_country: country, p_query: query }));
+        return communes.get(key);
+      },
+      setCommune: (id, country, code) => call('zfind_set_asset_commune', { p_kind: 'property', p_asset_id: id, p_country: country, p_code: code }),
+      createListing: propertyId => call('zfind_partner_ensure_draft_listing', { p_kind: 'property', p_asset_id: propertyId }),
+      updateCommercial: (id, f) => call('zfind_partner_update_listing_commercial', { p_listing_id: id, p_patch: commercialPatch(f) }),
+      upsertContent: (id, locale, f) => call('zfind_partner_upsert_listing_content', { p_listing_id: id, p_locale: locale, p_title: f.title == null ? '' : f.title, p_description: f.description == null ? null : f.description }),
+      archive: id => call('zfind_partner_archive_imported_listing', { p_listing_id: id }),
+      queuePhotos: (id, urls, offset) => call('zfind_partner_queue_listing_photos', { p_listing_id: id, p_urls: (urls || []).slice(0, 40), p_offset: Math.max(0, Math.min(Number(offset) || 0, 40)) }),
+      portfolio: async () => {
+        const r = await call('zfind_partner_import_portfolio', {});
+        if (r.error) return { data: null, error: r.error };
+        return { data: portfolioFromRows(Array.isArray(r.data) ? r.data : []), error: null };
+      },
+      uploadMedia: o.uploadMedia || null
+    };
+  }
+
+  /** Queues the photo links of applyPlan's photoJobs (Partner / nightly job). Returns the number of links sent. */
+  async function queuePhotoJobs(writer, jobs) {
+    let n = 0;
+    for (const j of jobs || []) {
+      if (!writer.queuePhotos || !j.urls.length) continue;
+      const r = await writer.queuePhotos(j.listingId, j.urls, j.offset);
+      if (r && !r.error) n += j.urls.length;
+    }
+    return n;
+  }
+
+  /* ---------------- writing ---------------- */
 
   const step = async (label, fn) => { const r = await fn(); if (r && r.error) throw new Error(`${label} : ${r.error.message || r.error.type || 'erreur'}`); return r && r.data; };
 
-  async function importRow(row, partnerId, country, admin, communeResolver) {
-    const prop = await step('bien', () => admin.createProperty({ subtype: row.subtype, typology: row.typology, areaSqm: row.areaSqm, floor: row.floor }));
+  async function importRowWith(writer, row, country, communeResolver) {
+    const prop = await step('bien', () => writer.createProperty({ subtype: row.subtype, typology: row.typology, areaSqm: row.areaSqm, floor: row.floor }));
     const propertyId = prop && (prop.id || (Array.isArray(prop) && prop[0] && prop[0].id));
     if (!propertyId) throw new Error('bien : identifiant manquant');
     const extra = {};
@@ -719,23 +881,28 @@
     if (row.address) extra.streetAddress = row.address;
     if (row.latitude != null && row.longitude != null) { extra.latitude = row.latitude; extra.longitude = row.longitude; }
     if (row.reference) extra.agencyReference = row.reference;
-    if (Object.keys(extra).length) await step('caractéristiques', () => admin.updateProperty(propertyId, extra));
+    if (Object.keys(extra).length) await step('caractéristiques', () => writer.updateProperty(propertyId, extra));
     let commune = null;
-    const found = await (communeResolver || resolveCommune)(country, row.postcode, row.city);
+    const found = await (communeResolver || ((c, p, ci) => resolveCommuneWith(writer.communeSearch, c, p, ci)))(country, row.postcode, row.city);
     if (found) {
-      const set = await client().rpc('zfind_set_asset_commune', { p_kind: 'property', p_asset_id: propertyId, p_country: country, p_code: found.code });
+      const set = await writer.setCommune(propertyId, country, found.code);
       if (!set.error) commune = found.name;
     }
-    const listing = await step('annonce', () => admin.createInitialListing('property', propertyId, partnerId));
+    const listing = await step('annonce', () => writer.createListing(propertyId));
     const listingId = listing && listing.id;
-    await step('prix', () => admin.updateListingCommercial(listingId, { transactionType: row.transaction, rentalPeriod: row.rentalPeriod, priceCurrent: row.price, currencyIso: 'EUR', priceIsFrom: false }));
-    await step('texte', () => admin.upsertListingContent(listingId, 'fr', { title: row.title, description: row.description || '' }));
+    await step('prix', () => writer.updateCommercial(listingId, { transactionType: row.transaction, rentalPeriod: row.rentalPeriod, priceCurrent: row.price, currencyIso: 'EUR', priceIsFrom: false }));
+    await step('texte', () => writer.upsertContent(listingId, 'fr', { title: row.title, description: row.description || '' }));
     return { propertyId, listingId, commune };
+  }
+
+  /** Admin signature kept: property + DRAFT listing for partnerId through the Admin commands. */
+  async function importRow(row, partnerId, country, admin, communeResolver) {
+    return importRowWith(adminWriter(admin, partnerId), row, country, communeResolver);
   }
 
   function evidenceOf(source) {
     const s = source || {};
-    return { source: 'admin_import', format: s.format || 'csv', file: s.fileName || null, version: s.version || null, imported_at: new Date().toISOString() };
+    return { source: s.source || 'admin_import', format: s.format || 'csv', file: s.fileName || null, version: s.version || null, imported_at: new Date().toISOString() };
   }
 
   async function saveFacts(compliance, listingId, facts, source) {
@@ -744,32 +911,41 @@
     return r.error ? `mentions non enregistrées : ${compliance.describeError(r.error, 'erreur')}` : null;
   }
 
-  /** Writes a plan. ctx: { partnerId, country, admin, compliance (listing-compliance.js),
-      source: { format, fileName, version }, zipPhoto(name) → Blob|null, communeResolver }.
+  /** Writes a plan. ctx: { writer (adminWriter / rpcWriter) — or, as before, partnerId + admin
+      (services/admin.js: the Admin commands) —, country, compliance (listing-compliance.js;
+      rpcWriter brings its own), source: { source, format, fileName, version },
+      zipPhoto(name) → Blob|Buffer|null, communeResolver, deadline (ms: the nightly job stops
+      starting new items after it; what is left is done on the next run) }.
       onProgress(done, total, result). One item never stops the others.
-      Returns results (one per created / updated / archived / error / unchanged item) and
-      photoJobs ({ listingId, urls, offset }) for the photo queue. */
+      Returns results (one per created / updated / archived / error / unchanged item),
+      photoJobs ({ listingId, urls, offset }) for the photo queue, and interrupted (the
+      deadline was reached: nothing archived). */
   async function applyPlan(plan, ctx, onProgress) {
     const c = ctx || {};
+    const writer = c.writer || adminWriter(c.admin, c.partnerId);
+    const compliance = c.compliance || writer.compliance || null;
     const results = []; const photoJobs = [];
     const total = plan.creates.length + plan.updates.length + plan.archives.length;
-    let done = 0;
-    const push = r => { results.push(r); if (r.kind !== 'error' && r.kind !== 'unchanged') { done += 1; if (onProgress) onProgress(done, total, r); } };
+    let done = 0; let interrupted = false;
+    const late = () => { if (!interrupted && c.deadline && Date.now() > c.deadline) interrupted = true; return interrupted; };
+    const push = r => { results.push(r); if (r.kind !== 'error' && r.kind !== 'unchanged' && r.status !== 'pending') { done += 1; if (onProgress) onProgress(done, total, r); } };
+    const postpone = (kind, item, reference) => results.push({ kind, status: 'pending', line: item.line == null ? null : item.line, reference, message: 'Reporté à la prochaine synchronisation (temps écoulé)', compliance: '' });
     plan.errors.forEach(e => results.push({ kind: 'error', status: 'error', line: e.line, reference: e.row.reference, message: e.message }));
 
     for (const item of plan.creates) {
       const { row } = item;
+      if (late()) { postpone('create', item, row.reference); continue; }
       try {
-        const r = await importRow(row, c.partnerId, c.country, c.admin, c.communeResolver);
+        const r = await importRowWith(writer, row, c.country, c.communeResolver);
         const details = [r.commune ? `Commune : ${r.commune}` : 'Commune à définir'].concat(item.notes || []);
         let complianceText = '';
         if (item.compliance && item.compliance.applicable) {
-          const err = await saveFacts(c.compliance, r.listingId, item.compliance.facts, c.source);
+          const err = await saveFacts(compliance, r.listingId, item.compliance.facts, c.source);
           complianceText = err || item.compliance.text;
         }
         if (row.photos.length) photoJobs.push({ listingId: r.listingId, urls: row.photos.slice(0, 40), offset: 0 });
-        if (row.photoFiles.length && c.zipPhoto) {
-          const n = await uploadZipPhotos(c.admin, r.listingId, row.photoFiles, c.zipPhoto);
+        if (row.photoFiles.length && c.zipPhoto && writer.uploadMedia) {
+          const n = await uploadZipPhotos(writer, r.listingId, row.photoFiles, c.zipPhoto);
           details.push(`${n} photo(s) du ZIP ajoutée(s)`);
         }
         push(Object.assign({ kind: 'create', status: 'ok', line: item.line, reference: row.reference, message: details.join(' · '), compliance: complianceText }, r));
@@ -779,15 +955,16 @@
     for (const item of plan.updates) {
       const { row, entry } = item;
       const listingId = entry.listing.id;
+      if (late()) { postpone('update', item, row.reference); continue; }
       const applied = []; const failed = [];
       const run = async (label, fn) => { try { await step(label, fn); return true; } catch (e) { failed.push(e.message); return false; } };
       const of = group => item.changes.filter(x => x.group === group);
-      if (Object.keys(item.commercial).length && await run('prix', () => c.admin.updateListingCommercial(listingId, item.commercial))) applied.push(...of('commercial'));
-      if (Object.keys(item.property).length && await run('caractéristiques', () => c.admin.updateProperty(entry.propertyId, item.property))) applied.push(...of('property'));
-      if (Object.keys(item.content).length && await run('texte', () => c.admin.upsertListingContent(listingId, 'fr', item.content))) applied.push(...of('content'));
+      if (Object.keys(item.commercial).length && await run('prix', () => writer.updateCommercial(listingId, item.commercial))) applied.push(...of('commercial'));
+      if (Object.keys(item.property).length && await run('caractéristiques', () => writer.updateProperty(entry.propertyId, item.property))) applied.push(...of('property'));
+      if (Object.keys(item.content).length && await run('texte', () => writer.upsertContent(listingId, 'fr', item.content))) applied.push(...of('content'));
       let complianceText = item.compliance ? item.compliance.text : '';
       if (item.facts) {
-        const err = await saveFacts(c.compliance, listingId, item.facts, c.source);
+        const err = await saveFacts(compliance, listingId, item.facts, c.source);
         if (err) { failed.push(err); complianceText = err; } else applied.push(...of('facts'));
       }
       if (item.photos.length) { photoJobs.push({ listingId, urls: item.photos, offset: item.photoOffset }); applied.push(...of('photos')); }
@@ -795,16 +972,18 @@
       push({ kind: 'update', status: failed.length ? 'error' : 'ok', line: item.line, reference: row.reference, listingId, propertyId: entry.propertyId, message: text || 'Aucun changement appliqué', compliance: complianceText });
     }
 
+    // Archiving only after every creation / update of the file was attempted.
     for (const a of plan.archives) {
-      const r = await c.admin.setListingStatus(a.entry.listing.id, 'archived');
-      const msg = r.error ? (c.compliance ? c.compliance.describeError(r.error, 'Retrait impossible') : 'Retrait impossible') : `Retirée (archivée) — absente du fichier, était « ${STATUS_FR[a.status] || a.status} »`;
+      if (interrupted || late()) { results.push({ kind: 'archive', status: 'pending', line: null, reference: a.reference, listingId: a.entry.listing.id, propertyId: a.entry.propertyId, message: 'Non retirée : synchronisation interrompue (temps écoulé), reprise à la prochaine exécution', compliance: '' }); continue; }
+      const r = await writer.archive(a.entry.listing.id);
+      const msg = r.error ? (compliance ? compliance.describeError(r.error, 'Retrait impossible') : 'Retrait impossible') : `Retirée (archivée) — absente du fichier, était « ${STATUS_FR[a.status] || a.status} »`;
       push({ kind: 'archive', status: r.error ? 'error' : 'ok', line: null, reference: a.reference, listingId: a.entry.listing.id, propertyId: a.entry.propertyId, message: msg, compliance: '' });
     }
     plan.unchanged.forEach(u => results.push({ kind: 'unchanged', status: 'ok', line: u.line, reference: u.row.reference, listingId: u.entry.listing.id, propertyId: u.entry.propertyId, message: 'Inchangée', compliance: u.compliance ? u.compliance.text : '' }));
-    return { results, photoJobs };
+    return { results, photoJobs, interrupted };
   }
 
-  async function uploadZipPhotos(admin, listingId, names, zipPhoto) {
+  async function uploadZipPhotos(writer, listingId, names, zipPhoto) {
     let n = 0;
     for (const name of names.slice(0, 40)) {
       try {
@@ -813,11 +992,20 @@
         const ext = (/\.(\w+)$/.exec(name) || [])[1] || 'jpg';
         const type = ext.toLowerCase() === 'png' ? 'image/png' : ext.toLowerCase() === 'gif' ? 'image/gif' : ext.toLowerCase() === 'webp' ? 'image/webp' : 'image/jpeg';
         const file = typeof File === 'function' ? new File([blob], name.split('/').pop(), { type }) : Object.assign(blob, { name });
-        const r = await admin.uploadListingMedia(listingId, file, { isCover: n === 0 });
-        if (!r.error) n += 1;
+        const r = await writer.uploadMedia(listingId, file, { isCover: n === 0 });
+        if (r && !r.error) n += 1;
       } catch (_) { /* one bad photo never stops the import */ }
     }
     return n;
+  }
+
+  /** Results → counts for summaries (« 3 créées, 1 mise à jour… »). */
+  function countResults(results) {
+    const n = (kind, status) => (results || []).filter(r => r.kind === kind && (!status || r.status === status)).length;
+    return {
+      created: n('create', 'ok'), updated: n('update', 'ok'), archived: n('archive', 'ok'), unchanged: n('unchanged'),
+      errors: (results || []).filter(r => r.status === 'error').length, pending: (results || []).filter(r => r.status === 'pending').length
+    };
   }
 
   const STATUS_FR = { draft: 'brouillon', incomplete: 'incomplète', pending_review: 'à vérifier', ready: 'prête à publier', published: 'publiée', suspended: 'suspendue', archived: 'archivée' };
@@ -845,20 +1033,25 @@
       document.head.appendChild(s);
     });
   }
-  /* Excel: SheetJS; ZIP: JSZip — both loaded on demand from cdnjs (Admin only). */
+  /* Excel: SheetJS; ZIP: JSZip — both loaded on demand from cdnjs (browser; the
+     nightly job uses the jszip npm package and reads no Excel). */
   const loadSheetJs = () => loadScript('XLSX', 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
   const loadJsZip = () => loadScript('JSZip', 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
 
   /** ZIP bytes (agency software export: annonces.csv + photos) → table with zipPhoto(name). */
-  async function readZip(bytes, JSZipLib) {
+  async function readZip(bytes, JSZipLib, opts) {
+    const photoType = (opts && opts.photoType) || 'blob'; // Node: 'nodebuffer'
     const zip = await JSZipLib.loadAsync(bytes);
     const files = Object.values(zip.files).filter(f => !f.dir);
     const csv = files.find(f => /(^|\/)annonces?\.(csv|txt)$/i.test(f.name)) || files.find(f => /\.csv$/i.test(f.name));
     if (!csv) throw new Error('Aucun fichier annonces.csv dans le ZIP');
+    // A small ZIP can expand to a huge text: the listings file keeps the CSV limit once unpacked.
+    const unpacked = Number(csv._data && csv._data.uncompressedSize);
+    if (Number.isFinite(unpacked) && unpacked > LIMITS.textBytes) throw new Error(`Le fichier ${csv.name} du ZIP est trop volumineux une fois décompressé (${fmtNum(unpacked / MB)} Mo, ${LIMITS.textBytes / MB} Mo au plus).`);
     const table = readCsvBytes(await csv.async('uint8array'));
     const byName = new Map(files.filter(f => /\.(jpe?g|png|gif|webp|bmp)$/i.test(f.name)).map(f => [f.name.split('/').pop().toLowerCase(), f]));
     table.zipPhotoCount = byName.size;
-    table.zipPhoto = async name => { const f = byName.get(String(name).split('/').pop().toLowerCase()); return f ? f.async('blob') : null; };
+    table.zipPhoto = async name => { const f = byName.get(String(name).split('/').pop().toLowerCase()); return f ? f.async(photoType) : null; };
     table.zipEntry = csv.name;
     return table;
   }
@@ -876,6 +1069,16 @@
     return readCsvBytes(bytes);
   }
 
+  /** Bytes from a feed (Node): ZIP (by its signature, whatever the URL says) or a CSV / Poliris text.
+      JSZipLib: the jszip package. Excel is not read here. */
+  async function readBytes(bytes, JSZipLib) {
+    if (looksLikeZip(bytes)) {
+      if (!JSZipLib) throw new Error('ZIP non pris en charge ici');
+      return readZip(bytes, JSZipLib, { photoType: 'nodebuffer' });
+    }
+    return readCsvBytes(bytes);
+  }
+
   /** The table’s own mapping (Poliris: fixed positions) or the automatic one. */
   function mapFor(table) { return table && table.map ? Object.assign({}, table.map) : autoMap((table && table.headers) || []); }
 
@@ -884,6 +1087,8 @@
     fold, decodeBytes, detectDelimiter, parseCsv, toTable, readCsvBytes, autoMap, mapFor, templateCsv,
     num, yesNo, transactionOf, transactionErrorOf, subtypeOf, typologyOf, dpeOf, dpeStatusOf, feesPayerOf, chargesMethodOf, normalizeRow,
     complianceValues, complianceFor, mergeFacts, diffEntry, planSync, changeText, resultsCsv,
-    portfolioFromRows, loadPortfolio, loadComplianceFor, resolveCommune, importRow, applyPlan, readZip, readFile
+    portfolioFromRows, loadPortfolio, loadComplianceFor, resolveCommune, resolveCommuneWith, importRow, applyPlan, readZip, readFile, readBytes,
+    LIMITS, looksLikeZip, fileSizeError, rowCountError, recordsInScope, feedSafety, countResults,
+    adminWriter, rpcWriter, propertyPatch, commercialPatch, queuePhotoJobs
   });
 });
