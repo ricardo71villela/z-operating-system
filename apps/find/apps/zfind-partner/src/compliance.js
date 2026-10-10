@@ -11,8 +11,9 @@
 
    Saving calls zfind_save_listing_compliance: the record goes (back) to
    « En attente de validation Z Find » whenever the facts change. The
-   Listing lifecycle itself stays with the Admin: a partner cannot move
-   a Listing to « à vérifier » / « publiée » (no partner command exists).
+   agency then submits the draft listing (submission.js,
+   zfind_partner_submit_listing: brouillon -> en attente de validation
+   only); approval and publication stay with Z Find.
    ============================================================ */
 
 const complianceState = { listing: null, property: null, payload: null, profile: null };
@@ -64,11 +65,13 @@ function complianceHostHtml() {
 }
 
 async function loadPartnerCompliance(listing, property) {
-  const host = document.getElementById('partner-compliance-section');
-  if (!host || !listing || !lc()) return;
+  if (!listing || !lc()) return;
   complianceState.listing = listing;
   if (property !== undefined) complianceState.property = property;
   const res = await lc().getListingCompliance(listing.id);
+  submissionSetCompliance(res.error ? null : res.data); // checklist of submission.js
+  const host = document.getElementById('partner-compliance-section');
+  if (!host) return;
   if (res.error) {
     host.innerHTML = `<div class="compliance-head"><h3>Mentions obligatoires (France)</h3></div><p class="compliance-sub">${escapeHtmlPartner(lc().describeError(res.error, 'Impossible de charger les mentions obligatoires.'))}</p>`;
     return;
@@ -137,7 +140,7 @@ function renderPartnerCompliance(payload) {
     </form>
     <div class="compliance-summary" id="compliance-summary" role="alert"></div>
     <div class="compliance-actions">
-      <button type="button" class="btn btn-primary" id="compliance-save" ${locked ? 'disabled' : ''} onclick="savePartnerCompliance()">Enregistrer et soumettre à validation</button>
+      <button type="button" class="btn btn-primary" id="compliance-save" ${locked ? 'disabled' : ''} onclick="savePartnerCompliance()">Enregistrer les mentions</button>
       <span class="compliance-hint">La mise en ligne reste décidée par Z Find une fois les mentions validées.</span>
     </div>`;
   complianceSyncVisibility();
@@ -256,13 +259,15 @@ async function savePartnerCompliance() {
   if (btn) { btn.disabled = true; btn.textContent = 'Envoi…'; }
   const previous = complianceState.payload && complianceState.payload.review_status;
   const result = await svc.saveListingCompliance(listing.id, facts, { channel: 'partner_panel', form: 'fr_compliance_v1', submitted_at: new Date().toISOString() });
-  if (btn) { btn.disabled = false; btn.textContent = 'Enregistrer et soumettre à validation'; }
+  if (btn) { btn.disabled = false; btn.textContent = 'Enregistrer les mentions'; }
   if (result.error) {
     showStatus('error', svc.describeError(result.error, 'Impossible d’enregistrer les mentions obligatoires.'));
     return;
   }
   renderPartnerCompliance(result.data);
+  submissionSetCompliance(result.data);
   const now = result.data && result.data.review_status;
+  if (now === 'pending') offerSubmitAfterCompliance(); // draft listing: « Soumettre à validation » now?
   if (now === 'pending') showStatus('success', 'Mentions enregistrées et transmises à Z Find pour validation.');
   else if (now === 'rejected' && previous === 'rejected') showStatus('error', 'Aucune modification : corrigez les points signalés par Z Find avant de renvoyer les mentions.');
   else showStatus('success', 'Mentions enregistrées (inchangées).');

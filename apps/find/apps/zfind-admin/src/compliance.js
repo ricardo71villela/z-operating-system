@@ -8,6 +8,8 @@
    « Valider » (approved) / « Refuser » (rejected, reason required).
    Publishing stays the existing « Publier » lifecycle action on the
    listing's page: the database gate lets it through once validated.
+   Bulk « Valider » and the « Valider les mentions et publier » shortcut
+   on the listing's page: bulk.js.
    Wording / facts rendering: zfind-web services/listing-compliance.js.
    ============================================================ */
 
@@ -52,19 +54,24 @@ async function renderComplianceQueue() {
     <div class="page-title">Mentions obligatoires à valider</div>
     <p class="muted" style="margin:-8px 0 14px; max-width:760px; font-size:.84rem;">Annonces en France : l’agence saisit les mentions exigées par la loi (DPE, honoraires, copropriété, Géorisques, loyer…). Vérifiez-les puis Validez ou Refusez avec un motif. Une annonce en France ne peut être publiée qu’après validation.</p>
     <div class="status-chips" id="cq-chips">${COMPLIANCE_FILTERS.map(([v, l]) => `<button class="chip${v === f ? ' on' : ''}" data-filter="${v}" onclick="openComplianceQueue('${v}')">${l}</button>`).join('')}</div>
-    <table><thead><tr><th>Agence</th><th>Annonce</th><th>Commune</th><th>Type</th><th>Soumis le</th><th>Saisie</th><th>Statut</th></tr></thead>
-    <tbody id="cq-tbody"><tr><td colspan="7">Chargement…</td></tr></tbody></table>`);
+    ${bulkBarHtml('compliance')}
+    <table><thead><tr>${bulkHeadCell('compliance')}<th>Agence</th><th>Annonce</th><th>Commune</th><th>Type</th><th>Soumis le</th><th>Saisie</th><th>Statut</th></tr></thead>
+    <tbody id="cq-tbody"><tr><td colspan="8">Chargement…</td></tr></tbody></table>`);
   const res = await lcAdmin().adminQueue(f === '' ? null : f);
   const tbody = document.getElementById('cq-tbody');
   if (!tbody) return;
-  if (res.error) { tbody.innerHTML = `<tr><td colspan="7">${escapeHtml(lcAdmin().describeError(res.error, 'Chargement impossible.'))}</td></tr>`; return; }
+  if (res.error) { tbody.innerHTML = `<tr><td colspan="8">${escapeHtml(lcAdmin().describeError(res.error, 'Chargement impossible.'))}</td></tr>`; bulkAfterRows('compliance'); return; }
   const rows = res.data || [];
+  complianceRowsCache = rows; // bulk.js « Valider »
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="muted">${f === 'pending' ? 'Aucune mention à valider. 👍' : 'Aucune annonce avec ce filtre.'}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="muted">${f === 'pending' ? 'Aucune mention à valider. 👍' : 'Aucune annonce avec ce filtre.'}</td></tr>`;
+    bulkAfterRows('compliance');
     return;
   }
+  // Only complete mentions waiting for a decision can be validated in bulk.
   tbody.innerHTML = rows.map(r => `
     <tr data-listing="${escapeHtml(r.listing_id)}" onclick="navigateAdmin('conformite','${escapeHtml(r.listing_id)}')" style="cursor:pointer">
+      ${bulkRowCell('compliance', r.listing_id, r.review_status === 'pending' && !!r.facts_valid)}
       <td>${escapeHtml(r.partner_name || '—')}</td>
       <td>${r.title ? escapeHtml(r.title) : '<span class="muted">(sans titre)</span>'}${r.agency_reference ? `<br><span class="muted">Réf. ${escapeHtml(r.agency_reference)}</span>` : ''}</td>
       <td>${escapeHtml(r.commune || '—')}${r.postal_code ? ` <span class="muted">${escapeHtml(r.postal_code)}</span>` : ''}</td>
@@ -73,6 +80,7 @@ async function renderComplianceQueue() {
       <td>${r.facts_valid ? '<span class="tag tag-active">Complète</span>' : '<span class="tag tag-late">Incomplète</span>'}</td>
       <td>${complianceTag(complianceStatusOfRow(r))}</td>
     </tr>`).join('');
+  bulkAfterRows('compliance');
 }
 
 async function renderComplianceDetail() {
@@ -134,7 +142,8 @@ async function reviewCompliance(listingId, decision) {
   if (decision === 'rejected' && !(await askConfirm('Refuser les mentions ?', `L’agence verra le motif : « ${note} » et devra corriger avant une nouvelle validation.`, 'Refuser'))) return;
   const result = await lcAdmin().reviewListingCompliance(listingId, decision, decision === 'rejected' ? note : null);
   if (result.error) { showStatus('error', lcAdmin().describeError(result.error, 'Impossible d’enregistrer la décision.')); return; }
-  showStatus('success', decision === 'approved' ? 'Mentions validées. L’annonce peut être publiée depuis sa fiche.' : 'Mentions refusées. L’agence voit le motif dans son espace.');
+  showStatus('success', decision === 'approved' ? 'Mentions validées. L’annonce peut être publiée depuis sa fiche.' : 'Mentions refusées. L’agence reçoit le motif par e-mail et le voit dans son espace.');
+  if (decision === 'rejected') bulkNotifyAgencies(); // bulk.js: /api/lead-notify sends the pending notices
   render();
 }
 
@@ -171,9 +180,13 @@ async function loadAssetComplianceLine(listing) {
   const status = row ? complianceStatusOfRow(row) : null;
   if (!status) { host.remove(); return; }
   const blocked = status.code !== 'approved';
+  // Both waiting (mentions to validate, listing to publish): one click.
+  const shortcut = row.review_status === 'pending' && row.facts_valid && ['pending_review', 'ready', 'suspended'].includes(listing.status)
+    ? `<button class="btn btn-primary" id="validate-publish-btn" onclick="validateAndPublish('${escapeHtml(listing.id)}','${escapeHtml(listing.status)}')">Valider les mentions et publier</button>` : '';
   host.innerHTML = `<strong>Mentions obligatoires (France) :</strong> ${complianceTag(status)}
     ${blocked ? '<span class="muted">— la publication sera refusée tant qu’elles ne sont pas validées.</span>' : ''}
-    ${row.review_status && row.review_status !== 'unreviewed' ? `<a class="cq-link" onclick="navigateAdmin('conformite','${escapeHtml(listing.id)}')">Voir les mentions</a>` : ''}`;
+    ${row.review_status && row.review_status !== 'unreviewed' ? `<a class="cq-link" onclick="navigateAdmin('conformite','${escapeHtml(listing.id)}')">Voir les mentions</a>` : ''}
+    ${shortcut}`;
 }
 
 /* ---------------- Dashboard card ---------------- */

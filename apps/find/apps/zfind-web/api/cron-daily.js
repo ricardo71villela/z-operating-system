@@ -163,6 +163,7 @@ async function run(options) {
     await step('leads', () => leadNotify._internals.processPending(100));
     await step('estimations', () => leadNotify._internals.processEstimations(50));
     await step('reminders', () => leadNotify._internals.processReminders(100));
+    await step('reviewNotices', () => leadNotify._internals.processReviewNotices(100));
     await step('invitations', () => sendInvitations(now));
     await step('value', () => sendValueAlerts());
     if (monday) {
