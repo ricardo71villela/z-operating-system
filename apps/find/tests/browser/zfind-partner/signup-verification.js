@@ -179,7 +179,7 @@ async function fillToStep3(page) {
     if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'partner-signup-mobile.png'), fullPage: true });
     await page.click('#su-pane-2 .su-actions a');
     await page.check('input[name="su-role"][value="promoter"]');
-    check('promoter: programme price (no founding-developer seats) and RCS/authorisation card label', (await page.textContent('#su-offer-marks')).includes('149 € HT / programme / mois') && !(await page.textContent('#view-signup .login-editorial')).includes('fondateur') && (await page.textContent('#su-card-label')).includes('immatriculation'));
+    check('promoter: programme price (no founding-developer seats) and RCS/authorisation card label', (await page.textContent('#su-offer-marks')).includes('199 € HT / programme / mois') && !(await page.textContent('#view-signup .login-editorial')).includes('fondateur') && (await page.textContent('#su-card-label')).includes('immatriculation'));
     await page.close();
   }
 

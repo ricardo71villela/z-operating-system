@@ -200,7 +200,7 @@ function renderSignupOfferPanel() {
   }
   const svc = proOffer();
   const lines = svc ? svc.tierLinesFr(p) : [];
-  lead.textContent = `${p.freeMonths} mois gratuits dès votre inscription, quel que soit votre abonnement, sans carte bancaire ni engagement. Ensuite, votre prix est garanti 1 an.`;
+  lead.textContent = `${p.freeMonths} mois gratuits à compter du lancement public de Z Find (ou de votre inscription, si elle est postérieure), quel que soit votre abonnement, sans carte bancaire ni engagement. Ensuite, votre prix est garanti 1 an.`;
   marks.innerHTML = lines.map(([k, v]) => `<div class="mark-row"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
 }
 
