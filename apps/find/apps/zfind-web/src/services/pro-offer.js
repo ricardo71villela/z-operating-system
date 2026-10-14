@@ -24,7 +24,8 @@
   /* Agency subscription grid VALIDATED by the owner (14 Oct 2026). Prices
      excl. VAT, monthly, identical in FR / BE / LU. Three tiers by the number
      of active listings; every tier: 3 months free, then the price is
-     guaranteed for 1 year. Paid highlights (« mises en avant ») only appear
+     guaranteed for 1 year (the free months count from the public launch, or
+     from sign-up if later). Paid highlights (« mises en avant ») only appear
      in their dedicated slots, never inside the search results. Seller leads
      (estimation tool) are each sold to ONE agency only. */
   const PRICES = Object.freeze({
@@ -34,21 +35,21 @@
     premium: 199, premiumHighlightsPerMonth: 3,
     freeMonths: 3, priceGuaranteeMonths: 12, launchRateMonths: 6,
     // Mises en avant (dedicated slots only)
-    highlight7Days: 19, highlight30Days: 49, highlightPack: 179, highlightPackSize: 5, agencyFeaturedMonth: 99,
+    highlight7Days: 9, highlight30Days: 29, highlightPack: 119, highlightPackSize: 5, agencyFeaturedMonth: 99,
     // Seller leads from the estimation tool (exclusive: one agency per lead)
     sellerLead: 49, sellerLeadQualified: 79, qualifiedLeadProjectMonths: 6,
-    // Programmes neufs (developers): launch price list of 3 Oct 2026 — a
-    // separate developer price has NOT been validated yet (question open).
-    developmentMonth: 149
+    // Programmes neufs (developers): 199 € per programme per month, validated
+    // by the owner on 14 Oct 2026.
+    developmentMonth: 199
   });
 
   /* Public launch date of Z Find (ISO 'YYYY-MM-DD'). The 99 € « Essentiel »
      rate applies to agencies that sign up within the first
      PRICES.launchRateMonths months after this date; 129 € after.
-     TODO(owner): set the launch date. While it is null the rule is shown as
-     text (« inscrites dans les 6 premiers mois ») and every sign-up is
-     treated as inside the launch window. */
-  const LAUNCH_DATE = null;
+     Set by the owner on 14 Oct 2026: public launch on 1 December 2026, so
+     the 99 € rate applies to sign-ups up to 31 May 2027. If it is ever set
+     back to null, the rule is shown as text and every sign-up gets 99 €. */
+  const LAUNCH_DATE = '2026-12-01';
 
   /* Self sign-up lives in the Partner app (#inscription opens the form). */
   const SIGNUP_URL = 'https://partner.zfind.online/#inscription';
@@ -80,7 +81,14 @@
   }
   const TIER_NAMES = Object.freeze({ essentiel: 'Essentiel', pro: 'Pro', premium: 'Premium' });
   function dateLabel(d, lang) {
-    return d.toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+    const t = d.toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+    return lang === 'fr' && d.getUTCDate() === 1 ? t.replace(/^1 /, '1er ') : t;
+  }
+  /** « à compter du lancement public de Z Find, le 1 décembre 2026 » (or without the date when LAUNCH_DATE is null). */
+  function launchStartText(lang) {
+    const d = parseDate(LAUNCH_DATE);
+    if (lang === 'fr') return d ? `à compter du lancement public de Z Find, le ${dateLabel(d, 'fr')}` : 'à compter du lancement public de Z Find';
+    return d ? `from Z Find’s public launch on ${dateLabel(d, 'en')}` : 'from Z Find’s public launch';
   }
   /** « pour les agences inscrites dans les 6 premiers mois » or « … inscrites jusqu’au 13 avril 2027 ». */
   function launchWindowText(lang, launchDate) {
@@ -113,7 +121,7 @@
       offersTitle: 'Ce que vous obtenez',
       offers: [
         { title: 'Publication et page agence', body: 'Vos annonces et programmes neufs, votre page agence, vos coordonnées, la réception des demandes des acheteurs et locataires et vos statistiques chaque mois.', model: 'Abonnement Essentiel, Pro ou Premium selon le nombre d’annonces' },
-        { title: 'Mise en avant « À la une »', body: 'Des emplacements dédiés, séparés des résultats : 6 sur chaque page marché, 3 à côté des résultats de recherche. Toujours signalés « À la une », jamais mélangés aux résultats de recherche.', model: 'À partir de 19 € HT les 7 jours' },
+        { title: 'Mise en avant « À la une »', body: 'Des emplacements dédiés, séparés des résultats : 6 sur chaque page marché, 3 à côté des résultats de recherche. Toujours signalés « À la une », jamais mélangés aux résultats de recherche.', model: 'À partir de 9 € HT les 7 jours' },
         { title: 'Programmes neufs', body: 'Page programme avec lots, plans et prix, et une semaine « À la une » au lancement.', model: 'Par programme et par mois' },
         { title: 'Contacts vendeurs', body: 'L’estimation gratuite de Z Find reçoit des demandes de propriétaires (projet, délai, coordonnées). Seuls ceux qui acceptent expressément d’être mis en relation avec une agence sont transmis, à une seule agence partenaire de leur commune.', model: 'Par contact exclusif, à partir de 49 € HT' },
         { title: 'Avis vérifiés et alertes', body: 'Des avis laissés uniquement par des personnes qui vous ont contacté via Z Find, et des alertes e-mail qui ramènent les acheteurs vers vos nouvelles annonces.', model: 'Inclus' }
@@ -156,7 +164,7 @@
       pricesHead: ['Offre', 'Prix', 'Inclus'],
       launchTitle: 'Offre de lancement',
       launch: p => [
-        `${p.freeMonths} mois gratuits dès votre inscription, quel que soit votre abonnement, sans carte bancaire ni engagement.`,
+        `${p.freeMonths} mois gratuits ${launchStartText('fr')} (ou de votre inscription, si elle est postérieure), quel que soit votre abonnement, sans carte bancaire ni engagement.`,
         `Ensuite, votre prix est garanti pendant 1 an.`,
         `Essentiel à ${p.essentiel} € HT par mois ${launchWindowText('fr')} (${p.essentielLater} € HT par mois ensuite).`
       ],
@@ -170,7 +178,7 @@
       offersTitle: 'What you get',
       offers: [
         { title: 'Listings and agency page', body: 'Your listings and new developments, your agency page, your contact details, the enquiries of buyers and tenants, and your statistics every month.', model: 'Essentiel, Pro or Premium subscription depending on your number of listings' },
-        { title: '"Featured" placements', body: 'Dedicated slots, separate from the results: 6 on each market page, 3 next to the search results. Always marked "Featured", never mixed into the search results.', model: 'From €19 excl. VAT for 7 days' },
+        { title: '"Featured" placements', body: 'Dedicated slots, separate from the results: 6 on each market page, 3 next to the search results. Always marked "Featured", never mixed into the search results.', model: 'From €9 excl. VAT for 7 days' },
         { title: 'New developments', body: 'Development page with units, plans and prices, and one "Featured" week at launch.', model: 'Per development and per month' },
         { title: 'Seller leads', body: 'Z Find’s free valuation receives requests from owners (plans, timing, contact details). Only those who expressly agree to be put in touch with an agency are passed on, to a single partner agency in their municipality.', model: 'Per exclusive lead, from €49 excl. VAT' },
         { title: 'Verified reviews and alerts', body: 'Reviews only from people who contacted you through Z Find, and e-mail alerts that bring buyers back to your new listings.', model: 'Included' }
@@ -213,7 +221,7 @@
       pricesHead: ['Offer', 'Price', 'Included'],
       launchTitle: 'Launch offer',
       launch: p => [
-        `${p.freeMonths} months free from sign-up, whatever your subscription, no card and no commitment.`,
+        `${p.freeMonths} months free ${launchStartText('en')} (or from your sign-up, if later), whatever your subscription, no card and no commitment.`,
         'Then your price is guaranteed for 1 year.',
         `Essentiel at €${p.essentiel} excl. VAT a month ${launchWindowText('en')} (€${p.essentielLater} excl. VAT a month after that).`
       ],
@@ -279,5 +287,5 @@
   }
 
   return Object.freeze({ COPY, PRICES, LAUNCH_DATE, TIER_NAMES, SIGNUP_URL, pageHTML, render,
-    launchRateEndsAt, essentielPriceFor, tierFor, launchWindowText, tierLinesFr });
+    launchRateEndsAt, essentielPriceFor, tierFor, launchWindowText, launchStartText, tierLinesFr });
 });

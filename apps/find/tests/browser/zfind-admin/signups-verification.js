@@ -50,7 +50,7 @@ const SIGNUPS = [
   await page.waitForSelector('#sg-tbody tr[data-signup]');
   check('list loads pending sign-ups by default', seen.lists[0].includes('status=eq.pending'));
   const t = await page.textContent('#sg-tbody');
-  check('row shows who, registry, card, offer and status', t.includes('LAC IMMO') && t.includes('12345678200010') && t.includes('CPI 0605') && t.includes('Agence · Essentiel 99 € HT (tarif de lancement) · Pro 149 € · Premium 199 €') && t.includes('À vérifier') && t.includes('Promoteur · 149 € HT / programme / mois') && !t.includes('Fondateur'));
+  check('row shows who, registry, card, offer and status', t.includes('LAC IMMO') && t.includes('12345678200010') && t.includes('CPI 0605') && t.includes('Agence · Essentiel 99 € HT (tarif de lancement) · Pro 149 € · Premium 199 €') && t.includes('À vérifier') && t.includes('Promoteur · 199 € HT / programme / mois') && !t.includes('Fondateur'));
   check('leads column: enquiries during the 3 free months, total, end of free period', t.includes('2 en 3 mois') && t.includes('7 au total') && t.includes('gratuit jusqu’au'));
   check('SIRET links to the public company directory', !!(await page.$('a[href="https://annuaire-entreprises.data.gouv.fr/etablissement/12345678200010"]')));
   if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'admin-inscricoes.png'), fullPage: true });

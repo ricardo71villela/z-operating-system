@@ -74,7 +74,7 @@ async function fillToStep3(page) {
     const offer = await page.textContent('#view-signup .login-editorial');
     check('offer panel from the public price list: 3 months free, price guaranteed 1 year, Essentiel 99 € (first 6 months, then 129 €) / Pro 149 € / Premium 199 €, no founder waves',
       offer.includes('3 mois gratuits') && offer.includes('garanti 1 an') && offer.includes('Essentiel — jusqu’à 25 annonces') && offer.includes('99 € HT / mois') &&
-      offer.includes('6 premiers mois') && offer.includes('puis 129 €') && offer.includes('Pro — 26 à 75 annonces') && offer.includes('149 € HT / mois') &&
+      offer.includes('jusqu’au 31 mai 2027') && offer.includes('puis 129 €') && offer.includes('Pro — 26 à 75 annonces') && offer.includes('149 € HT / mois') &&
       offer.includes('Premium — plus de 75 annonces') && offer.includes('199 € HT / mois') && !/Fondateur|vague|premières agences/.test(offer));
     await page.fill('#su-number', '123456789');
     await page.click('#su-lookup-btn');
@@ -179,7 +179,7 @@ async function fillToStep3(page) {
     if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'partner-signup-mobile.png'), fullPage: true });
     await page.click('#su-pane-2 .su-actions a');
     await page.check('input[name="su-role"][value="promoter"]');
-    check('promoter: programme price (no founding-developer seats) and RCS/authorisation card label', (await page.textContent('#su-offer-marks')).includes('149 € HT / programme / mois') && !(await page.textContent('#view-signup .login-editorial')).includes('fondateur') && (await page.textContent('#su-card-label')).includes('immatriculation'));
+    check('promoter: programme price (no founding-developer seats) and RCS/authorisation card label', (await page.textContent('#su-offer-marks')).includes('199 € HT / programme / mois') && !(await page.textContent('#view-signup .login-editorial')).includes('fondateur') && (await page.textContent('#su-card-label')).includes('immatriculation'));
     await page.close();
   }
 

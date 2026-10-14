@@ -270,17 +270,19 @@ function propertyRow({ id, title, price, city = 'Évian-les-Bains', postal = '74
     proHtml.includes('99 € HT / mois') && proHtml.includes('149 € HT / mois') && proHtml.includes('199 € HT / mois') && proHtml.includes('Premium') &&
     proHtml.includes('Jusqu’à 25 annonces actives') && proHtml.includes('De 26 à 75 annonces actives') && proHtml.includes('Plus de 75 annonces actives') &&
     proHtml.includes('sans engagement') && pro.pageHTML('en').includes('€149 excl. VAT / month') && pro.pageHTML('en').includes('€199 excl. VAT / month'));
-  check('professionals page: highlights (19 € / 7 days, 49 € / 30 days, pack of 5 at 179 €, Agence à la une 99 € per commune) and seller leads (49 € / 79 € qualified)',
-    P.highlight7Days === 19 && P.highlight30Days === 49 && P.highlightPack === 179 && P.highlightPackSize === 5 && P.agencyFeaturedMonth === 99 &&
-    P.sellerLead === 49 && P.sellerLeadQualified === 79 && P.developmentMonth === 149 &&
-    proHtml.includes('19 € HT') && proHtml.includes('179 € HT') && proHtml.includes('99 € HT / commune / mois') && proHtml.includes('jamais mélangées aux résultats de recherche') &&
+  check('professionals page: highlights (9 € / 7 days, 29 € / 30 days, pack of 5 at 119 €, Agence à la une 99 € per commune) and seller leads (49 € / 79 € qualified)',
+    P.highlight7Days === 9 && P.highlight30Days === 29 && P.highlightPack === 119 && P.highlightPackSize === 5 && P.agencyFeaturedMonth === 99 &&
+    P.sellerLead === 49 && P.sellerLeadQualified === 79 && P.developmentMonth === 199 &&
+    proHtml.includes('9 € HT') && proHtml.includes('119 € HT') && proHtml.includes('99 € HT / commune / mois') && proHtml.includes('jamais mélangées aux résultats de recherche') &&
     proHtml.includes('49 € HT / contact') && proHtml.includes('79 € HT / contact') && proHtml.includes('projet de vente dans les 6 mois') && proHtml.includes('une seule agence'));
   check('professionals page: launch offer (3 months free, price guaranteed 1 year, 99 € in the first 6 months then 129 €), no founder waves / seats',
-    proHtml.includes('3 mois gratuits dès votre inscription') && proHtml.includes('garanti pendant 1 an') &&
-    proHtml.includes('inscrites dans les 6 premiers mois après le lancement de Z Find') && proHtml.includes('129 € HT par mois ensuite') &&
-    !/Fondateur|vague|premières agences de chaque pays|Founder/.test(proHtml + pro.pageHTML('en')) && !Object.keys(P).some(k => /founder/i.test(k)) && !proHtml.includes('2027'));
+    proHtml.includes('3 mois gratuits à compter du lancement public de Z Find, le 1er décembre 2026') && proHtml.includes('garanti pendant 1 an') &&
+    proHtml.includes('inscrites jusqu’au 31 mai 2027') && proHtml.includes('129 € HT par mois ensuite') &&
+    !/Fondateur|vague|premières agences de chaque pays|Founder/.test(proHtml + pro.pageHTML('en')) && !Object.keys(P).some(k => /founder/i.test(k)));
   check('launch rule: one LAUNCH_DATE constant; Essentiel 99 € inside the 6-month window, 129 € after; tiers by listing count',
-    pro.LAUNCH_DATE === null && pro.launchRateEndsAt() === null && pro.essentielPriceFor('2030-01-01') === 99 &&
+    pro.LAUNCH_DATE === '2026-12-01' && pro.launchRateEndsAt().toISOString().startsWith('2027-06-01') &&
+    pro.essentielPriceFor('2027-05-31T12:00:00Z') === 99 && pro.essentielPriceFor('2027-06-01T00:00:00Z') === 129 &&
+    pro.launchRateEndsAt(null) === null && pro.essentielPriceFor('2030-01-01', null) === 99 &&
     pro.launchRateEndsAt('2026-11-01').toISOString().startsWith('2027-05-01') &&
     pro.essentielPriceFor('2027-04-30T23:00:00Z', '2026-11-01') === 99 && pro.essentielPriceFor('2027-05-01T00:00:00Z', '2026-11-01') === 129 &&
     pro.launchWindowText('fr', '2026-11-01') === 'pour les agences inscrites jusqu’au 30 avril 2027' &&
