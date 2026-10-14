@@ -29,6 +29,7 @@ import { fileURLToPath } from 'url';
 const ROOT = process.env.ZOS_ROOT || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
 const MIG = name => fs.readFileSync(path.join(ROOT, 'infrastructure', 'supabase', 'migrations', name), 'utf8');
 const COVERAGE_MIG = '20261014120000_z_find_compliance_coverage_be_lu_class_g_v1.sql';
+const CLARIFY_MIG = '20261014180000_z_find_compliance_legal_clarifications_v1.sql';
 const require = createRequire(import.meta.url);
 const C = require(path.join(ROOT, 'apps', 'find', 'apps', 'zfind-web', 'src', 'services', 'listing-compliance.js'));
 
@@ -142,6 +143,13 @@ await db.exec(coverage);
 check('coverage migration applies twice on existing data (idempotent)', true);
 const migrationDml = coverage.replace(/--.*$/gm, '').replace(/\$\$[\s\S]*?\$\$/g, '');
 check('coverage migration updates / deletes no row and drops no table', !/\b(update|delete from|truncate|drop table)\b/i.test(migrationDml.replace(/drop constraint %I/g, '')));
+/* ---------------- the legal-clarifications migration (VEFA provisional classes), twice ---------------- */
+const clarify = MIG(CLARIFY_MIG);
+await db.exec(clarify);
+await db.exec(clarify);
+const clarifyDml = clarify.replace(/--.*$/gm, '').replace(/\$\$[\s\S]*?\$\$/g, '');
+check('legal-clarifications migration applies twice (idempotent), changes no row, no table, no constraint',
+  !/\b(update|delete from|truncate|drop|alter table|insert)\b/i.test(clarifyDml) && /create or replace function public\.zfind_compliance_profile_missing/.test(clarify));
 
 /* ---------- 1. existing listings ---------- */
 const statusOf = async id => (await q('select status from listings where id = $1', [id]))[0].status;
@@ -210,7 +218,8 @@ const V = {
   epc_status: ['available', 'exempt', 'available', 'x', '', null], epc_unique_code: ['UC-123', '', ' ', 1, null], epc_address_in_ad: [true, false, 'true', null], epc_exemption_reason: TXT,
   renovation_obligation: BOOL, flood_p_score: ['A', 'b', 'C', 'D', 'E', '', 1, null], flood_g_score: ['A', 'd', 'E', '', null], plot_is_built: BOOL,
   urban_permit_issued: BOOL, urban_zoning_designation: TXT, urban_summons: BOOL, urban_preemption_right: BOOL, urban_subdivision_permit: BOOL,
-  cpe_status: ['available', 'exempt', 'available', 'n', '', null], cpe_energy_class: CLS, cpe_insulation_class: CLS, cpe_exemption_reason: TXT
+  cpe_status: ['available', 'exempt', 'available', 'n', '', null], cpe_energy_class: CLS, cpe_insulation_class: CLS, cpe_exemption_reason: TXT,
+  dpe_provisional_energy_class: ['B', 'a', 'G', '', ' ', '  c', 'H', 'A+', 4, true, null], dpe_provisional_ghg_class: ['A', 'f', 'Z', '', ' ', 'B ', 0, null]
 };
 const KEYS = ['georisques_disclosure', 'fees_payer', 'agency_fees_amount', 'dpe_status', 'dpe_energy_class', 'ghg_class', 'energy_cost_min', 'energy_cost_max', 'energy_cost_reference_year',
   'dpe_exemption_reason', 'price_includes_agency_fees', 'is_condominium', 'condominium_lots_count', 'annual_condominium_charges', 'condominium_procedure_status', 'surface_habitable_sqm',
@@ -219,7 +228,7 @@ const KEYS = ['georisques_disclosure', 'fees_payer', 'agency_fees_amount', 'dpe_
   'peb_status', 'peb_class', 'peb_specific_consumption_kwh_m2', 'peb_total_consumption_kwh', 'peb_certificate_code', 'peb_primary_energy_kwh_m2', 'peb_co2_kg_m2', 'peb_exemption_reason',
   'monthly_rent', 'monthly_common_charges', 'epc_status', 'epc_score_kwh_m2', 'epc_unique_code', 'epc_address_in_ad', 'epc_exemption_reason', 'renovation_obligation',
   'flood_p_score', 'plot_is_built', 'flood_g_score', 'urban_permit_issued', 'urban_zoning_designation', 'urban_summons', 'urban_preemption_right', 'urban_subdivision_permit',
-  'cpe_status', 'cpe_energy_class', 'cpe_insulation_class', 'cpe_exemption_reason'];
+  'cpe_status', 'cpe_energy_class', 'cpe_insulation_class', 'cpe_exemption_reason', 'dpe_provisional_energy_class', 'dpe_provisional_ghg_class'];
 const profileListing = { [C.SALE]: ids.sale, [C.RENT]: ids.rent, [C.NEW_DEV]: ids.dev, [C.COM_SALE]: ids.comSale, [C.COM_RENT]: ids.comRent, [C.LAND_SALE]: ids.landSale,
   [C.LAND_RENT]: ids.landRent, [C.WAL_SALE]: ids.walSale, [C.WAL_RENT]: ids.walRent, [C.BRU_SALE]: ids.bruSale, [C.BRU_RENT]: ids.bruRent, [C.VLA_SALE]: ids.vlaSale,
   [C.VLA_RENT]: ids.vlaRent, [C.LU_SALE]: ids.luSale, [C.LU_RENT]: ids.luRent };
@@ -263,7 +272,8 @@ await db.exec('delete from zfind_listing_compliance where listing_id not in (sel
 
 /* ---------- 5. a complete fact set per profile; every required fact is required ---------- */
 const FORM = {
-  [C.NEW_DEV]: { georisques_disclosure: true, fees_payer: 'seller', agency_fees_amount: '0', price_includes_agency_fees: 'true', dpe_status: 'pending_completion', energy_standard: 'RE2020' },
+  [C.NEW_DEV]: { georisques_disclosure: true, fees_payer: 'seller', agency_fees_amount: '0', price_includes_agency_fees: 'true', dpe_status: 'pending_completion', energy_standard: 'RE2020',
+    dpe_provisional_energy_class: 'A', dpe_provisional_ghg_class: 'b' },
   [C.COM_SALE]: { georisques_disclosure: true, fees_payer: 'buyer', agency_fees_amount: '12 000', price_includes_agency_fees: 'true', dpe_status: 'available', dpe_energy_class: 'H', ghg_class: 'c',
     is_condominium: 'true', condominium_lots_count: '8', annual_condominium_charges: '2 400', condominium_procedure_choice: 'none' },
   [C.COM_RENT]: { georisques_disclosure: true, dpe_status: 'exempt', dpe_exemption_reason: 'Bâtiment de moins de 50 m² isolé' },
@@ -304,6 +314,15 @@ check('Flandre: without the unique code the full address in the ad is accepted, 
   C.sqlMissing(C.VLA_RENT, Object.assign({}, validFacts[C.VLA_RENT])).length === 0
   && JSON.stringify(C.sqlMissing(C.VLA_RENT, Object.assign({}, validFacts[C.VLA_RENT], { epc_address_in_ad: false }))) === '["epc_unique_code"]');
 check('Flandre: unbuilt plot → no G-score required', C.sqlMissing(C.VLA_SALE, Object.assign({}, validFacts[C.VLA_SALE], { plot_is_built: false, flood_g_score: undefined })).length === 0);
+check('VEFA: DPE « établi à l’achèvement » accepted without provisional classes; provisional classes outside A–G refused (SQL = browser)',
+  C.sqlMissing(C.NEW_DEV, Object.assign({}, validFacts[C.NEW_DEV], { dpe_provisional_energy_class: undefined, dpe_provisional_ghg_class: undefined })).length === 0
+  && JSON.stringify(C.sqlMissing(C.NEW_DEV, Object.assign({}, validFacts[C.NEW_DEV], { dpe_provisional_energy_class: 'H', dpe_provisional_ghg_class: 'A+' }))) === '["dpe_provisional_energy_class","dpe_provisional_ghg_class"]'
+  && validFacts[C.NEW_DEV].dpe_provisional_energy_class === 'A' && C.sqlMissing(C.NEW_DEV, Object.assign({}, validFacts[C.NEW_DEV], { dpe_status: 'available', dpe_provisional_energy_class: 'H' })).every(k => !k.startsWith('dpe_provisional')));
+check('Brussels: certificate number optional, class + primary energy + CO₂ required; Flanders rent: no renovatieplicht',
+  C.sqlMissing(C.BRU_SALE, validFacts[C.BRU_SALE]).length === 0 && !('peb_certificate_code' in validFacts[C.BRU_SALE])
+  && JSON.stringify(C.sqlMissing(C.BRU_RENT, Object.assign({}, validFacts[C.BRU_RENT], { peb_co2_kg_m2: undefined }))) === '["peb_co2_kg_m2"]'
+  && !C.fieldsFor(C.VLA_RENT).some(d => d.key === 'renovation_obligation') && C.fieldsFor(C.VLA_SALE).some(d => d.key === 'renovation_obligation')
+  && C.sqlMissing(C.VLA_RENT, validFacts[C.VLA_RENT]).length === 0);
 check('tertiary DPE: classes up to I accepted, energy costs not required; logement DPE: H refused',
   C.sqlMissing(C.COM_SALE, Object.assign({}, validFacts[C.COM_SALE], { dpe_energy_class: 'I' })).length === 0 && C.sqlMissing(C.SALE, { dpe_status: 'available', dpe_energy_class: 'H' }).includes('dpe_energy_class'));
 

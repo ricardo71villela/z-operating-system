@@ -160,7 +160,8 @@ function renderComplianceField(d, profile, values) {
   const required = svc.isRequired(d, profile);
   const label = escapeHtmlPartner(svc.labelFor(d, profile)) + (required ? ' <span class="req">*</span>' : '');
   const value = values[key];
-  const err = `<div class="cf-error" id="cf-err-${key}"></div>`;
+  const help = svc.helpFor ? svc.helpFor(d, profile) : '';
+  const err = (help ? `<div class="cf-help">${escapeHtmlPartner(help)}</div>` : '') + `<div class="cf-error" id="cf-err-${key}"></div>`;
   let control;
   if (d.type === 'check') {
     return `<div class="form-field cf-field cf-wide" data-key="${key}">

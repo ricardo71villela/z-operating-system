@@ -15,7 +15,11 @@
      profiles (zfind_listing_compliance_profile), the pure validator
      zfind_compliance_profile_missing(profile, facts), the gate extended to
      Belgium and Luxembourg (a listing cannot become 'published' unless
-     facts are valid AND approved; already published listings untouched).
+     facts are valid AND approved; already published listings untouched);
+   - migration 20261014180000_z_find_compliance_legal_clarifications_v1:
+     programme neuf (VEFA) optional provisional DPE classes from the étude
+     thermique, checked A–G (Brussels and Flanders rules confirmed, no
+     change; sources in the migration header).
    Read companions (migration 20261009120000_z_find_listing_compliance_review_queue_v1):
    zfind_list_listing_compliance_status, zfind_admin_list_listing_compliance.
 
@@ -225,7 +229,7 @@
       label: 'Diagnostic de performance énergétique',
       options: [['available', 'Le bien dispose d’un DPE'], ['exempt', 'Le bien est exempté de DPE']],
       optionsByProfile: {
-        [NEW_DEV]: [['available', 'Le DPE est disponible (programme achevé)'], ['pending_completion', 'Programme non achevé : DPE établi à l’achèvement'], ['exempt', 'Le bien est exempté de DPE']],
+        [NEW_DEV]: [['available', 'Le DPE est disponible (programme achevé)'], ['pending_completion', 'Programme non achevé : DPE établi à l’achèvement des travaux'], ['exempt', 'Le bien est exempté de DPE']],
         [COM_SALE]: [['available', 'Le bien dispose d’un DPE tertiaire'], ['exempt', 'Le bien est exempté de DPE']],
         [COM_RENT]: [['available', 'Le bien dispose d’un DPE tertiaire'], ['exempt', 'Le bien est exempté de DPE']]
       } },
@@ -244,8 +248,13 @@
     { key: 'dpe_exemption_reason', group: 'dpe', type: 'text', maxLength: 300, required: true, profiles: DPE_ALL, when: isExempt,
       label: 'Motif de l’exemption',
       suggestions: ['Bâtiment de moins de 50 m² isolé', 'Monument historique', 'Lieu de culte', 'Construction provisoire (moins de 2 ans)', 'Bâtiment agricole, artisanal ou industriel non résidentiel', 'Résidence secondaire occupée moins de 4 mois par an'] },
+    { key: 'dpe_provisional_energy_class', group: 'dpe', type: 'class', required: false, profiles: [NEW_DEV], when: isPending,
+      label: 'Classe énergie prévisionnelle — étude thermique (facultatif)',
+      help: 'Avant l’achèvement, le DPE n’existe pas encore : il est établi à l’achèvement des travaux. Vous pouvez indiquer les classes estimées par l’étude thermique (RE2020 ou RT2012) ; l’annonce les présente comme « prévisionnelles ».' },
+    { key: 'dpe_provisional_ghg_class', group: 'dpe', type: 'class', required: false, profiles: [NEW_DEV], when: isPending,
+      label: 'Classe climat (GES) prévisionnelle — étude thermique (facultatif)' },
     { key: 'energy_standard', group: 'dpe', type: 'text', maxLength: 80, required: false, profiles: [NEW_DEV], when: isPending,
-      label: 'Réglementation environnementale visée (facultatif)', placeholder: 'ex. : RE2020' },
+      label: 'Réglementation de l’étude thermique (facultatif)', placeholder: 'ex. : RE2020' },
 
     /* ---- Belgium: certificat PEB (Wallonie, Bruxelles-Capitale) ---- */
     { key: 'peb_status', group: 'peb', type: 'enum', required: true, profiles: PEB, when: always,
@@ -264,7 +273,9 @@
     { key: 'peb_certificate_code', group: 'peb', type: 'text', maxLength: 60, profiles: PEB, when: pebAvailable,
       requiredByProfile: { [WAL_SALE]: true, [WAL_RENT]: true, [BRU_SALE]: false, [BRU_RENT]: false },
       labelByProfile: { [WAL_SALE]: 'Code unique du certificat PEB', [WAL_RENT]: 'Code unique du certificat PEB',
-        [BRU_SALE]: 'Numéro du certificat PEB (facultatif)', [BRU_RENT]: 'Numéro du certificat PEB (facultatif)' } },
+        [BRU_SALE]: 'Numéro du certificat PEB (facultatif)', [BRU_RENT]: 'Numéro du certificat PEB (facultatif)' },
+      helpByProfile: { [BRU_SALE]: 'À Bruxelles, l’annonce doit indiquer la classe PEB et la consommation d’énergie primaire ; le numéro du certificat n’est pas exigé dans l’annonce.',
+        [BRU_RENT]: 'À Bruxelles, l’annonce doit indiquer la classe PEB et la consommation d’énergie primaire ; le numéro du certificat n’est pas exigé dans l’annonce.' } },
     { key: 'peb_exemption_reason', group: 'peb', type: 'text', maxLength: 300, required: true, profiles: PEB, when: pebExempt,
       label: 'Motif (pas de certificat PEB requis)', suggestions: CERT_EXEMPTIONS },
 
@@ -285,7 +296,8 @@
       label: 'Motif (pas d’EPC requis)', suggestions: CERT_EXEMPTIONS.concat(['Logement déclaré inhabitable']) },
     { key: 'renovation_obligation', group: 'epc', type: 'bool', required: true, profiles: [VLA_SALE], when: always,
       label: 'Obligation de rénovation (renovatieplicht)',
-      options: [['true', 'S’applique (label E ou F) — mentionnée dans l’annonce'], ['false', 'Ne s’applique pas']] },
+      options: [['true', 'S’applique (logement label E ou F, non résidentiel label F ou moins bon) — mentionnée dans l’annonce'], ['false', 'Ne s’applique pas']],
+      help: 'L’obligation de rénovation naît de la cession notariée du bien : elle est mentionnée dans les annonces de vente, pas dans les annonces de location.' },
 
     /* ---- Luxembourg — passeport énergétique ---- */
     { key: 'cpe_status', group: 'cpe', type: 'enum', required: true, profiles: LU_PROFILES, when: always,
@@ -427,6 +439,8 @@
     energy_cost_range: 'fourchette des dépenses d’énergie',
     energy_cost_reference_year: 'année de référence des prix de l’énergie',
     dpe_exemption_reason: 'motif d’exemption du DPE',
+    dpe_provisional_energy_class: 'classe énergie prévisionnelle',
+    dpe_provisional_ghg_class: 'classe climat prévisionnelle',
     price_includes_agency_fees: 'prix honoraires inclus ou non',
     is_condominium: 'statut de copropriété',
     condominium_lots_count: 'nombre de lots',
@@ -486,6 +500,8 @@
     energy_cost_range: 'Le montant maximum doit être supérieur ou égal au montant minimum.',
     energy_cost_reference_year: 'Indiquez l’année de référence des prix de l’énergie (4 chiffres, ex. : 2023).',
     dpe_exemption_reason: 'Précisez le motif de l’exemption de DPE.',
+    dpe_provisional_energy_class: 'Choisissez une classe de A à G, ou laissez vide.',
+    dpe_provisional_ghg_class: 'Choisissez une classe de A à G, ou laissez vide.',
     price_includes_agency_fees: 'Indiquez si le prix affiché inclut les honoraires.',
     is_condominium: 'Indiquez si le bien est soumis au statut de la copropriété.',
     condominium_lots_count: 'Indiquez le nombre de lots de la copropriété (nombre entier supérieur à 0).',
@@ -633,8 +649,14 @@
         if (!inList(f, 'dpe_energy_class', CLASSES)) m.push('dpe_energy_class');
         if (!inList(f, 'ghg_class', CLASSES)) m.push('ghg_class');
         energyCosts();
-      } else if (dpe === 'exempt' && !textPresent(f, 'dpe_exemption_reason')) {
-        m.push('dpe_exemption_reason');
+      } else if (dpe === 'exempt') {
+        if (!textPresent(f, 'dpe_exemption_reason')) m.push('dpe_exemption_reason');
+      } else {
+        // pending_completion: optional provisional classes, A–G when given (migration 20261014180000).
+        ['dpe_provisional_energy_class', 'dpe_provisional_ghg_class'].forEach(k => {
+          const v = asText(f, k);
+          if (v !== null && v.replace(/^ +| +$/g, '') !== '' && !CLASSES.includes(v.toUpperCase())) m.push(k);
+        });
       }
       if (presentNotBoolean(f, 'price_includes_agency_fees')) m.push('price_includes_agency_fees');
       return m;
@@ -932,6 +954,10 @@
   function labelFor(def, profile) {
     return (def.labelByProfile && def.labelByProfile[profile]) || def.label || def.key;
   }
+  /** Short French explanation shown under a field (or ''). */
+  function helpFor(def, profile) {
+    return (def.helpByProfile && def.helpByProfile[profile]) || def.help || '';
+  }
   function isRequired(def, profile) {
     return def.requiredByProfile ? !!def.requiredByProfile[profile] : !!def.required;
   }
@@ -1057,7 +1083,7 @@
     CLASSES, TERTIARY_CLASSES, WAL_CLASSES, BRU_CLASSES, VLA_LABELS, LU_CLASSES, FLOOD_SCORES,
     GROUPS, FIELDS, MISSING_LABELS, MESSAGES, PROCEDURE_NONE, PROCEDURE_ONGOING_PREFIX,
     profileKind, profileCountry, profileLabel, jurisdictionLabel, beRegion, profileFor,
-    fieldsFor, labelFor, isRequired, optionsFor, classesFor, selectorsFrom,
+    fieldsFor, labelFor, helpFor, isRequired, optionsFor, classesFor, selectorsFrom,
     sqlMissing, validateFacts, buildFacts, formValues, prefillFacts, procedureParts, parseNumber,
     statusOf, factRows, missingText, describeError,
     getListingCompliance, saveListingCompliance, reviewListingCompliance, listStatuses, adminQueue,

@@ -1,7 +1,7 @@
 /* ============================================================
    Z FIND PARTNER — « Mentions obligatoires » for every profile of
-   migration 20261014120000: France (local commercial, terrain,
-   programme neuf), Belgium (Wallonie, Flandre) and Luxembourg; plus the
+   migrations 20261014120000 + 20261014180000: France (local commercial, terrain,
+   programme neuf with provisional classes), Belgium (Wallonie, Bruxelles, Flandre sale and rent) and Luxembourg; plus the
    property form offering energy class G.
    Mocks Auth + REST only (the profile comes from zfind_get_listing_compliance,
    as in production). Screenshots when ZFIND_SHOTS_DIR is set.
@@ -23,6 +23,7 @@ const Z = {
   FR: { name: 'Thonon-les-Bains', city: 'Thonon-les-Bains', country_iso: 'FR' },
   WAL: { name: 'Namur', city: 'Namur', country_iso: 'BE' },
   VLA: { name: 'Gent', city: 'Gent', country_iso: 'BE' },
+  BRU: { name: 'Ixelles', city: 'Bruxelles', country_iso: 'BE' },
   LU: { name: 'Luxembourg', city: 'Luxembourg', country_iso: 'LU' }
 };
 const CASES = [
@@ -31,6 +32,8 @@ const CASES = [
   { id: 'dev', subtype: 'apartment', zone: Z.FR, tx: 'sale', profile: 'fr_new_development_sale_v1', country: 'FR', heading: 'Mentions obligatoires — France', label: 'Programme neuf — vente en l’état futur d’achèvement (VEFA)', shot: 'partner-mentions-fr-programme-neuf' },
   { id: 'wal', subtype: 'villa', zone: Z.WAL, tx: 'sale', profile: 'be_wal_sale_v1', country: 'BE', energy: 'D', heading: 'Mentions obligatoires — Belgique — Wallonie', label: 'Vente en Wallonie', shot: 'partner-mentions-be-wallonie' },
   { id: 'vla', subtype: 'apartment', zone: Z.VLA, tx: 'sale', profile: 'be_vla_sale_v1', country: 'BE', heading: 'Mentions obligatoires — Belgique — Flandre (Vlaanderen)', label: 'Vente en Flandre (Vlaanderen)', shot: 'partner-mentions-be-flandre' },
+  { id: 'bru', subtype: 'apartment', zone: Z.BRU, tx: 'sale', profile: 'be_bru_sale_v1', country: 'BE', heading: 'Mentions obligatoires — Belgique — Bruxelles-Capitale', label: 'Vente en Région de Bruxelles-Capitale', shot: 'partner-mentions-be-bruxelles' },
+  { id: 'vlarent', subtype: 'apartment', zone: Z.VLA, tx: 'rent', profile: 'be_vla_rent_v1', country: 'BE', heading: 'Mentions obligatoires — Belgique — Flandre (Vlaanderen)', label: 'Location en Flandre (Vlaanderen)', shot: 'partner-mentions-be-flandre-location' },
   { id: 'lu', subtype: 'apartment', zone: Z.LU, tx: 'rent', profile: 'lu_rent_v1', country: 'LU', energy: 'C', heading: 'Mentions obligatoires — Luxembourg', label: 'Location au Luxembourg', shot: 'partner-mentions-lu' }
 ];
 const listingOf = c => ({ id: 'l-' + c.id, transaction_type: c.tx, rental_period: c.tx === 'rent' ? 'monthly' : null, price_current: c.tx === 'rent' ? 1900 : 395000, currency_iso: 'EUR', price_is_from: false, status: 'draft' });
@@ -115,6 +118,15 @@ const payload = (c, extra) => Object.assign({ listing_id: 'l-' + c.id, facts: {}
       await page.check('input[name="cf-dpe_status"][value="pending_completion"]');
       check('programme neuf: « DPE établi à l’achèvement » hides the DPE classes and asks nothing more (RE2020 optional)',
         !(await page.isVisible('#cf-dpe_energy_class')) && await page.isVisible('#cf-energy_standard'));
+      check('programme neuf: optional provisional classes from the étude thermique (A–G), explained in French',
+        await page.isVisible('#cf-dpe_provisional_energy_class') && await page.isVisible('#cf-dpe_provisional_ghg_class')
+        && (await page.$$eval('#cf-dpe_provisional_energy_class option', o => o.map(x => x.value))).join('') === 'ABCDEFG'
+        && !(await page.textContent('[data-key="dpe_provisional_energy_class"] label')).includes('*')
+        && (await page.textContent('[data-key="dpe_provisional_energy_class"] .cf-help')).includes('établi à l’achèvement des travaux')
+        && (await section.innerText()).includes('DPE établi à l’achèvement des travaux'));
+      await page.selectOption('#cf-dpe_provisional_energy_class', 'A');
+      await page.selectOption('#cf-dpe_provisional_ghg_class', 'A');
+      await page.fill('#cf-energy_standard', 'RE2020');
     }
     if (c.id === 'wal') {
       check('Wallonie: PEB class (A++ … G) prefilled D, kWh/m².an, kWh/an and unique code prefilled from the property',
@@ -147,6 +159,31 @@ const payload = (c, extra) => Object.assign({ listing_id: 'l-' + c.id, facts: {}
       check('Flandre: save RPC with JSON numbers / booleans and the Flemish keys only', saved.p_listing_id === 'l-vla' && f.epc_score_kwh_m2 === 245 && f.epc_label === 'C' && f.plot_is_built === true
         && f.flood_g_score === 'B' && f.urban_preemption_right === false && f.urban_zoning_designation === 'woongebied' && !('georisques_disclosure' in f) && saved.p_source_evidence.form === 'be_vla_sale_v1', f);
       await page.locator('#compliance-status').scrollIntoViewIfNeeded();
+    }
+    if (c.id === 'bru') {
+      await page.check('input[name="cf-peb_status"][value="available"]');
+      check('Bruxelles: class, primary energy (kWh EP/m².an) and CO₂ required; certificate number optional and explained',
+        (await page.textContent('[data-key="peb_primary_energy_kwh_m2"] label')).includes('*') && (await page.textContent('[data-key="peb_co2_kg_m2"] label')).includes('*')
+        && !(await page.textContent('[data-key="peb_certificate_code"] label')).includes('*')
+        && (await page.textContent('[data-key="peb_certificate_code"] .cf-help')).includes('le numéro du certificat n’est pas exigé dans l’annonce')
+        && (await page.$$eval('#cf-peb_class option', o => o.map(x => x.value))).includes('C+'));
+      await page.selectOption('#cf-peb_class', 'C+');
+      await page.fill('#cf-peb_primary_energy_kwh_m2', '140');
+      await page.fill('#cf-peb_co2_kg_m2', '28');
+    }
+    if (c.id === 'vlarent') {
+      await page.check('input[name="cf-epc_status"][value="available"]');
+      check('Flandre, location: EPC score and rent / common charges, no renovatieplicht, no watertoets / urbanism',
+        !(await page.$('input[name="cf-renovation_obligation"]')) && !(await page.$('input[name="cf-flood_p_score"]')) && !(await page.$('input[name="cf-urban_permit_issued"]'))
+        && await page.isVisible('#cf-epc_score_kwh_m2') && !!(await page.$('#cf-monthly_rent')) && !!(await page.$('#cf-monthly_common_charges')));
+      await page.fill('#cf-epc_score_kwh_m2', '180');
+      await page.check('#cf-epc_address_in_ad');
+      await page.fill('#cf-monthly_rent', '1 100');
+      await page.fill('#cf-monthly_common_charges', '0');
+    }
+    if (c.id === 'vla') {
+      check('Flandre, vente: renovatieplicht explained (sales only, labels E / F)',
+        (await page.textContent('[data-key="renovation_obligation"]')).includes('pas dans les annonces de location') && (await page.textContent('[data-key="renovation_obligation"]')).includes('label E ou F'));
     }
     if (c.id === 'lu') {
       check('Luxembourg: energy and thermal-insulation classes (A+ … I), class C prefilled, commission optional',

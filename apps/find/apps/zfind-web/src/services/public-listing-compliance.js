@@ -26,7 +26,9 @@
       energyCost: 'Dépenses énergétiques estimées',
       exemption: 'DPE — exemption',
       dpePending: 'DPE',
-      dpePendingValue: 'établi à l’achèvement du programme',
+      dpePendingValue: 'établi à l’achèvement des travaux',
+      dpeProvisional: 'Classe énergie prévisionnelle (étude thermique)',
+      ghgProvisional: 'Classe climat prévisionnelle (étude thermique)',
       fees: 'Honoraires d’agence',
       feesPayer: 'Honoraires à la charge',
       seller: 'du vendeur', buyer: 'de l’acquéreur', landlord: 'du bailleur', tenant: 'du locataire', shared: 'partagés',
@@ -64,7 +66,8 @@
       title: 'Regulatory information', verified: 'Information verified before publication',
       eyebrow: { FR: 'France', BE: 'Belgium', LU: 'Luxembourg', WAL: 'Belgium — Wallonia', BRU: 'Belgium — Brussels-Capital', VLA: 'Belgium — Flanders' },
       dpe: 'Energy rating', ghg: 'GHG rating',
-      energyCost: 'Estimated annual energy cost', exemption: 'Energy rating exemption', dpePending: 'Energy rating', dpePendingValue: 'issued on completion of the development',
+      energyCost: 'Estimated annual energy cost', exemption: 'Energy rating exemption', dpePending: 'Energy rating', dpePendingValue: 'issued on completion of the works',
+      dpeProvisional: 'Estimated energy class (thermal study)', ghgProvisional: 'Estimated climate class (thermal study)',
       fees: 'Agency fees', feesPayer: 'Fees payable by',
       seller: 'seller', buyer: 'buyer', landlord: 'landlord', tenant: 'tenant', shared: 'shared', priceIncludesFees: 'Price includes fees',
       georisques: 'Information about risks affecting this property is available on Géorisques.', condominium: 'Condominium', lots: 'lots',
@@ -170,6 +173,8 @@
         rows.push(row(c.exemption, f.dpe_exemption_reason));
       } else if (f.dpe_status === 'pending_completion') {
         rows.push(row(c.dpePending, c.dpePendingValue));
+        if (f.dpe_provisional_energy_class) rows.push(classRow(c.dpeProvisional, f.dpe_provisional_energy_class));
+        if (f.dpe_provisional_ghg_class) rows.push(classRow(c.ghgProvisional, f.dpe_provisional_ghg_class));
       }
       if (f.fees_payer) rows.push(row(c.feesPayer, c[f.fees_payer] || f.fees_payer));
       rows.push(row(c.fees, money(f.agency_fees_amount)));
