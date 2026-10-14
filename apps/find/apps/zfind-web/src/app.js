@@ -2317,7 +2317,7 @@ function renderAdvancedFiltersPanel() {
       <label>${c.areaMin}<input type="number" inputmode="numeric" min="0" step="5" data-adv="areaMin"></label>
       <label>${c.rooms}<select data-adv="rooms">${opts(['', '1', '2', '3', '4', '5'], v => v ? v + (v === '5' ? '+' : '') : c.any)}</select></label>
       <label>${c.beds}<select data-adv="beds">${opts(['', '1', '2', '3', '4'], v => v ? v + (v === '4' ? '+' : '') : c.any)}</select></label>
-      <label>${c.dpe}<select data-adv="dpe">${opts(['', 'A', 'B', 'C', 'D', 'E'], v => v || c.any)}</select></label>
+      <label>${c.dpe}<select data-adv="dpe">${opts(['', 'A', 'B', 'C', 'D', 'E', 'F'], v => v || c.any)}</select></label>
       <label>${c.sort}<select data-adv="sort">${opts(Object.keys(c.sorts), v => c.sorts[v])}</select></label>
     </div>
     <div class="adv-checks">
@@ -3722,6 +3722,24 @@ function renderPro() {
   document.title = (state.lang === 'fr' ? 'Professionnels' : 'Professionals') + ' — Z Find';
 }
 
+/* Pages opened from the footer (zos-ecosystem-footer.js). */
+function renderFooterPage(kind) {
+  const footer = window.ZFindZOSEcosystemFooter;
+  if (!footer) return;
+  if (kind === 'bientot') footer.renderComingSoonPage(document.getElementById('bientot-root'), state.id, state.lang);
+  else footer.renderTrustPage(document.getElementById('confiance-root'), state.lang, state.query && state.query.section);
+}
+
+/* Browser tab title of the pages that do not set their own (home, search,
+   market, guides…): a detail page sets its title, the next route resets it. */
+const BASE_TITLES = Object.freeze({
+  fr: 'Z Find — Annonces immobilières en France, Belgique et Luxembourg',
+  en: 'Z Find — Property listings in France, Belgium and Luxembourg'
+});
+function resetBaseTitle() {
+  document.title = BASE_TITLES[state.lang] || BASE_TITLES.fr;
+}
+
 /* ---------------- Demonstration mode: example sponsored slots ---------------- */
 function demoModeOn() {
   const demo = window.ZFindServices && window.ZFindServices.demoMode;
@@ -3789,6 +3807,7 @@ function render() {
   activeView.classList.add('active');
 
   applyI18n();
+  resetBaseTitle();
 
   const demoMode = window.ZFindServices && window.ZFindServices.demoMode;
   if (demoMode) {
@@ -3808,6 +3827,8 @@ function render() {
     case 'yield': renderYield(); break;
     case 'estimation': renderEstimation(); break;
     case 'pro': renderPro(); break;
+    case 'bientot': renderFooterPage('bientot'); break; // « <Portail> est en cours de développement » (ZOS portals)
+    case 'confiance': renderFooterPage('confiance'); break; // Confiance et vérification
     case 'zone': renderZone(state.id); break;
     case 'legal': break; // Portugal static jurisdiction content in body.html
     case 'al-manual': break; // Portugal short-term-rental jurisdiction content

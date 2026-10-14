@@ -132,7 +132,7 @@ test('runtime uses central translated locale authority', () => {
 
 test('root document and WebSite JSON-LD remain French', () => {
   assert(head.includes('<html lang="fr">'));
-  assert(head.includes('<title>Z Find — De vraies opportunités immobilières</title>'));
+  assert(head.includes('<title>Z Find — Annonces immobilières en France, Belgique et Luxembourg</title>'));
   const match = head.match(/<script type="application\/ld\+json" id="zfind-root-website-schema">([\s\S]*?)<\/script>/);
   assert(match);
   assert.strictEqual(JSON.parse(match[1]).inLanguage, 'fr');
