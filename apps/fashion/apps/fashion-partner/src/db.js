@@ -619,12 +619,25 @@ function toAddressDomainShape(row) {
   };
 }
 
+/** partner_id of a shipment, or null — used to authorize a shipment
+ *  status change against the Partner that owns it. */
+async function getShipmentPartnerId(pool, shipmentId) {
+  const result = await pool.query(`select partner_id from fashion.shipments where id = $1`, [shipmentId]);
+  return result.rows[0] ? result.rows[0].partner_id : null;
+}
+
+/** partner_id of a return, or null — same purpose as getShipmentPartnerId(). */
+async function getReturnPartnerId(pool, returnId) {
+  const result = await pool.query(`select partner_id from fashion.returns where id = $1`, [returnId]);
+  return result.rows[0] ? result.rows[0].partner_id : null;
+}
+
 module.exports = {
   createPool, insertPartner, updatePartnerStatus, getPartner,
   resolveFashionPartnerIdsForAuthUser,
   insertBrand, getBrand, insertProduct, listProductsForPartner, listAllProducts, getProduct,
-  insertShipment, listShipmentsForPartner, updateShipmentStatus,
-  insertReturn, listReturnsForPartner, updateReturnStatus,
+  insertShipment, listShipmentsForPartner, updateShipmentStatus, getShipmentPartnerId,
+  insertReturn, listReturnsForPartner, updateReturnStatus, getReturnPartnerId,
   applyStockUpdatePg, getStockPg, getStockForProductsPg,
   recordPricePg, getCurrentPricePg,
   upsertCornerConfig, getCornerConfig, listCornerConfigs,

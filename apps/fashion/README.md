@@ -43,7 +43,7 @@ The current source must not be described as a launched marketplace. The remainin
 
 - there is no complete production customer storefront under `fashion-web` yet; current customer experience work consists of domain/view models, APIs and prototypes rather than the final deployable storefront;
 - there is no completed `fashion-admin` internal operations application yet;
-- real Supabase Auth is not yet wired through all Partner/client HTTP surfaces; current development APIs still contain scoped non-production identity paths;
+- the Partner API now gates every Partner, client and admin route behind Supabase Auth and refuses to run in database mode without it (see `apps/fashion-partner/README.md`), but no customer, Partner or admin login screen exists yet, and Partner accounts are not yet linked to their store at onboarding;
 - the Fashion checkout/order SQL authority exists, but the complete customer checkout HTTP/UI flow is not yet wired end-to-end;
 - Stripe is configured/scaffolded but not connected to live credentials, live checkout, production webhooks or settlements;
 - Fashion migrations have not been applied to the live/shared Supabase project by this convergence work;
