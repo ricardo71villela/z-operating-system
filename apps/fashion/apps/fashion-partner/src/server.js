@@ -26,11 +26,13 @@ const { buildListingCards } = require('../../../packages/fashion-domain/src/cata
 const db = require('./db');
 const { resolveAuthenticatedUserId, loadSupabaseAuthConfigFromEnv } = require('./auth');
 const { isAuthRequired, loadAdminUserIds, decideAccess } = require('./access');
+const { loadAllowedOrigins, corsHeadersFor } = require('./cors');
 
 const usingPostgres = !!process.env.DATABASE_URL;
 const pool = usingPostgres ? db.createPool() : null;
 
 const authRequired = isAuthRequired({ usingPostgres });
+const allowedOrigins = loadAllowedOrigins();
 
 /**
  * Request gates. Each returns a truthy value on success; on failure it
@@ -114,6 +116,27 @@ async function authorizeAdminRequest(req, res) {
     forbiddenMessage: 'admin access required',
   });
   return decision ? true : null;
+}
+
+/**
+ * GET /me — who the caller is, for the Partner dashboard and the admin
+ * backoffice to decide what to show after sign-in. Requires a valid
+ * token in database mode (same gate as every scoped route); never
+ * grants anything itself — every other route still checks on its own.
+ */
+async function handleMe(req, res) {
+  const decision = await gate(req, res, { isAllowed: () => true, forbiddenMessage: 'forbidden' });
+  if (!decision) return;
+  if (!decision.userId) {
+    return sendJson(res, 200, { authenticated: false, userId: null, isAdmin: false, partnerIds: [] });
+  }
+  const partnerIds = await db.resolveFashionPartnerIdsForAuthUser(pool, decision.userId);
+  sendJson(res, 200, {
+    authenticated: true,
+    userId: decision.userId,
+    isAdmin: loadAdminUserIds().includes(decision.userId),
+    partnerIds,
+  });
 }
 
 // In-memory fallback store — only reachable when usingPostgres is false.
@@ -974,9 +997,19 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const parts = url.pathname.split('/').filter(Boolean);
 
+  const cors = corsHeadersFor(req.headers.origin, allowedOrigins);
+  for (const [name, value] of Object.entries(cors)) res.setHeader(name, value);
+  if (req.method === 'OPTIONS') {
+    res.writeHead(cors['Access-Control-Allow-Origin'] ? 204 : 403);
+    return res.end();
+  }
+
   try {
     if (req.method === 'GET' && parts[0] === 'health') {
       return sendJson(res, 200, { ok: true, usingPostgres });
+    }
+    if (req.method === 'GET' && parts[0] === 'me' && parts.length === 1) {
+      return await handleMe(req, res);
     }
     if (req.method === 'POST' && parts[0] === 'partners' && parts.length === 1) {
       return await handleApplyPartner(req, res);

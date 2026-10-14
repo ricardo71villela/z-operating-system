@@ -24,7 +24,9 @@ for(const locale of ['fr','pt','en','es','it','de']){
 
 assert.match(html,/PREVIEW · INTERNAL/);
 assert.match(html,/Live Supabase<\/span><strong>NOT ACTIVATED/);
-assert.match(html,/Auth live<\/span><strong>Disabled/);
+assert.match(html,/Auth live<\/span><strong>Enabled · e-mail code/);
+assert.match(html,/<script src="\.\/zfashion-config\.js"><\/script>\s*<script src="\.\/zfashion-auth\.js" data-surface="admin"><\/script>\s*<\/head>/);
+assert.ok(fs.existsSync(path.join(root,'zfashion-auth.js')),'missing synced zfashion-auth.js');
 assert.match(html,/Payments live<\/span><strong>Disabled/);
 assert.match(html,/DB mutation<\/span><strong>Disabled/);
 assert.match(html,/aucune collecte Stripe live/);
