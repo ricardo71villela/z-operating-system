@@ -3886,6 +3886,11 @@ function render() {
 document.addEventListener('DOMContentLoaded', () => {
   initMobilePrimaryNavigation();
   document.querySelectorAll('.nav-btn').forEach(b => b.addEventListener('click', () => navigate(b.dataset.view)));
+  /* Header: « Publier votre portefeuille » opens the professionals page in
+     the current language; « Se connecter » opens the agency space (Z Find
+     accounts are for professionals only). */
+  const headerPublish = document.getElementById('header-publish');
+  if (headerPublish) headerPublish.addEventListener('click', e => { e.preventDefault(); navigate('pro', null, {}); });
   document.querySelectorAll('.lang-menu button[data-lang]').forEach(b => b.addEventListener('click', () => {
     if (b.disabled) return;
     setLang(b.dataset.lang);
