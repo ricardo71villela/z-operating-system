@@ -24,6 +24,6 @@ const state = {
   spec: [ { label: '', value: '' }, { label: '', value: '' }, { label: '', value: '' }, { label: '', value: '' } ],
   // marca — nome, cor, site, com ou sem marca de água
   brand: { name: 'My Studio', site: '', sub: '', phone: '', accent: '#B8935A',
-           showWatermark: true, logoUrl: null, langs: new Set(['pt', 'en']) }
+           showWatermark: true, logoUrl: null, langs: new Set(['en']) }
 };
 
