@@ -38,7 +38,7 @@ const DEFAULT_MINIMUM_PQS_FOR_SPONSORSHIP = 60;
  * the paid slot (see FRAMES-AND-RECOMMENDATIONS.md "Sponsored Destaques").
  *
  * DELIBERATELY, PERMANENTLY INERT TODAY (2026-08-21, partner-side audit
- * ponto 4): same reasoning as commission.js's qualityScoreDiscount() —
+ * ponto 4): same reasoning as the former quality-score commission discount —
  * partnerQualityScore is null for every real Partner right now, because
  * the score is owned by a separate, cross-vertical ZOS initiative
  * (40-partner-quality-score/PARTNER-QUALITY-SCORE-MODEL.md) Z Fashion is

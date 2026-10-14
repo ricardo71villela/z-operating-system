@@ -20,9 +20,13 @@
       partners: 'Partners', language: 'Langue', eyebrow: 'Adhésion des boutiques', title: 'Vendez sur Z Fashion',
       lead: 'Présentez votre boutique, vos marques et vos collections dans un espace à votre image, avec un panier commun à toutes les boutiques. Votre demande est examinée par l’équipe Z Fashion avant toute mise en ligne.',
       offerTitle: 'L’offre Partner', loading: 'Chargement…',
-      perMonth: 'par mois', firstMonthFree: 'Premier mois offert.',
-      commissionTitle: 'Commission sur les ventes, selon la catégorie', category: 'Catégorie', rate: 'Commission',
-      volumeTitle: 'Réduction de commission selon le volume de ventes mensuel', from: 'À partir de {amount} de ventes par mois', points: '−{n} point', pointsPlural: '−{n} points',
+      subscriptionTitle: 'Abonnement mensuel, selon le nombre de catégories vendues', perMonth: 'HT / mois',
+      tierOne: '1 catégorie', tierN: '{n} catégories', tierNPlus: '{n} catégories ou plus',
+      firstMonthFree: 'Premier mois d’abonnement offert. Prix hors TVA.',
+      commissionTitle: 'Commission par commande (ticket), selon son montant', ticketCol: 'Montant de la commande', rate: 'Commission',
+      ticketUpTo: 'Jusqu’à {max}', ticketBetween: 'De {min} à {max}', ticketAbove: 'Au-delà de {min}',
+      ticketNote: 'Le taux s’applique à l’ensemble des articles de votre boutique dans une même commande, sans condition de volume.',
+      yourFee: 'Votre abonnement : {fee} HT / mois ({n}).',
       formTitle: 'Votre boutique', formIntro: 'Les champs marqués * sont obligatoires. L’adhésion est ouverte aux boutiques établies en France.',
       companyLegend: 'Entreprise', tradeName: 'Nom de la boutique *', legalName: 'Raison sociale *', siret: 'SIRET *', vat: 'N° de TVA intracommunautaire',
       addressLegend: 'Adresse de la boutique', address: 'Adresse *', postalCode: 'Code postal *', city: 'Ville *',
@@ -57,9 +61,13 @@
       partners: 'Partners', language: 'Language', eyebrow: 'Store adhesion', title: 'Sell on Z Fashion',
       lead: 'Present your store, your brands and your collections in a space that looks like you, with one bag shared by every store. Your application is reviewed by the Z Fashion team before anything goes live.',
       offerTitle: 'The Partner offer', loading: 'Loading…',
-      perMonth: 'per month', firstMonthFree: 'First month free.',
-      commissionTitle: 'Commission on sales, by category', category: 'Category', rate: 'Commission',
-      volumeTitle: 'Commission reduction by monthly sales volume', from: 'From {amount} of sales per month', points: '−{n} point', pointsPlural: '−{n} points',
+      subscriptionTitle: 'Monthly subscription, by number of categories sold', perMonth: 'excl. VAT / month',
+      tierOne: '1 category', tierN: '{n} categories', tierNPlus: '{n} or more categories',
+      firstMonthFree: 'First month of subscription free. Prices exclude VAT.',
+      commissionTitle: 'Commission per order (ticket), by amount', ticketCol: 'Order amount', rate: 'Commission',
+      ticketUpTo: 'Up to {max}', ticketBetween: '{min} to {max}', ticketAbove: 'Above {min}',
+      ticketNote: 'The rate applies to all of your store’s items in one order, with no volume condition.',
+      yourFee: 'Your subscription: {fee} excl. VAT / month ({n}).',
       formTitle: 'Your store', formIntro: 'Fields marked * are required. Adhesion is open to stores established in France.',
       companyLegend: 'Company', tradeName: 'Store name *', legalName: 'Registered company name *', siret: 'SIRET *', vat: 'EU VAT number',
       addressLegend: 'Store address', address: 'Address *', postalCode: 'Postcode *', city: 'City *',
@@ -132,44 +140,63 @@
 
   // ---------- offer
 
+  function tierLabel(tiers, i) {
+    var n = tiers[i].minCategories;
+    if (i === tiers.length - 1 && n > 1) return t('tierNPlus', { n: n });
+    return n === 1 ? t('tierOne') : t('tierN', { n: n });
+  }
+
+  function feeFor(categoryCount) {
+    var tiers = state.offer.offer.subscriptionTiers, fee = null;
+    tiers.forEach(function (x) { if (categoryCount >= x.minCategories) fee = x.monthlyFeeMinorUnits; });
+    return fee;
+  }
+
+  function table(headers, rows) {
+    var tbl = el('table', { class: 'ad-table' });
+    if (headers) {
+      var head = el('thead'); var hr = el('tr');
+      headers.forEach(function (h) { hr.appendChild(el('th', { scope: 'col' }, h)); });
+      head.appendChild(hr); tbl.appendChild(head);
+    }
+    var body = el('tbody');
+    rows.forEach(function (r) { var tr = el('tr'); tr.append(el('th', { scope: 'row' }, r[0]), el('td', null, r[1])); body.appendChild(tr); });
+    tbl.appendChild(body);
+    return tbl;
+  }
+
   function renderOffer() {
     var body = $('adOfferBody');
     if (!state.offer) return;
     var o = state.offer.offer;
-    var nodes = [];
-    var price = el('p', { class: 'ad-price' });
-    price.append(el('strong', null, money(o.monthlySubscriptionFeeMinorUnits)), el('span', null, t('perMonth')));
-    nodes.push(price);
+    var subs = o.subscriptionTiers;
+    var nodes = [el('h3', { class: 'ad-label' }, t('subscriptionTitle'))];
+    nodes.push(table(null, subs.map(function (x, i) { return [tierLabel(subs, i), money(x.monthlyFeeMinorUnits) + ' ' + t('perMonth')]; })));
     if (o.firstMonthFree) nodes.push(el('p', { class: 'ad-muted' }, t('firstMonthFree')));
 
     nodes.push(el('h3', { class: 'ad-label' }, t('commissionTitle')));
-    var table = el('table', { class: 'ad-table' });
-    var head = el('thead'); var hr = el('tr');
-    hr.append(el('th', { scope: 'col' }, t('category')), el('th', { scope: 'col' }, t('rate')));
-    head.appendChild(hr);
-    var tbody = el('tbody');
-    Object.keys(o.commissionRatesPercent).forEach(function (cat) {
-      var tr = el('tr');
-      tr.append(el('th', { scope: 'row' }, t('cat_' + cat)), el('td', null, o.commissionRatesPercent[cat] + ' %'));
-      tbody.appendChild(tr);
+    var prev = null;
+    var rows = o.ticketCommissionTiers.map(function (x) {
+      var label = x.maxTicketMinorUnits === null
+        ? t('ticketAbove', { min: money(prev) })
+        : prev === null ? t('ticketUpTo', { max: money(x.maxTicketMinorUnits) })
+          : t('ticketBetween', { min: money(prev + 1), max: money(x.maxTicketMinorUnits) });
+      prev = x.maxTicketMinorUnits;
+      return [label, x.ratePercent + ' %'];
     });
-    table.append(head, tbody);
-    nodes.push(table);
-
-    var tiers = (o.volumeDiscountTiers || []).filter(function (x) { return x.discountPercentagePoints > 0; });
-    if (tiers.length) {
-      nodes.push(el('h3', { class: 'ad-label' }, t('volumeTitle')));
-      var vt = el('table', { class: 'ad-table' }); var vb = el('tbody');
-      tiers.forEach(function (x) {
-        var tr = el('tr');
-        tr.append(el('th', { scope: 'row' }, t('from', { amount: money(x.minMonthlyGmvMinorUnits) })),
-          el('td', null, t(x.discountPercentagePoints > 1 ? 'pointsPlural' : 'points', { n: x.discountPercentagePoints })));
-        vb.appendChild(tr);
-      });
-      vt.appendChild(vb);
-      nodes.push(vt);
-    }
+    nodes.push(table([t('ticketCol'), t('rate')], rows));
+    nodes.push(el('p', { class: 'ad-muted' }, t('ticketNote')));
     body.replaceChildren.apply(body, nodes);
+    renderYourFee();
+  }
+
+  function renderYourFee() {
+    var slot = $('adYourFee');
+    if (!slot || !state.offer) return;
+    var n = checked('categories').length;
+    if (n === 0) { slot.textContent = ''; return; }
+    var label = n === 1 ? t('tierOne') : t('tierN', { n: n });
+    slot.textContent = t('yourFee', { fee: money(feeFor(n)), n: label });
   }
 
   function renderTerms() {
@@ -210,6 +237,9 @@
   function servesMinors() {
     return checked('ageSegments').some(function (s) { return s !== 'adults'; });
   }
+  document.querySelectorAll('input[name="categories"]').forEach(function (i) {
+    i.addEventListener('change', renderYourFee);
+  });
   document.querySelectorAll('input[name="ageSegments"]').forEach(function (i) {
     i.addEventListener('change', function () { $('minorSafeRow').hidden = !servesMinors(); });
   });

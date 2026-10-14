@@ -1,208 +1,114 @@
 /* ============================================================
-   Z FASHION — COMMISSION (bounded context: fashion-domain)
+   Z FASHION — PARTNER PRICING (bounded context: fashion-domain)
    ============================================================
-   Owns: Partner monetization — the monthly subscription fee and the
-   per-sale commission rate. Positioned deliberately below the two
-   direct France-market precedents (Miinto ~16-20% + ~EUR98/month;
-   Galeries Lafayette ~15% + ~EUR40-49/month — see
-   Z-FASHION-COMPETITIVE-LANDSCAPE.md) as a market-entry decision, not
-   an accident: first month free, lower category base rates, and a
-   volume-progressive discount are the concrete mechanism behind that
-   positioning, not just a pricing table someone could quietly drift
-   away from.
+   Pricing decided by Ricardo on 2026-10-14 (replaces the earlier
+   category-rate / volume-discount / quality-score model):
 
-   Two charges, two different lifecycles:
-   - Subscription (monthlySubscriptionFeeMinorUnits): month 1 is
-     always free, billed from month 2 onward. Never conditional on
-     sales — it is access to the platform, not a performance fee.
-   - Commission (commissionRate): applies from day 1, because it is
-     charged only on a genuine sale the platform already facilitated
-     (checkout, stock reservation) — waiving it in month 1 alongside
-     the subscription would mean giving away the one thing that has a
-     direct, immediate platform cost per transaction.
+   1. Monthly subscription, excluding VAT (HT), by how many product
+      categories the store sells (partner.js CATEGORIES):
+        1 category            → EUR 39
+        2 categories          → EUR 49
+        3 or more categories  → EUR 59
+      The first month as an active Partner is free; the fee applies
+      from month 2, whatever the sales. It is access to the platform,
+      not a performance fee.
 
-   Depends only on the CATEGORIES vocabulary (partner.js) and reads a
-   Partner Quality Score as a plain number — never recomputes PQS
-   itself (owned by 40-partner-quality-score, reused as-is per
-   ZOS-ALIGNMENT.md).
+   2. Commission per ticket — the part of a customer order that
+      belongs to this store, at the price the customer pays for that
+      store's items. The whole ticket takes one rate:
+        up to EUR 100.00          → 10 %
+        EUR 100.01 to EUR 200.00  → 8 %
+        above EUR 200.00          → 6 %
+      Commission applies from the first sale (also in the free month).
+      It no longer depends on the category, and there is no
+      quality-score or monthly-volume discount.
+
+   Mirrored in SQL by migration 20261015000000_z_fashion_pricing_v2.sql
+   (fashion.subscription_fee_tiers, fashion.ticket_commission_tiers and
+   their functions); tests check both use the same numbers.
    ============================================================ */
 
 const { CATEGORIES } = require('./partner');
 
-/* Base commission rate, in percentage points, by Category — set below
-   both France-market precedents in every category (Z-FASHION-
-   COMPETITIVE-LANDSCAPE.md). Sportswear and Cosmetics sit lower than
-   Clothing/Footwear/Accessories because their real-world margins are
-   thinner (technical-brand pricing discipline; retail price
-   competition from Sephora/Douglas-style players) — charging them the
-   same rate as Clothing would price out exactly the specialist
-   boutiques Z-FASHION-STRATEGY.md's Sportswear positioning depends on. */
-const BASE_COMMISSION_RATE_PERCENT = Object.freeze({
-  clothing: 13,
-  footwear: 13,
-  sportswear: 10,
-  accessories_leather_goods: 15,
-  cosmetics: 11,
-});
-
-const MONTHLY_SUBSCRIPTION_FEE_MINOR_UNITS = 3500; // EUR 35.00
-
-/* Volume tiers: monthly GMV thresholds (minor units) -> discount off
-   the category base rate, in percentage points. Deliberately a small,
-   ordered table — never a formula — so a new tier is a reviewable
-   one-line change, same discipline OFFICIAL_SOLDES_WINDOWS applies in
-   campaign.js to a different legally/commercially sensitive table. */
-const VOLUME_DISCOUNT_TIERS = Object.freeze([
-  { minMonthlyGmvMinorUnits: 4000000, discountPercentagePoints: 3 }, // > EUR 40,000
-  { minMonthlyGmvMinorUnits: 1500000, discountPercentagePoints: 2 }, // EUR 15,000 - 40,000
-  { minMonthlyGmvMinorUnits: 500000, discountPercentagePoints: 1 },  // EUR 5,000 - 15,000
-  { minMonthlyGmvMinorUnits: 0, discountPercentagePoints: 0 },       // below EUR 5,000
+/** Highest matching minCategories wins. Minor units = euro cents, HT. */
+const SUBSCRIPTION_TIERS = Object.freeze([
+  Object.freeze({ minCategories: 1, monthlyFeeMinorUnits: 3900 }),
+  Object.freeze({ minCategories: 2, monthlyFeeMinorUnits: 4900 }),
+  Object.freeze({ minCategories: 3, monthlyFeeMinorUnits: 5900 }),
 ]);
 
-const DEFAULT_MINIMUM_PQS_FOR_DISCOUNT = 60;
-const MAX_PQS_DISCOUNT_PERCENTAGE_POINTS = 2;
+/** First tier whose maxTicketMinorUnits is >= the ticket (null = no limit). */
+const TICKET_COMMISSION_TIERS = Object.freeze([
+  Object.freeze({ maxTicketMinorUnits: 10000, ratePercent: 10 }),
+  Object.freeze({ maxTicketMinorUnits: 20000, ratePercent: 8 }),
+  Object.freeze({ maxTicketMinorUnits: null, ratePercent: 6 }),
+]);
 
-/* Ceiling on the combined volume + PQS discount, in percentage points
-   off the category base rate. Prevents the two discounts from ever
-   stacking the effective rate down to something that can no longer
-   sustain the platform — same "never silently" discipline stock.js
-   applies to stale updates: a combined discount above this cap is a
-   bug to fix, not a number to trust. */
-const MAX_COMBINED_DISCOUNT_PERCENTAGE_POINTS = 5;
+const PRICES_EXCLUDE_VAT = true;
+const FIRST_MONTH_FREE = true;
 
-/**
- * @param {string} category - one of CATEGORIES (partner.js)
- * @returns {number} the base commission rate for that category, in
- *   percentage points (e.g. 13 means 13%)
- */
-function baseCommissionRate(category) {
-  if (!CATEGORIES.includes(category)) {
-    throw new Error(`baseCommissionRate: unknown category "${category}" — must be one of ${CATEGORIES.join(', ')}`);
-  }
-  return BASE_COMMISSION_RATE_PERCENT[category];
+function distinctKnownCategories(categories) {
+  if (!Array.isArray(categories)) throw new Error('categories must be an array');
+  const unknown = categories.filter((c) => !CATEGORIES.includes(c));
+  if (unknown.length > 0) throw new Error(`unknown categories: ${unknown.join(', ')}`);
+  return [...new Set(categories)];
+}
+
+/** Monthly subscription (HT, minor units) for a store selling these categories. */
+function subscriptionFeeMinorUnits(categories) {
+  const count = distinctKnownCategories(categories).length;
+  if (count === 0) throw new Error('subscriptionFeeMinorUnits: a store sells at least one category');
+  let fee = null;
+  for (const tier of SUBSCRIPTION_TIERS) if (count >= tier.minCategories) fee = tier.monthlyFeeMinorUnits;
+  return fee;
 }
 
 /**
- * @param {number} monthlyGmvMinorUnits - the Partner's trailing/current
- *   month sales volume across all Categories, in minor currency units
- * @returns {number} the volume discount, in percentage points
+ * @param {number} monthsSincePartnerActivated 1 for the first calendar
+ *   month as 'active' (onboarding.js), 2 for the second, etc.
+ * @param {string[]} categories the store's categories
  */
-function volumeDiscount(monthlyGmvMinorUnits) {
-  if (typeof monthlyGmvMinorUnits !== 'number' || monthlyGmvMinorUnits < 0) {
-    throw new Error('volumeDiscount: monthlyGmvMinorUnits must be a non-negative number');
-  }
-  const tier = VOLUME_DISCOUNT_TIERS.find((t) => monthlyGmvMinorUnits >= t.minMonthlyGmvMinorUnits);
-  return tier.discountPercentagePoints;
-}
-
-/**
- * @param {number|null|undefined} partnerQualityScore
- * @param {object} [options]
- * @param {number} [options.minimumScore]
- * @returns {number} the PQS discount, in percentage points — 0 if the
- *   Partner has no score yet or is below the minimum, never inferred
- *   or defaulted upward
- *
- * DELIBERATELY, PERMANENTLY INERT TODAY (2026-08-21, partner-side audit
- * ponto 4): partnerQualityScore is null for every real Partner right
- * now — no caller anywhere in this codebase has a real score to pass,
- * because the score itself is owned by a separate, cross-vertical ZOS
- * initiative (40-partner-quality-score/PARTNER-QUALITY-SCORE-MODEL.md,
- * status: Draft, weights/methodology explicitly "not fixed here...
- * separately governed phase") that Z Fashion is not yet registered
- * against. Building a Fashion-local simplified score instead was
- * considered and rejected — that document's own Boundary Rules
- * explicitly forbid it ("never a parallel Quality Signal system," "no
- * parallel Partner record"). So every Partner gets 0 PQS discount,
- * always, until Z Fashion integrates with the real Trust Engine — a
- * deliberate consequence of respecting that boundary, not a bug to
- * silently work around.
- */
-function qualityScoreDiscount(partnerQualityScore, { minimumScore = DEFAULT_MINIMUM_PQS_FOR_DISCOUNT } = {}) {
-  if (typeof partnerQualityScore !== 'number' || partnerQualityScore < minimumScore) {
-    return 0;
-  }
-  return MAX_PQS_DISCOUNT_PERCENTAGE_POINTS;
-}
-
-/**
- * Computes the effective commission rate for a Partner's sale in a
- * given Category, applying the volume and Partner Quality Score
- * discounts on top of the category base rate — combined discount
- * capped at MAX_COMBINED_DISCOUNT_PERCENTAGE_POINTS, never applied
- * uncapped even if volume + PQS discounts would otherwise exceed it.
- *
- * @param {object} args
- * @param {string} args.category
- * @param {number} args.monthlyGmvMinorUnits
- * @param {number|null} [args.partnerQualityScore]
- * @param {object} [args.options] - passed through to qualityScoreDiscount
- * @returns {{ baseRatePercent: number, volumeDiscountPoints: number,
- *   pqsDiscountPoints: number, appliedDiscountPoints: number,
- *   effectiveRatePercent: number }}
- */
-function effectiveCommissionRate({ category, monthlyGmvMinorUnits, partnerQualityScore = null, options = {} }) {
-  const baseRatePercent = baseCommissionRate(category);
-  const volumeDiscountPoints = volumeDiscount(monthlyGmvMinorUnits);
-  const pqsDiscountPoints = qualityScoreDiscount(partnerQualityScore, options);
-
-  const requestedDiscountPoints = volumeDiscountPoints + pqsDiscountPoints;
-  const appliedDiscountPoints = Math.min(requestedDiscountPoints, MAX_COMBINED_DISCOUNT_PERCENTAGE_POINTS);
-
-  return {
-    baseRatePercent,
-    volumeDiscountPoints,
-    pqsDiscountPoints,
-    appliedDiscountPoints,
-    effectiveRatePercent: baseRatePercent - appliedDiscountPoints,
-  };
-}
-
-/**
- * Computes the commission owed on a single sale line, in minor
- * currency units. Rounds down (floor) — the Platform never collects a
- * fraction of a minor unit more than the effective rate actually
- * implies.
- *
- * @param {number} saleAmountMinorUnits
- * @param {number} effectiveRatePercent - as returned by
- *   effectiveCommissionRate().effectiveRatePercent
- * @returns {number} commission owed, in minor currency units
- */
-function commissionOwedMinorUnits(saleAmountMinorUnits, effectiveRatePercent) {
-  if (typeof saleAmountMinorUnits !== 'number' || saleAmountMinorUnits < 0) {
-    throw new Error('commissionOwedMinorUnits: saleAmountMinorUnits must be a non-negative number');
-  }
-  return Math.floor((saleAmountMinorUnits * effectiveRatePercent) / 100);
-}
-
-/**
- * @param {number} monthsSincePartnerActivated - 1 for the Partner's
- *   first calendar month as 'active' (onboarding.js), 2 for the
- *   second, etc. — never a raw date computation here, so the caller
- *   owns the calendar/timezone logic and this stays a pure rule.
- * @returns {number} the subscription fee owed for that month, in
- *   minor currency units — 0 for month 1, the standard fee from month
- *   2 onward
- */
-function subscriptionFeeOwedMinorUnits(monthsSincePartnerActivated) {
+function subscriptionFeeOwedMinorUnits(monthsSincePartnerActivated, categories) {
   if (!Number.isInteger(monthsSincePartnerActivated) || monthsSincePartnerActivated < 1) {
     throw new Error('subscriptionFeeOwedMinorUnits: monthsSincePartnerActivated must be an integer >= 1');
   }
-  return monthsSincePartnerActivated === 1 ? 0 : MONTHLY_SUBSCRIPTION_FEE_MINOR_UNITS;
+  const fee = subscriptionFeeMinorUnits(categories);
+  return FIRST_MONTH_FREE && monthsSincePartnerActivated === 1 ? 0 : fee;
+}
+
+/** Commission rate (percent) for one ticket amount in minor units. */
+function ticketCommissionRatePercent(ticketMinorUnits) {
+  if (!Number.isInteger(ticketMinorUnits) || ticketMinorUnits < 0) {
+    throw new Error('ticketCommissionRatePercent: ticketMinorUnits must be a non-negative integer');
+  }
+  const tier = TICKET_COMMISSION_TIERS.find((t) => t.maxTicketMinorUnits === null || ticketMinorUnits <= t.maxTicketMinorUnits);
+  return tier.ratePercent;
+}
+
+/** Floors, never rounds up past what the rate implies. */
+function commissionOwedMinorUnits(saleAmountMinorUnits, ratePercent) {
+  if (!Number.isInteger(saleAmountMinorUnits) || saleAmountMinorUnits < 0) {
+    throw new Error('commissionOwedMinorUnits: saleAmountMinorUnits must be a non-negative integer');
+  }
+  if (!Number.isInteger(ratePercent) || ratePercent < 0 || ratePercent > 100) {
+    throw new Error('commissionOwedMinorUnits: ratePercent must be an integer between 0 and 100');
+  }
+  return Math.floor((saleAmountMinorUnits * ratePercent) / 100);
+}
+
+/** Commission owed on one ticket, rate chosen by the ticket's amount. */
+function ticketCommissionOwedMinorUnits(ticketMinorUnits) {
+  return commissionOwedMinorUnits(ticketMinorUnits, ticketCommissionRatePercent(ticketMinorUnits));
 }
 
 module.exports = {
-  BASE_COMMISSION_RATE_PERCENT,
-  MONTHLY_SUBSCRIPTION_FEE_MINOR_UNITS,
-  VOLUME_DISCOUNT_TIERS,
-  DEFAULT_MINIMUM_PQS_FOR_DISCOUNT,
-  MAX_PQS_DISCOUNT_PERCENTAGE_POINTS,
-  MAX_COMBINED_DISCOUNT_PERCENTAGE_POINTS,
-  baseCommissionRate,
-  volumeDiscount,
-  qualityScoreDiscount,
-  effectiveCommissionRate,
-  commissionOwedMinorUnits,
+  SUBSCRIPTION_TIERS,
+  TICKET_COMMISSION_TIERS,
+  PRICES_EXCLUDE_VAT,
+  FIRST_MONTH_FREE,
+  subscriptionFeeMinorUnits,
   subscriptionFeeOwedMinorUnits,
+  ticketCommissionRatePercent,
+  commissionOwedMinorUnits,
+  ticketCommissionOwedMinorUnits,
 };

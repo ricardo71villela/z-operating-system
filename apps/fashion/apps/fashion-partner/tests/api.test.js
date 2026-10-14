@@ -380,14 +380,16 @@ async function run() {
   // --- Partner-facing Commission view over HTTP ---
   res = await request('GET', '/partners/partner_atelier/commission');
   assert.strictEqual(res.status, 200);
-  assert.strictEqual(res.body.monthlySubscriptionFeeMinorUnits, 3500);
+  // partner_atelier sells one category (accessories) -> EUR 39 HT/month.
+  assert.strictEqual(res.body.categoryCount, 1);
+  assert.strictEqual(res.body.monthlySubscriptionFeeMinorUnits, 3900);
+  assert.strictEqual(res.body.pricesExcludeVat, true);
+  assert.strictEqual(res.body.firstMonthFree, true);
+  assert.deepStrictEqual(res.body.ticketCommissionTiers.map((t) => t.ratePercent), [10, 8, 6]);
   // Honest: no checkout API exists, GMV is genuinely 0 for every
   // Partner today — never fabricated.
   assert.strictEqual(res.body.monthlyGmvMinorUnits, 0);
   assert.ok(/Aucune vente réelle possible/.test(res.body.gmvNote));
-  // partner_atelier's own declared categories, each with a real rate.
-  assert.ok(res.body.categoryRates.length > 0);
-  assert.ok(res.body.categoryRates.every((r) => typeof r.effectiveRatePercent === 'number'));
 
   res = await request('GET', '/partners/does_not_exist/commission');
   assert.strictEqual(res.status, 404);
@@ -480,8 +482,12 @@ async function run() {
   res = await request('GET', '/onboarding/offer');
   assert.strictEqual(res.status, 200);
   assert.strictEqual(res.body.applicationsOpen, false, 'no published terms => applications closed');
-  assert.strictEqual(res.body.offer.monthlySubscriptionFeeMinorUnits, 3500);
-  assert.strictEqual(res.body.offer.commissionRatesPercent.clothing, 13);
+  assert.deepStrictEqual(res.body.offer.subscriptionTiers.map((t) => [t.minCategories, t.monthlyFeeMinorUnits]), [[1, 3900], [2, 4900], [3, 5900]]);
+  assert.deepStrictEqual(res.body.offer.ticketCommissionTiers, [
+    { maxTicketMinorUnits: 10000, ratePercent: 10 }, { maxTicketMinorUnits: 20000, ratePercent: 8 }, { maxTicketMinorUnits: null, ratePercent: 6 },
+  ]);
+  assert.strictEqual(res.body.offer.pricesExcludeVat, true);
+  assert.strictEqual(res.body.offer.firstMonthFree, true);
   assert.deepStrictEqual(res.body.launchedMarkets, ['FR']);
 
   const applicationBody = {
