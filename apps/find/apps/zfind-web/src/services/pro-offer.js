@@ -46,10 +46,10 @@
   /* Public launch date of Z Find (ISO 'YYYY-MM-DD'). The 99 € « Essentiel »
      rate applies to agencies that sign up within the first
      PRICES.launchRateMonths months after this date; 129 € after.
-     TODO(owner): set the launch date. While it is null the rule is shown as
-     text (« inscrites dans les 6 premiers mois ») and every sign-up is
-     treated as inside the launch window. */
-  const LAUNCH_DATE = null;
+     Set by the owner on 14 Oct 2026: public launch on 1 December 2026, so
+     the 99 € rate applies to sign-ups up to 31 May 2027. If it is ever set
+     back to null, the rule is shown as text and every sign-up gets 99 €. */
+  const LAUNCH_DATE = '2026-12-01';
 
   /* Self sign-up lives in the Partner app (#inscription opens the form). */
   const SIGNUP_URL = 'https://partner.zfind.online/#inscription';
@@ -81,7 +81,14 @@
   }
   const TIER_NAMES = Object.freeze({ essentiel: 'Essentiel', pro: 'Pro', premium: 'Premium' });
   function dateLabel(d, lang) {
-    return d.toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+    const t = d.toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+    return lang === 'fr' && d.getUTCDate() === 1 ? t.replace(/^1 /, '1er ') : t;
+  }
+  /** « à compter du lancement public de Z Find, le 1 décembre 2026 » (or without the date when LAUNCH_DATE is null). */
+  function launchStartText(lang) {
+    const d = parseDate(LAUNCH_DATE);
+    if (lang === 'fr') return d ? `à compter du lancement public de Z Find, le ${dateLabel(d, 'fr')}` : 'à compter du lancement public de Z Find';
+    return d ? `from Z Find’s public launch on ${dateLabel(d, 'en')}` : 'from Z Find’s public launch';
   }
   /** « pour les agences inscrites dans les 6 premiers mois » or « … inscrites jusqu’au 13 avril 2027 ». */
   function launchWindowText(lang, launchDate) {
@@ -157,7 +164,7 @@
       pricesHead: ['Offre', 'Prix', 'Inclus'],
       launchTitle: 'Offre de lancement',
       launch: p => [
-        `${p.freeMonths} mois gratuits à compter du lancement public de Z Find (ou de votre inscription, si elle est postérieure), quel que soit votre abonnement, sans carte bancaire ni engagement.`,
+        `${p.freeMonths} mois gratuits ${launchStartText('fr')} (ou de votre inscription, si elle est postérieure), quel que soit votre abonnement, sans carte bancaire ni engagement.`,
         `Ensuite, votre prix est garanti pendant 1 an.`,
         `Essentiel à ${p.essentiel} € HT par mois ${launchWindowText('fr')} (${p.essentielLater} € HT par mois ensuite).`
       ],
@@ -214,7 +221,7 @@
       pricesHead: ['Offer', 'Price', 'Included'],
       launchTitle: 'Launch offer',
       launch: p => [
-        `${p.freeMonths} months free from Z Find’s public launch (or from your sign-up, if later), whatever your subscription, no card and no commitment.`,
+        `${p.freeMonths} months free ${launchStartText('en')} (or from your sign-up, if later), whatever your subscription, no card and no commitment.`,
         'Then your price is guaranteed for 1 year.',
         `Essentiel at €${p.essentiel} excl. VAT a month ${launchWindowText('en')} (€${p.essentielLater} excl. VAT a month after that).`
       ],
@@ -280,5 +287,5 @@
   }
 
   return Object.freeze({ COPY, PRICES, LAUNCH_DATE, TIER_NAMES, SIGNUP_URL, pageHTML, render,
-    launchRateEndsAt, essentielPriceFor, tierFor, launchWindowText, tierLinesFr });
+    launchRateEndsAt, essentielPriceFor, tierFor, launchWindowText, launchStartText, tierLinesFr });
 });
