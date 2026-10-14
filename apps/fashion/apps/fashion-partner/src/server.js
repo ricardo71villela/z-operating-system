@@ -24,64 +24,96 @@ const addressDomain = require('../../../packages/fashion-domain/src/address');
 const commissionDomain = require('../../../packages/fashion-domain/src/commission');
 const { buildListingCards } = require('../../../packages/fashion-domain/src/catalog-listing');
 const db = require('./db');
-const { resolveAuthenticatedUserId } = require('./auth');
+const { resolveAuthenticatedUserId, loadSupabaseAuthConfigFromEnv } = require('./auth');
+const { isAuthRequired, loadAdminUserIds, decideAccess } = require('./access');
 
 const usingPostgres = !!process.env.DATABASE_URL;
 const pool = usingPostgres ? db.createPool() : null;
 
+const authRequired = isAuthRequired({ usingPostgres });
+
 /**
- * Authorizes a partner-scoped request. On success, returns partnerId
- * unchanged so callers can write `if (!(await authorizePartnerRequest(...)))
- * return;` at the top of a handler without restructuring it. On
- * failure it has already written the HTTP response (401/403) and
- * returns null.
+ * Request gates. Each returns a truthy value on success; on failure it
+ * has already written the HTTP response (401/403/503) and returns null,
+ * so a handler starts with `if (!(await authorizeXRequest(...))) return;`.
+ * The decision itself lives in access.js (pure, unit-tested); these
+ * wrappers only resolve the caller and write the refusal.
  *
- * Deliberately a no-op — same behavior as before this existed — in
- * two cases, both intentional, not oversights:
- *   - in-memory mode (!usingPostgres): every existing test runs this
- *     way, with no Authorization header at all.
- *   - Postgres mode without Supabase Auth configured yet
- *     (resolveAuthenticatedUserId returns undefined): usingPostgres
- *     alone doesn't imply auth.users exists to check against — see
- *     db.js's own header comment about local/CI Postgres mirrors.
+ * In-memory mode stays open (local dev, tests/api.test.js). Postgres
+ * mode requires Supabase Auth unless FASHION_ALLOW_UNAUTHENTICATED=1
+ * is set explicitly — see access.js. A missing SUPABASE_URL on a real
+ * server now refuses requests instead of silently opening every route.
  *
- * Once SUPABASE_URL/key ARE set, this becomes the real gate: no
- * Authorization header, an invalid/expired token, or an authenticated
- * person who simply doesn't manage this Partner are all rejected.
- * Until the onboarding flow starts calling
- * platform_internal.link_fashion_partner_organisation() (a separate,
- * later piece of work), every Partner has zero linked organisations —
- * so turning Supabase Auth on here before that flow exists means
- * every partner-scoped request gets rejected with 403. That is the
- * correct fail-closed behavior, not a bug — do not treat a wave of
- * 403s right after enabling Supabase Auth as this code being broken.
- *
- * handleTransition (approve/reject/suspend a Partner) is deliberately
- * NOT gated by this function — that is an admin/moderation action,
- * never something a Partner does about itself, and ZOS has no admin-
- * role model yet to gate it against. Gating it with this function
- * would incorrectly require the Partner to already manage itself in
- * order to be approved in the first place. Left open pending real
- * admin authorization — a known, stated gap, not a silent one.
+ * Partner: until the onboarding flow calls
+ * platform_internal.link_fashion_partner_organisation(), every Partner
+ * has zero linked organisations, so partner-scoped requests return 403
+ * once auth is on. That is the correct fail-closed behavior, not a bug.
  */
+async function gate(req, res, { isAllowed, forbiddenMessage }) {
+  const authUserId = usingPostgres
+    ? await resolveAuthenticatedUserId(req.headers['authorization'])
+    : undefined;
+  const decision = await decideAccess({ usingPostgres, authRequired, authUserId, isAllowed, forbiddenMessage });
+  if (!decision.ok) {
+    sendJson(res, decision.status, { error: decision.error });
+    return null;
+  }
+  return decision;
+}
+
 async function authorizePartnerRequest(req, res, partnerId) {
-  if (!usingPostgres) return partnerId;
-
-  const authUserId = await resolveAuthenticatedUserId(req.headers['authorization']);
-  if (authUserId === undefined) return partnerId;
-
-  if (authUserId === null) {
-    sendJson(res, 401, { error: 'authentication required' });
+  if (!partnerId) {
+    sendJson(res, 422, { error: 'partnerId is required' });
     return null;
   }
+  const decision = await gate(req, res, {
+    isAllowed: async (userId) => {
+      const allowedPartnerIds = await db.resolveFashionPartnerIdsForAuthUser(pool, userId);
+      return allowedPartnerIds.includes(partnerId);
+    },
+    forbiddenMessage: `not authorized to manage partner ${partnerId}`,
+  });
+  return decision ? partnerId : null;
+}
 
-  const allowedPartnerIds = await db.resolveFashionPartnerIdsForAuthUser(pool, authUserId);
-  if (!allowedPartnerIds.includes(partnerId)) {
-    sendJson(res, 403, { error: `not authorized to manage partner ${partnerId}` });
-    return null;
-  }
+/** For routes addressed by a record id (shipment, return): authenticate
+ *  first, then look up the owning Partner and check the caller manages
+ *  it. An unknown id is refused like a foreign one (403), so the route
+ *  does not reveal which ids exist to unauthenticated callers. */
+async function authorizeOwnedRecordRequest(req, res, lookupPartnerId, label) {
+  const decision = await gate(req, res, {
+    isAllowed: async (userId) => {
+      const partnerId = await lookupPartnerId();
+      if (!partnerId) return false;
+      const allowedPartnerIds = await db.resolveFashionPartnerIdsForAuthUser(pool, userId);
+      return allowedPartnerIds.includes(partnerId);
+    },
+    forbiddenMessage: `not authorized to manage ${label}`,
+  });
+  return decision ? true : null;
+}
 
-  return partnerId;
+/** A client acts only on their own account: fashion.clients.id is the
+ *  Supabase auth user id, so the :clientId in the URL must equal the
+ *  authenticated caller's id. */
+async function authorizeClientRequest(req, res, clientId) {
+  const decision = await gate(req, res, {
+    isAllowed: (userId) => userId === clientId,
+    forbiddenMessage: 'not authorized to access this client account',
+  });
+  return decision ? clientId : null;
+}
+
+/** Operations staff only (approve/reject/suspend a Partner). Admins are
+ *  the auth user ids in FASHION_ADMIN_USER_IDS until ZOS has a real
+ *  admin-role model; an empty list means nobody may do this. */
+async function authorizeAdminRequest(req, res) {
+  const adminUserIds = loadAdminUserIds();
+  const decision = await gate(req, res, {
+    isAllowed: (userId) => adminUserIds.includes(userId),
+    forbiddenMessage: 'admin access required',
+  });
+  return decision ? true : null;
 }
 
 // In-memory fallback store — only reachable when usingPostgres is false.
@@ -140,6 +172,7 @@ async function handleApplyPartner(req, res) {
 }
 
 async function handleTransition(req, res, partnerId) {
+  if (!(await authorizeAdminRequest(req, res))) return;
   const body = await readBody(req);
   try {
     if (usingPostgres) {
@@ -389,6 +422,7 @@ async function handleGetProduct(req, res, productId) {
 
 async function handleCreateShipment(req, res) {
   const body = await readBody(req);
+  if (!(await authorizePartnerRequest(req, res, body.partnerId))) return;
   try {
     if (usingPostgres) {
       const shipment = await db.insertShipment(pool, body);
@@ -421,6 +455,7 @@ async function handleListShipments(req, res, partnerId) {
 }
 
 async function handleTransitionShipment(req, res, shipmentId) {
+  if (!(await authorizeOwnedRecordRequest(req, res, () => db.getShipmentPartnerId(pool, shipmentId), 'shipment ' + shipmentId))) return;
   const body = await readBody(req);
   try {
     if (usingPostgres) {
@@ -440,6 +475,7 @@ async function handleTransitionShipment(req, res, shipmentId) {
 
 async function handleCreateReturn(req, res) {
   const body = await readBody(req);
+  if (!(await authorizePartnerRequest(req, res, body.partnerId))) return;
   try {
     if (usingPostgres) {
       const ret = await db.insertReturn(pool, body);
@@ -474,6 +510,7 @@ async function handleListReturns(req, res, partnerId) {
 }
 
 async function handleTransitionReturn(req, res, returnId) {
+  if (!(await authorizeOwnedRecordRequest(req, res, () => db.getReturnPartnerId(pool, returnId), 'return ' + returnId))) return;
   const body = await readBody(req);
   try {
     if (usingPostgres) {
@@ -633,13 +670,15 @@ async function handleGetAllSale(req, res, query) {
  * Client Account endpoints — Wishlist, Corner Follows, Addresses.
  * Closes the last major Client-facing gap of today's sprint: every
  * other prototype (Product Page, All Sale, Chaussures, Corners) is
- * wired to real data, the Account panels never were. `:clientId` is a
- * plain path parameter here, not real Supabase Auth — this server has
- * no auth layer at all yet, same "domain + SQL scaffolding first, real
- * auth wiring later" scoping as the identity bridge migration itself
- * (public.zfashion_ensure_client() exists, nothing calls it from here).
+ * wired to real data, the Account panels never were. Every handler
+ * starts with authorizeClientRequest(): in Postgres mode the `:clientId`
+ * in the URL must equal the authenticated caller's auth user id
+ * (fashion.clients.id = auth.users.id), so a client can only read or
+ * change their own Wishlist, Follows and Addresses. Still open:
+ * public.zfashion_ensure_client() is not called from here yet.
  */
 async function handleAddWishlistItem(req, res, clientId) {
+  if (!(await authorizeClientRequest(req, res, clientId))) return;
   const body = await readBody(req);
   try {
     if (usingPostgres) {
@@ -654,6 +693,7 @@ async function handleAddWishlistItem(req, res, clientId) {
 }
 
 async function handleRemoveWishlistItem(req, res, clientId, productId) {
+  if (!(await authorizeClientRequest(req, res, clientId))) return;
   try {
     if (usingPostgres) {
       await db.removeWishlistItemPg(pool, clientId, productId);
@@ -670,6 +710,7 @@ async function handleRemoveWishlistItem(req, res, clientId, productId) {
  *  shape All Sale/Corner cards already use — a Client's Wishlist is a
  *  list of Products, it should look like one, not a bare id array. */
 async function handleListWishlist(req, res, clientId) {
+  if (!(await authorizeClientRequest(req, res, clientId))) return;
   try {
     let entries, products, stockByProductId, brandsById;
     if (usingPostgres) {
@@ -702,6 +743,7 @@ async function handleListWishlist(req, res, clientId) {
 }
 
 async function handleFollowCorner(req, res, clientId) {
+  if (!(await authorizeClientRequest(req, res, clientId))) return;
   const body = await readBody(req);
   try {
     if (usingPostgres) {
@@ -716,6 +758,7 @@ async function handleFollowCorner(req, res, clientId) {
 }
 
 async function handleUnfollowCorner(req, res, clientId, partnerId) {
+  if (!(await authorizeClientRequest(req, res, clientId))) return;
   try {
     if (usingPostgres) {
       await db.unfollowCornerPg(pool, clientId, partnerId);
@@ -734,6 +777,7 @@ async function handleUnfollowCorner(req, res, clientId, partnerId) {
  *  yet is skipped, same "never fabricate a Corner" rule the public
  *  directory already follows. */
 async function handleListFollows(req, res, clientId) {
+  if (!(await authorizeClientRequest(req, res, clientId))) return;
   try {
     let partnerIds, configs;
     if (usingPostgres) {
@@ -755,6 +799,7 @@ async function handleListFollows(req, res, clientId) {
 }
 
 async function handleCreateClientAddress(req, res, clientId) {
+  if (!(await authorizeClientRequest(req, res, clientId))) return;
   const body = await readBody(req);
   try {
     if (usingPostgres) {
@@ -771,6 +816,7 @@ async function handleCreateClientAddress(req, res, clientId) {
 }
 
 async function handleListClientAddresses(req, res, clientId) {
+  if (!(await authorizeClientRequest(req, res, clientId))) return;
   try {
     const addresses = usingPostgres
       ? await db.listClientAddressesPg(pool, clientId)
@@ -782,6 +828,7 @@ async function handleListClientAddresses(req, res, clientId) {
 }
 
 async function handleSetDefaultClientAddress(req, res, clientId, addressId) {
+  if (!(await authorizeClientRequest(req, res, clientId))) return;
   try {
     if (usingPostgres) {
       const address = await db.setDefaultClientAddressPg(pool, clientId, addressId);
@@ -1030,6 +1077,17 @@ const server = http.createServer(async (req, res) => {
 const PORT = process.env.PORT || 4001;
 
 if (require.main === module) {
+  if (authRequired && !loadSupabaseAuthConfigFromEnv()) {
+    console.error(
+      'fashion-partner API refusing to start: DATABASE_URL is set but Supabase Auth is not configured ' +
+      '(SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY). Every partner and client route would be refused. ' +
+      'For a disposable local database only, set FASHION_ALLOW_UNAUTHENTICATED=1.'
+    );
+    process.exit(1);
+  }
+  if (usingPostgres && !authRequired) {
+    console.warn('fashion-partner API: FASHION_ALLOW_UNAUTHENTICATED=1 — authentication is OFF. Never use this in production.');
+  }
   server.listen(PORT, () => {
     console.log(`fashion-partner API listening on :${PORT} (usingPostgres=${usingPostgres})`);
   });
