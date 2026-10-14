@@ -212,7 +212,7 @@ async function loadOperationsOverview() {
     return;
   }
   const o = res.data || {};
-  const a = o.agencias || {}, r = o.reviews || {}, al = o.alerts || {}, l = o.leads || {}, sg = o.signups || {}, seats = sg.founder_seats || {};
+  const a = o.agencias || {}, r = o.reviews || {}, al = o.alerts || {}, l = o.leads || {}, sg = o.signups || {};
   const card = (n, label, view, warn) => `<div class="card${warn ? ' card-warn' : ''}"${view ? ` onclick="navigateAdmin('${view}')" style="cursor:pointer"` : ''}><div class="n">${fmtN(n)}</div><div class="l">${escapeHtml(label)}</div></div>`;
   ops.innerHTML = [
     card(sg.pending, 'Inscriptions à vérifier', 'inscricoes', sg.pending > 0),
@@ -223,7 +223,7 @@ async function loadOperationsOverview() {
     card(a.active, 'Agences dans la base', 'agencias'),
     card(a.with_email, 'Agences avec e-mail', 'agencias'),
     card(a.outreach_allowed, 'Prospection par e-mail autorisée', 'agencias'),
-    `<div class="card" onclick="navigateAdmin('inscricoes')" style="cursor:pointer"><div class="n seats">${['FR', 'BE', 'LU'].map(c => `${c} ${fmtN(seats[c] || 0)}/${founderSeatsPerCountry()}`).join(' · ')}</div><div class="l">Places Fondateur (1re vague) · promoteurs ${fmtN(seats.developers || 0)}/${founderDevelopers()}</div></div>`
+    card(sg.verified, 'Inscriptions vérifiées', 'inscricoes')
   ].join('');
   const rows = o.agencias_by_country_type || [];
   agEl.innerHTML = rows.length ? `<table class="compact"><thead><tr><th>Pays</th><th>Type</th><th>Total</th><th>Avec e-mail</th><th>Prospection</th></tr></thead><tbody>${
@@ -233,9 +233,18 @@ async function loadOperationsOverview() {
 
 /* ---------------- Inscriptions (self sign-up) ---------------- */
 const SIGNUP_STATUS = { pending: 'À vérifier', verified: 'Vérifiée', rejected: 'Refusée' };
-const SIGNUP_PLAN = { founder: 'Fondateur', founder_developer: 'Promoteur fondateur', standard: 'Standard' };
-function founderSeatsPerCountry() { const p = window.ZFindServices.proOffer && window.ZFindServices.proOffer.PRICES; return p ? p.founderSeatsPerCountry : 50; }
-function founderDevelopers() { const p = window.ZFindServices.proOffer && window.ZFindServices.proOffer.PRICES; return p ? p.founderDevelopers : 10; }
+/* Offer of a sign-up, from the public price list (zfind-web services/pro-offer.js):
+   agencies get the Essentiel / Pro / Premium grid — the Essentiel price depends
+   on the sign-up date (launch window) — promoters the programme price.
+   The legacy plan / founder_wave columns are not shown any more. */
+function signupOfferLabel(x) {
+  const svc = window.ZFindServices.proOffer;
+  const p = svc ? svc.PRICES : null;
+  if (!p) return x.role === 'promoter' ? 'Promoteur' : 'Agence';
+  if (x.role === 'promoter') return `Promoteur · ${p.developmentMonth} € HT / programme / mois`;
+  const e = svc.essentielPriceFor(x.created_at);
+  return `Agence · Essentiel ${e} € HT${e === p.essentiel ? ' (tarif de lancement)' : ''} · Pro ${p.pro} € · Premium ${p.premium} €`;
+}
 
 async function renderSignupsList() {
   const main = document.getElementById('main');
@@ -258,16 +267,11 @@ function signupRegistryCell(x) {
   return `${escapeHtml(x.country)} ${escapeHtml(x.company_id || '—')}`;
 }
 
-/* Founder rule: fewer than founderMinLeads enquiries during the 3 free months → 3 more months free. */
+/* Enquiries during the 3 free months (every tier starts with 3 months free). */
 function signupLeadsCell(x, c) {
   if (!c) return '<span class="muted">—</span>';
-  const p = window.ZFindServices.proOffer && window.ZFindServices.proOffer.PRICES;
-  const min = p ? p.founderMinLeads : 5;
   const freeEnds = new Date(new Date(x.created_at).setMonth(new Date(x.created_at).getMonth() + 3));
-  const ended = freeEnds <= new Date();
-  const flag = x.plan === 'founder' && ended && Number(c.leads_free_period) < min
-    ? `<br><span class="tag tag-draft">+3 mois offerts</span>` : '';
-  return `${fmtN(c.leads_free_period)} en 3 mois<br><span class="muted">${fmtN(c.leads_total)} au total · gratuit jusqu’au ${freeEnds.toLocaleDateString('fr-FR')}</span>${flag}`;
+  return `${fmtN(c.leads_free_period)} en 3 mois<br><span class="muted">${fmtN(c.leads_total)} au total · gratuit jusqu’au ${freeEnds.toLocaleDateString('fr-FR')}</span>`;
 }
 
 async function loadSignupsList() {
@@ -287,7 +291,7 @@ async function loadSignupsList() {
       <td><strong>${escapeHtml(x.trade_name || x.legal_name)}</strong><br><span class="muted">${x.role === 'promoter' ? 'Promoteur' : 'Agence'} · ${escapeHtml(x.legal_name)}<br>${escapeHtml([x.address, x.postcode, x.city].filter(Boolean).join(' '))}<br>${escapeHtml(x.email)}${x.phone ? ' · ' + escapeHtml(x.phone) : ''}</span></td>
       <td>${signupRegistryCell(x)}${x.agencia_id ? '<br><span class="muted">dans la base d’agences</span>' : '<br><span class="muted">hors base</span>'}</td>
       <td>${escapeHtml(x.card_number)}${x.card_authority ? '<br><span class="muted">' + escapeHtml(x.card_authority) + '</span>' : ''}</td>
-      <td>${escapeHtml(SIGNUP_PLAN[x.plan] || x.plan)}${x.founder_wave ? ' · ' + (x.founder_wave === 1 ? '1re' : x.founder_wave + 'e') + ' vague' : ''}</td>
+      <td>${escapeHtml(signupOfferLabel(x))}</td>
       <td>${signupLeadsCell(x, leadsBy.get(x.id))}</td>
       <td><span class="tag tag-${x.status === 'verified' ? 'active' : x.status === 'rejected' ? 'inactive' : 'draft'}">${escapeHtml(SIGNUP_STATUS[x.status] || x.status)}</span>${x.review_note ? '<br><span class="muted">' + escapeHtml(x.review_note) + '</span>' : ''}</td>
       <td class="sg-actions">

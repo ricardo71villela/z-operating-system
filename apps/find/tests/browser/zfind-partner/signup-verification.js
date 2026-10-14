@@ -72,8 +72,10 @@ async function fillToStep3(page) {
     check('login screen in French, with the sign-up link', (await page.textContent('#view-login')).includes('Connexion') && (await page.textContent('#go-signup')).includes('Inscrire mon agence'));
     await page.click('#go-signup');
     const offer = await page.textContent('#view-signup .login-editorial');
-    check('offer panel from the public price list: 3 months free, 99 € then 129 €, 12 months, 5-lead guarantee',
-      offer.includes('3 mois gratuits') && offer.includes('99 € HT / mois, 12 mois') && offer.includes('129 € HT / mois') && offer.includes('Moins de 5 contacts'));
+    check('offer panel from the public price list: 3 months free, price guaranteed 1 year, Essentiel 99 € (first 6 months, then 129 €) / Pro 149 € / Premium 199 €, no founder waves',
+      offer.includes('3 mois gratuits') && offer.includes('garanti 1 an') && offer.includes('Essentiel — jusqu’à 25 annonces') && offer.includes('99 € HT / mois') &&
+      offer.includes('6 premiers mois') && offer.includes('puis 129 €') && offer.includes('Pro — 26 à 75 annonces') && offer.includes('149 € HT / mois') &&
+      offer.includes('Premium — plus de 75 annonces') && offer.includes('199 € HT / mois') && !/Fondateur|vague|premières agences/.test(offer));
     await page.fill('#su-number', '123456789');
     await page.click('#su-lookup-btn');
     check('invalid SIREN (check digit) is refused before any request', (await page.textContent('#su-error-1')).includes('pas valide') && seen.lookups.length === 0);
@@ -95,7 +97,7 @@ async function fillToStep3(page) {
     await page.fill('#su-phone', '04 93 00 00 00');
     if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'partner-signup-step2.png'), fullPage: true });
     await page.click('#su-pane-2 .btn-login');
-    check('step 3: offer box and both commitments', (await page.textContent('#su-offer-box')).includes('99 € HT') && (await page.textContent('#su-terms-text')).includes('répondre aux demandes sous 24 heures'));
+    check('step 3: offer box (three tiers, 3 months free) and both commitments', (await page.textContent('#su-offer-box')).includes('99 € HT') && (await page.textContent('#su-offer-box')).includes('Premium 199 € HT') && (await page.textContent('#su-terms-text')).includes('réponse aux demandes sous 24 heures'));
     await page.fill('#su-email', 'contact@lac-immo.fr');
     await page.fill('#su-password', 'court');
     await page.fill('#su-password2', 'court');
@@ -118,7 +120,7 @@ async function fillToStep3(page) {
     check('first session completes the sign-up server-side, then enters the dashboard', seen.completed === 1 && (await page.textContent('#dash-partner-name')) === 'LAC IMMO');
     await page.waitForSelector('#signup-banner', { state: 'visible' });
     const banner = await page.textContent('#signup-banner');
-    check('welcome banner: card being checked, listings prepared meanwhile, wave-1 price', banner.includes('carte professionnelle') && banner.includes('mises en ligne après') && banner.includes('1re vague') && banner.includes('99 € HT'));
+    check('welcome banner: card being checked, listings prepared meanwhile, the three-tier offer (Essentiel at the launch rate)', banner.includes('carte professionnelle') && banner.includes('mises en ligne après') && banner.includes('Essentiel 99 € HT') && banner.includes('Premium 199 € HT') && !banner.includes('vague'));
     check('dashboard in French', (await page.textContent('#view-dashboard')).includes('Tout ce que vous') && (await page.textContent('#view-dashboard')).includes('Nouveau bien'));
     if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'partner-dashboard-welcome.png') });
     await page.close();
@@ -177,7 +179,7 @@ async function fillToStep3(page) {
     if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'partner-signup-mobile.png'), fullPage: true });
     await page.click('#su-pane-2 .su-actions a');
     await page.check('input[name="su-role"][value="promoter"]');
-    check('promoter: founding-developer offer and RCS/authorisation card label', (await page.textContent('#su-offer-lead')).includes('10 promoteurs fondateurs') && (await page.textContent('#su-card-label')).includes('immatriculation'));
+    check('promoter: programme price (no founding-developer seats) and RCS/authorisation card label', (await page.textContent('#su-offer-marks')).includes('149 € HT / programme / mois') && !(await page.textContent('#view-signup .login-editorial')).includes('fondateur') && (await page.textContent('#su-card-label')).includes('immatriculation'));
     await page.close();
   }
 

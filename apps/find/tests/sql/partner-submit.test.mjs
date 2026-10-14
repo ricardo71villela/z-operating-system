@@ -79,6 +79,7 @@ await db.exec(submitSql);
 await db.exec(MIG(COVERAGE_MIG));
 await db.exec(submitSql);
 await db.exec(MIG(COVERAGE_MIG));
+await db.exec(MIG('20261014180000_z_find_compliance_legal_clarifications_v1.sql')); // VEFA provisional classes (validator only)
 check('submission migration applies on top of the real lifecycle / ownership / compliance SQL, twice (idempotent)', true);
 
 /* ---------------- fixtures ---------------- */

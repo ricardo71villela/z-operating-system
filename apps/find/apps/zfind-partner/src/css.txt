@@ -248,6 +248,7 @@ input, select, textarea{ font-family:'DM Sans', sans-serif; }
 .cf-check input{ width:auto !important; margin-top:3px; flex:none; }
 .cf-error{ font-size:0.78rem; color:#A33; margin-top:5px; line-height:1.35; }
 .cf-error:empty{ display:none; }
+.cf-help{ font-size:0.78rem; color:#6b6459; margin-top:5px; line-height:1.4; }
 .cf-field.has-error input, .cf-field.has-error select, .cf-field.has-error .cf-choice{ border-color:#D9A39A; }
 .compliance-summary{ font-size:0.85rem; color:#A33; margin-top:12px; }
 .compliance-summary:empty{ display:none; }

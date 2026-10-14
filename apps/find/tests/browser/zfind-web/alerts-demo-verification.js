@@ -129,8 +129,16 @@ async function shot(page, name) {
     await page.evaluate(() => { location.hash = '#/fr/pro'; });
     await page.waitForSelector('#pro-root .zpro', { timeout: 10000 });
     const pro = await page.textContent('#pro-root');
-    check('professionals page: offers, rules, public price list and Founder offer', pro.includes('Mise en avant « À la une »') && pro.includes('Aucun particulier') && pro.includes('199 € HT / mois') && pro.includes('Fondateur'));
+    check('professionals page: offers, rules, validated price grid and launch offer (no founder waves)', pro.includes('Mise en avant « À la une »') && pro.includes('Aucun particulier') && pro.includes('149 € HT / mois') && pro.includes('199 € HT / mois') && pro.includes('Premium') && pro.includes('Offre de lancement') && !pro.includes('Fondateur'));
     await shot(page, 'pro.png');
+    if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'pro-full.png'), fullPage: true });
+    // Mobile: same page, no horizontal scroll (the price tables scroll inside their wrapper).
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(300);
+    const proOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    check('professionals page on mobile: no horizontal page scroll', proOverflow <= 0);
+    if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'pro-mobile.png'), fullPage: true });
+    await page.setViewportSize({ width: 1280, height: 900 });
 
     // Estimation: the value alert box is offered to owners only.
     await page.evaluate(() => { location.hash = '#/fr/estimation?market=FR&mode=owner'; });

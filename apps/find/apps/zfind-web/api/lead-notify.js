@@ -47,7 +47,7 @@ function leadEmail(row, to, bcc, withoutAgency) {
   const heading = withoutAgency ? `Demande sans agence active : ${row.partner_name || 'annonce sans agence'}` : 'Nouvelle demande pour votre annonce';
   const intro = withoutAgency
     ? 'Cette annonce n’a pas (ou plus) de compte agence actif sur Z Find : transmettez cette demande à l’agence à la main.'
-    : 'Une personne vous a contacté via Z Find. Répondez-lui de préférence dans les 24 heures : c’est ce que les acheteurs et locataires attendent, et l’engagement des agences Fondateur.';
+    : 'Une personne vous a contacté via Z Find. Répondez-lui de préférence dans les 24 heures : c’est ce que les acheteurs et locataires attendent, et l’engagement de chaque agence partenaire de Z Find.';
   const message = row.message ? `<p style="margin:16px 0 6px;font-weight:600">Message</p><div style="white-space:pre-wrap;line-height:1.5;background:#faf7f0;border:1px solid #e7e1d4;border-radius:6px;padding:12px">${S.esc(String(row.message).slice(0, 4000))}</div>` : '';
   const html = S.mailHtml('fr', heading,
     `<p style="line-height:1.6">${S.esc(intro)}</p><table style="border-collapse:collapse;margin-top:8px">${rows.map(([k, v]) =>

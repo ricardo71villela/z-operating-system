@@ -94,7 +94,7 @@ function build() {
     + readWeb('services/image-optimize.js') + '\n'
     + readWeb('services/admin.js') + '\n'
     + readWeb('services/field-forms.js') + '\n'
-    + readWeb('services/pro-offer.js') + '\n' // public price list: Founder seats
+    + readWeb('services/pro-offer.js') + '\n' // public price list: offer of each sign-up
     + readAdmin('prospection.js') + '\n'
     + readWeb('services/listing-import/poliris.js') + '\n' // Poliris / SeLoger annonces.csv reader (agency software exports)
     + readWeb('services/listing-import/listing-import.js') + '\n' // shared with Partner and /api/feed-sync — « Nous chargeons pour vous »: CSV / Excel / Poliris import and portfolio sync
