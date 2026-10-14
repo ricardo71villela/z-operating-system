@@ -26,6 +26,7 @@ const PARTNER = '22222222-2222-2222-2222-222222222222';
 
 const SCOPED_ROUTES = [
   ['GET', '/me'],
+  ['POST', '/partner-applications', { tradeName: 'x' }],
   ['POST', `/partners/${PARTNER}/transition`, { toStatus: 'approved' }],
   ['POST', `/partners/${PARTNER}/brands`, { name: 'X' }],
   ['GET', `/partners/${PARTNER}/products`],

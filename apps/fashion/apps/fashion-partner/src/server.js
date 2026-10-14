@@ -23,6 +23,8 @@ const accountDomain = require('../../../packages/fashion-domain/src/account');
 const addressDomain = require('../../../packages/fashion-domain/src/address');
 const commissionDomain = require('../../../packages/fashion-domain/src/commission');
 const { buildListingCards } = require('../../../packages/fashion-domain/src/catalog-listing');
+const { validatePartnerApplication } = require('../../../packages/fashion-domain/src/partner-application');
+const { launchedMarkets } = require('../../../packages/fashion-domain/src/markets');
 const db = require('./db');
 const { resolveAuthenticatedUserId, loadSupabaseAuthConfigFromEnv } = require('./auth');
 const { isAuthRequired, loadAdminUserIds, decideAccess } = require('./access');
@@ -139,6 +141,94 @@ async function handleMe(req, res) {
   });
 }
 
+/**
+ * Partner terms currently published — FASHION_PARTNER_TERMS_VERSION and
+ * FASHION_PARTNER_TERMS_URL (https). Until both are set, the adhesion
+ * page explains that applications are not open yet and
+ * POST /partner-applications refuses with 503: a store can never accept
+ * terms that do not exist.
+ */
+function currentPartnerTerms() {
+  const version = (process.env.FASHION_PARTNER_TERMS_VERSION || '').trim();
+  const url = (process.env.FASHION_PARTNER_TERMS_URL || '').trim();
+  if (!version || !/^https:\/\//.test(url)) return null;
+  return { version, url };
+}
+
+async function currentOffer() {
+  const base = usingPostgres
+    ? await db.getPartnerOfferPg(pool)
+    : {
+      monthlySubscriptionFeeMinorUnits: commissionDomain.MONTHLY_SUBSCRIPTION_FEE_MINOR_UNITS,
+      commissionRatesPercent: { ...commissionDomain.BASE_COMMISSION_RATE_PERCENT },
+      volumeDiscountTiers: [...commissionDomain.VOLUME_DISCOUNT_TIERS]
+        .sort((a, b) => a.minMonthlyGmvMinorUnits - b.minMonthlyGmvMinorUnits),
+    };
+  return { currency: 'EUR', firstMonthFree: true, ...base };
+}
+
+/** GET /onboarding/offer — public: what the adhesion page shows. */
+async function handleGetOnboardingOffer(req, res) {
+  const terms = currentPartnerTerms();
+  const offer = await currentOffer();
+  sendJson(res, 200, {
+    applicationsOpen: !!terms,
+    terms,
+    launchedMarkets: launchedMarkets(),
+    offer,
+  });
+}
+
+/**
+ * POST /partner-applications — a signed-in person applies for a store.
+ * Postgres mode: one transaction creates the organisation, membership,
+ * Partner ('applied'), application record and the Partner binding, so
+ * the person manages that Partner from now on (GET /me lists it).
+ * Approval remains an admin action.
+ */
+async function handleSubmitPartnerApplication(req, res) {
+  const decision = await gate(req, res, { isAllowed: () => true, forbiddenMessage: 'forbidden' });
+  if (!decision) return;
+
+  if (usingPostgres && !decision.userId) return sendJson(res, 401, { error: 'authentication required' });
+
+  const terms = currentPartnerTerms();
+  if (!terms) return sendJson(res, 503, { error: 'partner_terms_not_published' });
+
+  const body = await readBody(req);
+  const accountEmail = decision.userId ? await db.getAuthUserEmail(pool, decision.userId) : body.devAccountEmail;
+
+  let application;
+  try {
+    application = validatePartnerApplication(body, { accountEmail, currentTermsVersion: terms.version });
+    createPartner({ ...application, id: 'pending' });
+  } catch (err) {
+    return sendJson(res, 422, { error: 'invalid_application', fieldErrors: err.fieldErrors || [{ field: 'application', code: 'invalid' }] });
+  }
+
+  const offerSnapshot = { ...(await currentOffer()), termsUrl: terms.url, capturedAt: new Date().toISOString() };
+
+  if (decision.userId) {
+    try {
+      const created = await db.submitPartnerApplicationPg(pool, decision.userId, application, offerSnapshot);
+      return sendJson(res, 201, { ...created, onboardingStatus: 'applied' });
+    } catch (err) {
+      if (err.code === 'fashion_application_pending' || err.code === 'fashion_application_duplicate') {
+        return sendJson(res, 409, { error: err.code });
+      }
+      throw err;
+    }
+  }
+
+  // In-memory mode (local dev / tests only): no account to link.
+  const partnerId = `partner_${memory.partnerApplications.size + 1}`;
+  const partner = createPartner({ ...application, id: partnerId });
+  memory.partners.set(partnerId, partner);
+  memory.applications.set(partnerId, createApplication(partnerId));
+  memory.partnerApplications.set(partnerId, { ...application, offerSnapshot });
+  sendJson(res, 201, { partnerId, onboardingStatus: 'applied' });
+}
+
 // In-memory fallback store — only reachable when usingPostgres is false.
 const memory = {
   partners: new Map(), applications: new Map(), stockByProductId: new Map(),
@@ -146,6 +236,7 @@ const memory = {
   priceHistoryByProductId: new Map(), cornerConfigs: new Map(),
   wishlist: accountDomain.emptyWishlist(), cornerFollows: accountDomain.emptyCornerFollows(),
   addressBook: addressDomain.emptyAddressBook(),
+  partnerApplications: new Map(),
 };
 
 function readBody(req) {
@@ -1010,6 +1101,12 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'GET' && parts[0] === 'me' && parts.length === 1) {
       return await handleMe(req, res);
+    }
+    if (req.method === 'GET' && parts[0] === 'onboarding' && parts[1] === 'offer' && parts.length === 2) {
+      return await handleGetOnboardingOffer(req, res);
+    }
+    if (req.method === 'POST' && parts[0] === 'partner-applications' && parts.length === 1) {
+      return await handleSubmitPartnerApplication(req, res);
     }
     if (req.method === 'POST' && parts[0] === 'partners' && parts.length === 1) {
       return await handleApplyPartner(req, res);

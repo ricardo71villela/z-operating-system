@@ -20,6 +20,7 @@ A disposable local database can run without authentication by setting `FASHION_A
 | `SUPABASE_PUBLISHABLE_KEY` (or `SUPABASE_ANON_KEY`) | yes | Public key used with `SUPABASE_URL` for token verification. |
 | `FASHION_ADMIN_USER_IDS` | for admin actions | Comma-separated Supabase auth user ids allowed to approve, reject or suspend Partners. Empty means nobody can. Temporary until ZOS has an admin-role model. |
 | `FASHION_ALLOWED_ORIGINS` | for the dashboards | Comma-separated origins of the Partner dashboard and admin backoffice (exact match, e.g. `https://admin.zfashion.online`). Others get no CORS headers. |
+| `FASHION_PARTNER_TERMS_VERSION`, `FASHION_PARTNER_TERMS_URL` | to open store applications | Version label and https URL of the published Partner terms. Until both are set, the adhesion page says applications are not open and `POST /partner-applications` returns 503. Changing the version makes stores accept the new one. |
 | `FASHION_ALLOW_UNAUTHENTICATED` | no | `1` disables authentication. Local disposable databases only. |
 | `FASHION_DB_SSL_MODE`, `FASHION_DB_SCHEMA` | no | See `src/db.js`. |
 
@@ -34,9 +35,11 @@ Requests carry `Authorization: Bearer <Supabase access token>`.
 | `POST /shipments`, `POST /returns` | A person who manages the `partnerId` in the body |
 | `POST /shipments/:id/transition`, `POST /returns/:id/transition` | A person who manages the Partner that owns the record |
 | `/clients/:clientId/...` (wishlist, follows, addresses) | The client themself: `clientId` must equal the caller's auth user id |
+| `POST /partner-applications` | Any signed-in person: submits the adhesion form; creates the store (`applied`) and links the account to it (see migration `20261014230000_z_fashion_partner_onboarding_v1.sql`) |
 | `GET /me` | Any signed-in person: returns their user id, `isAdmin` and the Partner ids they manage (grants nothing by itself) |
+| `GET /onboarding/offer` | Public: offer from the database + published terms |
 | `POST /partners` (apply), `/catalog/...`, `/products/:id`, `/health` | Public |
 
 The decision logic lives in `src/access.js` and is covered by `tests/access.test.js` (every branch) and `tests/auth-gate.test.js` (every scoped route over HTTP, refused before any database query).
 
-Until onboarding calls `platform_internal.link_fashion_partner_organisation()`, no Partner has a linked manager, so Partner routes return 403 once authentication is on. That is expected.
+Stores apply on `public/adhesion.html`: the account that submits the form becomes the store's manager in the same transaction, so `GET /me` lists the store immediately (status `applied`). Approval stays an admin action. Stores created another way have no manager until linked.
