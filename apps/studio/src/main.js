@@ -123,7 +123,7 @@ async function loadDraftIfAny() {
     if (meta.bg) state.bg = meta.bg;
     setFormat(state.format); setTemplate(state.template); setBg(state.bg);
     const hint = document.getElementById('draftHintText');
-    if (photos && photos.length && hint) hint.textContent = '📂 Rascunho anterior recuperado (' + photos.length + ' foto(s))';
+    if (photos && photos.length && hint) hint.textContent = uiF('draftRecovered', { n: photos.length });
   } catch (e) { console.warn('Sem rascunho anterior ou erro ao recuperar:', e); }
 }
 
@@ -180,7 +180,7 @@ async function refreshBrandKitSelect() {
   // confirmada e corrigida numa auditoria de segurança.
   sel.innerHTML = '';
   const noneOpt = document.createElement('option');
-  noneOpt.value = ''; noneOpt.textContent = '— nenhum —';
+  noneOpt.value = ''; noneOpt.textContent = uiT('kitNone');
   sel.appendChild(noneOpt);
   Object.keys(kits).forEach(n => {
     const opt = document.createElement('option');
@@ -190,7 +190,7 @@ async function refreshBrandKitSelect() {
   if (kits[cur]) sel.value = cur;
 }
 async function saveBrandKit() {
-  const name = prompt('Nome para este kit de marca (ex.: "Loja Sunset — Calçado"):');
+  const name = prompt(uiT('kitNamePrompt'));
   if (!name) return;
   const kits = (await idbGet('kits').catch(() => null)) || {};
   const kitData = { name: state.brand.name, site: state.brand.site, sub: state.brand.sub, phone: state.brand.phone,
@@ -200,7 +200,7 @@ async function saveBrandKit() {
   await idbSet('kits', kits);
   await refreshBrandKitSelect();
   document.getElementById('brandKitSelect').value = name;
-  toast('Kit "' + name + '" guardado');
+  toast(uiF('kitSaved', { name }));
   // sincroniza com a conta em segundo plano — nunca bloqueia nem falha visivelmente
   // sem sessão ativa (ver window.ZStudioAuth em src/platform/auth.js)
   window.ZStudioAuth?.brandKits?.push?.(name, kitData);
@@ -232,17 +232,17 @@ async function applyBrandKit(name) {
   }
   draw();
   scheduleSaveDraft();
-  toast('Kit "' + name + '" aplicado');
+  toast(uiF('kitApplied', { name }));
 }
 async function deleteBrandKit() {
   const sel = document.getElementById('brandKitSelect');
   const name = sel.value; if (!name) return;
-  if (!confirm('Apagar o kit "' + name + '"?')) return;
+  if (!confirm(uiF('kitDeleteConfirm', { name }))) return;
   const kits = (await idbGet('kits').catch(() => null)) || {};
   delete kits[name];
   await idbSet('kits', kits);
   await refreshBrandKitSelect();
-  toast('Kit apagado');
+  toast(uiT('kitDeleted'));
   window.ZStudioAuth?.brandKits?.remove?.(name);
 }
 
@@ -278,6 +278,10 @@ window.zstudioSyncBrandKitsFromCloud = syncBrandKitsFromCloud;
 function uiT(key) {
   const dict = UI_STRINGS[state.lang] || UI_STRINGS.en;
   return (key in dict) ? dict[key] : (UI_STRINGS.en[key] || '');
+}
+// uiT com placeholders: uiF('uploadDone', { n: 3 }) → "3 fichier(s) chargé(s)"
+function uiF(key, vars) {
+  return String(uiT(key)).replace(/\{(\w+)\}/g, (m, k) => (vars && k in vars ? String(vars[k]) : m));
 }
 // Documentos legais por idioma — só PT e FR têm tradução própria por agora;
 // os restantes idiomas de UI (en/es/de/it) apontam para a versão PT até existir tradução.
@@ -437,8 +441,8 @@ function renderPhotoGrid() {
     <div class="ph ${u === state.photo ? 'sel' : ''} ${state.carPhotos.includes(u) ? 'incar' : ''}" draggable="true"
          ondragstart="onPhotoDragStart(event, ${idx})" ondragover="onPhotoDragOver(event)" ondrop="onPhotoDrop(event, ${idx})" ondragend="onPhotoDragEnd(event)">
       <img src="${u}" loading="lazy" onclick="pickPhoto('${encodeURI(u)}')">
-      <button class="tick" onclick="toggleCarPhoto('${encodeURI(u)}')" aria-label="Incluir no carrossel">✓</button>
-      <button class="ph-remove" onclick="event.stopPropagation(); removePhoto('${encodeURI(u)}')" aria-label="Eliminar esta foto" title="Eliminar esta foto">✕</button>
+      <button class="tick" onclick="toggleCarPhoto('${encodeURI(u)}')" aria-label="${uiT('photoIncludeAria')}">✓</button>
+      <button class="ph-remove" onclick="event.stopPropagation(); removePhoto('${encodeURI(u)}')" aria-label="${uiT('photoRemoveAria')}" title="${uiT('photoRemoveAria')}">✕</button>
     </div>`).join('');
   updateProgressiveDisclosure();
   }
@@ -571,26 +575,26 @@ async function handleUploadFiles(fileList) {
   const oversized = all.filter(f => f.size > UPLOAD_LIMITS.maxFileMB * 1024 * 1024);
   const withinSize = all.filter(f => f.size <= UPLOAD_LIMITS.maxFileMB * 1024 * 1024);
   const batch = withinSize.slice(0, UPLOAD_LIMITS.maxFilesPerBatch);
-  if (oversized.length) toast(oversized.length + ' ficheiro(s) acima de ' + UPLOAD_LIMITS.maxFileMB + 'MB foram ignorados');
-  if (withinSize.length > UPLOAD_LIMITS.maxFilesPerBatch) toast('Só as primeiras ' + UPLOAD_LIMITS.maxFilesPerBatch + ' fotos deste carregamento foram usadas');
+  if (oversized.length) toast(uiF('uploadOversized', { n: oversized.length, mb: UPLOAD_LIMITS.maxFileMB }));
+  if (withinSize.length > UPLOAD_LIMITS.maxFilesPerBatch) toast(uiF('uploadBatchLimit', { n: UPLOAD_LIMITS.maxFilesPerBatch }));
   const imageFiles = batch.filter(f => f.type.startsWith('image/'));
   const videoFiles = batch.filter(f => f.type.startsWith('video/'));
   if (!imageFiles.length && !videoFiles.length) return;
   let fromVideo = [];
   if (videoFiles.length) {
-    toast('A extrair fotograma de ' + videoFiles.length + ' vídeo(s)…');
+    toast(uiF('uploadExtractingVideo', { n: videoFiles.length }));
     const attempts = await Promise.allSettled(videoFiles.map(f => extractVideoFrame(f)));
     fromVideo = attempts.filter(a => a.status === 'fulfilled').map(a => a.value);
     const failed = attempts.length - fromVideo.length;
-    if (failed) toast(failed + ' vídeo(s) não puderam ser processados (formato não suportado pelo browser)');
+    if (failed) toast(uiF('uploadVideoFailed', { n: failed }));
   }
   let files = [...imageFiles, ...fromVideo];
   const spaceLeft = UPLOAD_LIMITS.maxTotalPhotos - (state.photos || []).length;
   if (files.length > spaceLeft) {
-    toast('Limite de ' + UPLOAD_LIMITS.maxTotalPhotos + ' fotos por sessão atingido — só foram adicionadas ' + Math.max(0, spaceLeft));
+    toast(uiF('uploadTotalLimit', { max: UPLOAD_LIMITS.maxTotalPhotos, n: Math.max(0, spaceLeft) }));
     files = files.slice(0, Math.max(0, spaceLeft));
   }
-  if (!files.length) { toast('Não foi possível carregar nenhum ficheiro.'); return; }
+  if (!files.length) { toast(uiT('uploadNone')); return; }
   const urls = files.map(f => URL.createObjectURL(f));
   state.photos = [...new Set([...(state.photos || []), ...urls])];
   state.photoFiles = [...(state.photoFiles || []), ...files]; // mesma ordem — guardado para o rascunho local
@@ -604,7 +608,7 @@ async function handleUploadFiles(fileList) {
   state.img = img;
   buildSlides(0);
   buildCaption();
-  toast(files.length + ' ficheiro(s) carregado(s)' + (fromVideo.length ? ' (' + fromVideo.length + ' de vídeo)' : ''));
+  toast(uiF('uploadDone', { n: files.length }) + (fromVideo.length ? uiF('uploadDoneVideo', { n: fromVideo.length }) : ''));
   const input = document.getElementById('uploadInput');
   if (input) input.value = '';
   scheduleSaveDraft();
@@ -618,11 +622,11 @@ async function pickLocalFolder() {
   // trabalho, não de telemóvel. Em contexto nativo, dizemos isso claramente
   // em vez de tentar simular algo que não faz sentido no telemóvel.
   if (IS_NATIVE_PLATFORM) {
-    toast('Escolher pasta é uma funcionalidade só para computador — no telemóvel, usa "Carregar fotos".');
+    toast(uiT('folderDesktopOnly'));
     return;
   }
   if (!window.showDirectoryPicker) {
-    toast('O teu browser não suporta escolher pastas diretamente — usa "arrastar ficheiros" ou o botão de escolher ficheiros.');
+    toast(uiT('folderUnsupported'));
     return;
   }
   let dirHandle;
@@ -630,7 +634,7 @@ async function pickLocalFolder() {
   catch (e) { return; } // utilizador cancelou
   const btn = document.getElementById('btnFolderPicker');
   const old = btn.textContent;
-  btn.disabled = true; btn.textContent = 'A ler a pasta…';
+  btn.disabled = true; btn.textContent = uiT('folderReading');
   try {
     const found = [];
     const MAX = 60;
@@ -648,18 +652,18 @@ async function pickLocalFolder() {
       }
     }
     await walk(dirHandle, 0);
-    if (!found.length) { toast('Não encontrei fotos ou vídeos nessa pasta.'); return; }
+    if (!found.length) { toast(uiT('folderEmpty')); return; }
     const files = await Promise.all(found.map(h => h.getFile()));
     await handleUploadFiles(files);
   } catch (e) {
     console.error(e);
-    toast('Não foi possível ler a pasta — ' + (e.message || '').slice(0, 80));
+    toast(uiF('folderError', { msg: (e.message || '').slice(0, 80) }));
   } finally {
     btn.disabled = false; btn.textContent = old;
   }
 }
 async function clearDraft() {
-  if (!confirm('Apagar o rascunho guardado neste dispositivo (fotos, textos e marca)? Não afeta nada publicado.')) return;
+  if (!confirm(uiT('clearDraftConfirm'))) return;
   _draftGeneration++; // invalida qualquer gravação automática já em curso, mesmo a meio da compressão
   clearTimeout(_saveDraftTimer);
   await Promise.all([
@@ -686,7 +690,7 @@ async function clearDraft() {
   renderCategoryExtras();
   syncCropAdjustUI();
   buildSlides(0); buildCaption();
-  toast('Rascunho apagado');
+  toast(uiT('draftCleared'));
 }
 
 function setFormat(f) {
@@ -1458,7 +1462,7 @@ function applyCategoryPreset(cat) {
     document.getElementById('brandColor').value = p.accent;
     setGoldVar(p.accent);
     setBg(p.bg); // já chama draw() internamente
-    toast('🎨 Estilo ajustado para esta categoria — muda em "Marca & Idiomas" se preferires outro');
+    toast(uiT('styleAdjusted'));
   } else {
     draw();
   }
@@ -2834,7 +2838,7 @@ async function drawListing(ctx, W, H) {
     // arrastar uma foto lá muda também a posição dela aqui.
     const t = I18N[state.lang] || I18N.pt;
     const photos = (state.carPhotos || []).slice(0, 8);
-    if (photos.length > 8) toast('A colagem mostra só as primeiras 8 fotos marcadas');
+    if (photos.length > 8) toast(uiT('collageMax8'));
     const barH = (story ? 300 : 230) * FS;
     const gridH = H - barH;
     const gap = Math.max(3, 5 * FS);
@@ -3110,7 +3114,7 @@ async function generateCaptionFor(lang) {
   const prevLang = state.lang;
   state.lang = lang;
   try {
-    if (!state.title && !state.loc) throw new Error('Escreve pelo menos um título');
+    if (!state.title && !state.loc) throw new Error(uiT('aiNeedTitle'));
     const specLine = specsLine();
     const categoryLabel = (CATEGORY_PRESETS[state.category] ? state.category : 'generico');
     let ctx = `Categoria: ${categoryLabel}\nTítulo: ${state.title}\nLocal: ${state.loc}\nPreço/Valor: ${state.price}`
@@ -3137,10 +3141,10 @@ async function aiCaption() {
   try {
     const out = await generateCaptionFor(state.lang);
     document.getElementById('caption').value = out;
-    toast('✨ Legenda gerada — revê antes de publicar');
+    toast(uiT('aiCaptionDone'));
   } catch (e) {
     console.error(e);
-    toast((e.message || 'IA indisponível').slice(0, 80));
+    toast((e.message || uiT('aiUnavailableShort')).slice(0, 80));
   } finally { btn.disabled = false; btn.textContent = old; }
 }
 // Gera a legenda nos vários idiomas ativos de uma só vez, mostrando cada uma num
@@ -3152,8 +3156,8 @@ async function aiCaptionAllLangs() {
   const results = {};
   try {
     for (const l of langs) {
-      btn.textContent = 'A gerar ' + (LANG_LABELS[l] || l) + '…';
-      try { results[l] = await generateCaptionFor(l); } catch (e) { results[l] = '⚠ ' + (e.message || 'falhou'); }
+      btn.textContent = uiF('aiGeneratingLang', { lang: LANG_LABELS[l] || l });
+      try { results[l] = await generateCaptionFor(l); } catch (e) { results[l] = '⚠ ' + (e.message || uiT('aiFailed')); }
     }
     renderCaptionAllModal(results, langs);
   } finally { btn.disabled = false; btn.textContent = old; }
@@ -3164,7 +3168,7 @@ function renderCaptionAllModal(results, langs) {
     <div style="margin-bottom:16px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
         <strong style="color:var(--gold);font-size:0.75rem;letter-spacing:.08em;text-transform:uppercase;">${LANG_LABELS[l] || l}</strong>
-        <button class="btn btn-line" style="padding:4px 10px;font-size:0.66rem;" onclick="copyCaptionLang('${l}')">Copiar</button>
+        <button class="btn btn-line" style="padding:4px 10px;font-size:0.66rem;" onclick="copyCaptionLang('${l}')">${uiT('copyBtnShort')}</button>
       </div>
       <textarea readonly id="captionAll_${l}" style="width:100%;min-height:110px;font-size:0.8rem;line-height:1.5;">${(results[l] || '').replace(/</g,'&lt;')}</textarea>
     </div>`).join('');
@@ -3173,7 +3177,7 @@ function renderCaptionAllModal(results, langs) {
 function copyCaptionLang(l) {
   const el = document.getElementById('captionAll_' + l);
   if (!el) return;
-  navigator.clipboard.writeText(el.value).then(() => toast('Copiado (' + (LANG_LABELS[l] || l) + ')')).catch(() => toast('Não foi possível copiar'));
+  navigator.clipboard.writeText(el.value).then(() => toast(uiF('copiedLang', { lang: LANG_LABELS[l] || l }))).catch(() => toast(uiT('copyFailed')));
 }
 function closeCaptionAll() { document.getElementById('captionAllOverlay').classList.add('hide'); }
 
@@ -3189,7 +3193,7 @@ let aiVariantsState = { hashtags: [], variants: [] };
 function capitalizeTone(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 
 async function generateCaptionVariantsFor(lang) {
-  if (!state.title && !state.loc) throw new Error('Escreve pelo menos um título');
+  if (!state.title && !state.loc) throw new Error(uiT('aiNeedTitle'));
   const specLine = specsLine();
   const categoryLabel = (CATEGORY_PRESETS[state.category] ? state.category : 'generico');
   const ctx = `Categoria: ${categoryLabel}\nTítulo: ${state.title}\nLocal: ${state.loc}\nPreço/Valor: ${state.price}`
@@ -3214,10 +3218,10 @@ Responde apenas com este JSON, nada mais:
   try {
     parsed = JSON.parse(raw);
   } catch {
-    throw new Error('A IA devolveu um formato inesperado — tenta outra vez');
+    throw new Error(uiT('aiBadFormat'));
   }
   if (!parsed || !Array.isArray(parsed.variants) || !Array.isArray(parsed.hashtags)) {
-    throw new Error('A IA devolveu um formato inesperado — tenta outra vez');
+    throw new Error(uiT('aiBadFormat'));
   }
   return parsed;
 }
@@ -3230,7 +3234,7 @@ async function aiCaptionVariants() {
     renderAiVariantsPanel();
   } catch (e) {
     console.error(e);
-    toast((e.message || 'IA indisponível').slice(0, 80));
+    toast((e.message || uiT('aiUnavailableShort')).slice(0, 80));
   } finally { btn.disabled = false; btn.textContent = old; }
 }
 
@@ -3276,7 +3280,7 @@ function renderAiVariantsPanel() {
     copyBtn.style.cssText = 'padding:5px 12px;font-size:0.7rem;';
     copyBtn.textContent = uiT('aiVariantsCopyHashtags');
     copyBtn.addEventListener('click', () => {
-      navigator.clipboard.writeText(htext).then(() => toast(uiT('aiVariantsCopied'))).catch(() => toast('Não foi possível copiar'));
+      navigator.clipboard.writeText(htext).then(() => toast(uiT('aiVariantsCopied'))).catch(() => toast(uiT('copyFailed')));
     });
     wrap.appendChild(copyBtn);
   }
@@ -3363,7 +3367,7 @@ function updateBulkCount() { document.getElementById('bulkCount').textContent = 
 
 async function runBulkGenerate() {
   const ids = [...bulkState.sel];
-  if (!ids.length) { toast('Seleciona pelo menos uma foto'); return; }
+  if (!ids.length) { toast(uiT('bulkNeedPhoto')); return; }
   const btn = document.getElementById('btnBulkGen');
   const status = document.getElementById('bulkStatus');
   btn.disabled = true;
@@ -3381,7 +3385,7 @@ async function runBulkGenerate() {
       const entry = bulkState.all.find(x => x.id === ids[i]);
       if (!entry) continue;
       const d = bulkState.itemData[entry.id] || {};
-      status.textContent = 'A gerar ' + (i + 1) + ' / ' + ids.length + ' — ' + (d.title || entry.label);
+      status.textContent = uiF('progressOfNamed', { i: i + 1, n: ids.length, name: d.title || entry.label });
       state.photo = entry.photoUrl;
       state.title = d.title || state.title; state.price = d.price || state.price;
       state.template = bulkState.tpl; state.format = bulkState.fmt;
@@ -3396,14 +3400,14 @@ async function runBulkGenerate() {
       ok++;
     }
     if (zip && ok) {
-      status.textContent = 'A comprimir…';
+      status.textContent = uiT('compressing');
       const zb = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
       saveBlob(zb, 'my-studio-producao-massa-' + ok + '.zip');
     }
-    status.textContent = ok + ' de ' + ids.length + ' gerados' + (zip ? ' — ZIP descarregado.' : '.');
+    status.textContent = uiF('bulkDone', { ok, n: ids.length }) + (zip ? uiT('bulkDoneZip') : '.');
   } catch (e) {
     console.error(e);
-    status.textContent = 'Erro após ' + ok + ' — vê a consola.';
+    status.textContent = uiF('bulkError', { ok });
   } finally {
     Object.assign(state, snapshot);
     draw();
@@ -3425,8 +3429,8 @@ async function downloadPNG() {
     const multi = state.slides.length > 1;
     const base = slugify(state.title) + (multi ? '-' + String(state.slideIdx + 1).padStart(2,'0') : '');
     saveBlob(b, 'z-' + state.format + '-' + base + '.png');
-    toast('PNG descarregado (' + c.width + '×' + c.height + ')');
-  } catch (e) { console.error(e); toast('Erro no export — a imagem pode não permitir CORS.'); }
+    toast(uiF('pngDone', { w: c.width, h: c.height }));
+  } catch (e) { console.error(e); toast(uiT('exportError')); }
 }
 
 // Partilha direta (telemóvel) — abre o menu nativo do sistema (Instagram, WhatsApp, etc.)
@@ -3605,17 +3609,17 @@ async function sharePNG() {
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({ files: [file], title: state.title || 'My Studio', text: (document.getElementById('caption').value || '').slice(0, 200) });
     } else {
-      toast('Este browser não suporta partilha direta — a descarregar.');
+      toast(uiT('shareFallback'));
       await downloadPNG(); // espera o download terminar antes de devolver
     }
   } catch (e) {
-    if (e.name !== 'AbortError') { console.error(e); toast('Não foi possível partilhar.'); }
+    if (e.name !== 'AbortError') { console.error(e); toast(uiT('shareFailed')); }
   }
 }
 
 // Exportação em PDF — útil como flyer para imprimir ou anexar a um email.
 async function downloadPDF() {
-  if (typeof window.jspdf === 'undefined') { toast('Biblioteca de PDF ainda a carregar — tenta de novo em 1-2 segundos.'); return; }
+  if (typeof window.jspdf === 'undefined') { toast(uiT('pdfLoading')); return; }
   try {
     const { jsPDF } = window.jspdf;
     const c = document.getElementById('preview');
@@ -3624,8 +3628,8 @@ async function downloadPDF() {
     const pdf = new jsPDF({ orientation: orient, unit: 'px', format: [c.width, c.height] });
     pdf.addImage(imgData, 'JPEG', 0, 0, c.width, c.height);
     pdf.save('z-' + state.format + '-' + slugify(state.title) + '.pdf');
-    toast('PDF descarregado');
-  } catch (e) { console.error(e); toast('Erro ao gerar o PDF.'); }
+    toast(uiT('pdfDone'));
+  } catch (e) { console.error(e); toast(uiT('pdfError')); }
 }
 
 // Vista em grelha — todos os slides do carrossel de uma vez, para escolher rapidamente.
@@ -3635,7 +3639,7 @@ async function toggleSlideGrid() {
   ov.classList.toggle('hide');
   if (!opening) return;
   const wrap = document.getElementById('slideGridWrap');
-  wrap.innerHTML = '<div style="padding:20px;color:#888;">A gerar miniaturas…</div>';
+  wrap.innerHTML = '<div style="padding:20px;color:#888;">' + uiT('thumbsLoading') + '</div>';
   await document.fonts.ready;
   const [W, H] = FORMATS[state.format];
   const thumbW = 160, thumbH = Math.round(thumbW * H / W);
@@ -3659,6 +3663,7 @@ async function toggleSlideGrid() {
 async function downloadCarousel() {
   if (state.slides.length < 2) return;
   const btn = document.getElementById('btnCarousel');
+  const oldHTML = btn.innerHTML; // repõe o rótulo traduzido (e o ícone) no fim
   btn.disabled = true;
   await document.fonts.ready;
   const [W, H] = FORMATS[state.format];
@@ -3668,7 +3673,7 @@ async function downloadCarousel() {
   const zip = (typeof JSZip !== 'undefined') ? new JSZip() : null;
   try {
     for (let i = 0; i < state.slides.length; i++) {
-      btn.textContent = 'A gerar ' + (i + 1) + ' / ' + state.slides.length + '…';
+      btn.textContent = uiF('progressOf', { i: i + 1, n: state.slides.length });
       await renderTo(off, state.slides[i]);
       const b = await canvasBlob(off);
       if (!b) { console.warn('Slide ' + (i + 1) + ' falhou (imagem sem CORS?)'); continue; }
@@ -3678,24 +3683,25 @@ async function downloadCarousel() {
       ok++;
     }
     if (zip && ok) {
-      btn.textContent = 'A comprimir…';
+      btn.textContent = uiT('compressing');
       const zb = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
       saveBlob(zb, 'z-carrossel-' + base + '.zip');
     }
     toast(ok === state.slides.length
-      ? (zip ? 'ZIP com ' + ok + ' slides descarregado' : ok + ' slides descarregados')
-      : ok + ' de ' + state.slides.length + ' slides — vê a consola');
+      ? (zip ? uiF('slidesZipDone', { n: ok }) : uiF('slidesDone', { n: ok }))
+      : uiF('slidesPartial', { ok, n: state.slides.length }));
   } catch (e) {
     console.error(e);
-    toast('Erro no carrossel após ' + ok + ' slide(s) — vê a consola.');
+    toast(uiF('slidesError', { n: ok }));
   } finally {
     btn.disabled = false;
-    btn.textContent = '↓ Carrossel completo';
+    btn.innerHTML = oldHTML;
   }
 }
 
 async function downloadAllFormats() {
   const btn = document.getElementById('btnAllFormats');
+  const oldHTML = btn.innerHTML; // repõe o rótulo traduzido (e o ícone) no fim
   btn.disabled = true;
   await document.fonts.ready;
   const base = slugify(state.title);
@@ -3707,7 +3713,7 @@ async function downloadAllFormats() {
     for (let i = 0; i < keys.length; i++) {
       const fmt = keys[i];
       const [W, H] = FORMATS[fmt];
-      btn.textContent = 'A gerar ' + (i + 1) + ' / ' + keys.length + ' — ' + fmt + '…';
+      btn.textContent = uiF('progressOfNamed', { i: i + 1, n: keys.length, name: fmt }) + '…';
       state.format = fmt; // alguns layouts (ex. Story) dependem de state.format, não só de W/H
       const off = document.createElement('canvas'); off.width = W; off.height = H;
       await renderTo(off);
@@ -3719,27 +3725,27 @@ async function downloadAllFormats() {
       ok++;
     }
     if (zip && ok) {
-      btn.textContent = 'A comprimir…';
+      btn.textContent = uiT('compressing');
       const zb = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
       saveBlob(zb, 'z-todos-formatos-' + base + '.zip');
     }
     toast(ok === keys.length
-      ? (zip ? 'ZIP com ' + ok + ' formatos descarregado' : ok + ' formatos descarregados')
-      : ok + ' de ' + keys.length + ' formatos — vê a consola');
+      ? (zip ? uiF('formatsZipDone', { n: ok }) : uiF('formatsDone', { n: ok }))
+      : uiF('formatsPartial', { ok, n: keys.length }));
   } catch (e) {
     console.error(e);
-    toast('Erro ao gerar todos os formatos — vê a consola.');
+    toast(uiT('formatsError'));
   } finally {
     state.format = originalFormat;
     btn.disabled = false;
-    btn.textContent = '↓ Todos os formatos (.zip)';
+    btn.innerHTML = oldHTML;
   }
 }
 
 function copyCaption() {
   navigator.clipboard.writeText(document.getElementById('caption').value)
-    .then(() => toast('Legenda copiada'))
-    .catch(() => toast('Não foi possível copiar'));
+    .then(() => toast(uiT('captionCopied')))
+    .catch(() => toast(uiT('copyFailed')));
 }
 function toast(msg) {
   const el = document.getElementById('toast');
@@ -3830,6 +3836,13 @@ document.getElementById('caption').addEventListener('input', pushHistory);
   const match = wanted.find(code => SUPPORTED_UI_LANGS.includes(code));
   if (!match || match === state.lang) return;
   state.lang = match;
+  // A língua do navegador passa também a fazer parte das línguas ativas da
+  // legenda (ex.: FR em França) — senão "Traduzir em todas as línguas" gerava
+  // PT/EN mas não a língua de quem está a usar a app.
+  if (state.brand && state.brand.langs instanceof Set) {
+    state.brand.langs.add(match);
+    document.querySelectorAll('#langsSeg button').forEach(b => b.classList.toggle('active', state.brand.langs.has(b.dataset.l)));
+  }
   const switchEl = document.getElementById('langSwitch');
   if (switchEl) switchEl.value = match;
   document.documentElement.lang = match;
