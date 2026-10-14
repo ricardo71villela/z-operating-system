@@ -197,8 +197,8 @@ const NOTICE = {
   compliance_rejected: {
     subject: 'Mentions obligatoires refusées',
     heading: 'Mentions obligatoires à corriger',
-    intro: t => `Z Find a refusé les mentions obligatoires (France) de votre annonce « ${t} ».`,
-    next: 'Corrigez-les dans la section « Mentions obligatoires (France) » de l’annonce et enregistrez-les : elles repartent alors en validation.'
+    intro: t => `Z Find a refusé les mentions obligatoires de votre annonce « ${t} ».`,
+    next: 'Corrigez-les dans la section « Mentions obligatoires » de l’annonce et enregistrez-les : elles repartent alors en validation.'
   }
 };
 

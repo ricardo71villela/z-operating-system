@@ -1,5 +1,5 @@
 /* ============================================================
-   Z FIND PARTNER — « Mentions obligatoires (France) »: badges in the
+   Z FIND PARTNER — « Mentions obligatoires — France »: badges in the
    portfolio, the sale and rent forms (prefill, French validation,
    conditional fields), the save RPC payload, refusal reason.
    Mocks Auth + REST only. Screenshots when ZFIND_SHOTS_DIR is set.
@@ -37,7 +37,7 @@ const STATUSES = [
   { listing_id: 'l-rent', jurisdiction_iso: 'FR', profile: 'fr_residential_rent_v1', review_status: 'rejected', review_note: 'Le montant du dépôt de garantie dépasse un mois de loyer hors charges', facts_valid: true },
   { listing_id: 'l-ok', jurisdiction_iso: 'FR', profile: 'fr_residential_sale_v1', review_status: 'approved', review_note: null, facts_valid: true },
   { listing_id: 'l-wait', jurisdiction_iso: 'FR', profile: 'fr_residential_sale_v1', review_status: 'pending', review_note: null, facts_valid: true },
-  { listing_id: 'l-be', jurisdiction_iso: 'BE', profile: null, review_status: 'unreviewed', review_note: null, facts_valid: false }
+  { listing_id: 'l-be', jurisdiction_iso: 'BE', profile: 'be_bru_sale_v1', review_status: 'unreviewed', review_note: null, facts_valid: false, missing: ['compliance_record'] }
 ];
 const RENT_FACTS = { dpe_status: 'available', dpe_energy_class: 'D', ghg_class: 'D', energy_cost_min: 610, energy_cost_max: 870, energy_cost_reference_year: '2023', fees_payer: 'shared',
   agency_fees_amount: 960, surface_habitable_sqm: 48, monthly_rent_excl_charges: 1250, monthly_charges: 100, charges_recovery_method: 'provision', deposit_amount: 2500,
@@ -87,7 +87,7 @@ const payload = (listingId, profile, extra) => Object.assign({ listing_id: listi
   const list = await page.textContent('#portfolio-list');
   check('status RPC asked once for every listing of the portfolio', statusArgs && statusArgs.p_listing_ids.join(',') === 'l-sale,l-rent,l-ok,l-wait,l-be');
   check('portfolio badges in French', list.includes('Mentions : À compléter') && list.includes('Mentions : Refusé') && list.includes('Mentions : Validé') && list.includes('Mentions : En attente de validation Z Find'));
-  check('no badge for the Belgian listing', (await page.$$('.compliance-badge')).length === 4);
+  check('the Belgian listing has its badge too (Belgium is now gated)', (await page.$$('.compliance-badge')).length === 5);
   check('refusal reason in the badge tooltip', (await page.getAttribute('.compliance-badge.tone-bad', 'title')).startsWith('Motif : Le montant du dépôt'));
   if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'partner-portfolio-badges.png'), fullPage: true });
 
@@ -95,7 +95,7 @@ const payload = (listingId, profile, extra) => Object.assign({ listing_id: listi
   await page.click('.portfolio-row >> nth=0');
   await page.waitForSelector('#compliance-form');
   const section = page.locator('#partner-compliance-section');
-  check('section « Mentions obligatoires (France) » for a French sale', (await section.textContent()).includes('Mentions obligatoires (France)') && (await section.textContent()).includes('Vente d’un logement'));
+  check('section « Mentions obligatoires — France » for a French sale', (await section.textContent()).includes('Mentions obligatoires — France') && (await section.textContent()).includes('Vente d’un logement'));
   check('status « À compléter »', (await page.textContent('#compliance-status')).includes('À compléter'));
   check('prefilled from the property: DPE class C, ADEME number, annual charges', await page.isChecked('input[name="cf-dpe_status"][value="available"]')
     && (await page.inputValue('#cf-dpe_energy_class')) === 'C' && (await page.inputValue('#cf-dpe_ademe_number')) === '2374E0123456X');
@@ -104,7 +104,7 @@ const payload = (listingId, profile, extra) => Object.assign({ listing_id: listi
   await page.click('#compliance-save');
   await page.waitForSelector('.cf-field.has-error');
   const errText = await section.textContent();
-  check('client validation: French message per field, nothing sent', saved === null && errText.includes('Choisissez la classe climat GES (A à G).')
+  check('client validation: French message per field, nothing sent', saved === null && errText.includes('Choisissez la classe climat GES.')
     && errText.includes('Cochez la mention Géorisques') && errText.includes('Indiquez si le prix affiché inclut les honoraires.') && errText.includes('point'));
   if (SHOTS) await section.screenshot({ path: path.join(SHOTS, 'partner-sale-errors.png') });
 

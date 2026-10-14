@@ -144,7 +144,7 @@ function check(label, value, extra) { if (!value && extra !== undefined) console
   });
   check('submit-all: only ready drafts are submitted, one after the other', JSON.stringify(submitted) === '["l1","l5"]', submitted);
   const by = Object.fromEntries(results.map(r => [r.listingId, r]));
-  check('submit-all: each blocked listing says what is missing (French)', by.l2.outcome === 'blocked' && by.l2.reason === 'il manque au moins une photo' && by.l3.reason === 'il manque au moins une photo, les mentions obligatoires (France) complètes et enregistrées' && by.l5.outcome === 'blocked' && /la commune du bien/.test(by.l5.reason), results);
+  check('submit-all: each blocked listing says what is missing (French)', by.l2.outcome === 'blocked' && by.l2.reason === 'il manque au moins une photo' && by.l3.reason === 'il manque au moins une photo, les mentions obligatoires complètes et enregistrées' && by.l5.outcome === 'blocked' && /la commune du bien/.test(by.l5.reason), results);
   check('submit-all: published / unknown listings are skipped, never touched', by.l4.outcome === 'skipped' && by.l6.outcome === 'skipped' && results.length === 6);
   check('submit-all summary', LS.summarizeSubmitAll(results) === '1 soumise à validation, 3 bloquées (photo : 2 ; mentions obligatoires : 1 ; commune : 1), 2 ignorées (pas en brouillon)', LS.summarizeSubmitAll(results));
 

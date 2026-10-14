@@ -113,7 +113,11 @@
     "test:feed-sync": "node tests/unit/feed-sync.test.js",
     "test:sql-partner-self-import": "node tests/sql/partner-self-import.test.mjs && node tests/sql/feed-sync-e2e.test.mjs",
     "test:partner-import": "node tests/browser/zfind-partner/self-import-verification.js",
-    "test:admin-feeds": "node tests/browser/zfind-admin/feeds-verification.js"
+    "test:admin-feeds": "node tests/browser/zfind-admin/feeds-verification.js",
+    "test:footer": "node tests/browser/zfind-web/footer-verification.js",
+    "test:partner-compliance-coverage": "node tests/browser/zfind-partner/compliance-coverage-verification.js",
+    "test:admin-compliance-be": "node tests/browser/zfind-admin/compliance-be-verification.js",
+    "test:sql-listing-compliance": "node tests/sql/listing-compliance.test.mjs && node tests/sql/partner-submit.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.8",

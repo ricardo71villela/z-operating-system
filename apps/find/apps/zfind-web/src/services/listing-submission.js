@@ -63,9 +63,9 @@
     description_fr: 'une description en français',
     price: 'un prix supérieur à 0',
     photo: 'au moins une photo',
-    compliance_facts: 'les mentions obligatoires (France) complètes et enregistrées',
+    compliance_facts: 'les mentions obligatoires complètes et enregistrées',
     compliance_rejected: 'les mentions obligatoires corrigées (refusées par Z Find)',
-    compliance_unsupported: 'un type de bien couvert en France (logement en vente ou en location)'
+    compliance_unsupported: 'un type d’annonce couvert par les mentions obligatoires (commune et type de bien à vérifier)'
   });
 
   /* Checklist wording: what to do, and where. */
@@ -75,10 +75,13 @@
     description_fr: ['Description en français', 'Section « Textes » : description en français.'],
     price: ['Prix', 'Section « Conditions » : prix supérieur à 0.'],
     photo: ['Au moins une photo', 'Section « Photos » : ajoutez une photo.'],
-    compliance_facts: ['Mentions obligatoires (France)', 'Complétez et enregistrez les mentions obligatoires.'],
+    compliance_facts: ['Mentions obligatoires', 'Complétez et enregistrez les mentions obligatoires.'],
     compliance_rejected: ['Mentions obligatoires corrigées', 'Z Find a refusé les mentions : corrigez-les puis enregistrez-les.'],
-    compliance_unsupported: ['Type de bien couvert en France', 'Seuls les logements en vente ou en location peuvent être publiés en France : écrivez à hello@zfind.online.']
+    compliance_unsupported: ['Type d’annonce couvert', 'Ce type d’annonce n’est pas encore couvert par les mentions obligatoires (ou la commune / région est à préciser) : écrivez à hello@zfind.online.']
   });
+
+  /* Countries where the mandatory information is checked (France, Belgium, Luxembourg). */
+  const GATED = Object.freeze(['FR', 'BE', 'LU']);
 
   function present(v) { return typeof v === 'string' ? v.trim() !== '' : false; }
 
@@ -95,7 +98,7 @@
     if (!present(i.frDescription)) missing.push('description_fr');
     if (!(Number(i.priceCurrent) > 0)) missing.push('price');
     if (!(Number(i.photoCount) > 0)) missing.push('photo');
-    if (jurisdiction === 'FR') {
+    if (GATED.includes(jurisdiction)) {
       if (!i.complianceProfile) missing.push('compliance_unsupported');
       else if (!i.factsValid) missing.push('compliance_facts');
       else if (i.reviewStatus === 'rejected') missing.push('compliance_rejected');
@@ -106,7 +109,7 @@
   /** Every item that applies to this listing, with ok / missing. */
   function checklist(input) {
     const missing = precheck(input);
-    const fr = String((input && input.jurisdiction) || '').toUpperCase() === 'FR';
+    const fr = GATED.includes(String((input && input.jurisdiction) || '').toUpperCase());
     const items = ['commune', 'title_fr', 'description_fr', 'price', 'photo'];
     if (fr) {
       const special = missing.find(c => c === 'compliance_unsupported' || c === 'compliance_rejected');
@@ -151,12 +154,12 @@
   /** Short reason for a bulk summary line (« bloquées : … »). */
   function shortReason(error) {
     const msg = String((error && error.message) || '');
-    if (/France Listing compliance gate failed/i.test(msg)) {
+    if (/(France|Belgium|Luxembourg) Listing compliance gate failed/i.test(msg)) {
       let keys = [];
       try { const m = /(\[[^\]]*\])/.exec(msg); keys = m ? JSON.parse(m[1]) : []; } catch (_) { keys = []; }
       return keys.filter(k => k !== 'review_approval').length ? 'mentions obligatoires incomplètes' : 'mentions obligatoires non validées';
     }
-    if (/France Listings must be created before publication/i.test(msg)) return 'mentions obligatoires non validées';
+    if (/(France|Belgium|Luxembourg) Listings must be created before publication/i.test(msg)) return 'mentions obligatoires non validées';
     if (/while Representation is/i.test(msg)) return 'mandat non actif';
     if (/already has a published Listing/i.test(msg)) return 'une autre annonce du mandat est déjà publiée';
     if (/must have a positive price/i.test(msg)) return 'prix manquant';

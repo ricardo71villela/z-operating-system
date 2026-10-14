@@ -76,7 +76,24 @@ check('rent: what the file cannot say is reported in French', !c2.complete && c2
 const c3 = imp.complianceFor(pub77, 'FR');
 check('sale paid by the seller without an amount, no energy costs: reported, valid facts still kept', !c3.complete && c3.facts.fees_payer === 'seller' && c3.facts.is_condominium === false && !('agency_fees_amount' in c3.facts)
   && c3.missing.includes('agency_fees_amount') && c3.missing.includes('energy_cost_min') && c3.text.startsWith('mentions incomplètes : mention Géorisques, montant des honoraires'), c3);
-check('not applicable outside France or for non-residential property', imp.complianceFor(ev1024, 'BE').applicable === false && imp.complianceFor(Object.assign({}, ev1024, { subtype: 'land' }), 'FR').applicable === false);
+const land = imp.complianceFor(Object.assign({}, ev1024, { subtype: 'land' }), 'FR');
+check('terrain (France): fr_land_sale_v1 — fees and Géorisques, no DPE, no copropriété', land.applicable && land.profile === C.LAND_SALE && land.complete && !('dpe_status' in land.facts) && !('is_condominium' in land.facts), land);
+const office = imp.complianceFor(Object.assign({}, ev1024, { subtype: 'office' }), 'FR');
+check('bureaux (France): fr_commercial_sale_v1 — DPE classes kept, no energy costs (logements only)', office.profile === C.COM_SALE && office.facts.dpe_status === 'available' && !('energy_cost_min' in office.facts) && !('surface_habitable_sqm' in office.facts), office);
+const bru = imp.complianceFor(Object.assign({}, ev1024, { postcode: '1050' }), 'BE');
+check('Belgium, postcode 1050 → Bruxelles: DPE / GES columns reused as PEB class, kWh EP/m² and CO₂', bru.profile === C.BRU_SALE && bru.facts.peb_status === 'available' && bru.facts.peb_class === ev1024.energyRating
+  && bru.facts.peb_primary_energy_kwh_m2 === ev1024.dpeValue && bru.facts.peb_co2_kg_m2 === ev1024.gesValue && !('georisques_disclosure' in bru.facts), bru);
+const wal = imp.complianceFor(Object.assign({}, ev1024, { postcode: '5000', energyClassExact: 'A+', pebTotal: 12000, ademeNumber: '20240101012345' }), 'BE');
+check('Belgium, postcode 5000 → Wallonie: exact class A+, specific + total consumption, unique code', wal.profile === C.WAL_SALE && wal.facts.peb_class === 'A+' && wal.facts.peb_total_consumption_kwh === 12000 && wal.facts.peb_certificate_code === '20240101012345' && wal.complete, wal);
+const vla = imp.complianceFor(Object.assign({}, ev1024, { postcode: '9000', floodP: 'A', floodG: 'B' }), 'BE');
+check('Belgium, postcode 9000 → Flandre: EPC score, P / G scores; urbanism reported missing in French', vla.profile === C.VLA_SALE && vla.facts.epc_score_kwh_m2 === ev1024.dpeValue && vla.facts.flood_g_score === 'B' && vla.facts.plot_is_built === true
+  && /permis d’urbanisme \(vergunning\)/.test(vla.text), vla);
+const lu = imp.complianceFor(Object.assign({}, ev1024, { insulationClass: 'C' }), 'LU');
+check('Luxembourg: energy class + thermal insulation class', lu.profile === C.LU_SALE && lu.facts.cpe_energy_class === ev1024.energyRating && lu.facts.cpe_insulation_class === 'C' && lu.complete, lu);
+const nowhere = imp.complianceFor(ev1024, 'BE');
+check('Belgium with a French postcode: region unknown → not applicable, French reason', nowhere.applicable === false && /région belge non déterminée/.test(nowhere.text) && imp.complianceFor(ev1024, 'PT').applicable === false, nowhere);
+check('class with its sign is read exactly (A++, B-), flood scores A–D', imp.normalizeRow({ d: 'A++', i: 'b-', p: 'c', g: 'E' }, { dpe: 'd', insulation: 'i', floodP: 'p', floodG: 'g' }).energyClassExact === 'A++'
+  && imp.normalizeRow({ i: 'b-' }, { insulation: 'i' }).insulationClass === 'B-' && imp.normalizeRow({ p: 'c' }, { floodP: 'p' }).floodP === 'C' && imp.normalizeRow({ g: 'E' }, { floodG: 'g' }).floodG === null);
 const buyerPct = imp.complianceFor(Object.assign({}, ev1024, { priceExclFees: null, feesPercent: 5, price: 420000 }), 'FR');
 check('sale: buyer fees from the Poliris % when the price without fees is missing', buyerPct.facts.agency_fees_amount === 20000, buyerPct.facts);
 

@@ -82,7 +82,7 @@ const row = o => Object.assign({ lead_id: 'l1', created_at: '2026-10-04T10:00:00
   const refused = mails.find(m => m.subject.startsWith('Mentions obligatoires refusées'));
   check('return to draft: French e-mail to the agency with the reason (escaped), the next step and its space', back && back.to[0] === 'agent@lac-immo.fr' && back.subject === 'Annonce renvoyée en brouillon : T3 vue lac'
     && back.html.includes('Photos floues &lt;i&gt;merci&lt;/i&gt;') && back.html.includes('(réf. EV-001)') && back.html.includes('« Soumettre à validation »') && back.html.includes('https://partner.zfind.online') && back.text.includes('Motif :'));
-  check('refused mentions: its own French e-mail', refused && refused.subject === 'Mentions obligatoires refusées : T3 vue lac' && refused.html.includes('Montant des honoraires à corriger') && refused.html.includes('Mentions obligatoires (France)'));
+  check('refused mentions: its own French e-mail', refused && refused.subject === 'Mentions obligatoires refusées : T3 vue lac' && refused.html.includes('Montant des honoraires à corriger') && refused.html.includes('« Mentions obligatoires »'));
   check('the agency can answer Z Find directly (Reply-To)', back.reply_to === 'leads@zfind.online');
   const nmarks = calls.filter(c => /zfind_mark_listing_review_notices/.test(c.url));
   check('every notice marked once (no account / inactive agency: skipped, reason stays in the partner space)', rv.sent === 2 && rv.skipped === 2 && nmarks.length === 4 && nmarks.every(m => m.body.p_delivered === true));

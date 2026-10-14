@@ -55,7 +55,7 @@ const LABELS = {
     refs: 'References &amp; Multimedia', agencyRef: 'Agency Reference', tour: '360° Tour URL',
     save: 'Save all fields above',
     conditions: [['new','New'],['used','Used'],['needs_renovation','Needs renovation'],['renovated','Renovated']],
-    energy: ['A+','A','B','B-','C','D','E','F'],
+    energy: ['A+','A','B','B-','C','D','E','F','G'],
     devTitle: 'Development Details', totalUnits: 'Total Units (Frações)', buildingFloors: 'Building Floors',
     footprint: 'Footprint Area (m²)', completion: 'Expected Completion', phase: 'Project Phase', developer: 'Developer Name',
     phases: [['planning','Planning'],['construction','Construction'],['completed','Completed']],

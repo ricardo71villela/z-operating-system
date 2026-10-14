@@ -181,7 +181,7 @@ const FACTS = {
   const mapped = await page.$$eval('#imp-map-table select', s => Object.fromEntries(s.map(x => [x.dataset.field, x.value])));
   check('spreadsheet columns recognised, incl. GES, energy costs, fees payer, copropriété, rent columns', mapped.reference === 'N° mandat' && mapped.ges === 'Classe GES' && mapped.feesPayer === 'Honoraires à la charge de' && mapped.condoLots === 'Nombre de lots'
     && mapped.rentExclCharges === 'Loyer hors charges (€)' && mapped.energyCostMax === 'Dépenses d’énergie estimées — maximum (€/an)' && mapped.charges === 'Charges');
-  check('mapping grouped: « Annonce » / « Mentions obligatoires (France) »', (await page.textContent('#imp-map-table')).includes('Mentions obligatoires (France)'));
+  check('mapping grouped: « Annonce » / « Mentions obligatoires »', (await page.textContent('#imp-map-table')).includes('Mentions obligatoires'));
   await page.waitForSelector('#imp-plan-panel');
   check('new agency: 2 to create, « import complet » off for a spreadsheet', (await page.textContent('#imp-count-create .n')) === '2' && !(await page.$eval('#imp-full', c => c.checked)));
   const prevMentions = await page.textContent('#imp-preview-table');

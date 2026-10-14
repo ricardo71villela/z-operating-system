@@ -195,7 +195,11 @@
 
   function syncCopy() {
     const link = document.getElementById(COOKIE_LINK_ID);
-    if (link) link.textContent = copy().cookieLink;
+    if (link) {
+      link.textContent = copy().cookieLink;
+      // A real address too (new tab, no-JS): the click handler still routes in place.
+      link.setAttribute('href', '#/' + (COPY[locale()] ? locale() : 'fr') + '/cookies');
+    }
     if (document.getElementById(COOKIE_VIEW_ID)) renderCookieView();
     installRgpdNotice();
   }

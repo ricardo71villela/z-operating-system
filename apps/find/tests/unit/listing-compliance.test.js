@@ -110,7 +110,10 @@ check('« En attente de validation Z Find » when submitted and complete', S('pe
 check('« Validé »', S('approved', true).label === 'Validé');
 check('approved but facts invalid (e.g. sale switched to rent) → « À compléter »', S('approved', false).code === 'todo');
 check('« Refusé — motif : … »', S('rejected', true, { review_note: 'Classe GES manquante' }).long === 'Refusé — motif : Classe GES manquante');
-check('no badge outside France, « Non couvert » for an FR programme', C.statusOf({ jurisdiction_iso: 'BE', profile: null }) === null && S('unreviewed', false, { profile: null }).code === 'unsupported');
+check('no badge outside FR / BE / LU; « Non couvert » for an FR listing without profile; « Région à préciser » for Belgium',
+  C.statusOf({ jurisdiction_iso: 'PT', profile: null }) === null && S('unreviewed', false, { profile: null }).code === 'unsupported'
+  && C.statusOf({ jurisdiction_iso: 'BE', profile: null, missing: ['be_region_unresolved'] }).label === 'Région à préciser'
+  && C.statusOf({ jurisdiction_iso: 'LU', profile: C.LU_SALE, review_status: 'pending', facts_valid: true }).code === 'pending');
 
 /* ---------- errors in French ---------- */
 check('publish gate, review missing only', /^Publication bloquée : les mentions obligatoires \(France\) n’ont pas encore été validées/.test(C.describeError({ message: 'France Listing compliance gate failed: ["review_approval"]' })));
@@ -199,6 +202,35 @@ C._setClientModuleForTests({ getSupabaseClient: () => ({ rpc: (name, args) => { 
   check('admin « Publier » shows lifecycle / compliance errors in French', /listingCompliance\.describeError\(result\.error, 'Impossible de changer le statut de l’annonce\.'\)/.test(adminApp));
   check('admin compliance.js does not touch adminState at load time (loaded before app.js)',
     adminUi.split('\n').filter(l => /^\S/.test(l) && /adminState/.test(l) && !/^\s*(\/\*|\/\/)/.test(l)).length === 0);
+
+  /* ---------- coverage migration 20261014120000: FR programme / commercial / land, BE, LU ---------- */
+  const coverageName = fs.readdirSync(MIGRATIONS).filter(nm => nm.endsWith('_z_find_compliance_coverage_be_lu_class_g_v1.sql')).sort().at(-1);
+  const coverage = fs.readFileSync(path.join(MIGRATIONS, coverageName), 'utf8');
+  const pure = coverage.slice(coverage.indexOf('function public.zfind_compliance_profile_missing'), coverage.indexOf('function public.zfind_validate_listing_compliance_facts'));
+  const newKeys = Array.from(new Set(Array.from(pure.matchAll(/array_append\(m,'([a-z_]+)'\)/g)).map(x => x[1])));
+  check('coverage: every key the new validator can report has a French label', newKeys.length > 50 && newKeys.concat(['be_region_unresolved']).every(k => C.MISSING_LABELS[k]));
+  const sqlProfiles = Array.from(new Set(Array.from(pure.matchAll(/'((?:fr|be|lu)_[a-z_]+_v1)'/g)).map(x => x[1]))).sort();
+  check('coverage: the browser knows exactly the profiles of the SQL validator (15)', JSON.stringify(sqlProfiles) === JSON.stringify(C.PROFILES.slice().sort()), sqlProfiles);
+  const arr = name => Array.from(new RegExp(`${name} constant text\\[\\] := array\\[([^\\]]+)\\]`).exec(pure)[1].matchAll(/'([^']+)'/g)).map(x => x[1]);
+  check('coverage: class scales identical in SQL and browser (FR, tertiary, Wallonie, Bruxelles, Flandre, Luxembourg, flood scores)',
+    same(arr('fr_classes'), C.CLASSES) && same(arr('tertiary_classes'), C.TERTIARY_CLASSES) && same(arr('wal_classes'), C.WAL_CLASSES) && same(arr('bru_classes'), C.BRU_CLASSES)
+    && same(arr('vla_labels'), C.VLA_LABELS) && same(arr('lu_classes'), C.LU_CLASSES) && same(arr('flood_scores'), C.FLOOD_SCORES));
+  check('coverage: the form collects every fact the new validator checks', newKeys.filter(k => !['energy_cost_range', 'unsupported_profile'].includes(k)).every(k => formKeys.has(k)));
+  check('coverage: the existing residential checks are a verbatim copy of v2 (profiles not changed)',
+    (() => { const v2 = validatorBody.slice(validatorBody.indexOf("if v_facts -> 'georisques_disclosure'"), validatorBody.indexOf("  return jsonb_build_object('jurisdiction_iso',v_jurisdiction,'profile',v_profile,'facts_valid'"));
+      const norm = t => t.replace(/v_facts/g, 'f').replace(/v_missing/g, 'm').replace(/\s+/g, ' ').replace(/elsif v_profile = 'fr_residential_rent_v1' then/, 'else').replace(/if v_profile = 'fr_residential_sale_v1'/, "if p_profile = 'fr_residential_sale_v1'").trim();
+      const block = pure.slice(pure.indexOf("if f -> 'georisques_disclosure'"), pure.indexOf('    return m;\n  end if;\n\n  -- ---------- France, programme neuf'));
+      return norm(block).startsWith(norm(v2).slice(0, 2000)) && norm(v2).length > 2000; })());
+  check('coverage: the gate covers FR, BE and LU and still only fires on the transition to published',
+    /v_jurisdiction not in \('FR','BE','LU'\)/.test(coverage) && /if tg_op='UPDATE' and old\.status is not distinct from new\.status then return new;/.test(coverage) && !/create trigger/i.test(coverage));
+  check('coverage: helpers revoked from clients, security definer functions pin search_path',
+    /revoke all on function public\.zfind_compliance_profile_missing\(text, jsonb\) from public, anon, authenticated;/.test(coverage)
+    && (coverage.match(/security definer\nset search_path = pg_catalog/g) || []).length === (coverage.match(/security definer/g) || []).length);
+  check('coverage: labels of every profile, and the form offers « DPE établi à l’achèvement » only for programmes',
+    C.PROFILES.every(p => C.profileLabel(p) && C.jurisdictionLabel(p)) && C.jurisdictionLabel(C.VLA_SALE) === 'Belgique — Flandre (Vlaanderen)'
+    && C.optionsFor(optionKeys('dpe_status'), C.NEW_DEV).some(o => o[0] === 'pending_completion') && !C.optionsFor(optionKeys('dpe_status'), C.SALE).some(o => o[0] === 'pending_completion'));
+  check('coverage: partner and admin screens use the shared profile / jurisdiction labels (no France-only title)',
+    partnerUi.includes('jurisdictionLabel(') && adminUi.includes('profileLabel(') && !/Mentions obligatoires \(France\)/.test(partnerUi + adminUi));
 
   console.log(`\n${passed} checks passed`);
 })().catch(e => { console.error(e); process.exit(1); });

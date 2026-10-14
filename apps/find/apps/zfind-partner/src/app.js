@@ -420,7 +420,7 @@ async function loadPortfolio() {
     return;
   }
 
-  // « Mentions : … » badge slot per listing (France), filled by compliance.js.
+  // « Mentions : … » badge slot per listing (France, Belgique, Luxembourg), filled by compliance.js.
   const complianceSlot = row => {
     const listingId = assetListingId(row);
     return listingId ? `<span class="compliance-slot" data-compliance-listing="${escapeHtmlPartner(listingId)}"></span>` : '';

@@ -111,7 +111,7 @@ const MEDIA = { 'l-todo': [], 'l-done': [{ media_asset_id: 'm1', listing_id: 'l-
   await page.waitForSelector('.portfolio-submit-panel');
   const panelText = await page.textContent('.portfolio-submit-panel');
   check('incomplete draft: nothing sent, the missing items from the database are listed in French', submits.length === 0 && panelText.includes('Description en français') && panelText.includes('Prix')
-    && panelText.includes('Au moins une photo') && panelText.includes('Mentions obligatoires (France)') && !panelText.includes('Titre en français'));
+    && panelText.includes('Au moins une photo') && panelText.includes('Mentions obligatoires') && !panelText.includes('Titre en français'));
   check('… with « Compléter l’annonce »', (await page.textContent('.portfolio-submit-panel .btn-primary')) === 'Compléter l’annonce');
   if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'partner-portfolio-submit-missing.png'), fullPage: true });
   await page.click('[data-submission-listing="l-done"] .submit-row-btn');

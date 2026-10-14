@@ -49,7 +49,8 @@
      its listings since the last run (feedSafety: « à vérifier »).
    A preview (planSync, read only) is shown before anything is written.
 
-   French mandatory information (France, residential sale / rent)
+   Mandatory information (France: logement, local professionnel, terrain;
+   Belgium: Wallonie / Bruxelles / Flandre from the postcode; Luxembourg)
    - complianceFor(): facts built from the row with the shared
      services/listing-compliance.js (buildFacts / validateFacts), saved
      with zfind_save_listing_compliance once the listing exists: the
@@ -233,7 +234,11 @@
     ['energyCostMin', 'Dépenses d’énergie estimées — minimum (€/an)', ['depenses d energie estimees minimum an', 'depenses energie min', 'depense energie minimum', 'cout energie min', 'dpe cout min', 'energie min'], 'mentions'],
     ['energyCostMax', 'Dépenses d’énergie estimées — maximum (€/an)', ['depenses d energie estimees maximum an', 'depenses energie max', 'depense energie maximum', 'cout energie max', 'dpe cout max', 'energie max'], 'mentions'],
     ['energyCostYear', 'Année de référence des prix de l’énergie', ['annee de reference des prix de l energie', 'annee de reference', 'annee reference energie', 'dpe annee de reference', 'annee reference'], 'mentions'],
-    ['ademe', 'Numéro ADEME du DPE', ['numero ademe du dpe', 'numero ademe', 'n ademe', 'ademe', 'numero dpe'], 'mentions'],
+    ['ademe', 'Numéro ADEME du DPE / code unique PEB-EPC', ['numero ademe du dpe code unique peb epc', 'numero ademe du dpe', 'numero ademe', 'n ademe', 'ademe', 'numero dpe', 'code unique', 'code unique peb', 'code unique du certificat peb', 'numero du certificat peb', 'numero certificat peb', 'certificat peb', 'unieke code', 'code epc', 'numero epc'], 'mentions'],
+    ['pebTotal', 'PEB — consommation totale (kWh/an, Wallonie)', ['peb consommation totale kwh an wallonie', 'consommation totale', 'consommation theorique totale', 'peb consommation totale', 'consommation totale kwh an', 'e total'], 'mentions'],
+    ['insulation', 'Classe d’isolation thermique (Luxembourg)', ['classe d isolation thermique luxembourg', 'classe d isolation thermique', 'isolation thermique', 'classe isolation'], 'mentions'],
+    ['floodP', 'P-score inondation (Flandre)', ['p score inondation flandre', 'p score', 'pscore', 'score parcelle'], 'mentions'],
+    ['floodG', 'G-score inondation (Flandre)', ['g score inondation flandre', 'g score', 'gscore', 'score batiment'], 'mentions'],
     ['feesPayer', 'Honoraires à la charge de', ['honoraires a la charge de', 'honoraires a la charge', 'charge des honoraires', 'honoraires charge'], 'mentions'],
     ['feesAmount', 'Honoraires (€ TTC)', ['honoraires ttc', 'honoraires', 'montant honoraires', 'montant des honoraires', 'honoraires euros', 'frais d agence'], 'mentions'],
     ['feesPercent', 'Honoraires (% du prix)', ['honoraires du prix', 'pourcentage honoraires', 'honoraires pourcentage', 'honoraires en pourcentage', 'taux honoraires', 'honoraires pct'], 'mentions'],
@@ -362,6 +367,18 @@
     return null;
   }
 
+  /* Exact class with its sign, for the Belgian / Luxembourg scales: "A++", "B-", "c+" → as is; else dpeOf(). */
+  function classOf(value) {
+    const raw = String(value == null ? '' : value).trim().toUpperCase().replace(/\s+/g, '');
+    if (/^(A\+\+|A\+|[A-I][+-]?)$/.test(raw)) return raw;
+    return dpeOf(value);
+  }
+  /* Flemish flood score: A–D. */
+  function floodScoreOf(value) {
+    const m = /^\s*([a-d])\b/i.exec(String(value == null ? '' : value));
+    return m ? m[1].toUpperCase() : null;
+  }
+
   /* "C", "C (152 kWh)", "Classe énergie C" → C; "Non soumis à DPE", "Vierge", "En cours", "NS", "VI" → null. */
   function dpeOf(value) {
     const f = fold(value);
@@ -453,7 +470,8 @@
       // French mandatory information (complianceFor)
       dpeStatus: dpeStatusOf(dpeRaw), dpeValue: num(get('dpeValue')), gesClass: dpeOf(get('ges')), gesValue: num(get('gesValue')),
       energyCostMin: num(get('energyCostMin')), energyCostMax: num(get('energyCostMax')), energyCostYear: year && year >= 1900 && year <= 2100 ? String(year) : null,
-      ademeNumber: get('ademe') || null,
+      ademeNumber: get('ademe') || null, energyClassExact: classOf(dpeRaw), pebTotal: num(get('pebTotal')),
+      insulationClass: classOf(get('insulation')), floodP: floodScoreOf(get('floodP')), floodG: floodScoreOf(get('floodG')),
       feesPayer: feesPayerOf(get('feesPayer'), transaction), feesAmount: num(get('feesAmount')), feesPercent: num(get('feesPercent')),
       priceExclFees: num(get('priceExclFees')), priceIncludesFees: yesNo(get('priceIncludesFees')), feesScheduleUrl: get('feesScheduleUrl') || null,
       condo: yesNo(get('condo')), condoLots: num(get('condoLots')), condoAnnualCharges: num(get('condoAnnualCharges')),
@@ -467,10 +485,14 @@
 
   /* ---------------- French mandatory information ---------------- */
 
-  /** Form values (listing-compliance.js FIELDS keys) the row provides. */
-  function complianceValues(row) {
+  /** Form values (listing-compliance.js FIELDS keys) the row provides.
+      profile (optional): Belgian / Luxembourg profiles take the energy
+      certificate columns (DPE class / kWh / code reused) under their own
+      keys; for France, buildFacts keeps only the keys of the profile. */
+  function complianceValues(row, profile) {
     const v = {};
     const set = (k, value) => { if (value !== null && value !== undefined && value !== '') v[k] = value; };
+    if (profile && /^(be|lu)_/.test(profile)) return foreignComplianceValues(row, profile, v, set);
     const sale = row.transaction !== 'rent';
     // Géorisques: stated by a column, or the mention is in the description itself.
     if (row.georisques === true || /georisques/.test(fold(row.description))) v.georisques_disclosure = true;
@@ -527,12 +549,70 @@
     return v;
   }
 
-  /** France + residential sale / rent: { applicable, profile, facts, missing, complete, text }. */
+  /* Belgium (Wallonie, Bruxelles-Capitale, Flandre) and Luxembourg. */
+  function foreignComplianceValues(row, profile, v, set) {
+    const certStatus = row.dpeStatus === 'exempt' ? 'exempt'
+      : (row.dpeStatus === 'available' || row.dpeValue != null) ? 'available' : null;
+    const cls = row.energyClassExact || row.energyRating;
+    if (/^be_(wal|bru)_/.test(profile)) {
+      set('peb_status', certStatus);
+      if (certStatus === 'available') {
+        set('peb_class', cls);
+        if (profile.startsWith('be_wal_')) {
+          set('peb_specific_consumption_kwh_m2', row.dpeValue);
+          set('peb_total_consumption_kwh', row.pebTotal);
+          set('peb_certificate_code', row.ademeNumber ? String(row.ademeNumber).slice(0, 60) : null);
+        } else {
+          set('peb_primary_energy_kwh_m2', row.dpeValue);
+          set('peb_co2_kg_m2', row.gesValue);
+          set('peb_certificate_code', row.ademeNumber ? String(row.ademeNumber).slice(0, 60) : null);
+        }
+      }
+    } else if (profile.startsWith('be_vla_')) {
+      set('epc_status', certStatus);
+      if (certStatus === 'available') {
+        set('epc_score_kwh_m2', row.dpeValue);
+        set('epc_label', cls);
+        set('epc_unique_code', row.ademeNumber ? String(row.ademeNumber).slice(0, 60) : null);
+      }
+      set('flood_p_score', row.floodP);
+      if (row.floodG) { v.plot_is_built = 'true'; set('flood_g_score', row.floodG); }
+      else if (row.subtype === 'land') v.plot_is_built = 'false';
+    } else if (profile.startsWith('lu_')) {
+      set('cpe_status', certStatus);
+      if (certStatus === 'available') {
+        set('cpe_energy_class', cls);
+        set('cpe_insulation_class', row.insulationClass);
+      }
+      set('fees_payer', row.feesPayer);
+      set('agency_fees_amount', row.feesAmount);
+    }
+    if (/^be_[a-z]{3}_rent_v1$/.test(profile)) {
+      let rent = row.rentExclCharges;
+      if (rent == null && row.price > 0) {
+        rent = row.rentIncludesCharges === true && row.monthlyCharges != null && row.price >= row.monthlyCharges ? round2(row.price - row.monthlyCharges) : row.price;
+      }
+      set('monthly_rent', rent);
+      set('monthly_common_charges', row.monthlyCharges);
+    }
+    return v;
+  }
+
+  const SUBTYPE_CLASS = Object.freeze({ apartment: 'residential', villa: 'residential', office: 'commercial', retail: 'commercial', industrial_logistics: 'commercial', hospitality: 'commercial', land: 'land' });
+
+  /** Mandatory information of a row: FR (logement, local professionnel,
+      terrain), BE (region from the postcode) and LU.
+      → { applicable, profile, facts, missing, complete, text }. */
   function complianceFor(row, country) {
     const svc = C();
-    if (!svc || String(country || '').toUpperCase() !== 'FR' || !RESIDENTIAL.includes(row.subtype)) return { applicable: false };
-    const profile = row.transaction === 'rent' ? svc.RENT : svc.SALE;
-    const facts = svc.buildFacts(profile, complianceValues(row));
+    const c = String(country || '').toUpperCase();
+    if (!svc || !['FR', 'BE', 'LU'].includes(c)) return { applicable: false };
+    const profile = svc.profileFor({ country: c, propertyClass: SUBTYPE_CLASS[row.subtype], transaction: row.transaction, postalCode: row.postcode });
+    if (!profile) {
+      if (c === 'BE' && SUBTYPE_CLASS[row.subtype]) return { applicable: false, text: 'mentions : région belge non déterminée (code postal manquant ou inconnu)' };
+      return { applicable: false };
+    }
+    const facts = svc.buildFacts(profile, complianceValues(row, profile));
     return describeFacts(profile, facts);
   }
 

@@ -116,7 +116,7 @@ const OPS_ROUTINE = [
   ['Chaque jour', [
     'Nouvelles inscriptions : vérifier la carte professionnelle et le SIRET, puis Valider ou Refuser.',
     'Annonces à vérifier (envoyées par les agences) : contrôler la conformité et publier.',
-    'Mentions obligatoires à valider (annonces en France) : Valider, ou Refuser avec un motif ; sans validation, la publication est refusée.',
+    'Mentions obligatoires à valider (annonces en France, en Belgique et au Luxembourg) : Valider, ou Refuser avec un motif ; sans validation, la publication est refusée.',
     'Fichier d’annonces envoyé par une agence (Poliris / SeLoger, CSV, Excel) : Importer des annonces — création en brouillon ou mise à jour de son portefeuille, après aperçu des changements.',
     'Estimations : confier à une agence les propriétaires qui ont accepté d’être contactés (eux seuls), le jour même.',
     'Demandes sans réponse depuis 24 h : l’agence a déjà reçu une relance automatique ; sinon, l’appeler.',
@@ -407,7 +407,7 @@ function renderImportMapping() {
       <h4>1. Colonnes du fichier « ${escapeHtml(importState.fileName)} » (${fmtN(table.records.length)} lignes)</h4>
       <p class="muted">Les colonnes reconnues sont déjà choisies. Complétez ce qui manque ; l’exemple est la première valeur de la colonne. Pour les mentions obligatoires, utilisez de préférence les noms de colonnes du modèle CSV.</p>
       <table class="compact" id="imp-map-table"><thead><tr><th>Champ Z Find</th><th>Colonne du fichier</th><th>Exemple</th></tr></thead>
-      <tbody><tr class="imp-group"><th colspan="3">Annonce</th></tr>${rowsOf('base')}<tr class="imp-group"><th colspan="3">Mentions obligatoires (France)</th></tr>${rowsOf('mentions')}</tbody></table>
+      <tbody><tr class="imp-group"><th colspan="3">Annonce</th></tr>${rowsOf('base')}<tr class="imp-group"><th colspan="3">Mentions obligatoires</th></tr>${rowsOf('mentions')}</tbody></table>
     </div>`;
 }
 
@@ -440,7 +440,7 @@ function renderImportPreview() {
     <div class="detail-panel imp-panel">
       <h4>2. Aperçu du fichier</h4>
       <p id="imp-summary"><strong>${fmtN(ready)}</strong> sur ${fmtN(inScope.length)} lignes lisibles${inScope.length - ready ? ` · <span class="imp-bad">${fmtN(inScope.length - ready)} ${inScope.length - ready > 1 ? 'ne seront pas importées' : 'ne sera pas importée'}</span>` : ''}${inScope.length > shown.length ? ` · seules les ${shown.length} premières sont affichées` : ''}.</p>
-      <div class="imp-scroll"><table class="compact" id="imp-preview-table"><thead><tr><th>#</th><th>Référence</th><th>Bien</th><th>Prix</th><th>m²</th><th>Localisation</th><th>Titre</th><th>Mentions (France)</th><th>Remarques</th></tr></thead><tbody>
+      <div class="imp-scroll"><table class="compact" id="imp-preview-table"><thead><tr><th>#</th><th>Référence</th><th>Bien</th><th>Prix</th><th>m²</th><th>Localisation</th><th>Titre</th><th>Mentions obligatoires</th><th>Remarques</th></tr></thead><tbody>
       ${shown.map(([r, i]) => { const comp = svc.complianceFor(r, country); return `<tr data-row="${i}"${r.errors.length ? ' class="imp-row-bad"' : ''}>
         <td>${i + off}</td>
         <td>${escapeHtml(r.reference || '—')}</td>
@@ -480,7 +480,7 @@ async function refreshImportPlan() {
     importState.portfolio = res.data;
     importState.portfolioFor = partnerId;
   }
-  // Stored mandatory information of the listings the file matches (France), to compare.
+  // Stored mandatory information of the listings the file matches (France, Belgium, Luxembourg), to compare.
   const refs = new Set(importState.rows.filter(r => r.reference && svc.complianceFor(r, country).applicable).map(r => String(r.reference).trim().toLowerCase()));
   const toRead = importState.portfolio.filter(e => refs.has(e.refKey) && e.listing && e.compliance === null);
   if (toRead.length && window.ZFindServices.listingCompliance) await svc.loadComplianceFor(toRead, window.ZFindServices.listingCompliance);
@@ -519,11 +519,11 @@ function renderImportPlan() {
         ${card('unchanged', k.unchanged, 'inchangées', '')}
       </div>
       ${k.ignored ? `<p class="muted">${fmtN(k.ignored)} ligne(s) d’un autre identifiant agence ignorée(s).</p>` : ''}
-      ${plan.updates.length ? `<h5>À mettre à jour</h5><div class="imp-scroll"><table class="compact" id="imp-plan-updates"><thead><tr><th>Référence</th><th>Annonce</th><th>Changements</th><th>Mentions (France)</th></tr></thead><tbody>
+      ${plan.updates.length ? `<h5>À mettre à jour</h5><div class="imp-scroll"><table class="compact" id="imp-plan-updates"><thead><tr><th>Référence</th><th>Annonce</th><th>Changements</th><th>Mentions obligatoires</th></tr></thead><tbody>
         ${plan.updates.slice(0, LIMIT).map(u => `<tr data-ref="${escapeHtml(u.row.reference || '')}"><td>${escapeHtml(u.row.reference || '—')}</td><td>${escapeHtml(u.entry.listing.title || '—')}<br>${statusTag(u.entry.listing.status)}</td>
           <td><ul class="imp-changes">${u.changes.map(ch => `<li>${escapeHtml(svc.changeText(ch))}</li>`).join('')}${u.notes.filter(n => /^Annonce en ligne/.test(n)).map(n => `<li class="imp-warn">${escapeHtml(n)}</li>`).join('')}</ul></td>
           <td>${compCell(u.compliance)}</td></tr>`).join('')}</tbody></table></div>${more(plan.updates)}` : ''}
-      ${plan.creates.length ? `<h5>À créer en brouillon</h5><div class="imp-scroll"><table class="compact" id="imp-plan-creates"><thead><tr><th>#</th><th>Référence</th><th>Bien</th><th>Prix</th><th>Localisation</th><th>Mentions (France)</th></tr></thead><tbody>
+      ${plan.creates.length ? `<h5>À créer en brouillon</h5><div class="imp-scroll"><table class="compact" id="imp-plan-creates"><thead><tr><th>#</th><th>Référence</th><th>Bien</th><th>Prix</th><th>Localisation</th><th>Mentions obligatoires</th></tr></thead><tbody>
         ${plan.creates.slice(0, LIMIT).map(c => `<tr><td>${c.line}</td><td>${escapeHtml(c.row.reference || '—')}${c.notes.length ? `<br><span class="muted">${escapeHtml(c.notes.join(' · '))}</span>` : ''}</td><td>${escapeHtml(SUBTYPE_FR[c.row.subtype] || c.row.subtype)}${c.row.typology ? ' · ' + escapeHtml(c.row.typology) : ''} <span class="muted">${c.row.transaction === 'rent' ? 'location' : 'vente'}</span></td><td class="nowrap">${importPriceLabel(c.row)}</td><td>${escapeHtml([c.row.postcode, c.row.city].filter(Boolean).join(' ') || '—')}</td><td>${compCell(c.compliance)}</td></tr>`).join('')}</tbody></table></div>${more(plan.creates)}` : ''}
       ${plan.archives.length ? `<h5>À retirer (absentes du fichier)</h5><div class="imp-scroll"><table class="compact" id="imp-plan-archives"><thead><tr><th>Référence</th><th>Annonce</th><th>Statut actuel</th></tr></thead><tbody>
         ${plan.archives.slice(0, LIMIT).map(a => `<tr><td>${escapeHtml(a.reference)}</td><td>${escapeHtml(a.title || '—')}</td><td>${statusTag(a.status)}</td></tr>`).join('')}</tbody></table></div>${more(plan.archives)}` : ''}
@@ -573,7 +573,7 @@ async function importRun() {
   document.getElementById('imp-results-body').innerHTML = `
     <p class="muted">Les mentions obligatoires importées attendent votre validation dans <a href="#" onclick="navigateAdmin('conformite');return false">« Mentions obligatoires à valider »</a>${incomplete ? ` ; ${fmtN(incomplete)} annonce(s) ci-dessous ont des mentions incomplètes : demandez à l’agence les informations indiquées` : ''}${incompleteUnchanged ? ` ; ${fmtN(incompleteUnchanged)} annonce(s) inchangée(s) restent incomplètes (détail dans le rapport)` : ''}. Les nouvelles annonces restent en brouillon : l’agence les complète et les envoie en vérification.</p>
     <div class="toolbar"><button class="btn" id="imp-report" onclick="importDownloadReport()">Télécharger le rapport (CSV)</button></div>
-    <div class="imp-scroll"><table class="compact" id="imp-results-table"><thead><tr><th>#</th><th>Référence</th><th>Action</th><th>Détail</th><th>Mentions (France)</th><th></th></tr></thead><tbody>
+    <div class="imp-scroll"><table class="compact" id="imp-results-table"><thead><tr><th>#</th><th>Référence</th><th>Action</th><th>Détail</th><th>Mentions obligatoires</th><th></th></tr></thead><tbody>
     ${results.filter(r => r.kind !== 'unchanged').map(r => { const [label, tag] = r.status === 'error' ? ['Erreur' + (r.kind !== 'error' ? ' — ' + svc.KIND_FR[r.kind].toLowerCase() : ''), 'late'] : IMPORT_KIND[r.kind]; return `<tr data-status="${r.status === 'error' ? 'error' : r.kind}">
       <td>${r.line == null ? '—' : r.line}</td><td>${escapeHtml(r.reference || '—')}</td><td><span class="tag tag-${tag}">${escapeHtml(label)}</span></td><td>${escapeHtml(r.message || '')}</td>
       <td>${r.compliance ? `<span class="${/^mentions complètes/.test(r.compliance) ? 'imp-ok' : 'imp-warn'}">${escapeHtml(r.compliance)}</span>` : '<span class="muted">—</span>'}</td>
@@ -1003,8 +1003,8 @@ const PROP_FILTERS = [
 const SUBTYPE_FR = { apartment: 'Appartement', villa: 'Maison', land: 'Terrain', office: 'Bureau', retail: 'Local commercial', industrial_logistics: 'Entrepôt / local d’activité', hospitality: 'Hôtellerie' };
 adminState.propFilter = { status: '', partner: '', search: '', compliance: '' };
 const PROP_COMPLIANCE_FILTERS = [
-  ['', 'Mentions FR : toutes'], ['todo', 'Mentions à compléter'], ['pending', 'Mentions en attente'],
-  ['approved', 'Mentions validées'], ['rejected', 'Mentions refusées'], ['unsupported', 'Mentions : non couvert'], ['none', 'Hors France']
+  ['', 'Mentions : toutes'], ['todo', 'Mentions à compléter'], ['pending', 'Mentions en attente'],
+  ['approved', 'Mentions validées'], ['rejected', 'Mentions refusées'], ['unsupported', 'Mentions : non couvert'], ['none', 'Hors FR / BE / LU']
 ];
 let propRowsCache = [];
 
@@ -1053,7 +1053,7 @@ async function renderPropertiesList() {
     </div>
     <div id="new-prop-form"></div>
     ${bulkBarHtml('props')}
-    <table><thead><tr>${bulkHeadCell('props')}<th>Titre</th><th>Bien</th><th>Zone</th><th>Agence</th><th>Prix</th><th>Statut</th><th>Mentions FR</th><th></th></tr></thead><tbody id="props-tbody"><tr><td colspan="9">Chargement…</td></tr></tbody></table>`);
+    <table><thead><tr>${bulkHeadCell('props')}<th>Titre</th><th>Bien</th><th>Zone</th><th>Agence</th><th>Prix</th><th>Statut</th><th>Mentions</th><th></th></tr></thead><tbody id="props-tbody"><tr><td colspan="9">Chargement…</td></tr></tbody></table>`);
   await loadPropertiesList();
 }
 
@@ -1071,7 +1071,7 @@ async function loadPropertiesList() {
       .map(([id, name]) => `<option value="${escapeHtml(id)}"${id === adminState.propFilter.partner ? ' selected' : ''}>${escapeHtml(name)}</option>`).join('');
   }
   renderPropRows();
-  loadPropertiesCompliance(propRowsCache); // compliance.js: « Mentions FR » column and filter
+  loadPropertiesCompliance(propRowsCache); // compliance.js: « Mentions » column and filter
 }
 
 function renderPropRows() {

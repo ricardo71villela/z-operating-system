@@ -31,15 +31,17 @@ const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   check('FR: refused mentions → compliance_rejected', eq(S.precheck(Object.assign({}, full, { reviewStatus: 'rejected' })), ['compliance_rejected']));
   check('FR: invalid AND refused → compliance_facts first (as SQL)', eq(S.precheck(Object.assign({}, full, { factsValid: false, reviewStatus: 'rejected' })), ['compliance_facts']));
   check('FR: no profile (development, commercial) → compliance_unsupported', eq(S.precheck(Object.assign({}, full, { complianceProfile: null })), ['compliance_unsupported']));
-  check('BE / LU: no French mentions rule', eq(S.precheck(Object.assign({}, full, { jurisdiction: 'be', complianceProfile: null, factsValid: false })), []));
+  check('BE / LU: mandatory information checked like France (migration 20261014120000)', eq(S.precheck(Object.assign({}, full, { jurisdiction: 'be', complianceProfile: 'be_bru_sale_v1', factsValid: false })), ['compliance_facts'])
+    && eq(S.precheck(Object.assign({}, full, { jurisdiction: 'LU', complianceProfile: 'lu_rent_v1' })), []) && eq(S.precheck(Object.assign({}, full, { jurisdiction: 'BE', complianceProfile: null })), ['compliance_unsupported']));
+  check('other countries: no mandatory-information rule', eq(S.precheck(Object.assign({}, full, { jurisdiction: 'PT', complianceProfile: null, factsValid: false })), []));
   check('jurisdiction case-insensitive', eq(S.precheck(Object.assign({}, full, { jurisdiction: 'fr', factsValid: false })), ['compliance_facts']));
 
   /* ---------- checklist + messages ---------- */
   const list = S.checklist(Object.assign({}, full, { photoCount: 0 }));
   check('checklist: 6 items for France, photo missing with a French hint', list.length === 6 && list.find(i => i.code === 'photo').ok === false && list.find(i => i.code === 'photo').help.includes('Photos') && list.filter(i => !i.ok).length === 1);
-  check('checklist: 5 items outside France', S.checklist(Object.assign({}, full, { jurisdiction: 'LU' })).length === 5);
+  check('checklist: 6 items for Belgium / Luxembourg too, 5 elsewhere', S.checklist(Object.assign({}, full, { jurisdiction: 'LU' })).length === 6 && S.checklist(Object.assign({}, full, { jurisdiction: 'PT' })).length === 5);
   check('checklist: unsupported FR type replaces the mentions item', S.checklist(Object.assign({}, full, { complianceProfile: null })).pop().code === 'compliance_unsupported');
-  const sqlMsg = 'Soumission impossible. Il manque : un titre en français, au moins une photo, les mentions obligatoires (France) complètes et enregistrées.';
+  const sqlMsg = 'Soumission impossible. Il manque : un titre en français, au moins une photo, les mentions obligatoires complètes et enregistrées.';
   check('missingFromMessage() reads the SQL message back to codes', eq(S.missingFromMessage(sqlMsg), ['title_fr', 'photo', 'compliance_facts']));
   check('missingText() builds the same phrases', 'Soumission impossible. Il manque : ' + S.missingText(['title_fr', 'photo', 'compliance_facts']) + '.' === sqlMsg);
 
