@@ -8,13 +8,16 @@
    Passwordless Supabase Auth, same pattern as Z Studio: the person
    types their e-mail, receives a 6-digit code, types it. No password
    is ever created or stored. Accounts are never created from this
-   page (shouldCreateUser: false): a Partner account is created at
-   onboarding, an admin account is created/invited in Supabase.
+   page except the adhesion page (data-surface="onboarding"), where a
+   store creates its account by signing in for the first time. Admin
+   accounts are created/invited in Supabase.
 
    After sign-in the page calls the Partner API's GET /me with the
    access token and only unlocks when the caller has the right role:
      data-surface="admin"   → isAdmin (FASHION_ADMIN_USER_IDS on the API)
      data-surface="partner" → manages at least one Partner
+     data-surface="onboarding" → any signed-in person (the page itself
+                                decides what to show from /me)
    The page content stays hidden until then. This is a UI gate only:
    every API route still authorizes each request on its own.
 
@@ -27,7 +30,10 @@
   'use strict';
 
   var script = document.currentScript;
-  var surface = (script && script.dataset.surface) === 'admin' ? 'admin' : 'partner';
+  var requested = script && script.dataset.surface;
+  var surface = requested === 'admin' || requested === 'onboarding' ? requested : 'partner';
+  // Only the adhesion page may create an account; staff surfaces never do.
+  var createsAccounts = surface === 'onboarding';
 
   var config = Object.assign({
     supabaseUrl: 'https://dcdggqyazdddrfuzwavw.supabase.co',
@@ -42,10 +48,13 @@
     fr: {
       titleadmin: 'Backoffice Z Fashion',
       titlepartner: 'Espace Partner Z Fashion',
+      titleonboarding: 'Vendre sur Z Fashion',
       subtitle: 'Saisissez votre e-mail professionnel pour recevoir un code de connexion à 6 chiffres.',
+      subtitleonboarding: 'Saisissez votre e-mail professionnel pour recevoir un code à 6 chiffres. Votre compte Partner est créé à la première connexion ; vous pourrez ensuite déposer la demande d’adhésion de votre boutique.',
       email: 'E-mail', emailPlaceholder: 'nom@boutique.fr', sendCode: 'Recevoir le code',
       code: 'Code reçu par e-mail', verify: 'Se connecter', changeEmail: 'Utiliser un autre e-mail',
       codeSent: 'Si ce compte existe, un code vient d’être envoyé à {email}.',
+      codeSentonboarding: 'Un code vient d’être envoyé à {email}.',
       sending: 'Envoi…', checking: 'Vérification…', signOut: 'Se déconnecter',
       invalidEmail: 'Saisissez une adresse e-mail valide.', invalidCode: 'Saisissez le code reçu (6 chiffres).',
       wrongCode: 'Code incorrect ou expiré. Réessayez ou demandez un nouveau code.',
@@ -61,10 +70,13 @@
     en: {
       titleadmin: 'Z Fashion backoffice',
       titlepartner: 'Z Fashion Partner space',
+      titleonboarding: 'Sell on Z Fashion',
       subtitle: 'Enter your work e-mail to receive a 6-digit sign-in code.',
+      subtitleonboarding: 'Enter your work e-mail to receive a 6-digit code. Your Partner account is created the first time you sign in; you can then submit your store’s application.',
       email: 'E-mail', emailPlaceholder: 'name@store.com', sendCode: 'Send code',
       code: 'Code received by e-mail', verify: 'Sign in', changeEmail: 'Use another e-mail',
       codeSent: 'If this account exists, a code has just been sent to {email}.',
+      codeSentonboarding: 'A code has just been sent to {email}.',
       sending: 'Sending…', checking: 'Checking…', signOut: 'Sign out',
       invalidEmail: 'Enter a valid e-mail address.', invalidCode: 'Enter the code you received (6 digits).',
       wrongCode: 'Incorrect or expired code. Try again or request a new code.',
@@ -111,6 +123,7 @@
     '.zf-auth-msg:empty{display:none}',
     '.zf-auth-session{position:fixed;right:12px;bottom:12px;z-index:2147482000;display:flex;gap:10px;align-items:center;background:#151515;color:#fff;border-radius:999px;padding:6px 6px 6px 14px;font:13px system-ui,sans-serif;max-width:calc(100vw - 24px)}',
     '.zf-auth-session[hidden]{display:none}',
+    'html.zf-auth-signed-in body{padding-bottom:72px}',
     '.zf-auth-session span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
     '.zf-auth-session button{border:0;border-radius:999px;padding:6px 12px;background:#fff;color:#151515;font:inherit;font-weight:600;cursor:pointer;flex:none}',
   ].join('\n');
@@ -168,7 +181,7 @@
 
   function applyText() {
     ui.title.textContent = t('title' + surface);
-    ui.subtitle.textContent = t('subtitle');
+    ui.subtitle.textContent = t(surface === 'onboarding' ? 'subtitleonboarding' : 'subtitle');
     ui.emailLabel.textContent = t('email');
     ui.email.placeholder = t('emailPlaceholder');
     ui.sendBtn.textContent = t('sendCode');
@@ -185,11 +198,13 @@
   }
   function lock() {
     document.documentElement.classList.add('zf-auth-locked');
+    document.documentElement.classList.remove('zf-auth-signed-in');
     ui.root.hidden = false;
     ui.session.hidden = true;
   }
   function unlock(email) {
     document.documentElement.classList.remove('zf-auth-locked');
+    document.documentElement.classList.add('zf-auth-signed-in');
     ui.root.hidden = true;
     ui.sessionText.textContent = t('signedInAs') + ' ' + (email || '');
     ui.session.hidden = false;
@@ -204,7 +219,7 @@
   function showCodeStep(email) {
     ui.emailForm.hidden = true; ui.codeForm.hidden = false; ui.deniedSignOut.hidden = true;
     ui.code.value = '';
-    setMsg(t('codeSent', { email: email }));
+    setMsg(t(surface === 'onboarding' ? 'codeSentonboarding' : 'codeSent', { email: email }));
     ui.code.focus();
   }
   function showDenied(message) {
@@ -246,7 +261,7 @@
     if (!EMAIL_RE.test(email)) return setMsg(t('invalidEmail'), true);
     ui.sendBtn.disabled = true; ui.sendBtn.textContent = t('sending');
     client().then(function (sb) {
-      return sb.auth.signInWithOtp({ email: email, options: { shouldCreateUser: false } });
+      return sb.auth.signInWithOtp({ email: email, options: { shouldCreateUser: createsAccounts } });
     }).then(function (result) {
       var err = result && result.error;
       if (err && (err.status === 429 || /rate limit/i.test(err.message || ''))) {
@@ -317,9 +332,11 @@
       if (!res.ok) return showDenied(t('apiUnreachable'));
       return res.json().then(function (body) {
         me = body;
-        var allowed = surface === 'admin'
-          ? body.isAdmin === true
-          : Array.isArray(body.partnerIds) && body.partnerIds.length > 0;
+        var allowed = surface === 'onboarding'
+          ? body.authenticated === true
+          : surface === 'admin'
+            ? body.isAdmin === true
+            : Array.isArray(body.partnerIds) && body.partnerIds.length > 0;
         if (!allowed) return showDenied(t('denied' + surface));
         unlock(session.user && session.user.email);
         document.dispatchEvent(new CustomEvent('zfashion:auth', { detail: { me: body } }));

@@ -133,14 +133,25 @@ async function resolveFashionPartnerIdsForAuthUser(pool, authUserId) {
   return result.rows.map((r) => r.partner_id);
 }
 
+/** node-postgres has no parser for custom enum array types
+ *  (fashion.category[], fashion.age_segment[]) and returns them as the
+ *  raw literal '{a,b}'. Enum labels never contain commas, quotes or
+ *  braces, so a plain split is exact. */
+function parsePgEnumArray(value) {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== 'string') return value;
+  const inner = value.replace(/^\{|\}$/g, '');
+  return inner === '' ? [] : inner.split(',');
+}
+
 function toDomainShape(row) {
   return {
     id: row.id,
     legalName: row.legal_name,
     countryIso: row.country_iso,
     locales: row.locales,
-    categories: row.categories,
-    ageSegments: row.age_segments,
+    categories: parsePgEnumArray(row.categories),
+    ageSegments: parsePgEnumArray(row.age_segments),
     minorSafeDataAcknowledged: row.minor_safe_data_acknowledged,
     onboardingStatus: row.onboarding_status,
     feedReliabilityTier: row.feed_reliability_tier,
@@ -632,8 +643,59 @@ async function getReturnPartnerId(pool, returnId) {
   return result.rows[0] ? result.rows[0].partner_id : null;
 }
 
+/** Verified e-mail of a Supabase auth user (privileged read). */
+async function getAuthUserEmail(pool, authUserId) {
+  const result = await pool.query(`select email from auth.users where id = $1`, [authUserId]);
+  return result.rows[0] ? result.rows[0].email : null;
+}
+
+/** The commercial offer as configured in the database — the single
+ *  source shown on the adhesion page and snapshotted with each
+ *  application. */
+async function getPartnerOfferPg(pool) {
+  const [config, rates, tiers] = await Promise.all([
+    pool.query(`select key, value_minor_units, value_integer from fashion.partner_monetization_config`),
+    pool.query(`select category::text as category, base_rate_percent from fashion.commission_rates order by category`),
+    pool.query(`select min_monthly_gmv_minor_units, discount_percentage_points from fashion.volume_discount_tiers order by min_monthly_gmv_minor_units`),
+  ]);
+  const fee = config.rows.find((r) => r.key === 'monthly_subscription_fee_minor_units');
+  return {
+    monthlySubscriptionFeeMinorUnits: fee ? fee.value_minor_units : null,
+    commissionRatesPercent: Object.fromEntries(rates.rows.map((r) => [r.category, r.base_rate_percent])),
+    volumeDiscountTiers: tiers.rows.map((r) => ({
+      minMonthlyGmvMinorUnits: Number(r.min_monthly_gmv_minor_units),
+      discountPercentagePoints: r.discount_percentage_points,
+    })),
+  };
+}
+
+/** Atomic store application — see migration
+ *  20261014230000_z_fashion_partner_onboarding_v1.sql. Refusals raised
+ *  by the function are rethrown with .code = 'fashion_application_pending'
+ *  or 'fashion_application_duplicate'. */
+async function submitPartnerApplicationPg(pool, authUserId, application, offerSnapshot) {
+  try {
+    const result = await pool.query(
+      `select partner_id, organisation_id, application_id
+       from platform_internal.fashion_submit_partner_application($1, $2::jsonb, $3::jsonb)`,
+      [authUserId, JSON.stringify(application), JSON.stringify(offerSnapshot)]
+    );
+    const row = result.rows[0];
+    return { partnerId: row.partner_id, organisationId: row.organisation_id, applicationId: row.application_id };
+  } catch (err) {
+    const match = /fashion_application_(pending|duplicate)/.exec(err.message || '');
+    if (match) {
+      const refusal = new Error(match[0]);
+      refusal.code = match[0];
+      throw refusal;
+    }
+    throw err;
+  }
+}
+
 module.exports = {
   createPool, insertPartner, updatePartnerStatus, getPartner,
+  getAuthUserEmail, getPartnerOfferPg, submitPartnerApplicationPg,
   resolveFashionPartnerIdsForAuthUser,
   insertBrand, getBrand, insertProduct, listProductsForPartner, listAllProducts, getProduct,
   insertShipment, listShipmentsForPartner, updateShipmentStatus, getShipmentPartnerId,

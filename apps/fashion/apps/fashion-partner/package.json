@@ -6,7 +6,7 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "test": "node tests/access.test.js && node tests/cors.test.js && node tests/auth-gate.test.js && node tests/api.test.js && node tests/dashboard-contract.test.js"
+    "test": "node tests/access.test.js && node tests/cors.test.js && node tests/auth-gate.test.js && node tests/api.test.js && node tests/dashboard-contract.test.js && node tests/adhesion-contract.test.js"
   },
   "dependencies": {
     "pg": "^8.23.0",

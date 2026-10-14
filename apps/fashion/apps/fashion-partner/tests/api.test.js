@@ -475,6 +475,46 @@ async function run() {
   assert.strictEqual(res.status, 200);
   assert.strictEqual(res.body.return.status, 'approved');
 
+  // --- Store adhesion (in-memory mode)
+  delete process.env.FASHION_PARTNER_TERMS_VERSION; delete process.env.FASHION_PARTNER_TERMS_URL;
+  res = await request('GET', '/onboarding/offer');
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.applicationsOpen, false, 'no published terms => applications closed');
+  assert.strictEqual(res.body.offer.monthlySubscriptionFeeMinorUnits, 3500);
+  assert.strictEqual(res.body.offer.commissionRatesPercent.clothing, 13);
+  assert.deepStrictEqual(res.body.launchedMarkets, ['FR']);
+
+  const applicationBody = {
+    tradeName: 'Maison Léman', legalName: 'Maison Léman SARL', countryIso: 'FR',
+    registrationNumber: '88123456700017', addressLine1: '12 rue Nationale', postalCode: '74200',
+    city: 'Thonon-les-Bains', contactPhone: '04 50 00 00 00', categories: ['clothing'],
+    ageSegments: ['adults'], acceptTerms: true, termsVersion: 'pt-2027-01', devAccountEmail: 'shop@example.fr',
+  };
+  res = await request('POST', '/partner-applications', applicationBody);
+  assert.strictEqual(res.status, 503);
+  assert.strictEqual(res.body.error, 'partner_terms_not_published');
+
+  process.env.FASHION_PARTNER_TERMS_VERSION = 'pt-2027-01';
+  process.env.FASHION_PARTNER_TERMS_URL = 'http://not-https.example/terms';
+  res = await request('GET', '/onboarding/offer');
+  assert.strictEqual(res.body.applicationsOpen, false, 'terms URL must be https');
+  process.env.FASHION_PARTNER_TERMS_URL = 'https://zfashion.example/cgv-partenaires';
+  res = await request('GET', '/onboarding/offer');
+  assert.strictEqual(res.body.applicationsOpen, true);
+  assert.deepStrictEqual(res.body.terms, { version: 'pt-2027-01', url: 'https://zfashion.example/cgv-partenaires' });
+
+  res = await request('POST', '/partner-applications', { ...applicationBody, registrationNumber: '12345678901234', acceptTerms: false });
+  assert.strictEqual(res.status, 422);
+  assert.deepStrictEqual(res.body.fieldErrors.map((e) => e.field).sort(), ['acceptTerms', 'registrationNumber']);
+
+  res = await request('POST', '/partner-applications', applicationBody);
+  assert.strictEqual(res.status, 201);
+  assert.strictEqual(res.body.onboardingStatus, 'applied');
+  const appliedPartnerId = res.body.partnerId;
+  res = await request('POST', `/partners/${appliedPartnerId}/transition`, { toStatus: 'under_review' });
+  assert.strictEqual(res.status, 200, 'the new store enters the normal onboarding state machine');
+  delete process.env.FASHION_PARTNER_TERMS_VERSION; delete process.env.FASHION_PARTNER_TERMS_URL;
+
   // GET /me in in-memory mode: nobody is authenticated, nothing granted.
   res = await request('GET', '/me');
   assert.strictEqual(res.status, 200);

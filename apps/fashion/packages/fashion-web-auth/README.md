@@ -1,9 +1,9 @@
 # Z Fashion staff sign-in
 
-Passwordless sign-in for the Partner dashboard (`apps/fashion-partner/public/dashboard.html`) and the admin backoffice (`apps/fashion-admin/index.html`), same pattern as Z Studio: e-mail → 6-digit code → session.
+Passwordless sign-in for the Partner dashboard (`apps/fashion-partner/public/dashboard.html`), the store adhesion page (`apps/fashion-partner/public/adhesion.html`) and the admin backoffice (`apps/fashion-admin/index.html`), same pattern as Z Studio: e-mail → 6-digit code → session.
 
-- Never creates accounts (`shouldCreateUser: false`). Partner accounts come from onboarding; admin accounts are invited in Supabase (Authentication → Users).
-- After sign-in the page calls the Partner API `GET /me` and unlocks only for an admin (backoffice) or a person managing at least one Partner (dashboard). This is a UI gate; the API authorizes every request on its own.
+- Only the adhesion page (`data-surface="onboarding"`) creates accounts; the dashboard and backoffice never do. Admin accounts are invited in Supabase (Authentication → Users).
+- After sign-in the page calls the Partner API `GET /me` and unlocks only for an admin (backoffice), a person managing at least one Partner (dashboard) or any signed-in person (adhesion). This is a UI gate; the API authorizes every request on its own.
 - Uses only the public Supabase URL and publishable key.
 
 ## Deploying a surface
