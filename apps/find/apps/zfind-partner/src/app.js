@@ -118,19 +118,20 @@ function signupCompletionError(error) {
   return 'Votre inscription n’a pas pu être finalisée. Réessayez dans un instant ou écrivez-nous à hello@zfind.online.';
 }
 
-/* Offer wording comes from the public price list (zfind-web services/pro-offer.js). */
+/* Offer wording comes from the public price list (zfind-web services/pro-offer.js):
+   agency tiers Essentiel / Pro / Premium, 3 months free, price guaranteed 1 year.
+   The plan / founder_wave columns of zfind_partner_signups are no longer shown. */
 function signupPrices() { return (window.ZFindServices.proOffer && window.ZFindServices.proOffer.PRICES) || {}; }
+function proOffer() { return window.ZFindServices.proOffer || null; }
 
-function offerSummary(plan, wave) {
+function offerSummary(role, createdAt) {
   const p = signupPrices();
-  if (plan === 'founder') {
-    const price = wave === 2 ? p.founderWave2Month : p.founderMonth;
-    return `<strong>Offre Fondateur — ${wave === 2 ? '2e' : '1re'} vague.</strong> ${p.founderFreeMonths} mois gratuits (offre Pro complète), puis ${price} € HT par mois garantis ${p.founderPriceMonths} mois, sans engagement. Moins de ${p.founderMinLeads} contacts reçus pendant la période gratuite : ${p.founderExtensionMonths} mois offerts de plus.`;
+  if (role === 'promoter') {
+    return `<strong>Programme neuf :</strong> ${p.developmentMonth} € HT par programme et par mois, sans engagement.`;
   }
-  if (plan === 'founder_developer') {
-    return `<strong>Promoteur fondateur.</strong> Vos programmes neufs sont gratuits pendant ${p.founderFreeMonths} mois, sans engagement.`;
-  }
-  return `<strong>Programme neuf :</strong> ${p.developmentMonth} € HT par programme et par mois, sans engagement.`;
+  const svc = proOffer();
+  const essentiel = svc ? svc.essentielPriceFor(createdAt) : p.essentiel;
+  return `<strong>Votre offre.</strong> ${p.freeMonths} mois gratuits, puis selon le nombre de vos annonces actives : Essentiel ${essentiel} € HT / mois (jusqu’à ${p.essentielMaxListings}), Pro ${p.pro} € HT / mois (${p.essentielMaxListings + 1} à ${p.proMaxListings}), Premium ${p.premium} € HT / mois (plus de ${p.proMaxListings}). Prix garanti 1 an, sans engagement.`;
 }
 
 let partnerCountry = null;
@@ -144,7 +145,7 @@ async function renderSignupBanner() {
   if (s.status === 'rejected') {
     el.innerHTML = '<strong>Votre inscription n’a pas pu être validée.</strong> Écrivez-nous à hello@zfind.online pour en savoir plus.';
   } else {
-    el.innerHTML = `<strong>Bienvenue sur Z Find.</strong> Nous vérifions votre ${s.role === 'promoter' ? 'inscription' : 'carte professionnelle'}. Vous pouvez déjà préparer vos annonces : elles seront mises en ligne après cette vérification.<br>${offerSummary(s.plan, s.founder_wave)}`;
+    el.innerHTML = `<strong>Bienvenue sur Z Find.</strong> Nous vérifions votre ${s.role === 'promoter' ? 'inscription' : 'carte professionnelle'}. Vous pouvez déjà préparer vos annonces : elles seront mises en ligne après cette vérification.<br>${offerSummary(s.role, s.created_at)}`;
   }
   el.style.display = '';
 }
@@ -191,32 +192,30 @@ function renderSignupOfferPanel() {
   const lead = document.getElementById('su-offer-lead');
   const marks = document.getElementById('su-offer-marks');
   if (signupRole() === 'promoter') {
-    lead.textContent = `${p.founderDevelopers} promoteurs fondateurs : vos programmes neufs gratuits pendant ${p.founderFreeMonths} mois, sans carte bancaire ni engagement.`;
+    lead.textContent = 'Publiez vos programmes neufs auprès des acheteurs de France, de Belgique et du Luxembourg, sans engagement.';
     marks.innerHTML = `
-      <div class="mark-row"><span class="k">Ensuite</span><span class="v">${p.developmentMonth} € HT / programme / mois</span></div>
+      <div class="mark-row"><span class="k">Programme neuf</span><span class="v">${p.developmentMonth} € HT / programme / mois</span></div>
       <div class="mark-row"><span class="k">Inclus</span><span class="v">Page programme, lots, une semaine « À la une »</span></div>`;
     return;
   }
-  lead.textContent = `${p.founderFreeMonths} mois gratuits dès votre inscription : l’offre Pro complète, sans carte bancaire ni engagement.`;
-  marks.innerHTML = `
-    <div class="mark-row"><span class="k">${p.founderSeatsPerCountry} premières agences par pays</span><span class="v">${p.founderMonth} € HT / mois, ${p.founderPriceMonths} mois</span></div>
-    <div class="mark-row"><span class="k">Agences suivantes</span><span class="v">${p.founderWave2Month} € HT / mois, ${p.founderPriceMonths} mois</span></div>
-    <div class="mark-row"><span class="k">Moins de ${p.founderMinLeads} contacts en ${p.founderFreeMonths} mois</span><span class="v">${p.founderExtensionMonths} mois offerts de plus</span></div>`;
+  const svc = proOffer();
+  const lines = svc ? svc.tierLinesFr(p) : [];
+  lead.textContent = `${p.freeMonths} mois gratuits dès votre inscription, quel que soit votre abonnement, sans carte bancaire ni engagement. Ensuite, votre prix est garanti 1 an.`;
+  marks.innerHTML = lines.map(([k, v]) => `<div class="mark-row"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
 }
 
 function renderSignupOfferBox() {
   const p = signupPrices();
   const box = document.getElementById('su-offer-box');
   const promoter = signupRole() === 'promoter';
+  const svc = proOffer();
   box.innerHTML = promoter
-    ? `<strong>Votre offre.</strong> Si vous êtes parmi les ${p.founderDevelopers} premiers promoteurs, vos programmes neufs sont gratuits pendant ${p.founderFreeMonths} mois ; sinon ${p.developmentMonth} € HT par programme et par mois. Sans engagement.`
-    : `<strong>Votre offre.</strong> ${p.founderFreeMonths} mois gratuits (offre Pro complète). Ensuite ${p.founderMonth} € HT par mois si vous êtes parmi les ${p.founderSeatsPerCountry} premières agences de votre pays, sinon ${p.founderWave2Month} € HT, garantis ${p.founderPriceMonths} mois. Sans carte bancaire ni engagement.`;
+    ? `<strong>Votre offre.</strong> ${p.developmentMonth} € HT par programme et par mois. Sans engagement.`
+    : `<strong>Votre offre.</strong> ${p.freeMonths} mois gratuits, puis l’abonnement correspondant à votre nombre d’annonces actives : Essentiel ${p.essentiel} € HT / mois jusqu’à ${p.essentielMaxListings} annonces (${svc ? svc.launchWindowText('fr') : 'tarif de lancement'} ; ${p.essentielLater} € ensuite), Pro ${p.pro} € HT de ${p.essentielMaxListings + 1} à ${p.proMaxListings}, Premium ${p.premium} € HT au-delà. Prix garanti 1 an. Sans carte bancaire ni engagement.`;
   document.getElementById('su-certify-text').textContent = promoter
     ? 'Je certifie représenter cette société et être habilité à l’inscrire.'
     : 'Je certifie être titulaire de la carte professionnelle indiquée (ou habilité par son titulaire) et représenter cette agence.';
-  document.getElementById('su-terms-text').textContent = promoter
-    ? 'J’accepte les règles de Z Find : annonces de professionnels identifiés, réponse aux demandes sous 24 heures.'
-    : 'J’accepte les conditions de l’offre Fondateur : publier tout mon portefeuille, répondre aux demandes sous 24 heures et autoriser Z Find à citer mon agence comme référence.';
+  document.getElementById('su-terms-text').textContent = 'J’accepte les règles de Z Find : annonces de professionnels identifiés, réponse aux demandes sous 24 heures.';
 }
 
 function onSignupRoleChange() {
@@ -1778,8 +1777,7 @@ function renderLeadStats(st) {
   if (st.free_period_ends) {
     const end = new Date(st.free_period_ends).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
     const free = n(st.free_period);
-    const min = (signupPrices().founderMinLeads) || 5;
-    parts.push(`<span><strong>${free}</strong> pendant votre période gratuite (jusqu’au ${end})${free < min && new Date(st.free_period_ends) > new Date() ? ` — moins de ${min} : ${(signupPrices().founderExtensionMonths) || 3} mois offerts de plus` : ''}</span>`);
+    parts.push(`<span><strong>${free}</strong> pendant votre période gratuite (jusqu’au ${end})</span>`);
   }
   el.innerHTML = parts.join('');
 }

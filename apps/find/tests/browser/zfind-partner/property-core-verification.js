@@ -79,7 +79,7 @@ const PROP = { id: 'prop1', subtype: 'apartment', typology: null, area_sqm: null
     await page.click('#view-detail .dash-nav a:has-text("Demandes")');
     await page.waitForFunction(() => document.getElementById('leads-stats').textContent.length > 0);
     const stats = await page.textContent('#leads-stats');
-    check('leads view: totals, free-period count and the Founder guarantee', stats.includes('3 demandes au total') && stats.includes('2 sur 30 jours') && stats.includes('2 pendant votre période gratuite') && stats.includes('moins de 5 : 3 mois offerts de plus'));
+    check('leads view: totals and free-period count (no founder extension any more)', stats.includes('3 demandes au total') && stats.includes('2 sur 30 jours') && stats.includes('2 pendant votre période gratuite') && !stats.includes('mois offerts de plus'));
     check('leads view: tells the agency enquiries also arrive by e-mail', (await page.textContent('#view-leads')).includes('envoyée par e-mail'));
     await page.close();
   }
