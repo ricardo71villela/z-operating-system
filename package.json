@@ -45,7 +45,7 @@
     "fashion:domain:test": "npm test --prefix apps/fashion/packages/fashion-domain",
     "fashion:partner:test": "npm test --prefix apps/fashion/apps/fashion-partner",
     "fashion:web:test": "npm test --prefix apps/fashion/apps/fashion-web",
-    "fashion:check": "npm run fashion:domain:test && npm run fashion:partner:test && npm run fashion:web:test",
+    "fashion:check": "npm run fashion:domain:test && npm run fashion:partner:test && npm run fashion:web-auth:test && npm run fashion:web:test",
     "desk:setup": "npm install --prefix apps/desk --ignore-scripts --no-audit --no-fund && npm install --prefix apps/desk/backend --ignore-scripts --no-audit --no-fund",
     "desk:typecheck": "npm run typecheck --prefix apps/desk && npm run typecheck --prefix apps/desk/backend",
     "desk:test": "npm test --prefix apps/desk/backend",
@@ -54,7 +54,8 @@
     "intelligence:typecheck": "npm run typecheck --workspace=@zintelligence/web",
     "intelligence:test": "npm run test --workspace=@zintelligence/web",
     "intelligence:build": "npm run build --workspace=@zintelligence/web",
-    "intelligence:check": "npm run intelligence:typecheck && npm run intelligence:test"
+    "intelligence:check": "npm run intelligence:typecheck && npm run intelligence:test",
+    "fashion:web-auth:test": "npm test --prefix apps/fashion/packages/fashion-web-auth"
   },
   "engines": {
     "node": ">=22 <25",

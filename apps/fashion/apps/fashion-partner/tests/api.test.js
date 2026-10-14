@@ -475,6 +475,11 @@ async function run() {
   assert.strictEqual(res.status, 200);
   assert.strictEqual(res.body.return.status, 'approved');
 
+  // GET /me in in-memory mode: nobody is authenticated, nothing granted.
+  res = await request('GET', '/me');
+  assert.strictEqual(res.status, 200);
+  assert.deepStrictEqual(res.body, { authenticated: false, userId: null, isAdmin: false, partnerIds: [] });
+
   server.close();
   console.log('fashion-partner API: all integration checks passed.');
 }

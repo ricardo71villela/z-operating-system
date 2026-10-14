@@ -25,6 +25,7 @@ const CLIENT = '11111111-1111-1111-1111-111111111111';
 const PARTNER = '22222222-2222-2222-2222-222222222222';
 
 const SCOPED_ROUTES = [
+  ['GET', '/me'],
   ['POST', `/partners/${PARTNER}/transition`, { toStatus: 'approved' }],
   ['POST', `/partners/${PARTNER}/brands`, { name: 'X' }],
   ['GET', `/partners/${PARTNER}/products`],
@@ -55,6 +56,17 @@ function request(port, method, urlPath, body) {
     );
     req.on('error', reject);
     if (data) req.write(data);
+    req.end();
+  });
+}
+
+function rawRequest(port, method, urlPath, headers) {
+  return new Promise((resolve, reject) => {
+    const req = http.request({ host: '127.0.0.1', port, method, path: urlPath, headers }, (res) => {
+      res.resume();
+      res.on('end', () => resolve({ status: res.statusCode, headers: res.headers }));
+    });
+    req.on('error', reject);
     req.end();
   });
 }
@@ -109,8 +121,24 @@ function runStartup(extraEnv) {
   } finally { child.kill(); }
 
   // Part 2 — auth configured, no Authorization header: 401.
-  child = await startServer(4712, { SUPABASE_URL: 'https://example.invalid', SUPABASE_PUBLISHABLE_KEY: 'test-key' });
+  child = await startServer(4712, {
+    SUPABASE_URL: 'https://example.invalid', SUPABASE_PUBLISHABLE_KEY: 'test-key',
+    FASHION_ALLOWED_ORIGINS: 'https://admin.example.test',
+  });
   try {
+    // CORS preflight: allowed origin gets headers, others get none.
+    const ok = await rawRequest(4712, 'OPTIONS', '/me', { Origin: 'https://admin.example.test', 'Access-Control-Request-Method': 'GET' });
+    assert.strictEqual(ok.status, 204);
+    assert.strictEqual(ok.headers['access-control-allow-origin'], 'https://admin.example.test');
+    assert.match(ok.headers['access-control-allow-headers'], /Authorization/);
+    const bad = await rawRequest(4712, 'OPTIONS', '/me', { Origin: 'https://evil.example.test', 'Access-Control-Request-Method': 'GET' });
+    assert.strictEqual(bad.status, 403);
+    assert.strictEqual(bad.headers['access-control-allow-origin'], undefined);
+    const refusedWithCors = await rawRequest(4712, 'GET', '/me', { Origin: 'https://admin.example.test' });
+    assert.strictEqual(refusedWithCors.status, 401);
+    assert.strictEqual(refusedWithCors.headers['access-control-allow-origin'], 'https://admin.example.test',
+      'a 401 must still carry CORS headers so the dashboard can read it');
+
     for (const [method, urlPath, body] of SCOPED_ROUTES) {
       const res = await request(4712, method, urlPath, body);
       assert.strictEqual(res.status, 401, `${method} ${urlPath} must be 401 without a token, got ${res.status} ${JSON.stringify(res.body)}`);

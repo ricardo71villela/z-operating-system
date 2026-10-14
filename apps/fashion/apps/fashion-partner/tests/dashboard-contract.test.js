@@ -22,7 +22,9 @@ for(const label of ['Catalogue','Stock','Commandes','Expéditions','Retours','Co
 }
 
 assert.match(html,/Maison Nord/);
-assert.match(html,/Aperçu uniquement\. Auth, stock, commandes, paiements et versements réels restent désactivés\./);
+assert.match(html,/Aperçu uniquement\. Connexion réelle active ; stock, commandes, paiements et versements réels restent désactivés\./);
+assert.match(html,/<script src="\.\/zfashion-config\.js"><\/script>\s*<script src="\.\/zfashion-auth\.js" data-surface="partner"><\/script>\s*<\/head>/);
+assert.ok(fs.existsSync(path.join(root,'public/zfashion-auth.js')),'missing synced zfashion-auth.js');
 assert.match(html,/aucun règlement, transfert Stripe ou versement réel n’est activé/);
 assert.match(js,/Z_FASHION_PARTNER_DASHBOARD='PREVIEW_PASS'/);
 assert.doesNotMatch(js,/fetch\(|XMLHttpRequest|WebSocket|EventSource|navigator\.sendBeacon|supabase|createOrder|reserveStock|insert\(|update\(|delete\(/i);

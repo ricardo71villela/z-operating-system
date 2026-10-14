@@ -1,0 +1,10 @@
+{
+  "name": "@zfashion/web-auth",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Z Fashion passwordless staff sign-in shared by the Partner dashboard and the admin backoffice.",
+  "scripts": {
+    "sync": "node sync.js",
+    "test": "node tests/sync.test.js"
+  }
+}
