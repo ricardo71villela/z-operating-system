@@ -1,8 +1,8 @@
 /* ============================================================
    Z FIND ADMIN — Mentions obligatoires à valider
    ============================================================
-   Review queue of the French mandatory listing information submitted by
-   the agencies (zfind_admin_list_listing_compliance, migration
+   Review queue of the mandatory listing information (France, Belgium —
+   Wallonie / Bruxelles / Flandre —, Luxembourg) submitted by the agencies (zfind_admin_list_listing_compliance, migration
    20261009120000), detail of the submitted facts in French, and the two
    decisions of zfind_admin_review_listing_compliance:
    « Valider » (approved) / « Refuser » (rejected, reason required).
@@ -16,10 +16,8 @@
 const COMPLIANCE_FILTERS = [
   ['pending', 'À valider'], ['rejected', 'Refusées'], ['approved', 'Validées'], ['', 'Toutes']
 ];
-const COMPLIANCE_PROFILE_FR = {
-  fr_residential_sale_v1: 'Vente — logement',
-  fr_residential_rent_v1: 'Location — logement'
-};
+/* « Vente — logement », « Location — Flandre »… (labels of the shared service). */
+function complianceProfileLabel(profile) { return lcAdmin().profileLabel(profile, true); }
 const COMPLIANCE_TAG = { ok: 'published', wait: 'review', todo: 'late', bad: 'late', warn: 'draft' };
 /* This file is loaded before app.js (which declares adminState): no top-level use of adminState here. */
 let complianceFilter = 'pending';
@@ -34,7 +32,7 @@ function complianceTag(status, prefix) {
 }
 
 function complianceStatusOfRow(r) {
-  return lcAdmin().statusOf({ jurisdiction_iso: r.jurisdiction_iso, profile: r.profile, review_status: r.review_status, review_note: r.review_note, facts_valid: !!r.facts_valid });
+  return lcAdmin().statusOf({ jurisdiction_iso: r.jurisdiction_iso, profile: r.profile, review_status: r.review_status, review_note: r.review_note, facts_valid: !!r.facts_valid, missing: r.missing });
 }
 
 function fmtDateTime(iso) {
@@ -52,19 +50,19 @@ async function renderComplianceQueue() {
   const f = complianceFilter;
   main.insertAdjacentHTML('beforeend', `
     <div class="page-title">Mentions obligatoires à valider</div>
-    <p class="muted" style="margin:-8px 0 14px; max-width:760px; font-size:.84rem;">Annonces en France : l’agence saisit les mentions exigées par la loi (DPE, honoraires, copropriété, Géorisques, loyer…). Vérifiez-les puis Validez ou Refusez avec un motif. Une annonce en France ne peut être publiée qu’après validation.</p>
+    <p class="muted" style="margin:-8px 0 14px; max-width:760px; font-size:.84rem;">Annonces en France, en Belgique et au Luxembourg : l’agence saisit les mentions exigées par la loi (DPE ou certificat PEB / EPC / passeport énergétique, honoraires, copropriété, Géorisques, inondation et urbanisme en Flandre, loyer…). Vérifiez-les puis Validez ou Refusez avec un motif. Une annonce dans ces pays ne peut être publiée qu’après validation.</p>
     <div class="status-chips" id="cq-chips">${COMPLIANCE_FILTERS.map(([v, l]) => `<button class="chip${v === f ? ' on' : ''}" data-filter="${v}" onclick="openComplianceQueue('${v}')">${l}</button>`).join('')}</div>
     ${bulkBarHtml('compliance')}
-    <table><thead><tr>${bulkHeadCell('compliance')}<th>Agence</th><th>Annonce</th><th>Commune</th><th>Type</th><th>Soumis le</th><th>Saisie</th><th>Statut</th></tr></thead>
-    <tbody id="cq-tbody"><tr><td colspan="8">Chargement…</td></tr></tbody></table>`);
+    <table><thead><tr>${bulkHeadCell('compliance')}<th>Agence</th><th>Annonce</th><th>Commune</th><th>Pays</th><th>Type</th><th>Soumis le</th><th>Saisie</th><th>Statut</th></tr></thead>
+    <tbody id="cq-tbody"><tr><td colspan="9">Chargement…</td></tr></tbody></table>`);
   const res = await lcAdmin().adminQueue(f === '' ? null : f);
   const tbody = document.getElementById('cq-tbody');
   if (!tbody) return;
-  if (res.error) { tbody.innerHTML = `<tr><td colspan="8">${escapeHtml(lcAdmin().describeError(res.error, 'Chargement impossible.'))}</td></tr>`; bulkAfterRows('compliance'); return; }
+  if (res.error) { tbody.innerHTML = `<tr><td colspan="9">${escapeHtml(lcAdmin().describeError(res.error, 'Chargement impossible.'))}</td></tr>`; bulkAfterRows('compliance'); return; }
   const rows = res.data || [];
   complianceRowsCache = rows; // bulk.js « Valider »
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="8" class="muted">${f === 'pending' ? 'Aucune mention à valider. 👍' : 'Aucune annonce avec ce filtre.'}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="muted">${f === 'pending' ? 'Aucune mention à valider. 👍' : 'Aucune annonce avec ce filtre.'}</td></tr>`;
     bulkAfterRows('compliance');
     return;
   }
@@ -75,7 +73,8 @@ async function renderComplianceQueue() {
       <td>${escapeHtml(r.partner_name || '—')}</td>
       <td>${r.title ? escapeHtml(r.title) : '<span class="muted">(sans titre)</span>'}${r.agency_reference ? `<br><span class="muted">Réf. ${escapeHtml(r.agency_reference)}</span>` : ''}</td>
       <td>${escapeHtml(r.commune || '—')}${r.postal_code ? ` <span class="muted">${escapeHtml(r.postal_code)}</span>` : ''}</td>
-      <td>${escapeHtml(COMPLIANCE_PROFILE_FR[r.profile] || '—')}</td>
+      <td>${escapeHtml(lcAdmin().jurisdictionLabel(r.profile, r.jurisdiction_iso) || '—')}</td>
+      <td>${escapeHtml(complianceProfileLabel(r.profile) || '—')}</td>
       <td>${escapeHtml(fmtDateTime(r.submitted_at))}</td>
       <td>${r.facts_valid ? '<span class="tag tag-active">Complète</span>' : '<span class="tag tag-late">Incomplète</span>'}</td>
       <td>${complianceTag(complianceStatusOfRow(r))}</td>
@@ -94,7 +93,7 @@ async function renderComplianceDetail() {
   const meta = (!queueRes.error && Array.isArray(queueRes.data) && queueRes.data[0]) || {};
   const c = fullRes.data || {};
   const validation = c.validation || {};
-  const status = lcAdmin().statusOf({ jurisdiction_iso: c.jurisdiction_iso, profile: c.profile, review_status: c.review_status, review_note: c.review_note, facts_valid: !!validation.facts_valid });
+  const status = lcAdmin().statusOf({ jurisdiction_iso: c.jurisdiction_iso, profile: c.profile, review_status: c.review_status, review_note: c.review_note, facts_valid: !!validation.facts_valid, missing: validation.missing });
   const rows = lcAdmin().factRows(c.profile, c.facts);
   const groups = lcAdmin().GROUPS.map(([g, label]) => {
     const items = rows.filter(r => r.group === g);
@@ -108,7 +107,8 @@ async function renderComplianceDetail() {
     <div class="cq-meta">
       <div><span class="k">Agence</span>${escapeHtml(meta.partner_name || '—')}</div>
       <div><span class="k">Commune</span>${escapeHtml([meta.commune, meta.postal_code].filter(Boolean).join(' ') || '—')}</div>
-      <div><span class="k">Type</span>${escapeHtml(COMPLIANCE_PROFILE_FR[c.profile] || 'Non couvert')}</div>
+      <div><span class="k">Pays / région</span>${escapeHtml(lcAdmin().jurisdictionLabel(c.profile, c.jurisdiction_iso) || '—')}</div>
+      <div><span class="k">Type</span>${escapeHtml(lcAdmin().profileLabel(c.profile) || 'Non couvert')}</div>
       <div><span class="k">Référence</span>${escapeHtml(meta.agency_reference || '—')}</div>
       <div><span class="k">Prix de l’annonce</span>${meta.price_current != null ? escapeHtml(fmtN(meta.price_current) + ' ' + (meta.currency_iso === 'EUR' || !meta.currency_iso ? '€' : meta.currency_iso) + (meta.transaction_type === 'rent' ? ' / mois' : '')) : '—'}</div>
       <div><span class="k">Statut de l’annonce</span>${escapeHtml(LISTING_STATUS_FR[meta.listing_status] || meta.listing_status || '—')}</div>
@@ -183,7 +183,7 @@ async function loadAssetComplianceLine(listing) {
   // Both waiting (mentions to validate, listing to publish): one click.
   const shortcut = row.review_status === 'pending' && row.facts_valid && ['pending_review', 'ready', 'suspended'].includes(listing.status)
     ? `<button class="btn btn-primary" id="validate-publish-btn" onclick="validateAndPublish('${escapeHtml(listing.id)}','${escapeHtml(listing.status)}')">Valider les mentions et publier</button>` : '';
-  host.innerHTML = `<strong>Mentions obligatoires (France) :</strong> ${complianceTag(status)}
+  host.innerHTML = `<strong>Mentions obligatoires (${escapeHtml(lcAdmin().jurisdictionLabel(row.profile, row.jurisdiction_iso))}) :</strong> ${complianceTag(status)}
     ${blocked ? '<span class="muted">— la publication sera refusée tant qu’elles ne sont pas validées.</span>' : ''}
     ${row.review_status && row.review_status !== 'unreviewed' ? `<a class="cq-link" onclick="navigateAdmin('conformite','${escapeHtml(listing.id)}')">Voir les mentions</a>` : ''}
     ${shortcut}`;
@@ -196,7 +196,7 @@ async function loadComplianceQueueCard() {
   const res = await lcAdmin().adminQueue('pending');
   if (res.error) return;
   const n = (res.data || []).length;
-  const html = `<div class="card${n ? ' card-warn' : ''}" id="card-compliance" onclick="openComplianceQueue('pending')" style="cursor:pointer"><div class="n">${fmtN(n)}</div><div class="l">Mentions obligatoires à valider (France)</div></div>`;
+  const html = `<div class="card${n ? ' card-warn' : ''}" id="card-compliance" onclick="openComplianceQueue('pending')" style="cursor:pointer"><div class="n">${fmtN(n)}</div><div class="l">Mentions obligatoires à valider (FR, BE, LU)</div></div>`;
   const anchor = document.getElementById('card-review');
   if (anchor) anchor.insertAdjacentHTML('afterend', html); else ops.insertAdjacentHTML('afterbegin', html);
 }

@@ -5,7 +5,9 @@
    SQL under test, applied as it is:
    - migration 20261009180000_z_find_partner_listing_submission_v1 (twice:
      idempotent, and once more after data exists);
-   - migrations 20260830112835 (compliance gate) and 20261009120000;
+   - migrations 20260830112835 (compliance gate), 20261009120000 and
+     20261014120000 (FR / BE / LU profiles: readiness checks the mandatory
+     information of France, Belgium and Luxembourg);
    - extracted unchanged from earlier migrations: zfind_admin_transition_listing
      (20260813193750), zfind_partner_controls_listing (20260813213456,
      the Partner authorization every partner command uses) and the
@@ -25,6 +27,7 @@ import { fileURLToPath } from 'url';
 const ROOT = process.env.ZOS_ROOT || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
 const MIG = name => fs.readFileSync(path.join(ROOT, 'infrastructure', 'supabase', 'migrations', name), 'utf8');
 const SUBMIT_MIG = '20261009180000_z_find_partner_listing_submission_v1.sql';
+const COVERAGE_MIG = '20261014120000_z_find_compliance_coverage_be_lu_class_g_v1.sql';
 const require = createRequire(import.meta.url);
 const S = require(path.join(ROOT, 'apps', 'find', 'apps', 'zfind-web', 'src', 'services', 'listing-submission.js'));
 const C = require(path.join(ROOT, 'apps', 'find', 'apps', 'zfind-web', 'src', 'services', 'listing-compliance.js'));
@@ -44,8 +47,8 @@ grant usage on schema auth, public to authenticated, anon, service_role;
 create table public.partners (id uuid primary key, name text not null, status text not null default 'active');
 create table public.profiles (id uuid primary key, role text not null, partner_id uuid);
 create table public.zfind_partner_signups (id uuid primary key default gen_random_uuid(), partner_id uuid, email text, status text not null default 'verified');
-create table public.zones_lite (id uuid primary key, name text not null, city text not null, country_iso text not null);
-create table public.properties (id uuid primary key, property_class text not null, zone_lite_id uuid, postal_code text, agency_reference text, removed_at timestamptz);
+create table public.zones_lite (id uuid primary key, name text not null, city text not null, country_iso text not null, commune_code text);
+create table public.properties (id uuid primary key, property_class text not null, zone_lite_id uuid, postal_code text, agency_reference text, removed_at timestamptz, development_id uuid, energy_rating text);
 create table public.developments (id uuid primary key, zone_lite_id uuid, removed_at timestamptz);
 create table public.representations (id uuid primary key, target_type text not null, property_id uuid, development_id uuid, partner_id uuid not null, status text not null);
 create table public.listings (id uuid primary key, representation_id uuid not null references public.representations(id),
@@ -72,7 +75,10 @@ await db.exec(MIG('20260830112835_z_find_global_listing_compliance_launch_v2.sql
 await db.exec(MIG('20261009120000_z_find_listing_compliance_review_queue_v1.sql'));
 const submitSql = MIG(SUBMIT_MIG);
 await db.exec(submitSql);
+// Mandatory information for new FR profiles, Belgium and Luxembourg (replaces the readiness check of SUBMIT_MIG).
+await db.exec(MIG(COVERAGE_MIG));
 await db.exec(submitSql);
+await db.exec(MIG(COVERAGE_MIG));
 check('submission migration applies on top of the real lifecycle / ownership / compliance SQL, twice (idempotent)', true);
 
 /* ---------------- fixtures ---------------- */
@@ -86,13 +92,13 @@ insert into partners (id, name) values ('${PA}','Agence du Lac'),('${PB}','Autre
 insert into profiles values ('${U_PA}','partner_user','${PA}'),('${U_PB}','partner_user','${PB}'),('${ADM}','admin',null);
 insert into auth.users values ('${U_PA}','Agent@Lac-Immo.fr'),('${U_PB}','b@autre.fr'),('${ADM}','admin@zfind.online');
 insert into zfind_partner_signups (partner_id, email) values ('${PA}','contact@lac-immo.fr');
-insert into zones_lite values ('${Z_FR}','Évian-les-Bains','Évian-les-Bains','FR'),('${Z_BE}','Ixelles','Bruxelles','BE');
-insert into properties values ('30000000-0000-0000-0000-000000000001','residential','${Z_FR}','74500','EV-001',null),
-  ('30000000-0000-0000-0000-000000000002','residential','${Z_BE}','1050','BX-1',null),
-  ('30000000-0000-0000-0000-000000000004','residential','${Z_FR}','74200','TH-9',null),
-  ('30000000-0000-0000-0000-000000000005','residential',null,null,'X-5',null),
-  ('30000000-0000-0000-0000-000000000006','residential','${Z_FR}','74500','EV-006',null),
-  ('30000000-0000-0000-0000-000000000007','residential','${Z_FR}','74500','EV-007',null);
+insert into zones_lite values ('${Z_FR}','Évian-les-Bains','Évian-les-Bains','FR',null),('${Z_BE}','Ixelles','Bruxelles','BE',null);
+insert into properties values ('30000000-0000-0000-0000-000000000001','residential','${Z_FR}','74500','EV-001',null,null,null),
+  ('30000000-0000-0000-0000-000000000002','residential','${Z_BE}','1050','BX-1',null,null,null),
+  ('30000000-0000-0000-0000-000000000004','residential','${Z_FR}','74200','TH-9',null,null,null),
+  ('30000000-0000-0000-0000-000000000005','residential',null,null,'X-5',null,null,null),
+  ('30000000-0000-0000-0000-000000000006','residential','${Z_FR}','74500','EV-006',null,null,null),
+  ('30000000-0000-0000-0000-000000000007','residential','${Z_FR}','74500','EV-007',null,null,null);
 insert into developments values ('31000000-0000-0000-0000-000000000001','${Z_FR}',null);
 insert into representations values ('40000000-0000-0000-0000-000000000001','property','30000000-0000-0000-0000-000000000001',null,'${PA}','active'),
   ('40000000-0000-0000-0000-000000000002','property','30000000-0000-0000-0000-000000000002',null,'${PA}','proposed'),
@@ -133,13 +139,13 @@ C._setClientModuleForTests(stub);
 /* ---------------- 2. readiness: nothing yet ---------------- */
 let r = await as(U_PA, () => S.submitListing(L.sale));
 check('empty FR draft: refused, French message listing everything missing', r.error && r.error.code === '55000'
-  && S.describeError(r.error) === 'Soumission impossible. Il manque : un titre en français, une description en français, un prix supérieur à 0, au moins une photo, les mentions obligatoires (France) complètes et enregistrées.', r);
+  && S.describeError(r.error) === 'Soumission impossible. Il manque : un titre en français, une description en français, un prix supérieur à 0, au moins une photo, les mentions obligatoires complètes et enregistrées.', r);
 check('… message parsed back to the same codes as the SQL check', JSON.stringify(S.missingFromMessage(r.error.message)) === JSON.stringify(await sqlMissing(L.sale)));
 check('… and still a draft', await status(L.sale) === 'draft');
 r = await as(U_PA, () => S.submitListing(L.nocommune));
 check('no commune → « la commune du bien » first', r.error && /^Soumission impossible\. Il manque : la commune du bien, un titre/.test(r.error.message), r);
 r = await as(U_PA, () => S.submitListing(L.dev));
-check('FR development (not covered by the French profiles) → refused: type de bien non couvert', r.error && r.error.message.includes('un type de bien couvert en France') && r.error.message.includes('au moins une photo'), r);
+check('FR programme neuf (fr_new_development_sale_v1) → refused until its mentions are saved', r.error && r.error.message.includes('les mentions obligatoires complètes et enregistrées') && r.error.message.includes('au moins une photo'), r);
 
 /* ---------------- 3. differential: JS precheck == SQL readiness ---------------- */
 // State space for the FR sale listing: commune, fr title, fr description, price, photo, compliance (none / invalid / valid pending / valid rejected / valid approved).
@@ -256,9 +262,14 @@ check('mark delivered: once', n === 1 && (await as(null, () => q('select * from 
 /* ---------------- 7. other jurisdictions ---------------- */
 await db.exec(`insert into listing_content values ('${L.be}','fr','T2 Ixelles','Bel appartement.'); insert into listing_media values (gen_random_uuid(), '${L.be}', 0, true);`);
 r = await as(U_PA, () => S.submitListing(L.be));
-check('Belgian listing: no French mentions required, submitted', !r.error && r.data.status === 'pending_review', r);
+check('Belgian listing (Bruxelles, from the postcode): its mandatory information is now required', r.error && r.error.message === 'Soumission impossible. Il manque : les mentions obligatoires complètes et enregistrées.', r);
+const VALID_BRU = C.buildFacts(C.BRU_SALE, { peb_status: 'available', peb_class: 'D', peb_primary_energy_kwh_m2: '190', peb_co2_kg_m2: '38' });
+r = await as(U_PA, () => C.saveListingCompliance(L.be, VALID_BRU, { channel: 'partner_panel' }));
+check('… the agency saves the Bruxelles PEB mentions (profile be_bru_sale_v1)', !r.error && r.data.profile === C.BRU_SALE && r.data.validation.facts_valid === true, r);
+r = await as(U_PA, () => S.submitListing(L.be));
+check('… then the Belgian listing is submitted', !r.error && r.data.status === 'pending_review', r);
 await db.exec(`insert into listing_content values ('${L.dev}','fr','Résidence du Lac','Programme neuf.'); insert into development_media values (gen_random_uuid(), '31000000-0000-0000-0000-000000000001', 0, true);`);
-check('development photos count (development_media)', JSON.stringify(await sqlMissing(L.dev)) === JSON.stringify(['compliance_unsupported']));
+check('development photos count (development_media); the programme now needs its mentions', JSON.stringify(await sqlMissing(L.dev)) === JSON.stringify(['compliance_facts']));
 
 /* ---------------- 8. Admin bulk actions with the real runner ---------------- */
 // Fixture: rent listing FR complete + approved; pub listing FR complete but mentions only pending.
@@ -286,6 +297,7 @@ check('bulk « Publier »: approved FR rental published; FR sale blocked by the 
 check(`summary in French: « ${summary} »`, summary === '1 publiée, 2 bloquées (1 : mentions obligatoires non validées ; 1 : mandat non actif), 1 ignorée : pas encore soumise par l’agence', summary);
 // BE listing has a « proposé » mandate → activate it, then « Valider les mentions et publier » on the FR sale.
 await db.exec(`update representations set status = 'active' where id = '40000000-0000-0000-0000-000000000002'`);
+await as(ADM, () => C.reviewListingCompliance(L.be, 'approved', null)); // Belgium is gated like France
 results = await as(ADM, async () => S.runBulk('validate_publish', await items([L.pub]), deps));
 check('« Valider les mentions et publier »: compliance approved then published', results[0].outcome === 'done' && await status(L.pub) === 'published'
   && (await q('select review_status from zfind_listing_compliance where listing_id = $1', [L.pub]))[0].review_status === 'approved', results);

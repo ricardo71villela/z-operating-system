@@ -1,7 +1,7 @@
 /* ============================================================
    Z FIND ADMIN — « Mentions obligatoires à valider »: dashboard card,
    queue, detail in French, Valider / Refuser (reason required), the
-   « Mentions FR » column + filter, and « Publier » errors in French.
+   « Mentions » column + filter, and « Publier » errors in French.
    Mocks Auth + REST only. Screenshots when ZFIND_SHOTS_DIR is set.
    ============================================================ */
 'use strict';
@@ -34,12 +34,13 @@ const full = r => ({ listing_id: r.listing_id, facts: r.facts, source_evidence: 
 const prop = (id, listing, extra) => Object.assign({ id, subtype: 'apartment', typology: 'T3', area_sqm: 70, zone_lite_id: 'z1', zones_lite: { name: 'Évian-les-Bains', city: 'Évian-les-Bains' },
   representations: [{ id: 'r-' + id, status: 'active', partner_id: 'p-lac', partners: { name: 'Agence du Lac' }, listings: listing ? [Object.assign({ transaction_type: 'sale', rental_period: null, price_current: 472000, currency_iso: 'EUR', price_is_from: false, listing_content: [{ locale: 'fr', title: 'Annonce ' + id, description: 'Texte.' }] }, listing)] : [] }] }, extra || {});
 const PROPS = [prop('p-sale', { id: 'l-sale', status: 'ready' }), prop('p-rent', { id: 'l-rent', status: 'draft', transaction_type: 'rent', rental_period: 'monthly', price_current: 1350 }),
-  prop('p-ok', { id: 'l-ok', status: 'published' }), prop('p-be', { id: 'l-be', status: 'draft' }, { zones_lite: { name: 'Ixelles', city: 'Bruxelles' } })];
+  prop('p-ok', { id: 'l-ok', status: 'published' }), prop('p-be', { id: 'l-be', status: 'draft' }, { zones_lite: { name: 'Porto', city: 'Porto' } })];
 const STATUSES = [
   { listing_id: 'l-sale', jurisdiction_iso: 'FR', profile: 'fr_residential_sale_v1', review_status: 'pending', review_note: null, facts_valid: true },
   { listing_id: 'l-rent', jurisdiction_iso: 'FR', profile: 'fr_residential_rent_v1', review_status: 'rejected', review_note: 'Dépôt trop élevé', facts_valid: true },
   { listing_id: 'l-ok', jurisdiction_iso: 'FR', profile: 'fr_residential_sale_v1', review_status: 'approved', review_note: null, facts_valid: true },
-  { listing_id: 'l-be', jurisdiction_iso: 'BE', profile: null, review_status: 'unreviewed', review_note: null, facts_valid: false }
+  // A listing outside FR / BE / LU (Portugal): no mandatory-information rule (Belgium is gated since 20261014120000).
+  { listing_id: 'l-be', jurisdiction_iso: 'PT', profile: null, review_status: 'unreviewed', review_note: null, facts_valid: false }
 ];
 const TAXONOMY = { classes: [{ code: 'residential', enabled: true, sort_order: 1 }], subtypes: [{ code: 'apartment', property_class: 'residential', enabled: true, sort_order: 1 }, { code: 'villa', property_class: 'residential', enabled: true, sort_order: 2 }] };
 
@@ -83,8 +84,8 @@ const TAXONOMY = { classes: [{ code: 'residential', enabled: true, sort_order: 1
   await page.fill('#login-password', 'x');
   await page.click('#login-btn');
   await page.waitForSelector('#card-compliance');
-  check('dashboard card « Mentions obligatoires à valider (France) » with the pending count', (await page.textContent('#card-compliance')).includes('3') && (await page.textContent('#card-compliance')).includes('Mentions obligatoires à valider'));
-  check('daily routine mentions the compliance review', (await page.textContent('#main')).includes('Mentions obligatoires à valider (annonces en France)'));
+  check('dashboard card « Mentions obligatoires à valider (FR, BE, LU) » with the pending count', (await page.textContent('#card-compliance')).includes('3') && (await page.textContent('#card-compliance')).includes('Mentions obligatoires à valider'));
+  check('daily routine mentions the compliance review', (await page.textContent('#main')).includes('Mentions obligatoires à valider (annonces en France, en Belgique et au Luxembourg)'));
 
   await page.click('#sidebar a[data-view="conformite"]');
   await page.waitForSelector('#cq-tbody tr[data-listing]');
@@ -134,14 +135,14 @@ const TAXONOMY = { classes: [{ code: 'residential', enabled: true, sort_order: 1
   await page.click('#sidebar a[data-view="properties"]');
   await page.waitForFunction(() => document.getElementById('props-tbody').textContent.includes('Validé'));
   const props = await page.textContent('#props-tbody');
-  check('« Mentions FR » column: pending / refused / validated, nothing for Belgium', props.includes('En attente de validation Z Find') && props.includes('Refusé') && props.includes('Validé')
+  check('« Mentions » column: pending / refused / validated, nothing outside FR / BE / LU', props.includes('En attente de validation Z Find') && props.includes('Refusé') && props.includes('Validé')
     && (await page.$$eval('#props-tbody tr[data-prop="p-be"] .tag', t => t.length)) === 1);
   await page.selectOption('#prop-compliance', 'rejected');
   let ids = await page.$$eval('#props-tbody tr[data-prop]', t => t.map(x => x.dataset.prop));
   check('compliance filter « Mentions refusées »', ids.join(',') === 'p-rent');
   await page.selectOption('#prop-compliance', 'none');
   ids = await page.$$eval('#props-tbody tr[data-prop]', t => t.map(x => x.dataset.prop));
-  check('compliance filter « Hors France »', ids.join(',') === 'p-be');
+  check('compliance filter « Hors FR / BE / LU »', ids.join(',') === 'p-be');
   await page.selectOption('#prop-compliance', '');
   if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'admin-properties-compliance.png'), fullPage: true });
 

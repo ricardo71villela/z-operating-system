@@ -156,7 +156,7 @@ function renderPartnerImportMapping() {
       </div></div>
       <details class="pimp-details"${map.reference ? '' : ' open'}><summary>Voir et ajuster les colonnes</summary>
         <div class="pimp-scroll"><table class="pimp-table" id="pimp-map-table"><thead><tr><th>Champ Z Find</th><th>Colonne du fichier</th><th>Exemple</th></tr></thead>
-        <tbody><tr class="pimp-group"><th colspan="3">Annonce</th></tr>${rowsOf('base')}<tr class="pimp-group"><th colspan="3">Mentions obligatoires (France)</th></tr>${rowsOf('mentions')}</tbody></table></div>
+        <tbody><tr class="pimp-group"><th colspan="3">Annonce</th></tr>${rowsOf('base')}<tr class="pimp-group"><th colspan="3">Mentions obligatoires</th></tr>${rowsOf('mentions')}</tbody></table></div>
       </details>
     </div>`;
 }
@@ -223,10 +223,10 @@ function renderPartnerImportPlan() {
       <label class="pimp-check"><input type="checkbox" id="pimp-full"${pimp.fullSync ? ' checked' : ''} onchange="partnerImportToggleFull(this.checked)"> <span><strong>Import complet du portefeuille</strong> — retirer de Z Find mes annonces importées qui ne sont plus dans le fichier (vendues, louées, mandat terminé). Elles sont archivées, jamais supprimées ; vos annonces créées à la main ne sont pas concernées.</span></label>
       ${plan.archiveBlocked ? `<p class="pimp-note warn">${pimpEsc(plan.archiveBlocked)}</p>` : ''}
       ${k.ignored ? `<p class="pimp-muted">${pimpN(k.ignored)} ligne(s) d’un autre identifiant agence ignorée(s).</p>` : ''}
-      ${plan.updates.length ? `<h4>À mettre à jour</h4><div class="pimp-scroll"><table class="pimp-table" id="pimp-plan-updates"><thead><tr><th>Référence</th><th>Annonce</th><th>Changements</th><th>Mentions (France)</th></tr></thead><tbody>
+      ${plan.updates.length ? `<h4>À mettre à jour</h4><div class="pimp-scroll"><table class="pimp-table" id="pimp-plan-updates"><thead><tr><th>Référence</th><th>Annonce</th><th>Changements</th><th>Mentions obligatoires</th></tr></thead><tbody>
         ${plan.updates.slice(0, LIMIT).map(u => `<tr><td class="nowrap">${pimpEsc(u.row.reference || '—')}</td><td>${pimpEsc(u.entry.listing.title || '—')}<br>${pimpStatus(u.entry.listing.status)}</td>
           <td><ul class="pimp-changes">${u.changes.map(ch => `<li>${pimpEsc(svc.changeText(ch))}</li>`).join('')}${u.notes.filter(n => /^Annonce en ligne/.test(n)).map(n => `<li class="pimp-warn">${pimpEsc(n)}</li>`).join('')}</ul></td><td>${comp(u.compliance)}</td></tr>`).join('')}</tbody></table></div>${more(plan.updates)}` : ''}
-      ${plan.creates.length ? `<h4>À créer en brouillon</h4><div class="pimp-scroll"><table class="pimp-table" id="pimp-plan-creates"><thead><tr><th>Ligne</th><th>Référence</th><th>Bien</th><th>Prix</th><th>Commune</th><th>Mentions (France)</th></tr></thead><tbody>
+      ${plan.creates.length ? `<h4>À créer en brouillon</h4><div class="pimp-scroll"><table class="pimp-table" id="pimp-plan-creates"><thead><tr><th>Ligne</th><th>Référence</th><th>Bien</th><th>Prix</th><th>Commune</th><th>Mentions obligatoires</th></tr></thead><tbody>
         ${plan.creates.slice(0, LIMIT).map(c => `<tr><td>${c.line}</td><td class="nowrap">${pimpEsc(c.row.reference || '—')}</td><td>${pimpEsc(subtypeLabel(c.row.subtype))}${c.row.typology ? ' · ' + pimpEsc(c.row.typology) : ''} <span class="pimp-muted">${c.row.transaction === 'rent' ? 'location' : 'vente'}</span></td><td class="nowrap">${pimpPrice(c.row)}</td><td>${pimpEsc([c.row.postcode, c.row.city].filter(Boolean).join(' ') || '—')}</td><td>${comp(c.compliance)}</td></tr>`).join('')}</tbody></table></div>${more(plan.creates)}` : ''}
       ${plan.archives.length ? `<h4>À retirer (absentes du fichier)</h4><div class="pimp-scroll"><table class="pimp-table" id="pimp-plan-archives"><thead><tr><th>Référence</th><th>Annonce</th><th>Statut actuel</th></tr></thead><tbody>
         ${plan.archives.slice(0, LIMIT).map(a => `<tr><td class="nowrap">${pimpEsc(a.reference)}</td><td>${pimpEsc(a.title || '—')}</td><td>${pimpStatus(a.status)}</td></tr>`).join('')}</tbody></table></div>${more(plan.archives)}` : ''}
@@ -282,7 +282,7 @@ async function partnerImportRun() {
   const shown = results.filter(r => r.kind !== 'unchanged');
   document.getElementById('pimp-results-body').innerHTML = `
     <div class="pimp-actions"><button class="btn" id="pimp-report" onclick="partnerImportReport()">Télécharger le rapport (CSV)</button></div>
-    <div class="pimp-scroll"><table class="pimp-table" id="pimp-results-table"><thead><tr><th>Ligne</th><th>Référence</th><th>Action</th><th>Détail</th><th>Mentions (France)</th></tr></thead><tbody>
+    <div class="pimp-scroll"><table class="pimp-table" id="pimp-results-table"><thead><tr><th>Ligne</th><th>Référence</th><th>Action</th><th>Détail</th><th>Mentions obligatoires</th></tr></thead><tbody>
     ${shown.slice(0, 300).map(r => { const [label, tone] = r.status === 'error' ? ['Erreur' + (r.kind !== 'error' ? ' — ' + svc.KIND_FR[r.kind].toLowerCase() : ''), 'tone-bad'] : PIMP_KIND[r.kind]; return `<tr data-status="${r.status === 'error' ? 'error' : r.kind}">
       <td>${r.line == null ? '—' : r.line}</td><td class="nowrap">${pimpEsc(r.reference || '—')}</td><td><span class="status-badge ${tone}">${pimpEsc(label)}</span></td><td>${pimpEsc(r.message || '')}</td>
       <td>${r.compliance ? `<span class="${/^mentions complètes/.test(r.compliance) ? 'pimp-ok' : 'pimp-warn'}">${pimpEsc(r.compliance)}</span>` : '<span class="pimp-muted">—</span>'}</td></tr>`; }).join('')}

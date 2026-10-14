@@ -181,7 +181,7 @@ const FACTS = {
   await page.waitForSelector('#pimp-submit-summary');
   const sum = sp(await page.textContent('#pimp-submit-summary'));
   check('submit-all: only the ready draft (TH-2031) is submitted; the published one is ignored, the new one blocked', seen.submit.length === 1 && seen.submit[0].p_listing_id === 'lst-th');
-  check('… summary', sum.includes('soumise à validation') && sum.includes('bloquée') && sum.includes('il manque au moins une photo, les mentions obligatoires (France) complètes et enregistrées') && sum.includes('ignorée'));
+  check('… summary', sum.includes('soumise à validation') && sum.includes('bloquée') && sum.includes('il manque au moins une photo, les mentions obligatoires complètes et enregistrées') && sum.includes('ignorée'));
   check('… « Compléter » opens the blocked listing', (await page.$$('#pimp-submit-table .pimp-link')).length >= 1);
   if (SHOTS) await page.locator('#pimp-result-panel').screenshot({ path: path.join(SHOTS, 'partner-import-submit-all.png') });
 

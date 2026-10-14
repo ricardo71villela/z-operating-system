@@ -50,7 +50,8 @@
       rooms: typologyRooms ? Number(typologyRooms[1])
         : (r.bedrooms != null && r.living_rooms != null ? Number(r.bedrooms) + Number(r.living_rooms) : null),
       bedrooms: r.bedrooms == null ? null : Number(r.bedrooms),
-      energyRating: r.energy_rating ? String(r.energy_rating).toUpperCase() : null,
+      // « A+ » / « B- » (Portuguese scale) compare as their letter on the A–G scale.
+      energyRating: r.energy_rating ? String(r.energy_rating).trim().toUpperCase().charAt(0) : null,
       hasOutdoor: positive(attrs.balcony_sqm) || positive(attrs.terrace_sqm) || positive(attrs.garden) || positive(attrs.rooftop),
       hasParking: positive(attrs.parking_spaces) || positive(attrs.garage_spaces),
       hasLift: positive(attrs.elevator),

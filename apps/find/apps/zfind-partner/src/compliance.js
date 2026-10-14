@@ -1,10 +1,14 @@
 /* ============================================================
-   Z FIND PARTNER — Mentions obligatoires (France)
+   Z FIND PARTNER — Mentions obligatoires (France, Belgique, Luxembourg)
    ============================================================
    Section of the listing workspace where the agency enters the facts
-   French law requires in a property advertisement (DPE / GES, energy
-   costs, fees, copropriété, Géorisques, and for rentals rent, charges,
-   deposit, tenant fees, rent control). Field set, client validation
+   the law requires in a property advertisement: France (DPE / GES,
+   energy costs, fees, copropriété, Géorisques, rent… — logement,
+   programme neuf, local professionnel, terrain), Belgium (Wallonie /
+   Bruxelles: certificat PEB; Flandre: EPC, watertoets, stedenbouwkundige
+   informatie; rent and common charges) and Luxembourg (passeport
+   énergétique). The form follows the listing's profile
+   (zfind_listing_compliance_profile). Field set, client validation
    and wording come from the shared zfind-web service
    services/listing-compliance.js (window.ZFindServices.listingCompliance),
    a mirror of the database validator.
@@ -20,10 +24,11 @@ const complianceState = { listing: null, property: null, payload: null, profile:
 
 function lc() { return window.ZFindServices.listingCompliance; }
 
-const COMPLIANCE_PROFILE_FR = {
-  fr_residential_sale_v1: 'Vente d’un logement',
-  fr_residential_rent_v1: 'Location d’un logement'
-};
+/* « Mentions obligatoires — France », « … — Belgique — Flandre (Vlaanderen) »… */
+function complianceTitle(profile, country) {
+  const where = lc().jurisdictionLabel(profile, country);
+  return 'Mentions obligatoires' + (where ? ' — ' + where : '');
+}
 
 function complianceBadgeHtml(status, prefix) {
   if (!status) return '';
@@ -73,7 +78,7 @@ async function loadPartnerCompliance(listing, property) {
   const host = document.getElementById('partner-compliance-section');
   if (!host) return;
   if (res.error) {
-    host.innerHTML = `<div class="compliance-head"><h3>Mentions obligatoires (France)</h3></div><p class="compliance-sub">${escapeHtmlPartner(lc().describeError(res.error, 'Impossible de charger les mentions obligatoires.'))}</p>`;
+    host.innerHTML = `<div class="compliance-head"><h3>Mentions obligatoires</h3></div><p class="compliance-sub">${escapeHtmlPartner(lc().describeError(res.error, 'Impossible de charger les mentions obligatoires.'))}</p>`;
     return;
   }
   renderPartnerCompliance(res.data);
@@ -89,21 +94,22 @@ function renderPartnerCompliance(payload) {
   complianceState.profile = profile;
 
   if (!jurisdiction) {
-    host.innerHTML = `<div class="compliance-head"><div><h3>Mentions obligatoires (France)</h3>
-      <p class="compliance-sub">Indiquez d’abord la commune du bien (section « Le bien »). Pour un bien situé en France, les mentions exigées par la loi s’afficheront ici.</p></div></div>`;
+    host.innerHTML = `<div class="compliance-head"><div><h3>Mentions obligatoires</h3>
+      <p class="compliance-sub">Indiquez d’abord la commune du bien (section « Le bien »). Pour un bien situé en France, en Belgique ou au Luxembourg, les mentions exigées par la loi s’afficheront ici.</p></div></div>`;
     return;
   }
-  if (jurisdiction !== 'FR') { host.remove(); return; }
+  if (!['FR', 'BE', 'LU'].includes(jurisdiction)) { host.remove(); return; }
 
   const validation = (payload && payload.validation) || {};
   const status = svc.statusOf({
     jurisdiction_iso: jurisdiction, profile, review_status: payload.review_status,
-    review_note: payload.review_note, facts_valid: !!validation.facts_valid
+    review_note: payload.review_note, facts_valid: !!validation.facts_valid, missing: validation.missing
   });
 
   if (status.code === 'unsupported') {
-    host.innerHTML = `<div class="compliance-head"><div><h3>Mentions obligatoires (France)</h3>
-      <p class="compliance-sub">${escapeHtmlPartner(status.long)} Écrivez-nous à hello@zfind.online pour ce type de bien.</p></div>${complianceBadgeHtml(status)}</div>`;
+    const help = status.label === 'Région à préciser' ? '' : ' Écrivez-nous à hello@zfind.online pour ce type de bien.';
+    host.innerHTML = `<div class="compliance-head"><div><h3>${escapeHtmlPartner(complianceTitle(null, jurisdiction))}</h3>
+      <p class="compliance-sub">${escapeHtmlPartner(status.long)}${help}</p></div>${complianceBadgeHtml(status)}</div>`;
     return;
   }
 
@@ -126,8 +132,8 @@ function renderPartnerCompliance(payload) {
   host.innerHTML = `
     <div class="compliance-head">
       <div>
-        <h3>Mentions obligatoires (France)</h3>
-        <p class="compliance-sub">${escapeHtmlPartner(COMPLIANCE_PROFILE_FR[profile] || '')} — informations exigées par la loi dans toute annonce publiée en France. Z Find les vérifie avant la mise en ligne. Les champs marqués * sont obligatoires.</p>
+        <h3>${escapeHtmlPartner(complianceTitle(profile, jurisdiction))}</h3>
+        <p class="compliance-sub">${escapeHtmlPartner(svc.profileLabel(profile))} — informations exigées par la loi dans toute annonce publiée ${jurisdiction === 'FR' ? 'en France' : jurisdiction === 'BE' ? 'en Belgique' : 'au Luxembourg'}. Z Find les vérifie avant la mise en ligne. Les champs marqués * sont obligatoires.</p>
       </div>
       <div class="compliance-status" id="compliance-status">${complianceBadgeHtml(status)}</div>
     </div>
@@ -167,7 +173,7 @@ function renderComplianceField(d, profile, values) {
     return `<div class="form-field cf-field cf-wide" data-key="${key}"><label id="${id}-label">${label}</label>${control}${err}</div>`;
   }
   if (d.type === 'class') {
-    control = `<select id="${id}"><option value="">—</option>${svc.CLASSES.map(c => `<option value="${c}" ${String(value || '').toUpperCase() === c ? 'selected' : ''}>${c}</option>`).join('')}</select>`;
+    control = `<select id="${id}"><option value="">—</option>${svc.classesFor(d, profile).map(c => `<option value="${c}" ${String(value || '').toUpperCase() === c ? 'selected' : ''}>${c}</option>`).join('')}</select>`;
   } else if (d.type === 'number') {
     control = `<input type="text" inputmode="decimal" id="${id}" value="${escapeHtmlPartner(value == null ? '' : String(value).replace('.', ','))}" autocomplete="off">`;
   } else if (d.type === 'year') {
@@ -201,17 +207,13 @@ function readComplianceValues() {
   return out;
 }
 
-/** Shows only the fields of the branches that apply (DPE vs exemption, copropriété, encadrement). */
+/** Shows only the fields of the branches that apply (certificate vs exemption, copropriété, encadrement, parcelle bâtie…). */
 function complianceSyncVisibility() {
   const svc = lc();
   const profile = complianceState.profile;
   if (!svc || !profile || !document.getElementById('compliance-form')) return;
   const values = readComplianceValues();
-  const selectors = {
-    dpe_status: values.dpe_status || undefined,
-    is_condominium: values.is_condominium === 'true' ? true : values.is_condominium === 'false' ? false : undefined,
-    rent_control_status: values.rent_control_status || undefined
-  };
+  const selectors = svc.selectorsFrom(profile, values);
   svc.fieldsFor(profile).forEach(d => {
     const el = document.querySelector(`.cf-field[data-key="${d.key}"]`);
     if (!el) return;
@@ -258,7 +260,7 @@ async function savePartnerCompliance() {
   const btn = document.getElementById('compliance-save');
   if (btn) { btn.disabled = true; btn.textContent = 'Envoi…'; }
   const previous = complianceState.payload && complianceState.payload.review_status;
-  const result = await svc.saveListingCompliance(listing.id, facts, { channel: 'partner_panel', form: 'fr_compliance_v1', submitted_at: new Date().toISOString() });
+  const result = await svc.saveListingCompliance(listing.id, facts, { channel: 'partner_panel', form: profile, submitted_at: new Date().toISOString() });
   if (btn) { btn.disabled = false; btn.textContent = 'Enregistrer les mentions'; }
   if (result.error) {
     showStatus('error', svc.describeError(result.error, 'Impossible d’enregistrer les mentions obligatoires.'));
