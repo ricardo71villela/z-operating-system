@@ -126,6 +126,7 @@ html[data-zstudio-app-theme="light"] .status { color:#74797D; }
 
 html[data-zstudio-app-theme="light"] select,
 html[data-zstudio-app-theme="light"] input[type=text],
+html[data-zstudio-app-theme="light"] input[type=email],
 html[data-zstudio-app-theme="light"] input[type=number],
 html[data-zstudio-app-theme="light"] textarea,
 html[data-zstudio-app-theme="light"] .controls select,

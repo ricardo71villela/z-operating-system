@@ -7,7 +7,8 @@
 > **⚠️ ATUALIZAÇÃO 2026-09-07 — preço mudou.** Os valores de €5.99/€14.99/€119.99
 > citados neste documento (congelado a 2026-08-21) já não são o preço-alvo.
 > Decisão de posicionamento face ao Canva Pro (€12/mês) e Adobe Express
-> (€11,99/mês): weekly €3.99, monthly €9.99, annual €89.99. Fonte da verdade
+> (€11,99/mês): weekly €3.99, monthly €9.99, annual €89.99; revisto de novo em
+> 2026-10-07 para **weekly €3.90, monthly €9.90, annual €89.90**. Fonte da verdade
 > atual: `commercial/store-products.v1.json`. Este handoff mantém as
 > referências antigas ao preço só como registo histórico da decisão de
 > 21/08 — não seguir os valores de preço abaixo, seguir sempre o JSON.

@@ -9,6 +9,9 @@ const buildSource=fs.readFileSync(path.join(__dirname,'../../scripts/build.js'),
 const catalog=fs.readFileSync(path.join(__dirname,'../../commercial/store-products.v1.json'),'utf8');
 const apple=fs.readFileSync(path.join(__dirname,'../../src/platform/apple-billing.js'),'utf8');
 const billing=fs.readFileSync(path.join(__dirname,'../../src/platform/billing-ui.js'),'utf8');
+const uxDir=path.join(__dirname,'../../src/ux');
+const uxFiles=fs.readdirSync(uxDir).map(f=>[f,fs.readFileSync(path.join(uxDir,f),'utf8')]);
+const expectedWeeklyMinor=JSON.parse(catalog).plans.weekly.commercialTargetPriceMinor;
 
 function fixture(baseUrl){
   const root=fs.mkdtempSync(path.join(os.tmpdir(),'zstudio-build-'));
@@ -18,9 +21,12 @@ function fixture(baseUrl){
   const template=`<!doctype html><html><head>
 <meta http-equiv="Content-Security-Policy" content="script-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'; connect-src 'self' https://z-studio-platform-seven.vercel.app;">
 <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; connect-src 'self' https://z-studio-platform-seven.vercel.app;">
+<style></style>
 </head><body><header></header><script>__MYSTUDIO_SCRIPT_PLACEHOLDER__</script></body></html>`;
   write('src/template.html',template);
-  for(const rel of ['src/data/i18n.js','src/data/categories.js','src/state/state.js','src/storage/indexeddb.js','src/platform/storage.js','src/main.js','src/render/layout-guards.js'])write(rel,'');
+  for(const rel of ['src/data/i18n.js','src/data/categories.js','src/state/state.js','src/storage/indexeddb.js','src/platform/storage.js','src/render/layout-guards.js'])write(rel,'');
+  write('src/main.js','\nloadAll();');
+  for(const [f,data] of uxFiles)write('src/ux/'+f,data);
   write('src/platform/auth.js','window.ZStudioAuth={getAccessToken:async()=>"x"};');
   write('src/platform/apple-billing.js',apple);write('src/platform/billing-ui.js',billing);
   write('pwa/manifest.webmanifest','{"name":"My Studio"}');write('pwa/sw.js','// My Studio');
@@ -35,7 +41,7 @@ test('build without commercial URL is fail-closed and emits no external commerci
 });
 
 test('build with HTTPS commercial origin injects public catalog and CSP exactly twice',()=>{
-  const f=fixture('https://commercial.example/');assert.equal(f.result.status,0,f.result.stderr);assert.match(f.result.stdout,/COMMERCIAL_RUNTIME=https:\/\/commercial\.example/);assert.match(f.html,/"enabled":true/);assert.match(f.html,/"priceMinor":599/);assert.match(f.html,/ZStudioApple/);assert.match(f.html,/ZStudioBilling/);assert.equal((f.html.match(/connect-src[^;]*https:\/\/commercial\.example/g)||[]).length,2);
+  const f=fixture('https://commercial.example/');assert.equal(f.result.status,0,f.result.stderr);assert.match(f.result.stdout,/COMMERCIAL_RUNTIME=https:\/\/commercial\.example/);assert.match(f.html,/"enabled":true/);assert.ok(f.html.includes('"priceMinor":'+expectedWeeklyMinor));assert.match(f.html,/ZStudioApple/);assert.match(f.html,/ZStudioBilling/);assert.equal((f.html.match(/connect-src[^;]*https:\/\/commercial\.example/g)||[]).length,2);
 });
 
 test('build rejects non-origin or non-HTTPS commercial URL',()=>{

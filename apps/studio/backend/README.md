@@ -31,9 +31,10 @@ Overrides the default Gateway model id.
 
 `ALLOWED_ORIGINS`
 
-Comma-separated additional origins. The function already trusts the canonical Z Studio web origin plus the Capacitor origins used by the current native configuration:
+Comma-separated additional origins. The function already trusts the Z Studio web origins plus the Capacitor origins used by the current native configuration:
 
 - `https://z-studio-web.vercel.app`
+- `https://zstudio.space` and `https://www.zstudio.space` (production domain of the z-studio-web project)
 - `capacitor://localhost`
 - `https://localhost`
 

@@ -14,6 +14,8 @@ const SUPABASE_TIMEOUT_MS = 8000;
 
 const DEFAULT_ALLOWED_ORIGINS = Object.freeze([
   'https://z-studio-web.vercel.app',
+  'https://zstudio.space',
+  'https://www.zstudio.space',
   'capacitor://localhost',
   'https://localhost',
 ]);

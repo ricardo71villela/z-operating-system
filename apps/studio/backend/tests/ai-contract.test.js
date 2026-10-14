@@ -130,6 +130,15 @@ test('preflight allows Authorization header and never reaches auth/provider', as
   assert.equal(called, false);
 });
 
+test('production domain zstudio.space is allowed by default (no ALLOWED_ORIGINS needed)', async () => {
+  for (const origin of ['https://zstudio.space', 'https://www.zstudio.space']) {
+    const res = new MockResponse();
+    await handler(request({ method: 'OPTIONS', body: null, token: null, origin }), res);
+    assert.equal(res.statusCode, 204);
+    assert.equal(res.headers['Access-Control-Allow-Origin'], origin);
+  }
+});
+
 test('unknown browser origin is rejected before auth or inference', async () => {
   let called = false;
   global.fetch = async () => { called = true; throw new Error('should not fetch'); };
