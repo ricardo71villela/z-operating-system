@@ -96,13 +96,14 @@ function build() {
     + readWeb('services/field-forms.js') + '\n'
     + readWeb('services/pro-offer.js') + '\n' // public price list: Founder seats
     + readAdmin('prospection.js') + '\n'
-    + readAdmin('poliris.js') + '\n' // Poliris / SeLoger annonces.csv reader (agency software exports)
-    + readAdmin('import.js') + '\n' // « Nous chargeons pour vous »: CSV / Excel / Poliris import and portfolio sync
+    + readWeb('services/listing-import/poliris.js') + '\n' // Poliris / SeLoger annonces.csv reader (agency software exports)
+    + readWeb('services/listing-import/listing-import.js') + '\n' // shared with Partner and /api/feed-sync — « Nous chargeons pour vous »: CSV / Excel / Poliris import and portfolio sync
     + readAdmin('followup.js') + '\n' // estimations, leads follow-up, reviews, photo links
     + readWeb('services/listing-compliance.js') + '\n' // French mandatory listing information (shared with Partner)
     + readAdmin('compliance.js') + '\n' // « Mentions obligatoires à valider » queue and review
     + readWeb('services/listing-submission.js') + '\n' // statuses, bulk plans / runner / summary (shared with Partner)
     + readAdmin('bulk.js') + '\n' // actions groupées: approuver, publier, renvoyer en brouillon, valider
+    + readAdmin('feeds.js') + '\n' // « Flux automatiques des agences »: nightly feeds, run now, disable
     + appJs
     + '\n</script>\n</body>\n</html>\n';
 

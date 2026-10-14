@@ -128,6 +128,8 @@
     <nav class="dash-nav">
       <a class="active" onclick="showPortfolioView()">Portefeuille</a>
       <a onclick="showLeadsView()">Demandes</a>
+      <a onclick="showImportView()">Importer</a>
+      <a onclick="showFeedView()">Flux automatique</a>
     </nav>
     <div class="who">
       <span id="dash-partner-name"></span>
@@ -167,6 +169,8 @@
     <nav class="dash-nav">
       <a onclick="showPortfolioView()">Portefeuille</a>
       <a class="active" onclick="showLeadsView()">Demandes</a>
+      <a onclick="showImportView()">Importer</a>
+      <a onclick="showFeedView()">Flux automatique</a>
     </nav>
     <div class="who">
       <span id="dash-partner-name-3"></span>
@@ -189,6 +193,8 @@
     <nav class="dash-nav">
       <a class="active" onclick="showPortfolioView()">Portefeuille</a>
       <a onclick="showLeadsView()">Demandes</a>
+      <a onclick="showImportView()">Importer</a>
+      <a onclick="showFeedView()">Flux automatique</a>
     </nav>
     <div class="who">
       <span id="dash-partner-name-2"></span>
@@ -213,6 +219,50 @@
       <div id="detail-features-grid">Chargement…</div>
       <button class="btn btn-primary" style="margin-top:14px;" onclick="saveFeatures(detailKind, detailId)">Enregistrer les équipements</button>
     </div>
+  </div>
+</section>
+
+<section id="view-import" class="dash-shell" style="display:none;">
+  <div class="dash-header">
+    <div class="logo">Z <em>Find</em> Partenaires</div>
+    <nav class="dash-nav">
+      <a onclick="showPortfolioView()">Portefeuille</a>
+      <a onclick="showLeadsView()">Demandes</a>
+      <a class="active" onclick="showImportView()">Importer</a>
+      <a onclick="showFeedView()">Flux automatique</a>
+    </nav>
+    <div class="who">
+      <span id="dash-partner-name-4" class="partner-name-copy"></span>
+      <a class="signout" onclick="handlePartnerSignOut()">Déconnexion</a>
+    </div>
+  </div>
+  <div class="dash-body wide">
+    <div class="eyebrow">Importer mes annonces</div>
+    <h2 style="margin-bottom:8px;">Votre portefeuille, <em>en un fichier.</em></h2>
+    <p class="sub" style="margin:0 0 24px; max-width:none;">Chargez l’export de votre logiciel : vos nouvelles annonces sont créées en brouillon, les autres mises à jour. Vous voyez chaque changement avant de confirmer ; rien n’est publié sans validation. Pour une mise à jour chaque nuit sans rien faire, utilisez le <a class="pimp-link" onclick="showFeedView()">flux automatique</a>.</p>
+    <div id="pimp-root"></div>
+  </div>
+</section>
+
+<section id="view-feed" class="dash-shell" style="display:none;">
+  <div class="dash-header">
+    <div class="logo">Z <em>Find</em> Partenaires</div>
+    <nav class="dash-nav">
+      <a onclick="showPortfolioView()">Portefeuille</a>
+      <a onclick="showLeadsView()">Demandes</a>
+      <a onclick="showImportView()">Importer</a>
+      <a class="active" onclick="showFeedView()">Flux automatique</a>
+    </nav>
+    <div class="who">
+      <span id="dash-partner-name-5" class="partner-name-copy"></span>
+      <a class="signout" onclick="handlePartnerSignOut()">Déconnexion</a>
+    </div>
+  </div>
+  <div class="dash-body wide">
+    <div class="eyebrow">Flux automatique</div>
+    <h2 style="margin-bottom:8px;">Vos annonces à jour, <em>chaque nuit.</em></h2>
+    <p class="sub" style="margin:0 0 24px; max-width:none;">Z Find lit chaque nuit l’export de votre logiciel et met vos annonces à jour comme un import : mêmes règles, même aperçu, aucune publication automatique.</p>
+    <div id="pfeed-root"></div>
   </div>
 </section>
 

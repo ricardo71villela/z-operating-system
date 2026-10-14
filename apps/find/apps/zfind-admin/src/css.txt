@@ -184,3 +184,8 @@ td.nowrap{white-space:nowrap;}
 .reason-box textarea{width:100%;min-height:90px;padding:8px 10px;border:1px solid #ccc;border-radius:4px;font:inherit;font-size:.85rem;margin-bottom:4px;}
 .reason-error{color:#a33;font-size:.8rem;min-height:1.1em;margin-bottom:10px;}
 .asset-compliance-line .btn{margin-left:auto;}
+/* « Flux automatiques des agences » */
+.btn.btn-sm{padding:4px 10px;font-size:.78rem;margin:2px 4px 2px 0;}
+.btn.btn-sm:disabled{opacity:.45;cursor:default;}
+#feeds-table td{vertical-align:top;}
+#feeds-table .tag{white-space:nowrap;}

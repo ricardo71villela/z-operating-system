@@ -18,9 +18,8 @@
    ============================================================ */
 'use strict';
 
-const dns = require('dns').promises;
-const net = require('net');
 const S = require('./_lib/server');
+const guard = require('./_lib/url-guard');
 
 const MAX_BYTES = 15 * 1024 * 1024;
 const TIME_BUDGET_MS = 40 * 1000;
@@ -36,30 +35,9 @@ function sharp() {
   return sharpModule;
 }
 
-/* ---------------- address checks (no internal network) ---------------- */
-function privateIp(ip) {
-  if (net.isIPv4(ip)) {
-    const [a, b] = ip.split('.').map(Number);
-    return a === 0 || a === 10 || a === 127 || (a === 100 && b >= 64 && b <= 127) || (a === 169 && b === 254)
-      || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 198 && (b === 18 || b === 19)) || a >= 224;
-  }
-  const v = ip.toLowerCase();
-  if (v === '::' || v === '::1') return true;
-  if (v.startsWith('::ffff:')) return privateIp(v.slice(7));
-  return /^(fc|fd|fe8|fe9|fea|feb|ff)/.test(v);
-}
-
-async function checkUrl(raw, lookup) {
-  let u;
-  try { u = new URL(raw); } catch (_) { throw new Error('lien invalide'); }
-  if (!/^https?:$/.test(u.protocol)) throw new Error('lien non http(s)');
-  if (u.username || u.password) throw new Error('lien avec identifiants');
-  const host = u.hostname.replace(/^\[|\]$/g, '');
-  if (!host || /^(localhost|.*\.local|.*\.internal)$/i.test(host)) throw new Error('adresse interne');
-  const addresses = net.isIP(host) ? [{ address: host }] : await (lookup || dns.lookup)(host, { all: true });
-  if (!addresses.length || addresses.some(a => privateIp(a.address))) throw new Error('adresse interne');
-  return u;
-}
+/* ---------------- address checks (no internal network): api/_lib/url-guard.js ---------------- */
+const { privateIp } = guard;
+const checkUrl = (raw, lookup) => guard.checkUrl(raw, { lookup });
 
 /* Fetch with manual redirects (each hop re-checked), size and type limits. */
 async function download(raw, deps) {
@@ -121,9 +99,9 @@ async function storagePut(path, image) {
   if (!response.ok) throw new Error(`stockage ${response.status}: ${(await response.text()).slice(0, 120)}`);
 }
 
-async function attach(item, deps) {
+/* An image already in hand (a photo inside an agency feed's ZIP) → same storage and links as a downloaded one. */
+async function attachFile(item, file, deps) {
   const d = deps || {};
-  const file = await download(item.url, d);
   const image = await (d.optimize || optimize)(file);
   const path = `listings/${item.listing_id}/${Date.now()}-import-${item.position}.${image.ext}`;
   await (d.storagePut || storagePut)(path, image);
@@ -131,6 +109,10 @@ async function attach(item, deps) {
   const covers = await S.db(`listing_media?listing_id=eq.${item.listing_id}&is_cover=eq.true&select=media_asset_id&limit=1`);
   await S.db('listing_media', { method: 'POST', body: { media_asset_id: asset.id, listing_id: item.listing_id, position: item.position, is_cover: !(covers && covers.length) && item.position === 0 }, prefer: 'return=minimal' });
   return asset.id;
+}
+
+async function attach(item, deps) {
+  return attachFile(item, await download(item.url, deps || {}), deps);
 }
 
 async function finish(item, result) {
@@ -176,4 +158,4 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-module.exports._internals = { privateIp, checkUrl, download, optimize, attach, processQueue, finish };
+module.exports._internals = { privateIp, checkUrl, download, optimize, attach, attachFile, processQueue, finish };

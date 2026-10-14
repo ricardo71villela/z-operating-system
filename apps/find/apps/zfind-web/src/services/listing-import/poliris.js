@@ -1,5 +1,5 @@
 /* ============================================================
-   Z FIND ADMIN — services/poliris (window.ZFindServices.poliris)
+   Z FIND — services/listing-import/poliris.js (window.ZFindServices.poliris; Admin, Partner, /api/feed-sync)
    ============================================================
    Reader for the « Poliris » / SeLoger exchange format: the export
    French agency software produces for the portals (Hektor, Apimo,

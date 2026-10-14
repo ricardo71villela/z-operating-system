@@ -1,4 +1,4 @@
-/* Contract: Admin « Nous chargeons pour vous » (zfind-admin/src/import.js).
+/* Contract: Admin « Nous chargeons pour vous » (zfind-web/src/services/listing-import/listing-import.js, shared with the Partner panel and /api/feed-sync).
    An agency's CSV / Excel export → mapped columns → normalised rows →
    property + DRAFT listing per row through the existing admin commands.
    Never publishes; a known agency reference becomes an update (sync);
@@ -9,7 +9,7 @@ const path = require('path');
 const fs = require('fs');
 const vm = require('vm');
 const assert = require('assert');
-const SRC = path.join(__dirname, '..', '..', 'apps', 'zfind-admin', 'src', 'import.js');
+const SRC = path.join(__dirname, '..', '..', 'apps', 'zfind-web', 'src', 'services', 'listing-import', 'listing-import.js');
 let passed = 0;
 function check(label, value) { assert(value, label); passed += 1; console.log('PASS:', label); }
 
