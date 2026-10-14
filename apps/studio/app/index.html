@@ -3896,14 +3896,14 @@ html[data-zstudio-app-theme="light"] .site-footer-dot {
         <label class="check"><input type="checkbox" id="brandWatermark" checked onchange="onBrandChange('showWatermark', this.checked)"> <span data-i18n="brandWatermarkLabel">Mostrar logótipo / marca de água nas imagens</span></label>
         <label class="f" style="margin-top:12px;" data-i18n="brandLangsLabel">Idiomas ativos</label>
         <div class="seg" id="langsSeg">
-          <button data-l="pt" class="active" onclick="toggleLangActive('pt')">PT</button>
+          <button data-l="pt" onclick="toggleLangActive('pt')">PT</button>
           <button data-l="en" class="active" onclick="toggleLangActive('en')">EN</button>
           <button data-l="fr" onclick="toggleLangActive('fr')">FR</button>
           <button data-l="es" onclick="toggleLangActive('es')">ES</button>
           <button data-l="de" onclick="toggleLangActive('de')">DE</button>
           <button data-l="it" onclick="toggleLangActive('it')">IT</button>
         </div>
-        <div class="hint" data-i18n="brandLangsHint">PT está sempre ativo. Ativa as línguas que precisas — só essas aparecem no seletor do topo. A legenda com IA escreve na língua escolhida.</div>
+        <div class="hint" data-i18n="brandLangsHint">Ativa as línguas em que queres as legendas. «Traduzir para todos os idiomas» gera uma legenda em cada língua ativa (e só nessas). A língua da interface escolhe-se no seletor do topo.</div>
         <label class="f" style="margin-top:12px;" for="brandKitSelect" data-i18n="brandKitsLabel">Kits de marca guardados</label>
         <select id="brandKitSelect" onchange="applyBrandKit(this.value)"><option value="" data-i18n="brandKitNone">— nenhum —</option></select>
         <div style="display:flex;gap:6px;margin-top:6px;">
@@ -4157,7 +4157,7 @@ const UI_STRINGS = {
     brandLogoHint: 'PNG com fundo transparente funciona melhor. Sem upload, usa a inicial do nome da marca.',
     brandWatermarkLabel: 'Mostrar logótipo / marca de água nas imagens',
     brandLangsLabel: 'Idiomas ativos',
-    brandLangsHint: 'PT está sempre ativo. Ativa as línguas que precisas — só essas aparecem no seletor do topo. A legenda com IA escreve na língua escolhida.',
+    brandLangsHint: 'Ativa as línguas em que queres as legendas. «Traduzir para todos os idiomas» gera uma legenda em cada língua ativa (e só nessas). A língua da interface escolhe-se no seletor do topo.',
     brandKitsLabel: 'Kits de marca guardados',
     brandKitNone: '— nenhum —',
     brandKitSave: '💾 Guardar kit atual',
@@ -4267,7 +4267,7 @@ const UI_STRINGS = {
     brandLogoHint: 'A PNG with a transparent background works best. Without one, the brand name\u2019s initial is used.',
     brandWatermarkLabel: 'Show logo / watermark on images',
     brandLangsLabel: 'Active languages',
-    brandLangsHint: 'PT is always active. Turn on the languages you need — only those show up in the switcher at the top. AI captions are written in the language you pick.',
+    brandLangsHint: 'Turn on the languages you want captions in. “Translate to all languages” writes one caption per active language (and only those). The interface language is chosen in the switcher at the top.',
     brandKitsLabel: 'Saved brand kits',
     brandKitNone: '— none —',
     brandKitSave: '💾 Save current kit',
@@ -4377,7 +4377,7 @@ const UI_STRINGS = {
     brandLogoHint: 'Un PNG à fond transparent fonctionne mieux. Sans logo, l\u2019initiale du nom de la marque est utilisée.',
     brandWatermarkLabel: 'Afficher le logo / filigrane sur les images',
     brandLangsLabel: 'Langues actives',
-    brandLangsHint: 'Le PT est toujours actif. Activez les langues dont vous avez besoin — seules celles-ci apparaissent dans le sélecteur en haut. La légende IA est rédigée dans la langue choisie.',
+    brandLangsHint: 'Activez les langues dans lesquelles vous voulez vos légendes. « Traduire dans toutes les langues » rédige une légende par langue active (et uniquement celles-ci). La langue de l’interface se choisit dans le sélecteur en haut.',
     brandKitsLabel: 'Kits de marque enregistrés',
     brandKitNone: '— aucun —',
     brandKitSave: '💾 Enregistrer le kit actuel',
@@ -4487,7 +4487,7 @@ const UI_STRINGS = {
     brandLogoHint: 'Un PNG con fondo transparente funciona mejor. Sin logotipo, se usa la inicial del nombre de la marca.',
     brandWatermarkLabel: 'Mostrar logotipo / marca de agua en las imágenes',
     brandLangsLabel: 'Idiomas activos',
-    brandLangsHint: 'El PT está siempre activo. Activa los idiomas que necesites — solo esos aparecen en el selector de arriba. La leyenda con IA se escribe en el idioma elegido.',
+    brandLangsHint: 'Activa los idiomas en los que quieres tus textos. «Traducir a todos los idiomas» escribe un texto por cada idioma activo (y solo esos). El idioma de la interfaz se elige en el selector de arriba.',
     brandKitsLabel: 'Kits de marca guardados',
     brandKitNone: '— ninguno —',
     brandKitSave: '💾 Guardar kit actual',
@@ -4597,7 +4597,7 @@ const UI_STRINGS = {
     brandLogoHint: 'Ein PNG mit transparentem Hintergrund funktioniert am besten. Ohne Logo wird der Anfangsbuchstabe des Markennamens verwendet.',
     brandWatermarkLabel: 'Logo / Wasserzeichen auf Bildern anzeigen',
     brandLangsLabel: 'Aktive Sprachen',
-    brandLangsHint: 'PT ist immer aktiv. Aktiviere die Sprachen, die du brauchst — nur diese erscheinen oben im Umschalter. Die KI-Bildunterschrift wird in der gewählten Sprache verfasst.',
+    brandLangsHint: 'Aktivieren Sie die Sprachen, in denen Sie Bildunterschriften möchten. „In alle Sprachen übersetzen“ erstellt eine Bildunterschrift pro aktiver Sprache (und nur für diese). Die Sprache der Oberfläche wählen Sie oben im Umschalter.',
     brandKitsLabel: 'Gespeicherte Marken-Kits',
     brandKitNone: '— keines —',
     brandKitSave: '💾 Aktuelles Kit speichern',
@@ -4707,7 +4707,7 @@ const UI_STRINGS = {
     brandLogoHint: 'Un PNG con sfondo trasparente funziona meglio. Senza logo, viene usata l\u2019iniziale del nome del marchio.',
     brandWatermarkLabel: 'Mostra logo / filigrana sulle immagini',
     brandLangsLabel: 'Lingue attive',
-    brandLangsHint: 'Il PT è sempre attivo. Attiva le lingue di cui hai bisogno — solo queste compaiono nel selettore in alto. La didascalia con IA viene scritta nella lingua scelta.',
+    brandLangsHint: 'Attiva le lingue in cui vuoi le didascalie. «Traduci in tutte le lingue» scrive una didascalia per ogni lingua attiva (e solo per quelle). La lingua dell’interfaccia si sceglie nel selettore in alto.',
     brandKitsLabel: 'Kit di marchio salvati',
     brandKitNone: '— nessuno —',
     brandKitSave: '💾 Salva kit attuale',
@@ -5248,7 +5248,7 @@ const state = {
   spec: [ { label: '', value: '' }, { label: '', value: '' }, { label: '', value: '' }, { label: '', value: '' } ],
   // marca — nome, cor, site, com ou sem marca de água
   brand: { name: 'Z Studio', site: '', sub: '', phone: '', accent: '#B8935A',
-           showWatermark: true, logoUrl: null, langs: new Set(['pt', 'en']) }
+           showWatermark: true, logoUrl: null, langs: new Set(['en']) }
 };
 
 
@@ -6116,7 +6116,7 @@ async function loadDraftIfAny() {
     const meta = await idbGet('meta');
     if (!meta) return;
     if (meta.brand) {
-      Object.assign(state.brand, meta.brand, { langs: new Set(meta.brand.langs && meta.brand.langs.length ? meta.brand.langs : ['pt', 'en']) });
+      Object.assign(state.brand, meta.brand, { langs: new Set(meta.brand.langs && meta.brand.langs.length ? meta.brand.langs : [state.lang]) });
       document.getElementById('brandName').value = state.brand.name || '';
       document.getElementById('brandSite').value = state.brand.site || '';
       document.getElementById('brandSub').value = state.brand.sub || '';
@@ -6252,7 +6252,7 @@ async function applyBrandKit(name) {
   if (!name) return;
   const kits = (await idbGet('kits').catch(() => null)) || {};
   const k = kits[name]; if (!k) return;
-  Object.assign(state.brand, k, { langs: new Set(k.langs && k.langs.length ? k.langs : ['pt', 'en']) });
+  Object.assign(state.brand, k, { langs: new Set(k.langs && k.langs.length ? k.langs : [state.lang]) });
   document.getElementById('brandName').value = state.brand.name || '';
   document.getElementById('brandSite').value = state.brand.site || '';
   document.getElementById('brandSub').value = state.brand.sub || '';
@@ -9193,7 +9193,9 @@ async function aiCaption() {
 // Gera a legenda nos vários idiomas ativos de uma só vez, mostrando cada uma num
 // painel próprio para copiar — sem substituir a legenda principal.
 async function aiCaptionAllLangs() {
-  const langs = ['pt', ...[...state.brand.langs].filter(l => l !== 'pt')];
+  // Só as línguas ativadas pela pessoa (sem PT obrigatório) — a língua atual primeiro.
+  const active = [...state.brand.langs].filter(l => SUPPORTED_UI_LANGS.includes(l));
+  const langs = active.length ? [...new Set([state.lang, ...active])].filter(l => active.includes(l)) : [state.lang];
   const btn = document.getElementById('btnAICaptionAll');
   const old = btn.textContent; btn.disabled = true;
   const results = {};
@@ -9437,7 +9439,7 @@ async function runBulkGenerate() {
       await drawListing(octx, W, H);
       const b = await canvasBlob(off);
       if (!b) { console.warn('Falhou: ' + entry.label + ' (imagem sem CORS?)'); continue; }
-      const name = 'my-studio-massa-' + slugify(d.title || entry.label) + '.png';
+      const name = 'z-studio-bulk-' + slugify(d.title || entry.label) + '.png';
       if (zip) zip.file(name, b);
       else { saveBlob(b, name); await new Promise(r => setTimeout(r, 400)); }
       ok++;
@@ -9445,7 +9447,7 @@ async function runBulkGenerate() {
     if (zip && ok) {
       status.textContent = uiT('compressing');
       const zb = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
-      saveBlob(zb, 'my-studio-producao-massa-' + ok + '.zip');
+      saveBlob(zb, 'z-studio-bulk-' + ok + '.zip');
     }
     status.textContent = uiF('bulkDone', { ok, n: ids.length }) + (zip ? uiT('bulkDoneZip') : '.');
   } catch (e) {
@@ -9720,7 +9722,7 @@ async function downloadCarousel() {
       await renderTo(off, state.slides[i]);
       const b = await canvasBlob(off);
       if (!b) { console.warn('Slide ' + (i + 1) + ' falhou (imagem sem CORS?)'); continue; }
-      const name = 'z-carrossel-' + base + '-' + String(i + 1).padStart(2, '0') + '.png';
+      const name = 'z-studio-carousel-' + base + '-' + String(i + 1).padStart(2, '0') + '.png';
       if (zip) { zip.file(name, b); }
       else { saveBlob(b, name); await new Promise(r => setTimeout(r, 500)); }
       ok++;
@@ -9728,7 +9730,7 @@ async function downloadCarousel() {
     if (zip && ok) {
       btn.textContent = uiT('compressing');
       const zb = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
-      saveBlob(zb, 'z-carrossel-' + base + '.zip');
+      saveBlob(zb, 'z-studio-carousel-' + base + '.zip');
     }
     toast(ok === state.slides.length
       ? (zip ? uiF('slidesZipDone', { n: ok }) : uiF('slidesDone', { n: ok }))
@@ -9770,7 +9772,7 @@ async function downloadAllFormats() {
     if (zip && ok) {
       btn.textContent = uiT('compressing');
       const zb = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
-      saveBlob(zb, 'z-todos-formatos-' + base + '.zip');
+      saveBlob(zb, 'z-studio-all-formats-' + base + '.zip');
     }
     toast(ok === keys.length
       ? (zip ? uiF('formatsZipDone', { n: ok }) : uiF('formatsDone', { n: ok }))
@@ -9825,8 +9827,10 @@ function handleBrandLogoUpload(files) {
   scheduleSaveDraft();
 }
 function toggleLangActive(l) {
-  if (l === 'pt') return; // pt é sempre a base do estúdio
-  if (state.brand.langs.has(l)) state.brand.langs.delete(l); else state.brand.langs.add(l);
+  // Nenhuma língua é obrigatória (antes o PT estava sempre ativo e gastava quota
+  // de IA em "Traduzir em todas as línguas"); fica sempre pelo menos uma ativa.
+  if (state.brand.langs.has(l)) { if (state.brand.langs.size > 1) state.brand.langs.delete(l); }
+  else state.brand.langs.add(l);
   document.querySelectorAll('#langsSeg button').forEach(b => b.classList.toggle('active', state.brand.langs.has(b.dataset.l)));
   renderLangSwitch();
   scheduleSaveDraft();
@@ -9879,11 +9883,11 @@ document.getElementById('caption').addEventListener('input', pushHistory);
   const match = wanted.find(code => SUPPORTED_UI_LANGS.includes(code));
   if (!match || match === state.lang) return;
   state.lang = match;
-  // A língua do navegador passa também a fazer parte das línguas ativas da
-  // legenda (ex.: FR em França) — senão "Traduzir em todas as línguas" gerava
-  // PT/EN mas não a língua de quem está a usar a app.
-  if (state.brand && state.brand.langs instanceof Set) {
-    state.brand.langs.add(match);
+  // Primeiro arranque: as línguas ativas da legenda passam a ser a língua do
+  // navegador (ex.: só FR em França). Um rascunho/kit guardado repõe depois as
+  // línguas escolhidas pela pessoa.
+  if (state.brand) {
+    state.brand.langs = new Set([match]);
     document.querySelectorAll('#langsSeg button').forEach(b => b.classList.toggle('active', state.brand.langs.has(b.dataset.l)));
   }
   const switchEl = document.getElementById('langSwitch');
@@ -11397,84 +11401,84 @@ const ZSTUDIO_SUPABASE_JS_CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase
 
 const ZSTUDIO_AUTH_STRINGS = Object.freeze({
   pt: {
-    authSignIn: 'Entrar', authAccount: 'Conta', authTitle: 'Entrar no Z Studio',
+    authSignIn: 'Entrar', authAccount: 'Conta', authTitle: 'Entrar no Z Studio', authAccountTitle: 'A tua conta Z Studio',
     authSubtitle: 'Usa o teu email para receber um código de 6 dígitos. O acesso ao Studio e à IA depende de um plano ativo.',
     authEmailLabel: 'Email', authEmailPlaceholder: 'nome@exemplo.com', authSendCode: 'Enviar código',
     authCodeLabel: 'Código de 6 dígitos', authCodePlaceholder: '000000', authVerify: 'Confirmar código',
     authChangeEmail: 'Usar outro email', authCodeSent: 'Código enviado. Consulta o teu email.',
     authSignedIn: 'Sessão iniciada', authSignOut: 'Terminar sessão', authClose: 'Fechar',
     authRequired: 'Inicia sessão para usar a IA.', authSessionExpired: 'A sessão expirou. Inicia sessão novamente.',
-    authPlanRequired: 'É necessário um plano ativo com acesso à IA.', authQuotaExceeded: 'A quota de IA do período foi atingida.',
+    authPlanRequired: 'É necessário um plano ativo com acesso à IA — ver «Planos».', authQuotaExceeded: 'A quota de IA do período foi atingida.',
     authUnavailable: 'Autenticação temporariamente indisponível.', authInvalidEmail: 'Introduz um email válido.',
     authInvalidCode: 'Introduz o código de 6 dígitos.', authSending: 'A enviar…', authChecking: 'A confirmar…',
     authAccountUnavailable: 'Não foi possível preparar a tua conta Z Studio.', authAiUnavailable: 'IA temporariamente indisponível.',
     authTimeout: 'A IA demorou demasiado tempo a responder — tenta outra vez.'
   },
   en: {
-    authSignIn: 'Sign in', authAccount: 'Account', authTitle: 'Sign in to Z Studio',
+    authSignIn: 'Sign in', authAccount: 'Account', authTitle: 'Sign in to Z Studio', authAccountTitle: 'Your Z Studio account',
     authSubtitle: 'Use your email to receive a 6-digit code. Studio and AI access require an active plan.',
     authEmailLabel: 'Email', authEmailPlaceholder: 'name@example.com', authSendCode: 'Send code',
     authCodeLabel: '6-digit code', authCodePlaceholder: '000000', authVerify: 'Confirm code',
     authChangeEmail: 'Use another email', authCodeSent: 'Code sent. Check your email.',
     authSignedIn: 'Signed in', authSignOut: 'Sign out', authClose: 'Close',
     authRequired: 'Sign in to use AI.', authSessionExpired: 'Your session expired. Sign in again.',
-    authPlanRequired: 'An active plan with AI access is required.', authQuotaExceeded: 'Your AI quota for this period has been reached.',
+    authPlanRequired: 'An active plan with AI access is required — see “Plans”.', authQuotaExceeded: 'Your AI quota for this period has been reached.',
     authUnavailable: 'Authentication is temporarily unavailable.', authInvalidEmail: 'Enter a valid email address.',
     authInvalidCode: 'Enter the 6-digit code.', authSending: 'Sending…', authChecking: 'Checking…',
     authAccountUnavailable: 'We could not prepare your Z Studio account.', authAiUnavailable: 'AI is temporarily unavailable.',
     authTimeout: 'AI took too long to respond — please try again.'
   },
   fr: {
-    authSignIn: 'Connexion', authAccount: 'Compte', authTitle: 'Se connecter à Z Studio',
+    authSignIn: 'Connexion', authAccount: 'Compte', authTitle: 'Se connecter à Z Studio', authAccountTitle: 'Votre compte Z Studio',
     authSubtitle: 'Utilisez votre e-mail pour recevoir un code à 6 chiffres. L’accès à Studio et à l’IA nécessite un forfait actif.',
     authEmailLabel: 'E-mail', authEmailPlaceholder: 'nom@exemple.com', authSendCode: 'Envoyer le code',
     authCodeLabel: 'Code à 6 chiffres', authCodePlaceholder: '000000', authVerify: 'Confirmer le code',
     authChangeEmail: 'Utiliser un autre e-mail', authCodeSent: 'Code envoyé. Consultez votre e-mail.',
     authSignedIn: 'Session ouverte', authSignOut: 'Se déconnecter', authClose: 'Fermer',
     authRequired: 'Connectez-vous pour utiliser l’IA.', authSessionExpired: 'Votre session a expiré. Reconnectez-vous.',
-    authPlanRequired: 'Un forfait actif avec accès à l’IA est nécessaire.', authQuotaExceeded: 'Votre quota d’IA pour cette période est atteint.',
+    authPlanRequired: 'Un forfait actif avec accès à l’IA est nécessaire — voir « Forfaits ».', authQuotaExceeded: 'Votre quota d’IA pour cette période est atteint.',
     authUnavailable: 'L’authentification est temporairement indisponible.', authInvalidEmail: 'Saisissez une adresse e-mail valide.',
     authInvalidCode: 'Saisissez le code à 6 chiffres.', authSending: 'Envoi…', authChecking: 'Vérification…',
     authAccountUnavailable: 'Impossible de préparer votre compte Z Studio.', authAiUnavailable: 'L’IA est temporairement indisponible.',
     authTimeout: 'L’IA a mis trop de temps à répondre — réessayez.'
   },
   es: {
-    authSignIn: 'Entrar', authAccount: 'Cuenta', authTitle: 'Entrar en Z Studio',
+    authSignIn: 'Entrar', authAccount: 'Cuenta', authTitle: 'Entrar en Z Studio', authAccountTitle: 'Tu cuenta de Z Studio',
     authSubtitle: 'Usa tu email para recibir un código de 6 dígitos. El acceso a Studio y a la IA requiere un plan activo.',
     authEmailLabel: 'Email', authEmailPlaceholder: 'nombre@ejemplo.com', authSendCode: 'Enviar código',
     authCodeLabel: 'Código de 6 dígitos', authCodePlaceholder: '000000', authVerify: 'Confirmar código',
     authChangeEmail: 'Usar otro email', authCodeSent: 'Código enviado. Revisa tu email.',
     authSignedIn: 'Sesión iniciada', authSignOut: 'Cerrar sesión', authClose: 'Cerrar',
     authRequired: 'Inicia sesión para usar la IA.', authSessionExpired: 'Tu sesión ha caducado. Inicia sesión de nuevo.',
-    authPlanRequired: 'Se requiere un plan activo con acceso a la IA.', authQuotaExceeded: 'Has alcanzado la cuota de IA del periodo.',
+    authPlanRequired: 'Se requiere un plan activo con acceso a la IA — ver «Planes».', authQuotaExceeded: 'Has alcanzado la cuota de IA del periodo.',
     authUnavailable: 'La autenticación no está disponible temporalmente.', authInvalidEmail: 'Introduce un email válido.',
     authInvalidCode: 'Introduce el código de 6 dígitos.', authSending: 'Enviando…', authChecking: 'Comprobando…',
     authAccountUnavailable: 'No se pudo preparar tu cuenta Z Studio.', authAiUnavailable: 'La IA no está disponible temporalmente.',
     authTimeout: 'La IA ha tardado demasiado en responder — inténtalo de nuevo.'
   },
   de: {
-    authSignIn: 'Anmelden', authAccount: 'Konto', authTitle: 'Bei Z Studio anmelden',
+    authSignIn: 'Anmelden', authAccount: 'Konto', authTitle: 'Bei Z Studio anmelden', authAccountTitle: 'Dein Z Studio-Konto',
     authSubtitle: 'Nutze deine E-Mail-Adresse, um einen 6-stelligen Code zu erhalten. Studio- und KI-Zugriff erfordern einen aktiven Tarif.',
     authEmailLabel: 'E-Mail', authEmailPlaceholder: 'name@beispiel.de', authSendCode: 'Code senden',
     authCodeLabel: '6-stelliger Code', authCodePlaceholder: '000000', authVerify: 'Code bestätigen',
     authChangeEmail: 'Andere E-Mail verwenden', authCodeSent: 'Code gesendet. Prüfe deine E-Mails.',
     authSignedIn: 'Angemeldet', authSignOut: 'Abmelden', authClose: 'Schließen',
     authRequired: 'Melde dich an, um die KI zu nutzen.', authSessionExpired: 'Deine Sitzung ist abgelaufen. Melde dich erneut an.',
-    authPlanRequired: 'Ein aktiver Tarif mit KI-Zugriff ist erforderlich.', authQuotaExceeded: 'Dein KI-Kontingent für diesen Zeitraum ist erreicht.',
+    authPlanRequired: 'Ein aktiver Tarif mit KI-Zugriff ist erforderlich — siehe „Tarife“.', authQuotaExceeded: 'Dein KI-Kontingent für diesen Zeitraum ist erreicht.',
     authUnavailable: 'Die Anmeldung ist vorübergehend nicht verfügbar.', authInvalidEmail: 'Gib eine gültige E-Mail-Adresse ein.',
     authInvalidCode: 'Gib den 6-stelligen Code ein.', authSending: 'Wird gesendet…', authChecking: 'Wird geprüft…',
     authAccountUnavailable: 'Dein Z Studio-Konto konnte nicht vorbereitet werden.', authAiUnavailable: 'Die KI ist vorübergehend nicht verfügbar.',
     authTimeout: 'Die KI hat zu lange für eine Antwort gebraucht — versuche es erneut.'
   },
   it: {
-    authSignIn: 'Accedi', authAccount: 'Account', authTitle: 'Accedi a Z Studio',
+    authSignIn: 'Accedi', authAccount: 'Account', authTitle: 'Accedi a Z Studio', authAccountTitle: 'Il tuo account Z Studio',
     authSubtitle: 'Usa la tua email per ricevere un codice di 6 cifre. L’accesso a Studio e all’IA richiede un piano attivo.',
     authEmailLabel: 'Email', authEmailPlaceholder: 'nome@esempio.it', authSendCode: 'Invia codice',
     authCodeLabel: 'Codice di 6 cifre', authCodePlaceholder: '000000', authVerify: 'Conferma codice',
     authChangeEmail: 'Usa un’altra email', authCodeSent: 'Codice inviato. Controlla la tua email.',
     authSignedIn: 'Accesso effettuato', authSignOut: 'Esci', authClose: 'Chiudi',
     authRequired: 'Accedi per usare l’IA.', authSessionExpired: 'La sessione è scaduta. Accedi di nuovo.',
-    authPlanRequired: 'È necessario un piano attivo con accesso all’IA.', authQuotaExceeded: 'Hai raggiunto la quota IA del periodo.',
+    authPlanRequired: 'È necessario un piano attivo con accesso all’IA — vedi «Piani».', authQuotaExceeded: 'Hai raggiunto la quota IA del periodo.',
     authUnavailable: 'L’autenticazione è temporaneamente non disponibile.', authInvalidEmail: 'Inserisci un indirizzo email valido.',
     authInvalidCode: 'Inserisci il codice di 6 cifre.', authSending: 'Invio…', authChecking: 'Verifica…',
     authAccountUnavailable: 'Non è stato possibile preparare il tuo account Z Studio.', authAiUnavailable: 'L’IA è temporaneamente non disponibile.',
@@ -11688,8 +11692,8 @@ function zstudioRenderAuthUi() {
   if (!zstudioAuthUi) return;
   const ui = zstudioAuthUi;
   ui.authButton.textContent = zstudioAuthSession ? zstudioAuthT('authAccount') : zstudioAuthT('authSignIn');
-  ui.title.textContent = zstudioAuthT('authTitle');
-  ui.subtitle.textContent = zstudioAuthT('authSubtitle');
+  ui.title.textContent = zstudioAuthSession ? zstudioAuthT('authAccountTitle') : zstudioAuthT('authTitle');
+  ui.subtitle.textContent = zstudioAuthSession ? '' : zstudioAuthT('authSubtitle');
   ui.close.setAttribute('aria-label', zstudioAuthT('authClose'));
   ui.emailLabel.textContent = zstudioAuthT('authEmailLabel');
   ui.email.placeholder = zstudioAuthT('authEmailPlaceholder');
@@ -11782,7 +11786,11 @@ async function zstudioGetAccessToken({ interactive = false } = {}) {
 function zstudioMapAiError(status, payload) {
   const code = payload?.code || '';
   if (status === 401 || code === 'AUTH_REQUIRED' || code === 'AUTH_INVALID') return code === 'AUTH_INVALID' ? zstudioAuthT('authSessionExpired') : zstudioAuthT('authRequired');
-  if (status === 403 || code === 'AI_ENTITLEMENT_REQUIRED') return zstudioAuthT('authPlanRequired');
+  if (status === 403 || code === 'AI_ENTITLEMENT_REQUIRED') {
+    // Aponta para os planos: abre o painel (planos reais ou, sem runtime comercial, a data de abertura).
+    try { window.ZStudioBilling?.open?.(); } catch (_error) { /* nunca bloqueia a mensagem */ }
+    return zstudioAuthT('authPlanRequired');
+  }
   if (code === 'AI_QUOTA_EXCEEDED') return zstudioAuthT('authQuotaExceeded');
   if (code === 'AI_QUOTA_UNAVAILABLE' || code === 'AI_METERING_UNAVAILABLE' || status >= 500) return zstudioAuthT('authAiUnavailable');
   return zstudioAuthT('authAiUnavailable');
@@ -12084,8 +12092,82 @@ else zstudioAuthBootstrap();
     de: { plans:'Tarife', title:'Z Studio', sub:'Wähle deinen Tarif. Die 3-tägige kostenlose Testphase gilt nur bei Berechtigung.', weekly:'Wöchentlich', monthly:'Monatlich', annual:'Jährlich', subscribe:'Abonnieren', restore:'Käufe wiederherstellen', manage:'Abo verwalten', close:'Schließen', working:'Wird verarbeitet…', restored:'Käufe wiederhergestellt.', done:'Abo aktualisiert.', unavailable:'Abonnements sind vorübergehend nicht verfügbar.', auth:'Melde dich an, um dein Abo zu verwalten.', trial:'3 Tage gratis bei Berechtigung' },
     it: { plans:'Piani', title:'Z Studio', sub:'Scegli il tuo piano. La prova gratuita di 3 giorni si applica solo se idoneo.', weekly:'Settimanale', monthly:'Mensile', annual:'Annuale', subscribe:'Abbonati', restore:'Ripristina acquisti', manage:'Gestisci abbonamento', close:'Chiudi', working:'Elaborazione…', restored:'Acquisti ripristinati.', done:'Abbonamento aggiornato.', unavailable:'Gli abbonamenti non sono temporaneamente disponibili.', auth:'Accedi per gestire il tuo abbonamento.', trial:'3 giorni gratis se idoneo' },
   });
+  // Data única de abertura das subscrições — usada no painel informativo quando
+  // o runtime comercial ainda não está configurado (ZSTUDIO_COMMERCIAL_BASE_URL vazio).
+  const SUBSCRIPTIONS_OPEN_DATE = '2026-12-01';
+  // Textos de conformidade das lojas (Apple App Review 3.1.2, Google Play
+  // Subscriptions policy): preço + período, renovação automática, conversão do
+  // teste gratuito e como gerir/cancelar — adaptados à superfície (iOS/Android/Web).
+  const EXTRA = Object.freeze({
+    pt: { perWeek:'/ semana', perMonth:'/ mês', perYear:'/ ano',
+      comingTitle:'As subscrições Z Studio abrem a {date}', comingSub:'Estes serão os preços a partir da abertura. Até lá, já pode criar e exportar os seus visuais.',
+      trialInfo:'{days} dias de teste gratuito se for elegível',
+      chargeApple:'O pagamento é cobrado na sua conta Apple quando confirma a compra.', chargeGoogle:'O pagamento é cobrado na sua conta Google Play quando confirma a compra.',
+      renewStore:'A subscrição renova-se automaticamente ao mesmo preço e pela mesma duração, salvo se for cancelada pelo menos 24 horas antes do fim do período em curso.',
+      renewWeb:'A subscrição renova-se automaticamente ao mesmo preço e pela mesma duração até a cancelar. Pode cancelar a qualquer momento antes do fim do período em curso; o acesso mantém-se até ao fim do período pago.',
+      trialConvert:'O teste gratuito de {days} dias, se for elegível, converte-se numa subscrição paga no fim do teste, salvo se a cancelar antes do fim.',
+      manageApple:'Gira ou cancele a subscrição nas definições da sua conta App Store.', manageGoogle:'Gira ou cancele a subscrição no Google Play > Pagamentos e subscrições > Subscrições.', manageWeb:'Gira ou cancele a subscrição em «{manage}».' },
+    en: { perWeek:'/ week', perMonth:'/ month', perYear:'/ year',
+      comingTitle:'Z Studio subscriptions open on {date}', comingSub:'These prices will apply from opening day. Until then, you can already create and export your visuals.',
+      trialInfo:'{days}-day free trial if eligible',
+      chargeApple:'Payment is charged to your Apple Account when you confirm the purchase.', chargeGoogle:'Payment is charged to your Google Play account when you confirm the purchase.',
+      renewStore:'The subscription renews automatically at the same price and for the same period unless it is cancelled at least 24 hours before the end of the current period.',
+      renewWeb:'The subscription renews automatically at the same price and for the same period until you cancel it. You can cancel at any time before the end of the current period; access continues until the end of the paid period.',
+      trialConvert:'The {days}-day free trial, if you are eligible, converts to a paid subscription when it ends unless you cancel before the trial ends.',
+      manageApple:'Manage or cancel your subscription in your App Store account settings.', manageGoogle:'Manage or cancel your subscription in Google Play > Payments & subscriptions > Subscriptions.', manageWeb:'Manage or cancel your subscription with “{manage}”.' },
+    fr: { perWeek:'/ semaine', perMonth:'/ mois', perYear:'/ an',
+      comingTitle:'Les abonnements Z Studio ouvrent le {date}', comingSub:'Ces prix s’appliqueront dès l’ouverture. En attendant, vous pouvez déjà créer et exporter vos visuels.',
+      trialInfo:'{days} jours d’essai gratuit si vous êtes éligible',
+      chargeApple:'Le paiement est débité sur votre compte Apple lors de la confirmation de l’achat.', chargeGoogle:'Le paiement est débité sur votre compte Google Play lors de la confirmation de l’achat.',
+      renewStore:'L’abonnement se renouvelle automatiquement au même prix et pour la même durée, sauf s’il est annulé au moins 24 heures avant la fin de la période en cours.',
+      renewWeb:'L’abonnement se renouvelle automatiquement au même prix et pour la même durée jusqu’à ce que vous l’annuliez. Vous pouvez l’annuler à tout moment avant la fin de la période en cours ; l’accès reste actif jusqu’à la fin de la période payée.',
+      trialConvert:'L’essai gratuit de {days} jours, si vous y êtes éligible, se transforme en abonnement payant à son terme, sauf si vous l’annulez avant la fin de l’essai.',
+      manageApple:'Gérez ou annulez votre abonnement dans les réglages de votre compte App Store.', manageGoogle:'Gérez ou annulez votre abonnement dans Google Play > Paiements et abonnements > Abonnements.', manageWeb:'Gérez ou annulez votre abonnement avec « {manage} ».' },
+    es: { perWeek:'/ semana', perMonth:'/ mes', perYear:'/ año',
+      comingTitle:'Las suscripciones de Z Studio abren el {date}', comingSub:'Estos precios se aplicarán desde la apertura. Mientras tanto, ya puedes crear y exportar tus diseños.',
+      trialInfo:'{days} días de prueba gratuita si eres elegible',
+      chargeApple:'El pago se carga en tu cuenta de Apple al confirmar la compra.', chargeGoogle:'El pago se carga en tu cuenta de Google Play al confirmar la compra.',
+      renewStore:'La suscripción se renueva automáticamente al mismo precio y por el mismo periodo, salvo que se cancele al menos 24 horas antes del final del periodo en curso.',
+      renewWeb:'La suscripción se renueva automáticamente al mismo precio y por el mismo periodo hasta que la canceles. Puedes cancelarla en cualquier momento antes del final del periodo en curso; el acceso se mantiene hasta el final del periodo pagado.',
+      trialConvert:'La prueba gratuita de {days} días, si eres elegible, se convierte en una suscripción de pago al terminar, salvo que la canceles antes del final de la prueba.',
+      manageApple:'Gestiona o cancela tu suscripción en los ajustes de tu cuenta del App Store.', manageGoogle:'Gestiona o cancela tu suscripción en Google Play > Pagos y suscripciones > Suscripciones.', manageWeb:'Gestiona o cancela tu suscripción con «{manage}».' },
+    de: { perWeek:'/ Woche', perMonth:'/ Monat', perYear:'/ Jahr',
+      comingTitle:'Z Studio-Abonnements starten am {date}', comingSub:'Diese Preise gelten ab dem Start. Bis dahin können Sie Ihre Visuals bereits erstellen und exportieren.',
+      trialInfo:'{days} Tage kostenlos testen bei Berechtigung',
+      chargeApple:'Die Zahlung wird bei Bestätigung des Kaufs Ihrem Apple Account belastet.', chargeGoogle:'Die Zahlung wird bei Bestätigung des Kaufs Ihrem Google Play-Konto belastet.',
+      renewStore:'Das Abonnement verlängert sich automatisch zum gleichen Preis und für den gleichen Zeitraum, sofern es nicht mindestens 24 Stunden vor Ende des laufenden Zeitraums gekündigt wird.',
+      renewWeb:'Das Abonnement verlängert sich automatisch zum gleichen Preis und für den gleichen Zeitraum, bis Sie es kündigen. Sie können jederzeit vor Ende des laufenden Zeitraums kündigen; der Zugang bleibt bis zum Ende des bezahlten Zeitraums bestehen.',
+      trialConvert:'Die {days}-tägige kostenlose Testphase geht, sofern Sie berechtigt sind, an ihrem Ende in ein kostenpflichtiges Abonnement über, wenn Sie nicht vorher kündigen.',
+      manageApple:'Verwalten oder kündigen Sie Ihr Abonnement in den Einstellungen Ihres App Store-Accounts.', manageGoogle:'Verwalten oder kündigen Sie Ihr Abonnement in Google Play > Zahlungen und Abos > Abos.', manageWeb:'Verwalten oder kündigen Sie Ihr Abonnement über „{manage}“.' },
+    it: { perWeek:'/ settimana', perMonth:'/ mese', perYear:'/ anno',
+      comingTitle:'Gli abbonamenti Z Studio aprono il {date}', comingSub:'Questi prezzi saranno validi dall’apertura. Nel frattempo puoi già creare ed esportare i tuoi contenuti.',
+      trialInfo:'{days} giorni di prova gratuita se idoneo',
+      chargeApple:'Il pagamento viene addebitato sul tuo account Apple alla conferma dell’acquisto.', chargeGoogle:'Il pagamento viene addebitato sul tuo account Google Play alla conferma dell’acquisto.',
+      renewStore:'L’abbonamento si rinnova automaticamente allo stesso prezzo e per la stessa durata, salvo disdetta almeno 24 ore prima della fine del periodo in corso.',
+      renewWeb:'L’abbonamento si rinnova automaticamente allo stesso prezzo e per la stessa durata finché non lo disdici. Puoi disdirlo in qualsiasi momento prima della fine del periodo in corso; l’accesso resta attivo fino alla fine del periodo pagato.',
+      trialConvert:'La prova gratuita di {days} giorni, se idoneo, si trasforma in un abbonamento a pagamento alla scadenza, salvo disdetta prima della fine della prova.',
+      manageApple:'Gestisci o disdici l’abbonamento nelle impostazioni del tuo account App Store.', manageGoogle:'Gestisci o disdici l’abbonamento in Google Play > Pagamenti e abbonamenti > Abbonamenti.', manageWeb:'Gestisci o disdici l’abbonamento con «{manage}».' },
+  });
   function lang() { const value = String((typeof state === 'object' && state?.lang) || document.documentElement.lang || 'pt').toLowerCase().slice(0,2); return STRINGS[value] ? value : 'en'; }
-  function t(key) { return STRINGS[lang()][key] || STRINGS.en[key] || key; }
+  function t(key, vars) { const l = lang(); const raw = STRINGS[l][key] || EXTRA[l][key] || STRINGS.en[key] || EXTRA.en[key] || key; return String(raw).replace(/\{(\w+)\}/g, (m, k) => (vars && k in vars ? String(vars[k]) : m)); }
+  const PERIOD_KEYS = Object.freeze({ weekly: 'perWeek', monthly: 'perMonth', annual: 'perYear' });
+  function trialDays() { const d = Number(config()?.trialDays); return Number.isInteger(d) && d > 0 ? d : 3; }
+  function openDateLabel() {
+    const [y, m, d] = SUBSCRIPTIONS_OPEN_DATE.split('-').map(Number);
+    let label;
+    try { label = new Intl.DateTimeFormat(lang(), { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(y, m - 1, d))); }
+    catch { label = SUBSCRIPTIONS_OPEN_DATE; }
+    return lang() === 'fr' && d === 1 ? label.replace(/^1 /, '1er ') : label;
+  }
+  function renewalNotice() {
+    const vars = { days: trialDays(), manage: t('manage') };
+    const p = platform();
+    const parts = p === 'ios' ? ['chargeApple', 'renewStore', 'trialConvert', 'manageApple']
+      // Google Play: o cancelamento vale até ao fim do período (sem a regra Apple das 24 h).
+      : p === 'android' ? ['chargeGoogle', 'renewWeb', 'trialConvert', 'manageGoogle']
+      : ['renewWeb', 'trialConvert', 'manageWeb'];
+    return parts.map((k) => t(k, vars)).join(' ');
+  }
   function config() { return global.ZStudioCommercialConfig || null; }
   function baseUrl() { return String(config()?.baseUrl || global.ZSTUDIO_COMMERCIAL_BASE_URL || '').replace(/\/+$/, ''); }
   function enabled() { return config()?.enabled === true && /^https:\/\//.test(baseUrl()); }
@@ -12093,18 +12175,58 @@ else zstudioAuthBootstrap();
   function targetPrice(planCode) { const minor = Number(config()?.plans?.[planCode]?.priceMinor); const currency = String(config()?.currency || 'EUR'); if (!Number.isInteger(minor) || minor <= 0) return ''; try { return new Intl.NumberFormat(lang(), {style:'currency',currency}).format(minor / 100); } catch { return `${(minor/100).toFixed(2)} ${currency}`; } }
   function setStatus(message, isError=false) { if (!statusEl) return; statusEl.textContent = message || ''; statusEl.style.color = isError ? '#D98980' : 'var(--text2, #B0B4B8)'; }
   function create(tag, props={}) { const el = document.createElement(tag); Object.entries(props).forEach(([key,value]) => { if (key === 'text') el.textContent = value; else if (key === 'className') el.className = value; else el.setAttribute(key, value); }); return el; }
-  function injectStyle() { if (document.getElementById('zstudioBillingStyle')) return; const style = create('style',{id:'zstudioBillingStyle'}); style.textContent = `.zsb-trigger{margin-left:8px;padding:7px 12px;border:1px solid var(--border,#454A4F);background:transparent;color:var(--text,#F2F2EF);font:500 .74rem 'DM Sans',sans-serif;letter-spacing:.06em;border-radius:3px;cursor:pointer}.zsb-overlay{position:fixed;inset:0;z-index:1400;background:rgba(5,6,7,.86);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px}.zsb-overlay[hidden]{display:none}.zsb-card{width:min(820px,100%);max-height:min(760px,92vh);overflow:auto;background:var(--surface,#111315);border:1px solid var(--border,#454A4F);border-radius:8px;padding:24px;box-shadow:0 32px 90px rgba(0,0,0,.6)}.zsb-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.zsb-title{font:500 1.75rem 'Cormorant Garamond',serif}.zsb-sub{margin:6px 0 20px;color:var(--text2,#B0B4B8);font-size:.78rem;line-height:1.55;max-width:620px}.zsb-close{border:0;background:transparent;color:var(--text2,#B0B4B8);font-size:1.3rem;cursor:pointer}.zsb-plans{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.zsb-plan{border:1px solid var(--border,#454A4F);border-radius:6px;padding:18px;background:var(--surface-2,#181A1D)}.zsb-plan-name{font-size:.78rem;text-transform:uppercase;letter-spacing:.14em;color:var(--text2,#B0B4B8)}.zsb-price{font:500 1.65rem 'Cormorant Garamond',serif;margin:8px 0}.zsb-trial{min-height:32px;color:var(--text2,#B0B4B8);font-size:.7rem;line-height:1.4}.zsb-buy{width:100%;margin-top:14px;padding:10px;border:1px solid var(--text,#F2F2EF);background:var(--text,#F2F2EF);color:#0A0A0A;border-radius:3px;cursor:pointer;font:500 .75rem 'DM Sans',sans-serif}.zsb-buy:disabled{opacity:.5;cursor:not-allowed}.zsb-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.zsb-action{padding:8px 12px;border:1px solid var(--border,#454A4F);background:transparent;color:var(--text,#F2F2EF);border-radius:3px;cursor:pointer;font-size:.72rem}.zsb-status{min-height:1.3em;margin-top:14px;font-size:.72rem}.zsb-legal{margin-top:10px;font-size:.68rem;color:var(--text3,#8A8F94)}.zsb-legal a{color:inherit}@media(max-width:720px){.zsb-plans{grid-template-columns:1fr}.zsb-card{padding:18px}.zsb-trigger{padding:7px 9px}}`; document.head.appendChild(style); }
+  function injectStyle() { if (document.getElementById('zstudioBillingStyle')) return; const style = create('style',{id:'zstudioBillingStyle'}); style.textContent = `.zsb-trigger{margin-left:8px;padding:7px 12px;border:1px solid var(--border,#454A4F);background:transparent;color:var(--text,#F2F2EF);font:500 .74rem 'DM Sans',sans-serif;letter-spacing:.06em;border-radius:3px;cursor:pointer}.zsb-overlay{position:fixed;inset:0;z-index:1400;background:rgba(5,6,7,.86);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px}.zsb-overlay[hidden]{display:none}.zsb-card{width:min(820px,100%);max-height:min(760px,92vh);overflow:auto;background:var(--surface,#111315);border:1px solid var(--border,#454A4F);border-radius:8px;padding:24px;box-shadow:0 32px 90px rgba(0,0,0,.6)}.zsb-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.zsb-title{font:500 1.75rem 'Cormorant Garamond',serif}.zsb-sub{margin:6px 0 20px;color:var(--text2,#B0B4B8);font-size:.78rem;line-height:1.55;max-width:620px}.zsb-close{border:0;background:transparent;color:var(--text2,#B0B4B8);font-size:1.3rem;cursor:pointer}.zsb-plans{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.zsb-plan{border:1px solid var(--border,#454A4F);border-radius:6px;padding:18px;background:var(--surface-2,#181A1D)}.zsb-plan-name{font-size:.78rem;text-transform:uppercase;letter-spacing:.14em;color:var(--text2,#B0B4B8)}.zsb-price{font:500 1.65rem 'Cormorant Garamond',serif;margin:8px 0}.zsb-trial{min-height:32px;color:var(--text2,#B0B4B8);font-size:.7rem;line-height:1.4}.zsb-buy{width:100%;margin-top:14px;padding:10px;border:1px solid var(--text,#F2F2EF);background:var(--text,#F2F2EF);color:#0A0A0A;border-radius:3px;cursor:pointer;font:500 .75rem 'DM Sans',sans-serif}.zsb-buy:disabled{opacity:.5;cursor:not-allowed}.zsb-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.zsb-action{padding:8px 12px;border:1px solid var(--border,#454A4F);background:transparent;color:var(--text,#F2F2EF);border-radius:3px;cursor:pointer;font-size:.72rem}.zsb-status{min-height:1.3em;margin-top:14px;font-size:.72rem}.zsb-period{font:400 .8rem 'DM Sans',sans-serif;color:var(--text2,#B0B4B8)}.zsb-renewal{margin:16px 0 0;font-size:.68rem;line-height:1.55;color:var(--text2,#B0B4B8)}.zsb-legal{margin-top:10px;font-size:.68rem;color:var(--text3,#8A8F94)}.zsb-legal a{color:inherit}@media(max-width:720px){.zsb-plans{grid-template-columns:1fr}.zsb-card{padding:18px}.zsb-trigger{padding:7px 9px}}`; document.head.appendChild(style); }
   async function accessToken() { const token = await global.ZStudioAuth?.getAccessToken?.({interactive:true}); if (!token) throw Object.assign(new Error('AUTH_REQUIRED'),{code:'AUTH_REQUIRED'}); return token; }
   async function webPost(path, data) { const token = await accessToken(); let response; try { response = await fetch(baseUrl()+path,{method:'POST',headers:{Authorization:'Bearer '+token,Accept:'application/json','Content-Type':'application/json'},body:JSON.stringify(data)}); } catch (cause) { throw Object.assign(new Error('WEB_COMMERCIAL_UNAVAILABLE'),{code:'WEB_COMMERCIAL_UNAVAILABLE',cause}); } const payload = await response.json().catch(()=>null); if (!response.ok) throw Object.assign(new Error(payload?.code || 'WEB_COMMERCIAL_FAILED'),{code:payload?.code || 'WEB_COMMERCIAL_FAILED',httpStatus:response.status}); return payload; }
   async function waitFor(name, maxMs=2500) { const start = Date.now(); while (Date.now() - start < maxMs) { if (global[name]) return global[name]; await new Promise((resolve)=>setTimeout(resolve,100)); } return global[name] || null; }
   function checkoutUrl(value) { const raw = String(value || ''); let url; try { url = new URL(raw); } catch { throw new Error('WEB_CHECKOUT_URL_INVALID'); } if (url.protocol !== 'https:' || url.hostname !== 'checkout.stripe.com') throw new Error('WEB_CHECKOUT_URL_INVALID'); return url.href; }
-  async function startPlan(planCode) { if (!PLAN_SET.has(planCode)) throw new Error('PLAN_INVALID'); if (busy) return; busy = true; setStatus(t('working')); document.querySelectorAll('.zsb-buy').forEach((b)=>{b.disabled=true;}); try { const p = platform(); if (p === 'ios') { const bridge = await waitFor('ZStudioApple'); if (!bridge?.isAvailable?.()) throw new Error('APPLE_NATIVE_UNAVAILABLE'); await bridge.startPurchase(planCode); setStatus(t('done')); } else if (p === 'android') { const bridge = await waitFor('ZStudioGooglePlay'); if (!bridge?.isAvailable?.()) throw new Error('GOOGLE_PLAY_NATIVE_UNAVAILABLE'); await bridge.startPurchase(planCode); setStatus(t('done')); } else { const result = await webPost('/api/web/checkout',{plan_code:planCode}); global.location.assign(checkoutUrl(result?.checkout_url)); } } catch (cause) { setStatus(cause?.code === 'AUTH_REQUIRED' ? t('auth') : t('unavailable'), true); throw cause; } finally { busy = false; document.querySelectorAll('.zsb-buy').forEach((b)=>{b.disabled=false;}); } }
+  async function startPlan(planCode) { if (!PLAN_SET.has(planCode)) throw new Error('PLAN_INVALID'); if (!enabled()) throw Object.assign(new Error('COMMERCIAL_RUNTIME_DISABLED'),{code:'COMMERCIAL_RUNTIME_DISABLED'}); if (busy) return; busy = true; setStatus(t('working')); document.querySelectorAll('.zsb-buy').forEach((b)=>{b.disabled=true;}); try { const p = platform(); if (p === 'ios') { const bridge = await waitFor('ZStudioApple'); if (!bridge?.isAvailable?.()) throw new Error('APPLE_NATIVE_UNAVAILABLE'); await bridge.startPurchase(planCode); setStatus(t('done')); } else if (p === 'android') { const bridge = await waitFor('ZStudioGooglePlay'); if (!bridge?.isAvailable?.()) throw new Error('GOOGLE_PLAY_NATIVE_UNAVAILABLE'); await bridge.startPurchase(planCode); setStatus(t('done')); } else { const result = await webPost('/api/web/checkout',{plan_code:planCode}); global.location.assign(checkoutUrl(result?.checkout_url)); } } catch (cause) { setStatus(cause?.code === 'AUTH_REQUIRED' ? t('auth') : t('unavailable'), true); throw cause; } finally { busy = false; document.querySelectorAll('.zsb-buy').forEach((b)=>{b.disabled=false;}); } }
   async function restore() { if (busy) return; busy=true; setStatus(t('working')); try { const p=platform(); if (p==='ios') { const bridge=await waitFor('ZStudioApple'); if (!bridge?.isAvailable?.()) throw new Error('APPLE_NATIVE_UNAVAILABLE'); await bridge.restoreCurrentPurchases({sync:true,interactive:true}); } else if (p==='android') { const bridge=await waitFor('ZStudioGooglePlay'); if (!bridge?.isAvailable?.()) throw new Error('GOOGLE_PLAY_NATIVE_UNAVAILABLE'); await accessToken(); await bridge.restoreCurrentPurchases(); } else return; setStatus(t('restored')); } catch (cause) { setStatus(cause?.code==='AUTH_REQUIRED'?t('auth'):t('unavailable'),true); throw cause; } finally { busy=false; } }
   async function manage() { if (busy) return; busy=true; setStatus(t('working')); try { if (platform()!=='web') return; const result=await webPost('/api/web/portal',{}); const raw=String(result?.portal_url||''); const url=new URL(raw); if (url.protocol!=='https:' || !/(^|\.)stripe\.com$/.test(url.hostname)) throw new Error('WEB_PORTAL_URL_INVALID'); global.location.assign(url.href); } catch (cause) { setStatus(cause?.code==='AUTH_REQUIRED'?t('auth'):t('unavailable'),true); throw cause; } finally { busy=false; } }
   async function refreshNativePrices() { try { const p=platform(); if (p==='ios') { const bridge=await waitFor('ZStudioApple',800); if (!bridge?.isAvailable?.()) return; const products=await bridge.loadProducts(); const map=new Map((products?.products||[]).map((x)=>[x.productId,x.displayPrice])); for (const plan of PLAN_CODES) { const id=config()?.plans?.[plan]?.appleProductId; if (map.get(id) && priceEls.get(plan)) priceEls.get(plan).textContent=map.get(id); } } else if (p==='android') { const bridge=await waitFor('ZStudioGooglePlay',800); if (!bridge?.isAvailable?.()) return; const result=await bridge.loadProducts(); const offers=result?.products?.[0]?.offers||[]; for (const plan of PLAN_CODES) { const offer=offers.find((x)=>x.basePlanId===plan && x.offerId==null) || offers.find((x)=>x.basePlanId===plan); const phases=offer?.pricingPhases||[]; const paid=[...phases].reverse().find((x)=>Number(x.priceAmountMicros)>0) || phases[phases.length-1]; if (paid?.formattedPrice && priceEls.get(plan)) priceEls.get(plan).textContent=paid.formattedPrice; } } } catch {} }
-  function open() { if (!enabled()) return false; if (overlay && overlay.dataset.lang !== lang()) { overlay.remove(); overlay = null; } if (overlay) { overlay.hidden=false; refreshNativePrices(); return true; } injectStyle(); priceEls=new Map(); overlay=create('div',{className:'zsb-overlay'}); overlay.dataset.lang=lang(); const card=create('div',{className:'zsb-card'}); const head=create('div',{className:'zsb-head'}); const titleWrap=create('div'); titleWrap.append(create('div',{className:'zsb-title',text:t('title')}),create('div',{className:'zsb-sub',text:t('sub')})); const close=create('button',{className:'zsb-close','aria-label':t('close'),text:'×'}); close.type='button'; close.addEventListener('click',()=>{overlay.hidden=true;}); head.append(titleWrap,close); card.appendChild(head); const grid=create('div',{className:'zsb-plans'}); for (const plan of PLAN_CODES) { const box=create('div',{className:'zsb-plan'}); const name=create('div',{className:'zsb-plan-name',text:t(plan)}); const price=create('div',{className:'zsb-price',text:targetPrice(plan)}); priceEls.set(plan,price); const trial=create('div',{className:'zsb-trial',text:t('trial')}); const button=create('button',{className:'zsb-buy',text:t('subscribe')}); button.type='button'; button.dataset.plan=plan; button.addEventListener('click',()=>{startPlan(plan).catch(()=>{});}); box.append(name,price,trial,button); grid.appendChild(box); } card.appendChild(grid); const actions=create('div',{className:'zsb-actions'}); if (platform()==='ios' || platform()==='android') { const restoreBtn=create('button',{className:'zsb-action',text:t('restore')}); restoreBtn.type='button'; restoreBtn.addEventListener('click',()=>{restore().catch(()=>{});}); actions.appendChild(restoreBtn); } if (platform()==='web') { const manageBtn=create('button',{className:'zsb-action',text:t('manage')}); manageBtn.type='button'; manageBtn.addEventListener('click',()=>{manage().catch(()=>{});}); actions.appendChild(manageBtn); } card.appendChild(actions); statusEl=create('div',{className:'zsb-status'}); card.appendChild(statusEl); const legal=create('div',{className:'zsb-legal'}); for (const id of ['footerTermsLink','footerPrivacyLink']) { const src=document.getElementById(id); if (!src?.href) continue; const a=create('a',{href:src.href,target:'_blank',rel:'noopener',text:(src.textContent||'').trim()}); if (legal.childNodes.length) legal.append(' · '); legal.appendChild(a); } if (legal.childNodes.length) card.appendChild(legal); overlay.appendChild(card); overlay.addEventListener('click',(e)=>{if(e.target===overlay) overlay.hidden=true;}); document.body.appendChild(overlay); refreshNativePrices(); return true; }
-  function mount() { if (!enabled() || document.querySelector('[data-zstudio-billing-trigger]')) return false; injectStyle(); const button=create('button',{className:'zsb-trigger','data-zstudio-billing-trigger':'v1',text:t('plans')}); button.type='button'; button.addEventListener('click',open); document.getElementById('langSwitch')?.addEventListener('change',()=>setTimeout(()=>{button.textContent=t('plans');},0)); const header=document.querySelector('header'); if (header) header.appendChild(button); else { button.style.position='fixed'; button.style.right='16px'; button.style.bottom='16px'; button.style.zIndex='1300'; document.body.appendChild(button); } return true; }
-  global.ZStudioBilling=Object.freeze({enabled,platform,open,mount,startPlan,restore,manage});
+  function legalLinks() { const legal=create('div',{className:'zsb-legal'}); for (const id of ['footerTermsLink','footerPrivacyLink']) { const src=document.getElementById(id); if (!src?.href) continue; const a=create('a',{href:src.href,target:'_blank',rel:'noopener',text:(src.textContent||'').trim()}); if (legal.childNodes.length) legal.append(' · '); legal.appendChild(a); } return legal; }
+  function priceRow(plan) { const row=create('div',{className:'zsb-price'}); const amount=create('span',{text:targetPrice(plan)}); priceEls.set(plan,amount); row.append(amount,' ',create('span',{className:'zsb-period',text:t(PERIOD_KEYS[plan])})); return row; }
+  function hide() { if (overlay) overlay.hidden = true; }
+  // Quando o runtime comercial não está configurado, "Planos" abre um painel
+  // informativo (data de abertura + preços) sem nenhum botão de compra: fail-closed.
+  function open() {
+    const live = enabled();
+    if (overlay && (overlay.dataset.lang !== lang() || overlay.dataset.live !== String(live))) { overlay.remove(); overlay = null; }
+    if (overlay) { overlay.hidden=false; if (live) refreshNativePrices(); return live; }
+    injectStyle(); priceEls=new Map();
+    overlay=create('div',{className:'zsb-overlay'}); overlay.dataset.lang=lang(); overlay.dataset.live=String(live);
+    overlay.setAttribute('role','dialog'); overlay.setAttribute('aria-modal','true');
+    const card=create('div',{className:'zsb-card'}); const head=create('div',{className:'zsb-head'}); const titleWrap=create('div');
+    if (live) titleWrap.append(create('div',{className:'zsb-title',text:t('title')}),create('div',{className:'zsb-sub',text:t('sub')}));
+    else titleWrap.append(create('div',{className:'zsb-title',text:t('comingTitle',{date:openDateLabel()})}),create('div',{className:'zsb-sub',text:t('comingSub')}));
+    const close=create('button',{className:'zsb-close','aria-label':t('close'),text:'×'}); close.type='button'; close.addEventListener('click',hide);
+    head.append(titleWrap,close); card.appendChild(head);
+    const grid=create('div',{className:'zsb-plans'});
+    for (const plan of PLAN_CODES) {
+      const box=create('div',{className:'zsb-plan'});
+      box.append(create('div',{className:'zsb-plan-name',text:t(plan)}),priceRow(plan),create('div',{className:'zsb-trial',text:t('trialInfo',{days:trialDays()})}));
+      if (live) { const button=create('button',{className:'zsb-buy',text:t('subscribe')}); button.type='button'; button.dataset.plan=plan; button.addEventListener('click',()=>{startPlan(plan).catch(()=>{});}); box.appendChild(button); }
+      grid.appendChild(box);
+    }
+    card.appendChild(grid);
+    if (live) {
+      card.appendChild(create('p',{className:'zsb-renewal',text:renewalNotice()}));
+      const actions=create('div',{className:'zsb-actions'});
+      if (platform()==='ios' || platform()==='android') { const restoreBtn=create('button',{className:'zsb-action',text:t('restore')}); restoreBtn.type='button'; restoreBtn.addEventListener('click',()=>{restore().catch(()=>{});}); actions.appendChild(restoreBtn); }
+      if (platform()==='web') { const manageBtn=create('button',{className:'zsb-action',text:t('manage')}); manageBtn.type='button'; manageBtn.addEventListener('click',()=>{manage().catch(()=>{});}); actions.appendChild(manageBtn); }
+      if (actions.childNodes.length) card.appendChild(actions);
+      statusEl=create('div',{className:'zsb-status'}); card.appendChild(statusEl);
+    }
+    const legal=legalLinks(); if (legal.childNodes.length) card.appendChild(legal);
+    overlay.appendChild(card); overlay.addEventListener('click',(e)=>{if(e.target===overlay) hide();});
+    document.body.appendChild(overlay); if (live) refreshNativePrices(); return live;
+  }
+  function mount() { if (document.querySelector('[data-zstudio-billing-trigger]')) return false; injectStyle(); const button=create('button',{className:'zsb-trigger','data-zstudio-billing-trigger':'v1',text:t('plans')}); button.type='button'; button.addEventListener('click',open); document.getElementById('langSwitch')?.addEventListener('change',()=>setTimeout(()=>{button.textContent=t('plans');},0)); document.addEventListener('keydown',(e)=>{ if (e.key==='Escape' && overlay && !overlay.hidden) hide(); }); const header=document.querySelector('header'); const narrow=global.matchMedia?.('(max-width: 620px)');
+    // Ecrã largo: junto aos controlos do cabeçalho (antes de Entrar). Telemóvel (≤620px,
+    // cabeçalho mobile em grelha): linha própria no fim do cabeçalho.
+    const place=()=>{ const langSwitch=document.getElementById('langSwitch'); if (langSwitch?.parentElement && !narrow?.matches) { button.className='btn btn-line zsb-trigger'; langSwitch.parentElement.insertBefore(button, document.getElementById('zstudioAuthButton') || langSwitch); } else if (header) { button.className='zsb-trigger'; header.appendChild(button); } };
+    if (header) { place(); narrow?.addEventListener?.('change',place); setTimeout(place,0); } else { button.style.position='fixed'; button.style.right='16px'; button.style.bottom='16px'; button.style.zIndex='1300'; document.body.appendChild(button); } return true; }
+  global.ZStudioBilling=Object.freeze({enabled,platform,open,close:hide,mount,startPlan,restore,manage,openDate:SUBSCRIPTIONS_OPEN_DATE});
   if (document.readyState==='loading') document.addEventListener('DOMContentLoaded',mount,{once:true}); else mount();
 })(window);
 

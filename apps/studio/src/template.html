@@ -1097,14 +1097,14 @@ html[data-zstudio-app-theme="light"] .zs-welcome-cta { color:#FFFFFF; background
         <label class="check"><input type="checkbox" id="brandWatermark" checked onchange="onBrandChange('showWatermark', this.checked)"> <span data-i18n="brandWatermarkLabel">Mostrar logótipo / marca de água nas imagens</span></label>
         <label class="f" style="margin-top:12px;" data-i18n="brandLangsLabel">Idiomas ativos</label>
         <div class="seg" id="langsSeg">
-          <button data-l="pt" class="active" onclick="toggleLangActive('pt')">PT</button>
+          <button data-l="pt" onclick="toggleLangActive('pt')">PT</button>
           <button data-l="en" class="active" onclick="toggleLangActive('en')">EN</button>
           <button data-l="fr" onclick="toggleLangActive('fr')">FR</button>
           <button data-l="es" onclick="toggleLangActive('es')">ES</button>
           <button data-l="de" onclick="toggleLangActive('de')">DE</button>
           <button data-l="it" onclick="toggleLangActive('it')">IT</button>
         </div>
-        <div class="hint" data-i18n="brandLangsHint">PT está sempre ativo. Ativa as línguas que precisas — só essas aparecem no seletor do topo. A legenda com IA escreve na língua escolhida.</div>
+        <div class="hint" data-i18n="brandLangsHint">Ativa as línguas em que queres as legendas. «Traduzir para todos os idiomas» gera uma legenda em cada língua ativa (e só nessas). A língua da interface escolhe-se no seletor do topo.</div>
         <label class="f" style="margin-top:12px;" for="brandKitSelect" data-i18n="brandKitsLabel">Kits de marca guardados</label>
         <select id="brandKitSelect" onchange="applyBrandKit(this.value)"><option value="" data-i18n="brandKitNone">— nenhum —</option></select>
         <div style="display:flex;gap:6px;margin-top:6px;">

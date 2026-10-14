@@ -73,7 +73,7 @@ async function loadDraftIfAny() {
     const meta = await idbGet('meta');
     if (!meta) return;
     if (meta.brand) {
-      Object.assign(state.brand, meta.brand, { langs: new Set(meta.brand.langs && meta.brand.langs.length ? meta.brand.langs : ['pt', 'en']) });
+      Object.assign(state.brand, meta.brand, { langs: new Set(meta.brand.langs && meta.brand.langs.length ? meta.brand.langs : [state.lang]) });
       document.getElementById('brandName').value = state.brand.name || '';
       document.getElementById('brandSite').value = state.brand.site || '';
       document.getElementById('brandSub').value = state.brand.sub || '';
@@ -209,7 +209,7 @@ async function applyBrandKit(name) {
   if (!name) return;
   const kits = (await idbGet('kits').catch(() => null)) || {};
   const k = kits[name]; if (!k) return;
-  Object.assign(state.brand, k, { langs: new Set(k.langs && k.langs.length ? k.langs : ['pt', 'en']) });
+  Object.assign(state.brand, k, { langs: new Set(k.langs && k.langs.length ? k.langs : [state.lang]) });
   document.getElementById('brandName').value = state.brand.name || '';
   document.getElementById('brandSite').value = state.brand.site || '';
   document.getElementById('brandSub').value = state.brand.sub || '';
@@ -3150,7 +3150,9 @@ async function aiCaption() {
 // Gera a legenda nos vários idiomas ativos de uma só vez, mostrando cada uma num
 // painel próprio para copiar — sem substituir a legenda principal.
 async function aiCaptionAllLangs() {
-  const langs = ['pt', ...[...state.brand.langs].filter(l => l !== 'pt')];
+  // Só as línguas ativadas pela pessoa (sem PT obrigatório) — a língua atual primeiro.
+  const active = [...state.brand.langs].filter(l => SUPPORTED_UI_LANGS.includes(l));
+  const langs = active.length ? [...new Set([state.lang, ...active])].filter(l => active.includes(l)) : [state.lang];
   const btn = document.getElementById('btnAICaptionAll');
   const old = btn.textContent; btn.disabled = true;
   const results = {};
@@ -3394,7 +3396,7 @@ async function runBulkGenerate() {
       await drawListing(octx, W, H);
       const b = await canvasBlob(off);
       if (!b) { console.warn('Falhou: ' + entry.label + ' (imagem sem CORS?)'); continue; }
-      const name = 'my-studio-massa-' + slugify(d.title || entry.label) + '.png';
+      const name = 'z-studio-bulk-' + slugify(d.title || entry.label) + '.png';
       if (zip) zip.file(name, b);
       else { saveBlob(b, name); await new Promise(r => setTimeout(r, 400)); }
       ok++;
@@ -3402,7 +3404,7 @@ async function runBulkGenerate() {
     if (zip && ok) {
       status.textContent = uiT('compressing');
       const zb = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
-      saveBlob(zb, 'my-studio-producao-massa-' + ok + '.zip');
+      saveBlob(zb, 'z-studio-bulk-' + ok + '.zip');
     }
     status.textContent = uiF('bulkDone', { ok, n: ids.length }) + (zip ? uiT('bulkDoneZip') : '.');
   } catch (e) {
@@ -3677,7 +3679,7 @@ async function downloadCarousel() {
       await renderTo(off, state.slides[i]);
       const b = await canvasBlob(off);
       if (!b) { console.warn('Slide ' + (i + 1) + ' falhou (imagem sem CORS?)'); continue; }
-      const name = 'z-carrossel-' + base + '-' + String(i + 1).padStart(2, '0') + '.png';
+      const name = 'z-studio-carousel-' + base + '-' + String(i + 1).padStart(2, '0') + '.png';
       if (zip) { zip.file(name, b); }
       else { saveBlob(b, name); await new Promise(r => setTimeout(r, 500)); }
       ok++;
@@ -3685,7 +3687,7 @@ async function downloadCarousel() {
     if (zip && ok) {
       btn.textContent = uiT('compressing');
       const zb = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
-      saveBlob(zb, 'z-carrossel-' + base + '.zip');
+      saveBlob(zb, 'z-studio-carousel-' + base + '.zip');
     }
     toast(ok === state.slides.length
       ? (zip ? uiF('slidesZipDone', { n: ok }) : uiF('slidesDone', { n: ok }))
@@ -3727,7 +3729,7 @@ async function downloadAllFormats() {
     if (zip && ok) {
       btn.textContent = uiT('compressing');
       const zb = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
-      saveBlob(zb, 'z-todos-formatos-' + base + '.zip');
+      saveBlob(zb, 'z-studio-all-formats-' + base + '.zip');
     }
     toast(ok === keys.length
       ? (zip ? uiF('formatsZipDone', { n: ok }) : uiF('formatsDone', { n: ok }))
@@ -3782,8 +3784,10 @@ function handleBrandLogoUpload(files) {
   scheduleSaveDraft();
 }
 function toggleLangActive(l) {
-  if (l === 'pt') return; // pt é sempre a base do estúdio
-  if (state.brand.langs.has(l)) state.brand.langs.delete(l); else state.brand.langs.add(l);
+  // Nenhuma língua é obrigatória (antes o PT estava sempre ativo e gastava quota
+  // de IA em "Traduzir em todas as línguas"); fica sempre pelo menos uma ativa.
+  if (state.brand.langs.has(l)) { if (state.brand.langs.size > 1) state.brand.langs.delete(l); }
+  else state.brand.langs.add(l);
   document.querySelectorAll('#langsSeg button').forEach(b => b.classList.toggle('active', state.brand.langs.has(b.dataset.l)));
   renderLangSwitch();
   scheduleSaveDraft();
@@ -3836,11 +3840,11 @@ document.getElementById('caption').addEventListener('input', pushHistory);
   const match = wanted.find(code => SUPPORTED_UI_LANGS.includes(code));
   if (!match || match === state.lang) return;
   state.lang = match;
-  // A língua do navegador passa também a fazer parte das línguas ativas da
-  // legenda (ex.: FR em França) — senão "Traduzir em todas as línguas" gerava
-  // PT/EN mas não a língua de quem está a usar a app.
-  if (state.brand && state.brand.langs instanceof Set) {
-    state.brand.langs.add(match);
+  // Primeiro arranque: as línguas ativas da legenda passam a ser a língua do
+  // navegador (ex.: só FR em França). Um rascunho/kit guardado repõe depois as
+  // línguas escolhidas pela pessoa.
+  if (state.brand) {
+    state.brand.langs = new Set([match]);
     document.querySelectorAll('#langsSeg button').forEach(b => b.classList.toggle('active', state.brand.langs.has(b.dataset.l)));
   }
   const switchEl = document.getElementById('langSwitch');

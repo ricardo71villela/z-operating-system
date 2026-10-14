@@ -1,19 +1,66 @@
 {
-  "name": "Z Studio — Conteúdo para Redes Sociais",
+  "name": "Z Studio — Contenu pour les réseaux sociaux",
   "short_name": "Z Studio",
-  "description": "Cria posts, stories e carrosséis para redes sociais a partir das tuas fotos, com recorte inteligente, ficha de produto por categoria e legendas por IA em 6 idiomas.",
+  "description": "Créez des posts, stories et carrousels pour les réseaux sociaux à partir de vos photos : recadrage intelligent, fiche produit par catégorie et légendes IA en 6 langues.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0A0A0A",
   "theme_color": "#0A0A0A",
-  "lang": "pt",
+  "lang": "fr",
   "dir": "ltr",
-  "categories": ["business", "photo", "productivity", "social"],
+  "categories": [
+    "business",
+    "photo",
+    "productivity",
+    "social"
+  ],
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-  ]
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "translations": {
+    "en": {
+      "name": "Z Studio — Social media content",
+      "short_name": "Z Studio",
+      "description": "Create posts, stories and carousels for social media from your photos, with smart cropping, product details by category and AI captions in 6 languages."
+    },
+    "pt": {
+      "name": "Z Studio — Conteúdo para redes sociais",
+      "short_name": "Z Studio",
+      "description": "Crie posts, stories e carrosséis para redes sociais a partir das suas fotos, com recorte inteligente, ficha de produto por categoria e legendas por IA em 6 idiomas."
+    },
+    "es": {
+      "name": "Z Studio — Contenido para redes sociales",
+      "short_name": "Z Studio",
+      "description": "Crea posts, stories y carruseles para redes sociales a partir de tus fotos, con recorte inteligente, ficha de producto por categoría y textos con IA en 6 idiomas."
+    },
+    "de": {
+      "name": "Z Studio — Inhalte für soziale Netzwerke",
+      "short_name": "Z Studio",
+      "description": "Erstellen Sie Posts, Stories und Karussells für soziale Netzwerke aus Ihren Fotos – mit intelligentem Zuschnitt, Produktdetails nach Kategorie und KI-Texten in 6 Sprachen."
+    },
+    "it": {
+      "name": "Z Studio — Contenuti per i social",
+      "short_name": "Z Studio",
+      "description": "Crea post, storie e caroselli per i social a partire dalle tue foto, con ritaglio intelligente, scheda prodotto per categoria e didascalie IA in 6 lingue."
+    }
+  }
 }
