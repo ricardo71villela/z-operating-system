@@ -6,12 +6,12 @@ const path=require('node:path');
 
 const source=fs.readFileSync(path.join(__dirname,'../../src/platform/billing-ui.js'),'utf8');
 
-function harness(platform='web'){
+function harness(platform='web',enabled=true){
   const calls=[];
   const document={readyState:'loading',documentElement:{lang:'en'},addEventListener(){},querySelectorAll(){return[];}};
   const window={
-    ZStudioCommercialConfig:{enabled:true,baseUrl:'https://commercial.example',currency:'EUR',trialDays:3,plans:{weekly:{priceMinor:599},monthly:{priceMinor:1499},annual:{priceMinor:11999}}},
-    ZSTUDIO_COMMERCIAL_BASE_URL:'https://commercial.example',
+    ZStudioCommercialConfig:{enabled,baseUrl:enabled?'https://commercial.example':'',currency:'EUR',trialDays:3,plans:{weekly:{priceMinor:599},monthly:{priceMinor:1499},annual:{priceMinor:11999}}},
+    ZSTUDIO_COMMERCIAL_BASE_URL:enabled?'https://commercial.example':'',
     ZStudioAuth:{async getAccessToken(){return 'user-token';}},
     location:{assign(url){calls.push(['navigate',url]);}},
   };
@@ -46,4 +46,12 @@ test('Android route uses Google Play bridge and never calls Stripe',async()=>{
   h.window.ZStudioGooglePlay={isAvailable:()=>true,async startPurchase(plan){h.calls.push(['google',plan]);}};
   await h.window.ZStudioBilling.startPlan('weekly');
   assert.deepEqual(h.calls,[['google','weekly']]);
+});
+
+test('unconfigured commercial runtime is fail-closed: no checkout attempt, no navigation',async()=>{
+  const h=harness('web',false);
+  assert.equal(h.window.ZStudioBilling.enabled(),false);
+  await assert.rejects(()=>h.window.ZStudioBilling.startPlan('monthly'),/COMMERCIAL_RUNTIME_DISABLED/);
+  assert.deepEqual(h.calls,[]);
+  assert.equal(h.window.ZStudioBilling.openDate,'2026-12-01');
 });
