@@ -98,7 +98,7 @@ The root storefront demonstrates:
 This phase remains Preview-only and backend-independent for customer commerce actions.
 
 - no live Supabase writes;
-- no production Auth;
+- real customer sign-in is active (`customer-auth.js`: e-mail code, account created on first sign-in, client registered through `public.zfashion_ensure_client()`); `/compte/*` requires a session — the account data shown there is still demonstrative;
 - no payment credentials or real checkout;
 - no stock reservation;
 - no order creation;
