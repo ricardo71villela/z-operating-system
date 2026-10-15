@@ -42,3 +42,16 @@ assert.match(webCsp, /frame-src[^;]*https:\/\/js\.stripe\.com/);
 const partnerCfg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'apps', 'fashion-partner', 'vercel.json'), 'utf8'));
 assert.match(partnerCfg.buildCommand, /rm -f dist\/preview-dashboard/, 'the old mock-up is not published');
 console.log('Z Fashion hosting configuration: all checks passed.');
+
+// API on Vercel: one function for every path, raw body kept for Stripe, certificate shipped.
+{
+  const apiDir = path.join(__dirname, '..', 'apps', 'fashion-api');
+  const cfg = JSON.parse(fs.readFileSync(path.join(apiDir, 'vercel.json'), 'utf8'));
+  assert.deepStrictEqual(cfg.rewrites, [{ source: '/(.*)', destination: '/api/index' }]);
+  assert.match(cfg.installCommand, /npm ci --prefix \.\.\/fashion-partner/);
+  assert.match(cfg.functions['api/index.js'].includeFiles, /fashion-partner\/certs/);
+  const entry = require(path.join(apiDir, 'api', 'index.js'));
+  assert.strictEqual(typeof entry, 'function');
+  assert.deepStrictEqual(entry.config, { api: { bodyParser: false } });
+}
+console.log('Z Fashion API on Vercel: entry checks passed.');
