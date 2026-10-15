@@ -1,10 +1,10 @@
 # Z Fashion — pôr em linha (tarefa 18)
 
-Quatro peças, por esta ordem:
+Quatro peças, todas na Vercel, por esta ordem:
 
 | Peça | Onde | Pasta | Endereço previsto |
 | --- | --- | --- | --- |
-| API | Railway | `apps/fashion/apps/fashion-partner` (`src/server.js`) | `https://api.zfashion.online` |
+| API | Vercel (projeto `z-fashion-api`) | `apps/fashion/apps/fashion-api` (chama `fashion-partner/src/server.js`) | `https://api.zfashion.online` |
 | Painel das lojas | Vercel | `apps/fashion/apps/fashion-partner` (páginas em `public/`) | `https://partner.zfashion.online` |
 | Backoffice | Vercel | `apps/fashion/apps/fashion-admin` | `https://admin.zfashion.online` |
 | Site público | Vercel (projeto `z-fashion`, já existe) | `apps/fashion/apps/fashion-web` | `https://zfashion.online` |
@@ -15,26 +15,26 @@ Os três sites são estáticos. O endereço da API não está escrito no código
 
 ## 0. Domínio (tarefa 15)
 
-Comprar `zfashion.online` (se ainda não estiver comprado) e, no registo DNS, criar os registos que a Railway e a Vercel indicarem nos passos seguintes:
+Comprar `zfashion.online` (se ainda não estiver comprado) e, no registo DNS, criar os registos que a Vercel indicar nos passos seguintes:
 
 | Nome | Tipo | Valor |
 | --- | --- | --- |
-| `api` | CNAME | o alvo dado pela Railway (passo 1) |
+| `api` | CNAME | `cname.vercel-dns.com` |
 | `partner` | CNAME | `cname.vercel-dns.com` |
 | `admin` | CNAME | `cname.vercel-dns.com` |
 | `@` (zfashion.online) | A | `76.76.21.21` (Vercel) |
 | `www` | CNAME | `cname.vercel-dns.com` |
 
-## 1. API na Railway
+## 1. API na Vercel
 
-1. Novo serviço a partir do repositório `ricardo71villela/z-operating-system`, ramo `main`.
-2. **Settings → Config-as-code**: `apps/fashion/apps/fashion-partner/railway.json` (deixar a raiz do serviço na raiz do repositório: o ficheiro usa caminhos a partir dela).
-3. **Networking → Custom domain**: `api.zfashion.online` (copiar o CNAME para o DNS).
-4. **Variables**:
+1. **Add New → Project** a partir do repositório `ricardo71villela/z-operating-system`; nome `z-fashion-api`.
+2. **Root Directory**: `apps/fashion/apps/fashion-api`; *Framework Preset*: Other. Deixar ligada a opção *Include files outside the Root Directory in the Build Step* (o código da API está em `../fashion-partner`). O resto vem de `vercel.json`: instalação das dependências de `fashion-partner`, uma função Node 22 que recebe todos os caminhos, 60 s no máximo por pedido.
+3. **Domains**: `api.zfashion.online`.
+4. **Environment Variables** (Production):
 
 | Variável | Valor |
 | --- | --- |
-| `DATABASE_URL` | Supabase → Project Settings → Database → *Connection string*, modo **Session pooler** (porta 5432), sem `?sslmode=` no fim |
+| `DATABASE_URL` | Supabase → Project Settings → Database → *Connection string*, modo **Transaction pooler** (porta 6543, adequado a funções serverless), sem `?sslmode=` no fim |
 | `FASHION_DB_SSL_MODE` | `verify-full` |
 | `SUPABASE_URL` | `https://dcdggqyazdddrfuzwavw.supabase.co` |
 | `SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_LQqhseuSfNibffNh_cLLGQ_0cVxHQzX` |
@@ -50,7 +50,11 @@ Comprar `zfashion.online` (se ainda não estiver comprado) e, no registo DNS, cr
 | `STRIPE_WEBHOOK_SECRET` | `whsec_…` do passo 4 |
 | `FASHION_CRON_SECRET` | 48 caracteres aleatórios (ex. `openssl rand -hex 24`) |
 
-5. Verificar: `https://api.zfashion.online/health` responde `{"ok":true,"usingPostgres":true}`. Os registos de arranque não devem dizer "refusing to start" nem "Stripe not configured".
+5. Verificar: `https://api.zfashion.online/health` responde `{"ok":true,"usingPostgres":true}`.
+
+Limite da Vercel: um pedido não passa de 4,5 MB. As fotos são reduzidas a 2000 px no painel antes do envio (normalmente menos de 1,5 MB), por isso cabem; um ficheiro maior é recusado.
+
+Alternativa: `fashion-partner/railway.json` continua pronto para pôr a mesma API na Railway, se um dia for preferível um servidor permanente.
 
 ## 2. Painel das lojas na Vercel
 
@@ -66,7 +70,7 @@ Igual ao passo 2: projeto `z-fashion-admin`, Root Directory `apps/fashion/apps/f
 
 ## 4. Stripe
 
-1. **Developers → Webhooks → Add endpoint**: `https://api.zfashion.online/stripe/webhook`, eventos `payment_intent.succeeded`, `payment_intent.processing`, `payment_intent.payment_failed`. Copiar o *Signing secret* para `STRIPE_WEBHOOK_SECRET` na Railway.
+1. **Developers → Webhooks → Add endpoint**: `https://api.zfashion.online/stripe/webhook`, eventos `payment_intent.succeeded`, `payment_intent.processing`, `payment_intent.payment_failed`. Copiar o *Signing secret* para `STRIPE_WEBHOOK_SECRET` no projeto `z-fashion-api`.
 2. **Connect → Get started**: ativar o Connect (plataforma em França, contas Express). Os pagamentos às lojas usam *separate charges and transfers*.
 3. **Settings → Branding / Public details**: nome Z Fashion, site, e-mail de apoio (aparecem no formulário de pagamento e nos recibos).
 4. Começar em **modo de teste** (`sk_test_`/`pk_test_`). Passar a `live` só depois do teste completo (tarefa 20): novas chaves, novo webhook live, novo `whsec_`.
@@ -82,7 +86,7 @@ Igual ao passo 2: projeto `z-fashion-admin`, Root Directory `apps/fashion/apps/f
 O ficheiro `.github/workflows/fashion-payouts.yml` corre todas as segundas às 06:00 UTC. No GitHub, **Settings → Secrets and variables → Actions**, criar:
 
 - `FASHION_API_BASE_URL` = `https://api.zfashion.online`
-- `FASHION_CRON_SECRET` = o mesmo valor da Railway
+- `FASHION_CRON_SECRET` = o mesmo valor do projeto `z-fashion-api`
 
 Sem estes dois segredos o trabalho não faz nada. Pode ser lançado à mão em **Actions → Z Fashion weekly store payouts → Run workflow**.
 
