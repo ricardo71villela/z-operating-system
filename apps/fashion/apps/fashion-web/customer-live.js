@@ -369,6 +369,12 @@
       '.preview-ribbon{display:none!important}',
     ].join('\n');
     document.head.appendChild(style);
+    // Introductions written for the demonstration no longer apply.
+    Object.keys(ROUTES.groupIntro || {}).forEach((l) => {
+      ROUTES.groupIntro[l].checkout = l === 'fr'
+        ? 'Finalisez votre commande en quelques étapes. Paiement sécurisé par Stripe.'
+        : 'Complete your order in a few steps. Secure payment by Stripe.';
+    });
     const note = document.querySelector('[data-shell-copy="footerPreview"]');
     if (note) note.remove();
     document.addEventListener('zfashion:preview-state', () => { if (route && (route.id === 'bag' || route.id === 'favourites')) render(); });
