@@ -2,7 +2,7 @@
   "name": "@zfashion/partner",
   "version": "0.0.0",
   "private": true,
-  "description": "Z Fashion Partner API — onboarding, stock feed, brand and product management endpoints wired to the Z Fashion domain.",
+  "description": "Z Fashion Partner API \u2014 onboarding, stock feed, brand and product management endpoints wired to the Z Fashion domain.",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
@@ -11,5 +11,8 @@
   "dependencies": {
     "pg": "^8.23.0",
     "@supabase/supabase-js": "^2.112.2"
+  },
+  "engines": {
+    "node": ">=22 <25"
   }
 }

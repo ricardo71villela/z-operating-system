@@ -1,0 +1,35 @@
+name: Z Fashion weekly store payouts
+
+# Every Monday 06:00 UTC (08:00 Paris in summer, 07:00 in winter): asks the
+# Z Fashion API to pay the stores their closed sales (Stripe Connect).
+# Needs two repository secrets:
+#   FASHION_API_BASE_URL  e.g. https://api.zfashion.online
+#   FASHION_CRON_SECRET   same value as the API's FASHION_CRON_SECRET (32+ chars)
+# Without them the job does nothing (payouts are not live yet).
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  payouts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Run payouts
+        env:
+          API: ${{ secrets.FASHION_API_BASE_URL }}
+          CRON_SECRET: ${{ secrets.FASHION_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${API}" ] || [ -z "${CRON_SECRET}" ]; then
+            echo "FASHION_API_BASE_URL / FASHION_CRON_SECRET not set: payouts not live, nothing to do."
+            exit 0
+          fi
+          case "${API}" in https://*) ;; *) echo "FASHION_API_BASE_URL must be https"; exit 1;; esac
+          response=$(curl -fsS --max-time 240 -X POST "${API%/}/internal/payouts/run" -H "Authorization: Bearer ${CRON_SECRET}")
+          echo "${response}"
+          echo "${response}" | grep -q '"failed":0' || { echo "::warning::Some transfers failed; they are retried next week. Check /admin/payouts."; }

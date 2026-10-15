@@ -3,7 +3,7 @@
   "ignoreCommand": "B=${VERCEL_GIT_PREVIOUS_SHA:-HEAD^};[ \"$B\" = \"$VERCEL_GIT_COMMIT_SHA\" ]&&exit 1;git cat-file -e \"$B^{commit}\" 2>/dev/null||exit 1;git diff --quiet \"$B\" HEAD -- ':(top)apps/fashion/apps/fashion-web/**'",
   "cleanUrls": false,
   "trailingSlash": false,
-  "buildCommand": "rm -rf public && mkdir -p public && cp ./*.html ./*.css ./*.js public/ && cp launch.html public/index.html && cp -R brand public/brand && echo Z_FASHION_STATIC_PREVIEW_BUILD=PASS",
+  "buildCommand": "rm -rf public && mkdir -p public && cp ./*.html ./*.css ./*.js public/ && cp launch.html public/index.html && cp -R brand public/brand && node ../../scripts/write-zfashion-config.js public && echo Z_FASHION_STATIC_PREVIEW_BUILD=PASS",
   "outputDirectory": "public",
   "rewrites": [
     {
@@ -190,6 +190,27 @@
         {
           "key": "Referrer-Policy",
           "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=(), payment=(self \"https://js.stripe.com\")"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://js.stripe.com https://*.js.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' https: data: blob:; connect-src 'self' https:; frame-src https://js.stripe.com https://*.js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+        }
+      ]
+    },
+    {
+      "source": "/zfashion-config.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
         }
       ]
     }
