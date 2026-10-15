@@ -33,6 +33,21 @@ The full customer-site phase adds dedicated customer routes behind `customer-she
 - Every value from the API is escaped before it is inserted (`esc()`); only `https` image addresses are used.
 - The API must list the site origin in `FASHION_ALLOWED_ORIGINS`.
 
+## Live checkout (task 14)
+
+`customer-checkout.js` registers on the live layer (same `apiBaseUrl` switch):
+
+| Page | What happens |
+| --- | --- |
+| `/checkout` | Sign-in if needed (`/connexion?next=/checkout`, the bag is kept), then the browser bag is copied to the server cart. Stock or availability changes are shown with a one-click fix. |
+| `/checkout/livraison` | Choose or add a shipping address (France; 5-digit postcode). |
+| `/checkout/revision` | Lines per boutique, address, total; terms of sale must be accepted; **Commander et payer** creates the order (`POST /clients/:id/checkout`, stock held 30 min). |
+| `/checkout/paiement` | Stripe Payment Element (Stripe.js from `js.stripe.com`, publishable key from the API). Card data goes to Stripe only. Shows until when the pieces are reserved. |
+| `/checkout/confirmation?order=` | Waits for the Stripe webhook to mark the order paid, then empties the bag; a declined payment offers to try again. |
+| `/compte/commandes`, `/compte/commandes/:id`, `/compte/adresses` | Real orders (status, parcel per boutique, delivery address, "finish payment" while the hold lasts) and addresses. |
+
+All calls carry the customer's Supabase session token; the API checks that the account in the URL is the caller's.
+
 ## Full customer-site route foundation
 
 The Preview currently defines 38 customer route authorities across five groups.
