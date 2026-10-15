@@ -22,4 +22,5 @@ assert.match(src, /body\.partnerIds\.length > 0/, 'partner surface requires a ma
 assert.match(src, /zf-auth-locked/, 'page content stays hidden until authorized');
 for (const lang of ['fr', 'en']) assert.match(src, new RegExp(`\\b${lang}: \\{`), `missing ${lang} strings`);
 
+assert.match(src, /opts\.body instanceof Blob/, 'files are sent as binary, never JSON-encoded');
 console.log('Z_FASHION_WEB_AUTH=PASS');

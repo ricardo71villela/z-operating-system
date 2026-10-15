@@ -9,6 +9,7 @@ const {
   getAuthUserEmail, getPartnerOfferPg, submitPartnerApplicationPg, resolveFashionPartnerIdsForAuthUser,
   listActivePartnerIds, listPartnerApplicationsPg, getPartnerApplicationPg, decidePartnerApplicationPg,
   insertBrand, insertProduct, listProductsForPartner, getProduct, listBrandsForPartnerPg, getCurrentPricesPg, recordPricePg,
+  listImagesForProductsPg, insertProductImagePg, deleteProductImagePg, reorderProductImagesPg,
 } = require('../src/db');
 
 async function advanceToApproved(pool, partnerId) {
@@ -204,6 +205,36 @@ async function run() {
   await recordPricePg(pool, jacket.id, 16900, '2026-10-15T09:00:00Z');
   assert.deepStrictEqual(await getCurrentPricesPg(pool, [jacket.id, sameSkuElsewhere.id]), { [jacket.id]: 16900 }, 'latest price; none when unpriced');
   assert.strictEqual((await listProductsForPartner(pool, again.partnerId))[0].sku, 'VES-38');
+
+  // --- Product photos (task 7b)
+  const { randomUUID } = require('crypto');
+  const media = require('../../../packages/fashion-domain/src/media');
+  const addImage = (productId, partnerId) => {
+    const id = randomUUID();
+    return insertProductImagePg(pool, { id, productId, partnerId, storagePath: media.productImagePath(partnerId, productId, id, 'jpg'), contentType: 'image/jpeg', byteSize: 1000 });
+  };
+  const imgs = [];
+  for (let n = 0; n < 8; n += 1) imgs.push(await addImage(jacket.id, again.partnerId));
+  assert.deepStrictEqual(imgs.map((i) => i.position), [0, 1, 2, 3, 4, 5, 6, 7]);
+  await assert.rejects(() => addImage(jacket.id, again.partnerId), (err) => err.code === 'image_limit', 'database refuses a 9th photo');
+  await assert.rejects(() => addImage(jacket.id, otherStore.id), /does not belong/, 'photo of another store refused by the database');
+  await assert.rejects(
+    () => pool.query(`insert into fashion.product_images (product_id, partner_id, storage_path, content_type, byte_size) values ($1, $2, '../etc/passwd', 'image/jpeg', 10)`, [sameSkuElsewhere.id, otherStore.id]),
+    /storage_path/, 'path shape enforced'
+  );
+  const removed = await deleteProductImagePg(pool, jacket.id, imgs[2].id);
+  assert.strictEqual(removed.storagePath, imgs[2].storagePath);
+  let listed = (await listImagesForProductsPg(pool, [jacket.id]))[jacket.id];
+  assert.deepStrictEqual(listed.map((i) => i.position), [0, 1, 2, 3, 4, 5, 6], 'gap closed');
+  assert.strictEqual(await deleteProductImagePg(pool, jacket.id, imgs[2].id), null);
+  const newOrder = listed.map((i) => i.id).reverse();
+  await reorderProductImagesPg(pool, jacket.id, newOrder);
+  listed = (await listImagesForProductsPg(pool, [jacket.id]))[jacket.id];
+  assert.deepStrictEqual(listed.map((i) => i.id), newOrder);
+  await pool.query('delete from fashion.products where id = $1', [jacket.id]);
+  assert.deepStrictEqual(await listImagesForProductsPg(pool, [jacket.id]), {}, 'photos go with their product');
+  const bucket = (await pool.query(`select public from storage.buckets where id = 'zfashion-media'`)).rows[0];
+  assert.strictEqual(bucket && bucket.public, true, 'public-read media bucket exists');
 
   // Not callable by API roles other than the privileged connection.
   const grants = (await pool.query(`select

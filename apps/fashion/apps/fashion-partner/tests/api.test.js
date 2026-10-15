@@ -26,6 +26,27 @@ function request(method, path, body) {
 
 const PORT = 4099;
 
+function requestRaw(method, path, bytes, contentType) {
+  return new Promise((resolve, reject) => {
+    const req = http.request(
+      { hostname: '127.0.0.1', port: PORT, path, method, headers: contentType ? { 'Content-Type': contentType } : {} },
+      (res) => {
+        const chunks = [];
+        res.on('data', (c) => chunks.push(c));
+        res.on('end', () => {
+          const buf = Buffer.concat(chunks);
+          let body = null;
+          try { body = JSON.parse(buf.toString()); } catch (e) { body = buf; }
+          resolve({ status: res.statusCode, headers: res.headers, body });
+        });
+      }
+    );
+    req.on('error', reject);
+    if (bytes) req.write(bytes);
+    req.end();
+  });
+}
+
 async function run() {
   await new Promise((resolve) => server.listen(PORT, resolve));
 
@@ -638,6 +659,76 @@ async function run() {
 
   res = await request('GET', `/partners/${appliedPartnerId}/corner-config`);
   assert.strictEqual(res.body.cornerConfig.displayName, 'Maison Léman', 'own Corner readable whatever the status');
+
+  // --- Product photos and logo (task 7b)
+  const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0x10, 0x4a, 0x46, 0x49, 0x46, 0, 1, 1, 1, 2, 3]);
+  const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 0x49, 0x48]);
+  const imgPath = `/partners/${appliedPartnerId}/products/${ves40}/images`;
+  res = await requestRaw('POST', imgPath, JPEG, 'image/jpeg');
+  assert.strictEqual(res.status, 201, JSON.stringify(res.body));
+  const firstImage = res.body.image;
+  assert.strictEqual(firstImage.position, 0);
+  assert.match(firstImage.url, /\/media\/partners\/.+\/products\/.+\.jpg$/);
+  res = await requestRaw('POST', imgPath, PNG, 'image/png');
+  const secondImage = res.body.image;
+  assert.strictEqual(secondImage.position, 1);
+
+  res = await requestRaw('POST', imgPath, Buffer.from('<svg onload=alert(1)></svg>'), 'image/jpeg');
+  assert.strictEqual(res.status, 415, 'content is checked, not the declared type');
+  assert.strictEqual(res.body.error, 'unsupported_type');
+  res = await requestRaw('POST', imgPath, JPEG, 'image/png');
+  assert.strictEqual(res.status, 415);
+  assert.strictEqual(res.body.error, 'type_mismatch');
+  res = await requestRaw('POST', imgPath, Buffer.concat([JPEG, Buffer.alloc(5 * 1024 * 1024)]), 'image/jpeg');
+  assert.strictEqual(res.status, 413);
+  res = await requestRaw('POST', `/partners/partner_atelier/products/${ves40}/images`, JPEG, 'image/jpeg');
+  assert.strictEqual(res.status, 403, 'another store cannot add photos to this product');
+
+  // The file is served (in-memory mode) with its real type.
+  const mediaPath = new URL(firstImage.url).pathname;
+  res = await requestRaw('GET', mediaPath);
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.headers['content-type'], 'image/jpeg');
+  assert.strictEqual(res.headers['x-content-type-options'], 'nosniff');
+  assert.ok(Buffer.compare(res.body, JPEG) === 0);
+
+  // Inventory lists them, cover first; reorder; delete closes the gap.
+  res = await request('GET', `/partners/${appliedPartnerId}/inventory`);
+  assert.deepStrictEqual(res.body.products.find((p) => p.id === ves40).images.map((i) => i.id), [firstImage.id, secondImage.id]);
+  res = await request('POST', `${imgPath}/order`, { imageIds: [secondImage.id, firstImage.id] });
+  assert.strictEqual(res.status, 200);
+  assert.deepStrictEqual(res.body.images.map((i) => [i.id, i.position]), [[secondImage.id, 0], [firstImage.id, 1]]);
+  res = await request('POST', `${imgPath}/order`, { imageIds: [secondImage.id] });
+  assert.strictEqual(res.status, 422, 'an order must name every photo once');
+
+  // Public catalogue (store is active again): cover on cards and photos on the product page.
+  res = await request('GET', `/catalog/products/${ves40}`);
+  assert.deepStrictEqual(res.body.productPage.images.map((i) => i.id), [secondImage.id, firstImage.id]);
+  const coverUrl = (await request('GET', `/partners/${appliedPartnerId}/inventory`)).body.products.find((p) => p.id === ves40).images[0].url;
+  res = await request('GET', '/catalog/all-sale');
+  assert.strictEqual(res.body.products.find((p) => p.productId === ves40).imageUrl, coverUrl, 'All Sale card shows the cover');
+  res = await request('GET', `/catalog/corners/${appliedPartnerId}`);
+  assert.ok(res.body.products.find((p) => p.productId === ves40).imageUrl.endsWith('.png'), 'Corner card shows the cover (the PNG, now first)');
+
+  res = await request('DELETE', `${imgPath}/${secondImage.id}`);
+  assert.strictEqual(res.status, 200);
+  assert.deepStrictEqual(res.body.images.map((i) => [i.id, i.position]), [[firstImage.id, 0]]);
+  res = await requestRaw('GET', new URL(secondImage.url).pathname);
+  assert.strictEqual(res.status, 404, 'deleted file is gone');
+  res = await request('DELETE', `${imgPath}/${secondImage.id}`);
+  assert.strictEqual(res.status, 404);
+
+  for (let n = 1; n < 8; n += 1) {
+    res = await requestRaw('POST', imgPath, JPEG, 'image/jpeg');
+    assert.strictEqual(res.status, 201);
+  }
+  res = await requestRaw('POST', imgPath, JPEG, 'image/jpeg');
+  assert.strictEqual(res.status, 409, 'at most 8 photos');
+  assert.strictEqual(res.body.error, 'image_limit');
+
+  res = await requestRaw('POST', `/partners/${appliedPartnerId}/logo`, PNG, 'image/png');
+  assert.strictEqual(res.status, 201);
+  assert.match(res.body.url, /\/media\/partners\/.+\/logo\/.+\.png$/);
 
   // GET /me in in-memory mode: nobody is authenticated, nothing granted.
   res = await request('GET', '/me');

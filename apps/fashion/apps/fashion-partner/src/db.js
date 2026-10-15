@@ -838,10 +838,92 @@ async function getCurrentPricesPg(pool, productIds) {
   return Object.fromEntries(result.rows.map((r) => [r.product_id, Number(r.price_minor_units)]));
 }
 
+/* ---------- product photos (migration 20261015150000) ---------- */
+
+function toImageShape(row) {
+  return { id: row.id, productId: row.product_id, partnerId: row.partner_id, storagePath: row.storage_path,
+    contentType: row.content_type, byteSize: row.byte_size, position: row.position, createdAt: row.created_at };
+}
+
+/** Photos of many products, each list ordered (cover first). */
+async function listImagesForProductsPg(pool, productIds) {
+  if (productIds.length === 0) return {};
+  const result = await pool.query(
+    `select * from fashion.product_images where product_id = any($1::uuid[]) order by product_id, position, created_at`,
+    [productIds]
+  );
+  const byProduct = {};
+  for (const row of result.rows) (byProduct[row.product_id] = byProduct[row.product_id] || []).push(toImageShape(row));
+  return byProduct;
+}
+
+/** Appends a photo at the end. The trigger refuses a 9th photo
+ *  (code 'image_limit') and a product of another store. */
+async function insertProductImagePg(pool, { id, productId, partnerId, storagePath, contentType, byteSize }) {
+  try {
+    const result = await pool.query(
+      `insert into fashion.product_images (id, product_id, partner_id, storage_path, content_type, byte_size, position)
+       values ($1, $2, $3, $4, $5, $6,
+               coalesce((select max(position) + 1 from fashion.product_images where product_id = $2), 0))
+       returning *`,
+      [id, productId, partnerId, storagePath, contentType, byteSize]
+    );
+    return toImageShape(result.rows[0]);
+  } catch (err) {
+    if (/product_image_limit/.test(err.message || '')) { const e = new Error('image_limit'); e.code = 'image_limit'; throw e; }
+    throw err;
+  }
+}
+
+/** Removes one photo of a product and closes the gap in positions.
+ *  Returns the removed row (for deleting the file), or null. */
+async function deleteProductImagePg(pool, productId, imageId) {
+  const client = await pool.connect();
+  try {
+    await client.query('begin');
+    const removed = await client.query(
+      `delete from fashion.product_images where id = $1 and product_id = $2 returning *`, [imageId, productId]
+    );
+    if (removed.rows.length) {
+      await client.query(
+        `update fashion.product_images i set position = r.rn - 1
+         from (select id, row_number() over (order by position, created_at) as rn from fashion.product_images where product_id = $1) r
+         where i.id = r.id`,
+        [productId]
+      );
+    }
+    await client.query('commit');
+    return removed.rows[0] ? toImageShape(removed.rows[0]) : null;
+  } catch (err) {
+    await client.query('rollback');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/** Sets the order of a product's photos (ids already validated as a permutation). */
+async function reorderProductImagesPg(pool, productId, orderedIds) {
+  const client = await pool.connect();
+  try {
+    await client.query('begin');
+    for (let i = 0; i < orderedIds.length; i += 1) {
+      await client.query(`update fashion.product_images set position = $3 where id = $1 and product_id = $2`, [orderedIds[i], productId, i]);
+    }
+    await client.query('commit');
+  } catch (err) {
+    await client.query('rollback');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 module.exports = {
   createPool, insertPartner, updatePartnerStatus, getPartner,
   getAuthUserEmail, getPartnerOfferPg, submitPartnerApplicationPg,
   listBrandsForPartnerPg, getCurrentPricesPg,
+  listImagesForProductsPg, insertProductImagePg, deleteProductImagePg, reorderProductImagesPg,
   listActivePartnerIds, listPartnerApplicationsPg, getPartnerApplicationPg, decidePartnerApplicationPg,
   resolveFashionPartnerIdsForAuthUser,
   insertBrand, getBrand, insertProduct, listProductsForPartner, listAllProducts, getProduct,

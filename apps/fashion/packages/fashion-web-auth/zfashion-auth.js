@@ -312,7 +312,12 @@
       if (!session) throw new Error('not signed in');
       var opts = Object.assign({}, init || {});
       opts.headers = Object.assign({}, opts.headers || {}, { Authorization: 'Bearer ' + session.access_token });
-      if (opts.body && typeof opts.body !== 'string') {
+      var binary = opts.body && ((typeof Blob !== 'undefined' && opts.body instanceof Blob) ||
+        opts.body instanceof ArrayBuffer || ArrayBuffer.isView(opts.body));
+      if (binary) {
+        // Files (photos, logos) are sent as they are, with their own type.
+        if (!opts.headers['Content-Type'] && opts.body.type) opts.headers['Content-Type'] = opts.body.type;
+      } else if (opts.body && typeof opts.body !== 'string') {
         opts.body = JSON.stringify(opts.body);
         opts.headers['Content-Type'] = 'application/json';
       }

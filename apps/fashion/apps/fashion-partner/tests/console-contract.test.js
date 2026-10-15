@@ -51,4 +51,11 @@ assert.deepStrictEqual(out.unknown, ['INCONNU']);
 assert.deepStrictEqual(out.invalid, [5]);
 assert.deepStrictEqual(out.duplicates, ['VES-40']);
 
+// Photos: same limits as the domain; uploads go through the API only.
+const media = require('../../../packages/fashion-domain/src/media');
+assert.strictEqual(Number(js.match(/MAX_BYTES = 5 \* 1024 \* 1024/) ? media.MAX_IMAGE_BYTES : -1), media.MAX_IMAGE_BYTES);
+assert.ok(js.includes("var room = 8 - images.length;") && media.MAX_IMAGES_PER_PRODUCT === 8);
+assert.deepStrictEqual(JSON.parse(JSON.stringify(vm.runInNewContext(js.match(/ACCEPTED = (\[[^\]]*\])/)[1]))), Object.keys(media.FORMATS));
+for (const route of ["'/images'", "'/images/order'", "'/logo'"]) assert.ok(js.includes(route), `missing call ${route}`);
+
 console.log('Z_FASHION_PARTNER_CONSOLE=PASS');

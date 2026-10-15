@@ -70,3 +70,12 @@ body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-app
 @media(max-width:560px){.pc-card{padding:16px}.pc-kpi strong{font-size:22px}}
 .pc-table-wrap + .pc-toolbar{margin-top:12px}
 .pc-table td:first-child{white-space:nowrap}
+.pc-thumb-cell{width:72px}
+.pc-thumb{position:relative;display:grid;place-items:center;width:56px;height:56px;border:1px dashed #cfc9c1;border-radius:8px;background:#faf9f7;cursor:pointer;padding:0;overflow:hidden;font:inherit;color:var(--muted)}
+.pc-thumb img{width:100%;height:100%;object-fit:cover}
+.pc-thumb small{position:absolute;right:2px;bottom:2px;font-size:10px;background:rgba(255,255,255,.85);border-radius:4px;padding:0 3px;color:var(--ink)}
+.pc-photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin:12px 0}
+.pc-photo{position:relative;margin:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#faf9f7}
+.pc-photo img{display:block;width:100%;aspect-ratio:3/4;object-fit:cover}
+.pc-cover{position:absolute;left:8px;top:8px}
+.pc-photo-tools{display:flex;gap:4px;justify-content:space-between;padding:6px;background:#fff;border-top:1px solid var(--line)}
