@@ -15,7 +15,7 @@ assert.match(html, /<script src="\.\/zfashion-config\.js"><\/script>\s*<script s
 assert.match(html, /<script src="\.\/console\.js"><\/script>/);
 assert.match(html, /noindex,nofollow/);
 assert.doesNotMatch(html, /Maison Nord|démonstration|APERÇU/i, 'no demo content in the real console');
-for (const tab of ['overview', 'catalogue', 'stock', 'corner']) {
+for (const tab of ['overview', 'catalogue', 'stock', 'corner', 'payouts']) {
   assert.match(html, new RegExp(`data-tab="${tab}"`));
   assert.match(html, new RegExp(`id="tab-${tab}"`));
 }
@@ -23,7 +23,7 @@ for (const tab of ['overview', 'catalogue', 'stock', 'corner']) {
 // Only the authenticated helper, only the Partner API; DOM built safely.
 assert.doesNotMatch(js, /[^.a-zA-Z]fetch\(/, 'every call carries the session token');
 assert.doesNotMatch(js, /innerHTML|insertAdjacentHTML|document\.write|supabase|service_role/i);
-for (const route of ["'/application'", "'/inventory'", "'/brands'", "'/corner-config'", "'/products'", "'/stock/bulk'", "'/price'"]) {
+for (const route of ["'/payouts'", "'/payouts/onboarding'", "'/payouts/dashboard'", "'/application'", "'/inventory'", "'/brands'", "'/corner-config'", "'/products'", "'/stock/bulk'", "'/price'"]) {
   assert.ok(js.includes(route), `missing call ${route}`);
 }
 

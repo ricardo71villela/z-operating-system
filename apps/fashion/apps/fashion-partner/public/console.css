@@ -79,3 +79,4 @@ body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-app
 .pc-photo img{display:block;width:100%;aspect-ratio:3/4;object-fit:cover}
 .pc-cover{position:absolute;left:8px;top:8px}
 .pc-photo-tools{display:flex;gap:4px;justify-content:space-between;padding:6px;background:#fff;border-top:1px solid var(--line)}
+.pc-table td.num{white-space:nowrap}

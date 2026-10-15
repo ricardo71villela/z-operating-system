@@ -11,9 +11,10 @@
                      /products/:pid/price, /stock/:pid
      Stock           POST /partners/:id/stock/bulk (manual edits and CSV)
      Corner          GET/POST /partners/:id/corner-config
+     Versements      GET /partners/:id/payouts; POST /payouts/onboarding,
+                     /payouts/dashboard (Stripe-hosted pages)
 
-   Orders, shipments, returns and payouts are not here yet: they arrive
-   with checkout. Every node is built with textContent; nothing from the
+   Orders, shipments and returns are not here yet (task 17). Every node is built with textContent; nothing from the
    API or from an imported file is parsed as HTML.
    ============================================================ */
 
@@ -83,6 +84,16 @@
       e_photoType: '« {name} » n’est pas une image JPEG, PNG ou WebP.', e_photoLarge: '« {name} » est trop lourde (5 Mo max. après réduction).', e_photoLimit: 'Ce produit a déjà 8 photos.',
       e_photoStorage: 'L’envoi des photos n’est pas encore activé sur le serveur.', e_photoFailed: 'L’envoi de « {name} » a échoué.',
       uploadLogo: 'Téléverser un logo', logoUploaded: 'Logo téléversé — pensez à enregistrer.', fLogoUrl: 'ou adresse du logo (https)',
+      tabPayouts: 'Versements',
+      payTitle: 'Vos versements', payRule: 'Chaque lundi, vous recevez vos ventes clôturées : colis livré depuis plus de 14 jours et aucun retour en cours. Montant versé = ce que le client a gardé, moins la commission Z Fashion (10 %, 8 % ou 6 % selon le montant de la commande). Les frais bancaires Stripe sont à notre charge ; l’abonnement est facturé à part.',
+      paySetupTitle: 'Compte de versement', paySetupBody: 'Pour recevoir vos ventes, ouvrez votre compte de versement chez Stripe, notre prestataire de paiement : identité de l’entreprise, représentant légal et IBAN. Comptez environ 5 minutes.',
+      paySetup: 'Configurer mes versements', payContinue: 'Continuer la configuration', payMissing: 'Stripe attend encore des informations pour activer vos versements.',
+      payReady: 'Compte prêt : vos ventes clôturées vous sont versées chaque lundi.', payOpenStripe: 'Voir mes virements sur Stripe', payStatusReady: 'Prêt', payStatusPending: 'À compléter', payStatusNone: 'Non configuré',
+      payNotApproved: 'Les versements se configurent une fois votre boutique approuvée.', payDisabled: 'Les versements ne sont pas encore activés sur le serveur.',
+      payDue: 'À verser lundi', payUpcoming: 'À venir', payDone: 'Déjà versé', payNone: 'Aucune vente payée pour l’instant.',
+      colOrder: 'Commande', colSale: 'Vente', colReturns: 'Retours', colCommission: 'Commission', colNet: 'Net versé', colState: 'État', colDate: 'Versement',
+      ps_awaiting_delivery: 'En attente de livraison', ps_return_window: 'Délai de retour en cours', ps_return_in_progress: 'Retour en cours', ps_due: 'Prochain versement', ps_transferred: 'Versé', ps_nothing_due: 'Rien à verser',
+      payReturned: 'De retour de Stripe : statut mis à jour.',
     },
     en: {
       partnerSpace: 'Partner space', store: 'Store', language: 'Language',
@@ -138,6 +149,16 @@
       e_photoType: '“{name}” is not a JPEG, PNG or WebP image.', e_photoLarge: '“{name}” is too large (5 MB max. after scaling).', e_photoLimit: 'This product already has 8 photos.',
       e_photoStorage: 'Photo upload is not enabled on the server yet.', e_photoFailed: 'Sending “{name}” failed.',
       uploadLogo: 'Upload a logo', logoUploaded: 'Logo uploaded — remember to save.', fLogoUrl: 'or logo address (https)',
+      tabPayouts: 'Payouts',
+      payTitle: 'Your payouts', payRule: 'Every Monday you receive your closed sales: parcel delivered more than 14 days ago and no return in progress. Amount paid = what the customer kept, minus the Z Fashion commission (10 %, 8 % or 6 % depending on the order amount). Stripe fees are on us; the subscription is billed separately.',
+      paySetupTitle: 'Payout account', paySetupBody: 'To receive your sales, open your payout account with Stripe, our payment provider: company identity, legal representative and IBAN. About 5 minutes.',
+      paySetup: 'Set up my payouts', payContinue: 'Continue the setup', payMissing: 'Stripe still needs information to enable your payouts.',
+      payReady: 'Account ready: your closed sales are paid every Monday.', payOpenStripe: 'See my transfers on Stripe', payStatusReady: 'Ready', payStatusPending: 'To complete', payStatusNone: 'Not set up',
+      payNotApproved: 'Payouts can be set up once your store is approved.', payDisabled: 'Payouts are not enabled on the server yet.',
+      payDue: 'Paid on Monday', payUpcoming: 'Upcoming', payDone: 'Already paid', payNone: 'No paid sale yet.',
+      colOrder: 'Order', colSale: 'Sale', colReturns: 'Returns', colCommission: 'Commission', colNet: 'Net paid', colState: 'Status', colDate: 'Payout',
+      ps_awaiting_delivery: 'Awaiting delivery', ps_return_window: 'Return period running', ps_return_in_progress: 'Return in progress', ps_due: 'Next payout', ps_transferred: 'Paid', ps_nothing_due: 'Nothing to pay',
+      payReturned: 'Back from Stripe: status updated.',
     },
   };
 
@@ -236,8 +257,8 @@
 
   function render() {
     document.querySelectorAll('.pc-tabs button').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.tab === state.tab)); });
-    ['overview', 'catalogue', 'stock', 'corner'].forEach(function (id) { $('tab-' + id).hidden = id !== state.tab; });
-    ({ overview: renderOverview, catalogue: renderCatalogue, stock: renderStock, corner: renderCorner })[state.tab]();
+    ['overview', 'catalogue', 'stock', 'corner', 'payouts'].forEach(function (id) { $('tab-' + id).hidden = id !== state.tab; });
+    ({ overview: renderOverview, catalogue: renderCatalogue, stock: renderStock, corner: renderCorner, payouts: renderPayouts })[state.tab]();
   }
 
   // ---------- overview
@@ -810,6 +831,94 @@
     root.replaceChildren(form);
   }
 
+  // ---------- payouts (Stripe Connect)
+
+  var PAY_BADGE = { due: 'good', transferred: 'good', return_in_progress: 'warn', return_window: '', awaiting_delivery: '', nothing_due: '' };
+  function dateOnly(v) {
+    if (!v) return '—';
+    return new Date(v).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
+  }
+
+  function renderPayouts() {
+    var root = $('tab-payouts');
+    root.replaceChildren(el('p', { class: 'pc-muted' }, t('loading')));
+    api('/payouts').then(json).then(function (r) {
+      if (r.status === 503) { root.replaceChildren(el('p', { class: 'pc-card pc-muted' }, t('payDisabled'))); return; }
+      if (!r.ok) throw new Error('payouts ' + r.status);
+      if (state.tab === 'payouts') drawPayouts(root, r.body);
+    }).catch(function () { root.replaceChildren(el('p', { class: 'pc-error' }, t('unavailable'))); });
+  }
+
+  function goToStripe(path, button) {
+    button.disabled = true;
+    api(path, { method: 'POST' }).then(json).then(function (r) {
+      button.disabled = false;
+      if (r.ok && r.body.url && /^https:\/\//.test(r.body.url)) { window.location.assign(r.body.url); return; }
+      flash(r.body && r.body.error === 'store_not_approved' ? t('payNotApproved') : t('unavailable'), true);
+    }).catch(function () { button.disabled = false; flash(t('unavailable'), true); });
+  }
+
+  function drawPayouts(root, data) {
+    var nodes = [];
+    var acc = data.account || {};
+    var card = el('article', { class: 'pc-card' });
+    var head = el('div', { class: 'pc-store-head' });
+    var status = acc.ready ? ['good', t('payStatusReady')] : acc.connected ? ['warn', t('payStatusPending')] : ['', t('payStatusNone')];
+    head.append(el('h2', null, t('paySetupTitle')), el('span', { class: 'pc-badge ' + status[0] }, status[1]));
+    card.appendChild(head);
+    var appStatus = state.app && state.app.onboardingStatus;
+    if (acc.ready) {
+      card.appendChild(el('p', { class: 'pc-muted' }, t('payReady')));
+      var open = el('button', { class: 'pc-btn secondary', type: 'button' }, t('payOpenStripe'));
+      open.addEventListener('click', function () { goToStripe('/payouts/dashboard', open); });
+      card.appendChild(open);
+    } else if (appStatus && ['approved', 'active', 'suspended'].indexOf(appStatus) === -1 && !acc.connected) {
+      card.appendChild(el('p', { class: 'pc-muted' }, t('payNotApproved')));
+    } else {
+      card.appendChild(el('p', { class: 'pc-muted' }, acc.connected ? t('payMissing') : t('paySetupBody')));
+      var go = el('button', { class: 'pc-btn', type: 'button' }, acc.connected ? t('payContinue') : t('paySetup'));
+      go.addEventListener('click', function () { goToStripe('/payouts/onboarding', go); });
+      card.appendChild(go);
+    }
+    nodes.push(card);
+
+    var totals = data.totals || {};
+    var kpis = el('div', { class: 'pc-kpis' });
+    [[t('payDue'), totals.dueMinorUnits], [t('payUpcoming'), totals.upcomingMinorUnits], [t('payDone'), totals.transferredMinorUnits]]
+      .forEach(function (k) { var d = el('div', { class: 'pc-kpi' }); d.append(el('span', null, k[0]), el('strong', null, money(k[1] || 0))); kpis.appendChild(d); });
+    nodes.push(kpis);
+
+    var rules = el('article', { class: 'pc-card' });
+    rules.append(el('h3', null, t('payTitle')), el('p', { class: 'pc-muted' }, t('payRule')));
+    nodes.push(rules);
+
+    var lines = data.lines || [];
+    var wrap = el('div', { class: 'pc-table-wrap' });
+    if (!lines.length) {
+      wrap.appendChild(el('p', { class: 'pc-empty' }, t('payNone')));
+    } else {
+      var table = el('table', { class: 'pc-table' });
+      var thead = el('thead'); var hr = el('tr');
+      [['colOrder'], ['colSale', 'num'], ['colReturns', 'num'], ['colCommission', 'num'], ['colNet', 'num'], ['colState'], ['colDate']]
+        .forEach(function (c) { hr.appendChild(el('th', c[1] ? { class: c[1] } : null, t(c[0]))); });
+      thead.appendChild(hr); table.appendChild(thead);
+      var tb = el('tbody');
+      lines.forEach(function (l) {
+        var tr = el('tr');
+        var orderCell = el('td'); orderCell.append(document.createTextNode(dateOnly(l.orderCreatedAt)), el('small', null, '#' + String(l.orderId).slice(0, 8)));
+        var comm = el('td', { class: 'num' }); comm.append(document.createTextNode(money(l.commissionMinorUnits)), el('small', null, l.commissionRatePercent + ' %'));
+        var stateCell = el('td'); stateCell.appendChild(el('span', { class: 'pc-badge ' + (PAY_BADGE[l.state] || '') }, t('ps_' + l.state)));
+        tr.append(orderCell, el('td', { class: 'num' }, money(l.grossMinorUnits)), el('td', { class: 'num' }, l.refundedMinorUnits ? '− ' + money(l.refundedMinorUnits) : '—'),
+          comm, el('td', { class: 'num' }, money(l.netMinorUnits)), stateCell,
+          el('td', null, l.state === 'transferred' ? dateOnly(l.transferredAt) : dateOnly(l.expectedPayoutDate)));
+        tb.appendChild(tr);
+      });
+      table.appendChild(tb); wrap.appendChild(table);
+    }
+    nodes.push(wrap);
+    root.replaceChildren.apply(root, nodes);
+  }
+
   // ---------- start
 
   function start() {
@@ -835,7 +944,14 @@
         }).catch(function () {});
       });
     }
-    $('tab-overview').replaceChildren(el('p', { class: 'pc-muted' }, t('loading')));
+    // Back from Stripe's onboarding page (?payouts=return|refresh): open the payouts tab.
+    var back = null; try { back = new URLSearchParams(window.location.search).get('payouts'); } catch (e) {}
+    if (back === 'return' || back === 'refresh') {
+      state.tab = 'payouts';
+      try { history.replaceState(null, '', window.location.pathname + '#payouts'); } catch (e) {}
+      if (back === 'return') flash(t('payReturned'));
+    }
+    $('tab-' + state.tab).replaceChildren(el('p', { class: 'pc-muted' }, t('loading')));
     loadAll();
   }
 
