@@ -517,8 +517,80 @@ async function run() {
   assert.strictEqual(res.status, 201);
   assert.strictEqual(res.body.onboardingStatus, 'applied');
   const appliedPartnerId = res.body.partnerId;
-  res = await request('POST', `/partners/${appliedPartnerId}/transition`, { toStatus: 'under_review' });
-  assert.strictEqual(res.status, 200, 'the new store enters the normal onboarding state machine');
+
+  // --- Back-office review (task 8) + public catalogue visibility.
+  // The applied store adds a product: it must not be visible to shoppers yet.
+  res = await request('POST', `/partners/${appliedPartnerId}/brands`, { name: 'Maison Léman' });
+  const lemanBrand = res.body.brand.id;
+  res = await request('POST', `/partners/${appliedPartnerId}/products`, {
+    brandId: lemanBrand, names: { fr: 'Veste Léman' }, gender: 'female', categories: ['clothing'],
+    ageSegments: ['adults'], size: { system: 'EU', value: 38 }, priceMinorUnits: 18900,
+  });
+  assert.strictEqual(res.status, 201, JSON.stringify(res.body));
+  const lemanProduct = res.body.product.id;
+  await request('POST', `/partners/${appliedPartnerId}/stock/${lemanProduct}`, { quantityAvailable: 3, observedAt: '2026-10-15T08:00:00.000Z' });
+  res = await request('POST', `/partners/${appliedPartnerId}/corner-config`, { displayName: 'Maison Léman', logoUrl: 'https://example.com/leman.png' });
+  assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+  const visible = async () => ({
+    allSale: (await request('GET', '/catalog/all-sale')).body.products.some((p) => p.productId === lemanProduct),
+    product: (await request('GET', `/products/${lemanProduct}`)).status,
+    page: (await request('GET', `/catalog/products/${lemanProduct}`)).status,
+    corners: (await request('GET', '/catalog/corners')).body.corners.some((c) => c.partnerId === appliedPartnerId),
+    corner: (await request('GET', `/catalog/corners/${appliedPartnerId}`)).status,
+  });
+  assert.deepStrictEqual(await visible(), { allSale: false, product: 404, page: 404, corners: false, corner: 404 },
+    'an applied store is invisible to shoppers');
+
+  res = await request('GET', '/admin/partner-applications?status=applied');
+  assert.strictEqual(res.status, 200);
+  const listed = res.body.applications.find((a) => a.partnerId === appliedPartnerId);
+  assert.ok(listed, 'listed for review');
+  assert.strictEqual(listed.tradeName, 'Maison Léman');
+  assert.strictEqual(listed.monthlySubscriptionFeeMinorUnits, 3900, 'fee for its 1 category');
+  assert.strictEqual(res.body.countsByStatus.applied, 1);
+  res = await request('GET', '/admin/partner-applications?status=nonsense');
+  assert.strictEqual(res.status, 422);
+  res = await request('GET', `/admin/partner-applications/${appliedPartnerId}`);
+  assert.strictEqual(res.body.application.contactEmail, 'shop@example.fr');
+  assert.strictEqual(res.body.application.termsVersion, 'pt-2027-01');
+  assert.ok(res.body.application.termsAcceptedAt, 'acceptance time recorded');
+  res = await request('GET', '/admin/partner-applications/nope');
+  assert.strictEqual(res.status, 404);
+
+  const decide = (id, body) => request('POST', `/admin/partner-applications/${id}/decision`, body);
+  res = await decide(appliedPartnerId, { toStatus: 'approved' });
+  assert.strictEqual(res.status, 409, 'cannot skip review');
+  assert.strictEqual(res.body.from, 'applied');
+  res = await decide(appliedPartnerId, { toStatus: 'under_review' });
+  assert.strictEqual(res.status, 200);
+  res = await decide(appliedPartnerId, { toStatus: 'rejected' });
+  assert.strictEqual(res.status, 422, 'rejection needs a reason');
+  assert.deepStrictEqual(res.body.fieldErrors, [{ field: 'note', code: 'required' }]);
+  res = await decide(appliedPartnerId, { toStatus: 'approved', note: 'Dossier complet.' });
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.application.onboardingStatus, 'approved');
+  assert.deepStrictEqual((await visible()).allSale, false, 'approved is not yet live');
+  res = await decide(appliedPartnerId, { toStatus: 'active' });
+  assert.strictEqual(res.status, 422, 'activation needs the stock mode');
+  res = await decide(appliedPartnerId, { toStatus: 'active', feedReliabilityTier: 'degraded' });
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.application.feedReliabilityTier, 'degraded');
+  assert.deepStrictEqual(await visible(), { allSale: true, product: 200, page: 200, corners: true, corner: 200 },
+    'an active store is visible');
+
+  res = await decide(appliedPartnerId, { toStatus: 'suspended', note: 'Stock non mis à jour depuis 30 jours.' });
+  assert.strictEqual(res.status, 200);
+  assert.deepStrictEqual(await visible(), { allSale: false, product: 404, page: 404, corners: false, corner: 404 },
+    'a suspended store disappears from the catalogue');
+  res = await request('GET', `/partners/${appliedPartnerId}/application`);
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.onboardingStatus, 'suspended');
+  assert.strictEqual(res.body.decisionNote, 'Stock non mis à jour depuis 30 jours.', 'the store sees why');
+  res = await decide(appliedPartnerId, { toStatus: 'active', feedReliabilityTier: 'degraded' });
+  assert.strictEqual(res.status, 200, 'reactivation');
+  res = await request('GET', `/partners/${appliedPartnerId}/application`);
+  assert.strictEqual(res.body.decisionNote, 'Stock non mis à jour depuis 30 jours.', 'note kept when reactivating without a new one');
+
   delete process.env.FASHION_PARTNER_TERMS_VERSION; delete process.env.FASHION_PARTNER_TERMS_URL;
 
   // GET /me in in-memory mode: nobody is authenticated, nothing granted.

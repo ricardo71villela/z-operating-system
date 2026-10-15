@@ -31,6 +31,8 @@ Requests carry `Authorization: Bearer <Supabase access token>`.
 | Routes | Caller allowed |
 | --- | --- |
 | `POST /partners/:id/transition` | Admin (`FASHION_ADMIN_USER_IDS`) |
+| `GET /admin/partner-applications[?status=]`, `GET /admin/partner-applications/:partnerId`, `POST /admin/partner-applications/:partnerId/decision` | Admin. Decisions follow the onboarding graph; rejecting or suspending needs a note (shown to the store); activating needs the stock mode. Status and note are written in one transaction. |
+| `GET /partners/:id/application` | A person who manages that Partner: application status and latest decision note |
 | `/partners/:id/...` (stock, brands, products, Corner, commission, shipments, returns) | A person who manages that Partner (ZOS membership → registry binding) |
 | `POST /shipments`, `POST /returns` | A person who manages the `partnerId` in the body |
 | `POST /shipments/:id/transition`, `POST /returns/:id/transition` | A person who manages the Partner that owns the record |
@@ -41,5 +43,7 @@ Requests carry `Authorization: Bearer <Supabase access token>`.
 | `POST /partners` (apply), `/catalog/...`, `/products/:id`, `/health` | Public |
 
 The decision logic lives in `src/access.js` and is covered by `tests/access.test.js` (every branch) and `tests/auth-gate.test.js` (every scoped route over HTTP, refused before any database query).
+
+Only **active** stores are visible in the public catalogue (`/catalog/*`, `/products/:id`, wishlist and followed Corners); applied, under-review, approved, rejected and suspended stores are hidden.
 
 Stores apply on `public/adhesion.html`: the account that submits the form becomes the store's manager in the same transaction, so `GET /me` lists the store immediately (status `applied`). Approval stays an admin action. Stores created another way have no manager until linked.
