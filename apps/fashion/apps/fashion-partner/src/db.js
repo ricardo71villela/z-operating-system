@@ -690,9 +690,122 @@ async function submitPartnerApplicationPg(pool, authUserId, application, offerSn
   }
 }
 
+/** Partners shown in the public catalogue: onboarding_status 'active' only. */
+async function listActivePartnerIds(pool) {
+  const result = await pool.query(`select id from fashion.partners where onboarding_status = 'active'`);
+  return result.rows.map((r) => r.id);
+}
+
+const APPLICATION_COLUMNS = `
+  a.partner_id, a.trade_name, a.legal_name, a.country_iso, a.registration_number, a.vat_number,
+  a.address_line1, a.postal_code, a.city, a.contact_email, a.contact_phone, a.website,
+  a.terms_version, a.terms_accepted_at, a.offer_snapshot, a.review_note, a.reviewed_at, a.created_at,
+  p.onboarding_status, p.categories, p.age_segments, p.minor_safe_data_acknowledged, p.feed_reliability_tier`;
+
+function toApplicationShape(row) {
+  return {
+    partnerId: row.partner_id,
+    tradeName: row.trade_name,
+    legalName: row.legal_name,
+    countryIso: row.country_iso,
+    registrationNumber: row.registration_number,
+    vatNumber: row.vat_number,
+    addressLine1: row.address_line1,
+    postalCode: row.postal_code,
+    city: row.city,
+    contactEmail: row.contact_email,
+    contactPhone: row.contact_phone,
+    website: row.website,
+    termsVersion: row.terms_version,
+    termsAcceptedAt: row.terms_accepted_at,
+    offerSnapshot: row.offer_snapshot,
+    decisionNote: row.review_note,
+    decidedAt: row.reviewed_at,
+    createdAt: row.created_at,
+    onboardingStatus: row.onboarding_status,
+    categories: parsePgEnumArray(row.categories),
+    ageSegments: parsePgEnumArray(row.age_segments),
+    minorSafeDataAcknowledged: row.minor_safe_data_acknowledged,
+    feedReliabilityTier: row.feed_reliability_tier,
+  };
+}
+
+/** Back-office list: newest first, optionally one status; plus counts per status. */
+async function listPartnerApplicationsPg(pool, { status = null, limit = 200 } = {}) {
+  const [rows, counts] = await Promise.all([
+    pool.query(
+      `select ${APPLICATION_COLUMNS}
+       from fashion.partner_applications a join fashion.partners p on p.id = a.partner_id
+       where ($1::text is null or p.onboarding_status::text = $1)
+       order by a.created_at desc
+       limit $2`,
+      [status, limit]
+    ),
+    pool.query(
+      `select p.onboarding_status::text as status, count(*)::int as n
+       from fashion.partner_applications a join fashion.partners p on p.id = a.partner_id
+       group by 1`
+    ),
+  ]);
+  return {
+    applications: rows.rows.map(toApplicationShape),
+    countsByStatus: Object.fromEntries(counts.rows.map((r) => [r.status, r.n])),
+  };
+}
+
+async function getPartnerApplicationPg(pool, partnerId) {
+  const result = await pool.query(
+    `select ${APPLICATION_COLUMNS}
+     from fashion.partner_applications a join fashion.partners p on p.id = a.partner_id
+     where a.partner_id = $1`,
+    [partnerId]
+  );
+  return result.rows[0] ? toApplicationShape(result.rows[0]) : null;
+}
+
+/** One back-office decision, one transaction: the store's status (the
+ *  trigger enforces the transition graph and activation gates) and the
+ *  decision note / time / reviewer on its application. */
+async function decidePartnerApplicationPg(pool, partnerId, { toStatus, feedReliabilityTier, note, reviewerUserId }) {
+  const client = await pool.connect();
+  try {
+    await client.query('begin');
+    const updated = await client.query(
+      `update fashion.partners
+       set onboarding_status = $2,
+           feed_reliability_tier = coalesce($3, feed_reliability_tier),
+           updated_at = now()
+       where id = $1
+       returning id`,
+      [partnerId, toStatus, feedReliabilityTier || null]
+    );
+    if (updated.rows.length === 0) {
+      const err = new Error(`no partner with id ${partnerId}`);
+      err.statusCode = 404;
+      throw err;
+    }
+    await client.query(
+      `update fashion.partner_applications
+       set review_note = coalesce(nullif($2, ''), review_note),
+           reviewed_at = now(),
+           reviewed_by = $3
+       where partner_id = $1`,
+      [partnerId, (note || '').trim(), reviewerUserId || null]
+    );
+    await client.query('commit');
+  } catch (err) {
+    await client.query('rollback');
+    throw err;
+  } finally {
+    client.release();
+  }
+  return getPartnerApplicationPg(pool, partnerId);
+}
+
 module.exports = {
   createPool, insertPartner, updatePartnerStatus, getPartner,
   getAuthUserEmail, getPartnerOfferPg, submitPartnerApplicationPg,
+  listActivePartnerIds, listPartnerApplicationsPg, getPartnerApplicationPg, decidePartnerApplicationPg,
   resolveFashionPartnerIdsForAuthUser,
   insertBrand, getBrand, insertProduct, listProductsForPartner, listAllProducts, getProduct,
   insertShipment, listShipmentsForPartner, updateShipmentStatus, getShipmentPartnerId,

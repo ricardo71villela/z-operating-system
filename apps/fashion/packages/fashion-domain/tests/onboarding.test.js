@@ -81,3 +81,21 @@ babyApp2 = transition(babyApp2, 'active', { partner: babyPartner, feedReliabilit
 assert.strictEqual(babyApp2.status, 'active');
 
 console.log('onboarding.js: all invariant checks passed.');
+
+// --- back-office review decisions
+{
+  const { reviewDecisionErrors } = require('../src/onboarding');
+  const codes = (d) => reviewDecisionErrors(d).map((e) => `${e.field}:${e.code}`);
+  assert.deepStrictEqual(codes({ toStatus: 'under_review' }), []);
+  assert.deepStrictEqual(codes({ toStatus: 'approved' }), [], 'approval note optional');
+  assert.deepStrictEqual(codes({ toStatus: 'rejected' }), ['note:required']);
+  assert.deepStrictEqual(codes({ toStatus: 'rejected', note: '   ' }), ['note:required']);
+  assert.deepStrictEqual(codes({ toStatus: 'rejected', note: 'SIRET radié' }), []);
+  assert.deepStrictEqual(codes({ toStatus: 'suspended' }), ['note:required']);
+  assert.deepStrictEqual(codes({ toStatus: 'active' }), ['feedReliabilityTier:required']);
+  assert.deepStrictEqual(codes({ toStatus: 'active', feedReliabilityTier: 'degraded' }), []);
+  assert.deepStrictEqual(codes({ toStatus: 'approved', note: 'x'.repeat(1001) }), ['note:too_long']);
+  assert.deepStrictEqual(codes({ toStatus: 'applied' }), ['toStatus:unknown_value']);
+  assert.deepStrictEqual(codes({ toStatus: 'deleted' }), ['toStatus:unknown_value']);
+  console.log('onboarding.js review decisions: all checks passed.');
+}

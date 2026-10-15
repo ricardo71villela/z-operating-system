@@ -9,7 +9,7 @@
 
 const http = require('http');
 const { createPartner } = require('../../../packages/fashion-domain/src/partner');
-const { createApplication, transition } = require('../../../packages/fashion-domain/src/onboarding');
+const { createApplication, transition, reviewDecisionErrors } = require('../../../packages/fashion-domain/src/onboarding');
 const { initStock, applyStockUpdate, sellableQuantity } = require('../../../packages/fashion-domain/src/stock');
 const { createBrand } = require('../../../packages/fashion-domain/src/brand');
 const { createProduct } = require('../../../packages/fashion-domain/src/product');
@@ -117,7 +117,7 @@ async function authorizeAdminRequest(req, res) {
     isAllowed: (userId) => adminUserIds.includes(userId),
     forbiddenMessage: 'admin access required',
   });
-  return decision ? true : null;
+  return decision || null;
 }
 
 /**
@@ -228,8 +228,140 @@ async function handleSubmitPartnerApplication(req, res) {
   const partner = createPartner({ ...application, id: partnerId });
   memory.partners.set(partnerId, partner);
   memory.applications.set(partnerId, createApplication(partnerId));
-  memory.partnerApplications.set(partnerId, { ...application, offerSnapshot });
+  memory.partnerApplications.set(partnerId, { ...application, offerSnapshot, termsAcceptedAt: new Date().toISOString() });
   sendJson(res, 201, { partnerId, onboardingStatus: 'applied' });
+}
+
+/**
+ * Public catalogue visibility (2026-10-15): only stores whose
+ * onboarding_status is 'active' are shown to shoppers — never a store
+ * that has only applied, is under review, was rejected or is suspended.
+ * Applies to /catalog/*, /products/:id and the wishlist / followed
+ * Corners views. Partner-scoped routes (a store managing its own
+ * catalogue) are unaffected.
+ */
+async function activePartnerIdSet() {
+  if (usingPostgres) return new Set(await db.listActivePartnerIds(pool));
+  const ids = [];
+  for (const [id, application] of memory.applications) if (application.status === 'active') ids.push(id);
+  return new Set(ids);
+}
+
+/* ---------- Back-office: store applications (task 8) ---------- */
+
+function applicationWithFee(application) {
+  let monthlySubscriptionFeeMinorUnits = null;
+  try { monthlySubscriptionFeeMinorUnits = commissionDomain.subscriptionFeeMinorUnits(application.categories || []); } catch (e) { /* unknown category: leave null */ }
+  return { ...application, monthlySubscriptionFeeMinorUnits };
+}
+
+function memoryApplicationView(partnerId) {
+  const form = memory.partnerApplications.get(partnerId);
+  const state = memory.applications.get(partnerId);
+  if (!form || !state) return null;
+  const decision = memory.applicationDecisions.get(partnerId) || {};
+  const { offerSnapshot, ...fields } = form;
+  return {
+    partnerId, ...fields, offerSnapshot,
+    onboardingStatus: state.status,
+    feedReliabilityTier: state.feedReliabilityTier || null,
+    createdAt: state.history[0].at,
+    decisionNote: decision.note || null,
+    decidedAt: decision.at || null,
+  };
+}
+
+const REVIEWABLE_STATUSES = ['applied', 'under_review', 'approved', 'rejected', 'active', 'suspended'];
+
+/** GET /admin/partner-applications?status= — admins only. */
+async function handleAdminListApplications(req, res, query) {
+  if (!(await authorizeAdminRequest(req, res))) return;
+  const status = query.get('status');
+  if (status && !REVIEWABLE_STATUSES.includes(status)) return sendJson(res, 422, { error: 'unknown status' });
+  if (usingPostgres) {
+    const { applications, countsByStatus } = await db.listPartnerApplicationsPg(pool, { status: status || null });
+    return sendJson(res, 200, { applications: applications.map(applicationWithFee), countsByStatus });
+  }
+  const all = [...memory.partnerApplications.keys()].map(memoryApplicationView).filter(Boolean)
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  const countsByStatus = {};
+  for (const a of all) countsByStatus[a.onboardingStatus] = (countsByStatus[a.onboardingStatus] || 0) + 1;
+  const applications = (status ? all.filter((a) => a.onboardingStatus === status) : all).map(applicationWithFee);
+  sendJson(res, 200, { applications, countsByStatus });
+}
+
+/** GET /admin/partner-applications/:partnerId — admins only. */
+async function handleAdminGetApplication(req, res, partnerId) {
+  if (!(await authorizeAdminRequest(req, res))) return;
+  const application = usingPostgres ? await db.getPartnerApplicationPg(pool, partnerId) : memoryApplicationView(partnerId);
+  if (!application) return sendJson(res, 404, { error: 'application_not_found' });
+  sendJson(res, 200, { application: applicationWithFee(application) });
+}
+
+/**
+ * POST /admin/partner-applications/:partnerId/decision — admins only.
+ * Body: { toStatus, note?, feedReliabilityTier? }. Rejecting or
+ * suspending requires a note (the store is shown why); activating
+ * requires the stock mode. The transition graph and the activation
+ * gates are enforced by onboarding.js and, in Postgres, by the
+ * database trigger.
+ */
+async function handleAdminDecideApplication(req, res, partnerId) {
+  const decision = await authorizeAdminRequest(req, res);
+  if (!decision) return;
+  const body = await readBody(req);
+  const fieldErrors = reviewDecisionErrors(body);
+  if (fieldErrors.length) return sendJson(res, 422, { error: 'invalid_decision', fieldErrors });
+
+  if (usingPostgres) {
+    const current = await db.getPartnerApplicationPg(pool, partnerId);
+    if (!current) return sendJson(res, 404, { error: 'application_not_found' });
+    try {
+      transition({ status: current.onboardingStatus, history: [] }, body.toStatus, {
+        partner: { ageSegments: current.ageSegments, minorSafeDataAcknowledged: current.minorSafeDataAcknowledged },
+        feedReliabilityTier: body.feedReliabilityTier,
+      });
+    } catch (err) {
+      return sendJson(res, 409, { error: 'transition_not_allowed', detail: err.message, from: current.onboardingStatus });
+    }
+    const updated = await db.decidePartnerApplicationPg(pool, partnerId, {
+      toStatus: body.toStatus,
+      feedReliabilityTier: body.toStatus === 'active' ? body.feedReliabilityTier : null,
+      note: body.note,
+      reviewerUserId: decision.userId || null,
+    });
+    return sendJson(res, 200, { application: applicationWithFee(updated) });
+  }
+
+  const state = memory.applications.get(partnerId);
+  if (!state || !memory.partnerApplications.has(partnerId)) return sendJson(res, 404, { error: 'application_not_found' });
+  try {
+    const next = transition(state, body.toStatus, { partner: memory.partners.get(partnerId), feedReliabilityTier: body.feedReliabilityTier });
+    memory.applications.set(partnerId, next);
+  } catch (err) {
+    return sendJson(res, 409, { error: 'transition_not_allowed', detail: err.message, from: state.status });
+  }
+  const note = typeof body.note === 'string' ? body.note.trim() : '';
+  const previous = memory.applicationDecisions.get(partnerId) || {};
+  memory.applicationDecisions.set(partnerId, { note: note || previous.note || null, at: new Date().toISOString() });
+  sendJson(res, 200, { application: applicationWithFee(memoryApplicationView(partnerId)) });
+}
+
+/** GET /partners/:id/application — the store's own application status
+ *  and the latest decision note (e.g. why it was rejected). */
+async function handleGetOwnApplication(req, res, partnerId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
+  const application = usingPostgres ? await db.getPartnerApplicationPg(pool, partnerId) : memoryApplicationView(partnerId);
+  if (!application) return sendJson(res, 404, { error: 'application_not_found' });
+  sendJson(res, 200, {
+    partnerId,
+    tradeName: application.tradeName,
+    onboardingStatus: application.onboardingStatus,
+    decisionNote: application.decisionNote,
+    decidedAt: application.decidedAt,
+    createdAt: application.createdAt,
+    monthlySubscriptionFeeMinorUnits: applicationWithFee(application).monthlySubscriptionFeeMinorUnits,
+  });
 }
 
 // In-memory fallback store — only reachable when usingPostgres is false.
@@ -240,6 +372,7 @@ const memory = {
   wishlist: accountDomain.emptyWishlist(), cornerFollows: accountDomain.emptyCornerFollows(),
   addressBook: addressDomain.emptyAddressBook(),
   partnerApplications: new Map(),
+  applicationDecisions: new Map(),
 };
 
 function readBody(req) {
@@ -522,14 +655,9 @@ async function handleListProducts(req, res, partnerId) {
 
 async function handleGetProduct(req, res, productId) {
   try {
-    if (usingPostgres) {
-      const product = await db.getProduct(pool, productId);
-      if (!product) return sendJson(res, 404, { error: `no product with id ${productId}` });
-      return sendJson(res, 200, { product });
-    }
-
-    const product = memory.products.get(productId);
-    if (!product) return sendJson(res, 404, { error: `no product with id ${productId}` });
+    const product = usingPostgres ? await db.getProduct(pool, productId) : memory.products.get(productId);
+    const active = await activePartnerIdSet();
+    if (!product || !active.has(product.partnerId)) return sendJson(res, 404, { error: `no product with id ${productId}` });
     sendJson(res, 200, { product });
   } catch (err) {
     sendJson(res, 400, { error: err.message });
@@ -698,6 +826,10 @@ async function handleGetCatalogProduct(req, res, productId) {
       );
     }
 
+    const activeIds = await activePartnerIdSet();
+    if (!activeIds.has(product.partnerId)) return sendJson(res, 404, { error: `no product with id ${productId}` });
+    siblingProducts = siblingProducts.filter((p) => activeIds.has(p.partnerId));
+
     if (!partner) {
       return sendJson(res, 422, { error: `product ${productId} references partner ${product.partnerId}, which was not found — cannot render without the professional-seller disclosure` });
     }
@@ -754,7 +886,8 @@ async function handleGetAllSale(req, res, query) {
       );
     }
 
-    const matching = allSale(allProducts, filter);
+    const activeIds = await activePartnerIdSet();
+    const matching = allSale(allProducts.filter((p) => activeIds.has(p.partnerId)), filter);
 
     const cards = [];
     for (const product of matching) {
@@ -837,14 +970,17 @@ async function handleListWishlist(req, res, clientId) {
         const p = await db.getProduct(pool, e.productId);
         if (p) products.push(p);
       }
+      const activeIds = await activePartnerIdSet();
+      products = products.filter((p) => activeIds.has(p.partnerId));
       stockByProductId = await db.getStockForProductsPg(pool, products.map((p) => p.id));
       brandsById = {};
       for (const p of products) {
         if (p.brandId && !brandsById[p.brandId]) brandsById[p.brandId] = await db.getBrand(pool, p.brandId);
       }
     } else {
+      const activeIds = await activePartnerIdSet();
       const productIds = accountDomain.listWishlistProductIds(memory.wishlist, clientId);
-      products = productIds.map((id) => memory.products.get(id)).filter(Boolean);
+      products = productIds.map((id) => memory.products.get(id)).filter((p) => p && activeIds.has(p.partnerId));
       stockByProductId = Object.fromEntries(products.map((p) => [p.id, memory.stockByProductId.get(p.id) || initStock(p.id)]));
       brandsById = {};
       for (const p of products) {
@@ -909,6 +1045,8 @@ async function handleListFollows(req, res, clientId) {
       partnerIds = accountDomain.listFollowedPartnerIds(memory.cornerFollows, clientId);
       configs = partnerIds.map((id) => memory.cornerConfigs.get(id)).filter(Boolean);
     }
+    const activeIds = await activePartnerIdSet();
+    configs = configs.filter((c) => activeIds.has(c.partnerId));
     sendJson(res, 200, { corners: configs, total: configs.length });
   } catch (err) {
     sendJson(res, 400, { error: err.message });
@@ -1030,7 +1168,9 @@ async function handleUpsertCornerConfig(req, res, partnerId) {
  */
 async function handleListCorners(req, res) {
   try {
-    const configs = usingPostgres ? await db.listCornerConfigs(pool) : [...memory.cornerConfigs.values()];
+    const activeIds = await activePartnerIdSet();
+    const configs = (usingPostgres ? await db.listCornerConfigs(pool) : [...memory.cornerConfigs.values()])
+      .filter((c) => activeIds.has(c.partnerId));
     sendJson(res, 200, { corners: configs, total: configs.length });
   } catch (err) {
     sendJson(res, 400, { error: err.message });
@@ -1047,6 +1187,9 @@ async function handleListCorners(req, res) {
 async function handleGetCornerDetail(req, res, partnerId) {
   try {
     let config, allProducts, stockByProductId, brandsById;
+    if (!(await activePartnerIdSet()).has(partnerId)) {
+      return sendJson(res, 404, { error: `no configured Corner for partner ${partnerId}` });
+    }
 
     if (usingPostgres) {
       config = await db.getCornerConfig(pool, partnerId);
@@ -1106,6 +1249,18 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && parts[0] === 'partner-applications' && parts.length === 1) {
       return await handleSubmitPartnerApplication(req, res);
+    }
+    if (req.method === 'GET' && parts[0] === 'admin' && parts[1] === 'partner-applications' && parts.length === 2) {
+      return await handleAdminListApplications(req, res, url.searchParams);
+    }
+    if (req.method === 'GET' && parts[0] === 'admin' && parts[1] === 'partner-applications' && parts.length === 3) {
+      return await handleAdminGetApplication(req, res, parts[2]);
+    }
+    if (req.method === 'POST' && parts[0] === 'admin' && parts[1] === 'partner-applications' && parts[3] === 'decision' && parts.length === 4) {
+      return await handleAdminDecideApplication(req, res, parts[2]);
+    }
+    if (req.method === 'GET' && parts[0] === 'partners' && parts[2] === 'application' && parts.length === 3) {
+      return await handleGetOwnApplication(req, res, parts[1]);
     }
     if (req.method === 'POST' && parts[0] === 'partners' && parts.length === 1) {
       return await handleApplyPartner(req, res);

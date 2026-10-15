@@ -7,6 +7,7 @@ const assert = require('assert');
 const {
   createPool, insertPartner, updatePartnerStatus, getPartner,
   getAuthUserEmail, getPartnerOfferPg, submitPartnerApplicationPg, resolveFashionPartnerIdsForAuthUser,
+  listActivePartnerIds, listPartnerApplicationsPg, getPartnerApplicationPg, decidePartnerApplicationPg,
 } = require('../src/db');
 
 async function advanceToApproved(pool, partnerId) {
@@ -139,6 +140,42 @@ async function run() {
   await updatePartnerStatus(pool, created.partnerId, { onboardingStatus: 'rejected' });
   const again = await submitPartnerApplicationPg(pool, other.id, { ...application, contactEmail: 'o@example.fr' }, offer);
   assert.ok(again.partnerId);
+
+  // --- Back-office review (task 8): decisions are recorded with the store status, atomically.
+  const reviewer = (await pool.query(
+    `insert into auth.users (email) values ('admin-' || gen_random_uuid() || '@example.fr') returning id`
+  )).rows[0];
+  const listing = await listPartnerApplicationsPg(pool, { status: 'applied' });
+  assert.ok(listing.applications.some((a) => a.partnerId === again.partnerId));
+  assert.ok(listing.countsByStatus.applied >= 1);
+  assert.ok(listing.countsByStatus.rejected >= 1);
+  const detail = await getPartnerApplicationPg(pool, again.partnerId);
+  assert.deepStrictEqual(detail.categories, ['clothing', 'footwear'], 'enum arrays parsed');
+  assert.strictEqual(detail.contactEmail, 'o@example.fr');
+
+  assert.ok(!(await listActivePartnerIds(pool)).includes(again.partnerId), 'applied store not public');
+  await decidePartnerApplicationPg(pool, again.partnerId, { toStatus: 'under_review', reviewerUserId: reviewer.id });
+  const approvedApp = await decidePartnerApplicationPg(pool, again.partnerId, { toStatus: 'approved', note: 'Dossier complet', reviewerUserId: reviewer.id });
+  assert.strictEqual(approvedApp.onboardingStatus, 'approved');
+  assert.strictEqual(approvedApp.decisionNote, 'Dossier complet');
+  assert.ok(approvedApp.decidedAt instanceof Date);
+  const activeApp = await decidePartnerApplicationPg(pool, again.partnerId, { toStatus: 'active', feedReliabilityTier: 'degraded', reviewerUserId: reviewer.id });
+  assert.strictEqual(activeApp.feedReliabilityTier, 'degraded');
+  assert.strictEqual(activeApp.decisionNote, 'Dossier complet', 'kept when no new note');
+  assert.ok((await listActivePartnerIds(pool)).includes(again.partnerId), 'active store is public');
+
+  // The database still refuses an illegal transition, and nothing is half-written.
+  await assert.rejects(
+    () => decidePartnerApplicationPg(pool, again.partnerId, { toStatus: 'rejected', note: 'trop tard', reviewerUserId: reviewer.id }),
+    /cannot move from "active" to "rejected"/
+  );
+  const unchanged = await getPartnerApplicationPg(pool, again.partnerId);
+  assert.strictEqual(unchanged.onboardingStatus, 'active');
+  assert.strictEqual(unchanged.decisionNote, 'Dossier complet', 'note not written when the transition is refused');
+  await assert.rejects(
+    () => decidePartnerApplicationPg(pool, '00000000-0000-0000-0000-000000000000', { toStatus: 'under_review' }),
+    (err) => err.statusCode === 404
+  );
 
   // Not callable by API roles other than the privileged connection.
   const grants = (await pool.query(`select

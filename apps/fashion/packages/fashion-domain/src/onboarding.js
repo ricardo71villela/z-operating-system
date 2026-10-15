@@ -87,4 +87,30 @@ function transition(application, toStatus, context = {}) {
   });
 }
 
-module.exports = { STATUSES, ALLOWED_TRANSITIONS, FEED_RELIABILITY_TIERS, createApplication, transition };
+/* Back-office review decisions (2026-10-15). The transition graph and
+   activation gates stay in transition() above and in the database
+   trigger; this only adds what a human decision must carry:
+   - rejecting or suspending a store requires a note, because the store
+     is shown why;
+   - activating requires the stock mode (feed reliability tier);
+   - notes are plain text, at most 1000 characters.
+   Returns { field, code } pairs, empty when the decision is complete. */
+const DECISIONS_REQUIRING_NOTE = Object.freeze(['rejected', 'suspended']);
+const MAX_DECISION_NOTE_LENGTH = 1000;
+
+function reviewDecisionErrors({ toStatus, note, feedReliabilityTier } = {}) {
+  const errors = [];
+  if (!STATUSES.includes(toStatus) || toStatus === 'applied') errors.push({ field: 'toStatus', code: 'unknown_value' });
+  const text = typeof note === 'string' ? note.trim() : '';
+  if (DECISIONS_REQUIRING_NOTE.includes(toStatus) && text.length === 0) errors.push({ field: 'note', code: 'required' });
+  if (text.length > MAX_DECISION_NOTE_LENGTH) errors.push({ field: 'note', code: 'too_long' });
+  if (toStatus === 'active' && !FEED_RELIABILITY_TIERS.includes(feedReliabilityTier)) {
+    errors.push({ field: 'feedReliabilityTier', code: 'required' });
+  }
+  return errors;
+}
+
+module.exports = {
+  STATUSES, ALLOWED_TRANSITIONS, FEED_RELIABILITY_TIERS, createApplication, transition,
+  DECISIONS_REQUIRING_NOTE, MAX_DECISION_NOTE_LENGTH, reviewDecisionErrors,
+};

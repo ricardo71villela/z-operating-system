@@ -42,6 +42,15 @@
       alreadyTitle: 'Votre boutique a déjà un dossier Z Fashion',
       alreadyBody: 'Ce compte est déjà relié à une boutique. Suivez l’avancement de votre demande depuis votre espace Partner.',
       openDashboard: 'Ouvrir mon espace Partner',
+      st_applied: 'Votre demande est en cours d’examen', st_under_review: 'Votre demande est en cours d’examen',
+      st_approved: 'Demande approuvée', st_active: 'Votre boutique est en ligne', st_suspended: 'Boutique suspendue', st_rejected: 'Demande non retenue',
+      stb_applied: 'Nous examinons la demande de {store}, reçue le {date}. Revenez sur cette page pour suivre son avancement.',
+      stb_under_review: 'Nous examinons la demande de {store}, reçue le {date}. Revenez sur cette page pour suivre son avancement.',
+      stb_approved: 'La demande de {store} est approuvée. L’équipe Z Fashion prépare l’activation de votre boutique.',
+      stb_active: '{store} est visible dans le catalogue Z Fashion.',
+      stb_suspended: '{store} n’est plus visible dans le catalogue Z Fashion pour le moment.',
+      stb_rejected: 'La demande de {store} n’a pas été retenue.',
+      teamNote: 'Message de l’équipe Z Fashion :', reapply: 'Vous pouvez déposer une nouvelle demande ci-dessous.',
       successTitle: 'Demande d’adhésion envoyée',
       successBody: 'Merci. Votre demande est en cours d’examen par l’équipe Z Fashion. Nous vous écrirons à {email}. Aucun produit n’est publié avant validation.',
       unavailable: 'Le service est momentanément indisponible. Réessayez plus tard.',
@@ -83,6 +92,15 @@
       alreadyTitle: 'Your store already has a Z Fashion file',
       alreadyBody: 'This account is already linked to a store. Follow your application from your Partner space.',
       openDashboard: 'Open my Partner space',
+      st_applied: 'Your application is being reviewed', st_under_review: 'Your application is being reviewed',
+      st_approved: 'Application approved', st_active: 'Your store is live', st_suspended: 'Store suspended', st_rejected: 'Application not accepted',
+      stb_applied: 'We are reviewing the application for {store}, received on {date}. Come back to this page to follow it.',
+      stb_under_review: 'We are reviewing the application for {store}, received on {date}. Come back to this page to follow it.',
+      stb_approved: 'The application for {store} is approved. The Z Fashion team is preparing your store’s activation.',
+      stb_active: '{store} is visible in the Z Fashion catalogue.',
+      stb_suspended: '{store} is not visible in the Z Fashion catalogue for now.',
+      stb_rejected: 'The application for {store} was not accepted.',
+      teamNote: 'Message from the Z Fashion team:', reapply: 'You can submit a new application below.',
       successTitle: 'Application sent',
       successBody: 'Thank you. Your application is being reviewed by the Z Fashion team. We will write to {email}. No product is published before approval.',
       unavailable: 'The service is temporarily unavailable. Try again later.',
@@ -208,9 +226,29 @@
 
   // ---------- views
 
+  function renderApplicationStatus(box, form) {
+    var a = state.application;
+    var status = a.onboardingStatus;
+    var canReapply = status === 'rejected' && state.offer && state.offer.applicationsOpen;
+    box.hidden = false;
+    box.className = 'ad-card' + (status === 'active' || status === 'approved' ? ' ad-success' : '');
+    var date = a.createdAt ? new Date(a.createdAt).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-GB') : '';
+    var nodes = [el('h2', null, t('st_' + status)), el('p', null, t('stb_' + status, { store: a.tradeName || '', date: date }))];
+    if (a.decisionNote && (status === 'rejected' || status === 'suspended')) {
+      var note = el('p', { class: 'ad-notice' });
+      note.append(el('strong', null, t('teamNote') + ' '), document.createTextNode(a.decisionNote));
+      nodes.push(note);
+    }
+    if (canReapply) nodes.push(el('p', null, t('reapply')));
+    else if (status !== 'rejected') nodes.push(el('a', { class: 'ad-button', href: './dashboard.html' }, t('openDashboard')));
+    box.replaceChildren.apply(box, nodes);
+    form.hidden = !canReapply;
+  }
+
   function renderState() {
     var box = $('adState');
     var form = $('adForm');
+    if (state.view === 'status' && state.application) return renderApplicationStatus(box, form);
     if (state.view === 'form') { box.hidden = true; form.hidden = false; return; }
     form.hidden = true;
     if (state.view === 'loading') { box.hidden = true; return; }
@@ -304,10 +342,27 @@
       .then(function (res) { if (!res.ok) throw new Error('offer ' + res.status); return res.json(); })
       .then(function (offer) {
         state.offer = offer;
-        if (state.me && Array.isArray(state.me.partnerIds) && state.me.partnerIds.length > 0) state.view = 'already';
-        else if (!offer.applicationsOpen) state.view = 'closed';
-        else state.view = 'form';
-        applyLanguage();
+        var ids = state.me && Array.isArray(state.me.partnerIds) ? state.me.partnerIds : [];
+        if (ids.length === 0) {
+          state.view = offer.applicationsOpen ? 'form' : 'closed';
+          return applyLanguage();
+        }
+        // Linked to one or more stores: show the most relevant application
+        // (a pending/live one before a rejected one, newest first).
+        return Promise.all(ids.map(function (id) {
+          return auth.apiFetch('/partners/' + encodeURIComponent(id) + '/application')
+            .then(function (res) { return res.ok ? res.json() : null; })
+            .catch(function () { return null; });
+        })).then(function (apps) {
+          apps = apps.filter(Boolean).sort(function (x, y) {
+            var rx = x.onboardingStatus === 'rejected' ? 1 : 0, ry = y.onboardingStatus === 'rejected' ? 1 : 0;
+            if (rx !== ry) return rx - ry;
+            return String(y.createdAt).localeCompare(String(x.createdAt));
+          });
+          state.application = apps[0] || null;
+          state.view = state.application ? 'status' : 'already';
+          applyLanguage();
+        });
       })
       .catch(function () { state.view = 'error'; applyLanguage(); $('adOfferBody').replaceChildren(el('p', { class: 'ad-muted' }, t('unavailable'))); });
   }
