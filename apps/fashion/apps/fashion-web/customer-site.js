@@ -262,6 +262,8 @@
     document.title = `${document.getElementById('pageTitle').textContent} — Z Fashion`;
     renderActions();
     const content = document.getElementById('pageContent');
+    // Live storefront (customer-live.js) owns the catalogue, bag and checkout pages when the API is configured.
+    if (window.ZFashionLive && window.ZFashionLive.owns(route)) { window.ZFashionLive.render(); return; }
     if (route.group === 'commerce') content.innerHTML = renderCommerce(route.type);
     if (route.group === 'customer') content.innerHTML = renderCustomer(route.type);
     if (route.group === 'checkout') content.innerHTML = renderCheckout();

@@ -1248,6 +1248,33 @@ async function failPartnerTransferPg(pool, orderId, partnerId, failure) {
   await pool.query('select fashion.fail_partner_transfer($1, $2, $3)', [orderId, partnerId, failure]);
 }
 
+/* ---------- public storefront listing ---------- */
+
+/** Every sellable product of active stores (priced), newest first, in one query. */
+async function listCatalogPg(pool, { limit = 2000 } = {}) {
+  const r = await pool.query(
+    `select p.id, p.partner_id, p.brand_id, p.names, p.descriptions, p.categories, p.technical_purpose,
+            p.gender, p.age_segments, p.safety_certifications, p.size, p.format, p.corner_exclusive, p.style_id, p.partner_sku,
+            p.created_at, b.name as brand_name, pr.price_minor_units,
+            coalesce(s.quantity_available, 0) as quantity_available, coalesce(s.quantity_reserved, 0) as quantity_reserved
+     from fashion.products p
+     join fashion.partners pa on pa.id = p.partner_id and pa.onboarding_status = 'active'
+     left join fashion.brands b on b.id = p.brand_id
+     left join fashion.stock s on s.product_id = p.id
+     join lateral (select ph.price_minor_units from fashion.price_history ph
+                   where ph.product_id = p.id order by ph.observed_at desc limit 1) pr on true
+     order by p.created_at desc
+     limit $1`,
+    [limit]
+  );
+  return r.rows.map((row) => ({
+    product: { ...toProductDomainShape(row), createdAt: new Date(row.created_at).toISOString() },
+    brandName: row.brand_name || null,
+    priceMinorUnits: Number(row.price_minor_units),
+    stock: { productId: row.id, quantityAvailable: row.quantity_available, quantityReserved: row.quantity_reserved, lastUpdatedAt: null },
+  }));
+}
+
 module.exports = {
   createPool, insertPartner, updatePartnerStatus, getPartner,
   getAuthUserEmail, getPartnerOfferPg, submitPartnerApplicationPg,
@@ -1270,4 +1297,5 @@ module.exports = {
   startOrderPaymentPg, attachPaymentIntentPg, recordStripePaymentEventPg, getOrderPaymentPg,
   getPayoutAccountPg, listPayoutAccountsPg, upsertPayoutAccountPg, listPayoutLinesPg,
   claimPartnerTransferPg, completePartnerTransferPg, failPartnerTransferPg,
+  listCatalogPg,
 };

@@ -22,6 +22,17 @@ The full customer-site phase adds dedicated customer routes behind `customer-she
 - The approved white-tile mark is used on dark footer backgrounds.
 - ZOS appears only as the institutional footer endorsement, translated with the selected language.
 
+## Live catalogue (task 13)
+
+`zfashion-config.js` holds the address of the Z Fashion API (`apiBaseUrl`, empty by default). While it is empty the site shows its demonstration catalogue. Once set:
+
+- `customer-live.js` takes over the catalogue pages (`/nouveautes`, `/femme`, `/homme`, `/enfant`, `/sport`, `/accessoires`, `/beaute`, `/soldes`, `/recherche`, `/vente-privee`, `/produit/:id`, `/corners`, `/corner/:id`), `/favoris` and `/panier`, from `GET /catalog/listing` (priced products of active stores, newest first). The other layers hand over through `ZFashionLive.owns(route)`.
+- `home-live.js` puts the 8 newest real pieces and the real Corners on the home page, and turns the bag, favourites and search buttons into links to their pages.
+- Product URLs are `/produit/<product id>`; other sizes of the same style are links to their own product. Site pages come from `fashion-domain/src/storefront.js` (Femme/Homme by gender, Enfant for children-only items, Sport, Accessoires, Beauté).
+- The bag stays in the browser until checkout; quantities are capped at 10 per line, like the API. The demonstration ribbon and footer note are removed.
+- Every value from the API is escaped before it is inserted (`esc()`); only `https` image addresses are used.
+- The API must list the site origin in `FASHION_ALLOWED_ORIGINS`.
+
 ## Full customer-site route foundation
 
 The Preview currently defines 38 customer route authorities across five groups.

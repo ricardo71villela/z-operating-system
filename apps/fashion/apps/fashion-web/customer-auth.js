@@ -249,7 +249,7 @@
   function sessionStrip() {
     var strip = el('div', { class: 'zf-customer-session', id: 'zfCustomerSession' });
     var text = el('p', null, t('signedInAs') + ' ' + signedInEmail);
-    text.appendChild(el('small', null, t('demoNote')));
+    if (!(window.ZFashionLive && window.ZFashionLive.active)) text.appendChild(el('small', null, t('demoNote')));
     var out = el('button', { class: 'route-button secondary', type: 'button' }, t('signOut'));
     out.addEventListener('click', signOut);
     strip.append(text, out);

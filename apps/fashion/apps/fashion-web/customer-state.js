@@ -70,6 +70,7 @@
     bag = bag.filter(entry=>!(entry.productId===productId && entry.size===size));
     write(KEYS.bag,bag); emit();
   };
+  const clearBag = () => { bag = []; write(KEYS.bag, []); emit(); };
   const clearPreviewState = () => {
     favourites = new Set(); bag = [];
     write(KEYS.favourites,[]); write(KEYS.bag,[]); emit();
@@ -81,7 +82,7 @@
   window.addEventListener('pageshow', e => { if (e.persisted) reload(); });
 
   window.ZFashionCustomerState = {
-    snapshot,toggleFavourite,addBag,setBagQty,removeBag,clearPreviewState,reload,
+    snapshot,toggleFavourite,addBag,setBagQty,removeBag,clearBag,clearPreviewState,reload,
     mode:'PREVIEW_LOCAL_ONLY'
   };
   window.Z_FASHION_CUSTOMER_STATE = 'PREVIEW_LOCAL_ONLY';
