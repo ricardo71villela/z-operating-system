@@ -26,6 +26,8 @@ A disposable local database can run without authentication by setting `FASHION_A
 | `FASHION_PUBLIC_API_URL` | no | In-memory mode only: base URL used for `/media/...` links (default `http://127.0.0.1:$PORT`). |
 | `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY` | for payments | Stripe keys (`sk_test_`/`pk_test_` until go-live). The secret key never leaves the server; the publishable key is sent to the payment form. Without them, `POST …/payment` returns 503. |
 | `STRIPE_WEBHOOK_SECRET` | for payments | Signing secret (`whsec_…`) of the Stripe webhook endpoint `https://<api>/stripe/webhook`, events `payment_intent.succeeded`, `payment_intent.processing`, `payment_intent.payment_failed`. |
+| `FASHION_PARTNER_CONSOLE_URL` | for store payouts | https address of the Partner console (`…/dashboard.html`); Stripe sends the store back there after onboarding. |
+| `FASHION_CRON_SECRET` | for the weekly payout run | 32+ random characters; the scheduler calls `POST /internal/payouts/run` with `Authorization: Bearer <secret>`. |
 | `FASHION_SHIPPING_COUNTRIES` | no | Comma-separated ISO codes a Client may ship to (default `FR`). |
 | `FASHION_ALLOW_UNAUTHENTICATED` | no | `1` disables authentication. Local disposable databases only. |
 | `FASHION_DB_SSL_MODE`, `FASHION_DB_SCHEMA` | no | See `src/db.js`. |
@@ -44,6 +46,9 @@ Requests carry `Authorization: Bearer <Supabase access token>`.
 | `POST /shipments`, `POST /returns` | A person who manages the `partnerId` in the body |
 | `POST /shipments/:id/transition`, `POST /returns/:id/transition` | A person who manages the Partner that owns the record |
 | `/clients/:clientId/...` (wishlist, follows, addresses, cart, checkout, orders) | The client themself: `clientId` must equal the caller's auth user id |
+| `GET /partners/:id/payouts`, `POST /partners/:id/payouts/onboarding`, `POST /partners/:id/payouts/dashboard` | A person who manages that Partner |
+| `GET /admin/payouts`, `POST /admin/payouts/run` | Admin |
+| `POST /internal/payouts/run` | The weekly scheduler only (`FASHION_CRON_SECRET`) |
 | `POST /stripe/webhook` | Stripe only: every request must carry a valid `Stripe-Signature` for `STRIPE_WEBHOOK_SECRET` (raw body, 5-minute tolerance), otherwise 400. |
 | `POST /partner-applications` | Any signed-in person: submits the adhesion form; creates the store (`applied`) and links the account to it (see migration `20261014230000_z_fashion_partner_onboarding_v1.sql`) |
 | `GET /me` | Any signed-in person: returns their user id, `isAdmin` and the Partner ids they manage (grants nothing by itself) |
@@ -97,4 +102,15 @@ Rules (`fashion-domain/src/checkout.js`, mirrored by migration `20261016090000_z
 | `POST /clients/:id/orders/:orderId/payment` | Opens the payment of a `pending_payment` Order: creates its Stripe PaymentIntent (one per Order, idempotency key = Order id, `transfer_group` = `order_<id>` for the later payouts to stores) or reuses it, extends the stock hold to at least 15 min from now (never beyond 60 min after checkout), resets a declined payment. Returns `clientSecret` + `publishableKey` for Stripe.js (Payment Element). 409 `order_not_payable` when the hold ran out or the Order is paid/cancelled. |
 | `POST /stripe/webhook` | Signed Stripe events. `payment_intent.succeeded` with the exact total moves the Order to `paid` (stock committed, one Shipment per store, Cart closed); `processing` and `payment_failed` update the payment status. Each event is applied once (`fashion.stripe_webhook_events`) and only forward. A payment that arrives for a cancelled Order, or for another amount, is **refunded automatically**; if Stripe refuses the refund nothing is recorded and Stripe retries. |
 
-Card data never reaches this server (PCI scope stays with Stripe). Rules: `fashion-domain/src/payment.js` `applyPaymentEvent()`, mirrored by migration `20261016120000_z_fashion_stripe_payment_v2.sql`. Payouts to stores (Stripe Connect) are task 12.
+Card data never reaches this server (PCI scope stays with Stripe). Rules: `fashion-domain/src/payment.js` `applyPaymentEvent()`, mirrored by migration `20261016120000_z_fashion_stripe_payment_v2.sql`. ## Store payouts (Stripe Connect)
+
+Decided 2026-10-15: every **Monday** a store receives its **closed sales** — tickets whose parcel was delivered more than 14 days ago with no return still open — as a Stripe transfer to its connected account. Amount = what the Client kept (ticket − refunded returns) − Z Fashion commission computed on that kept amount (10 / 8 / 6 % tiers). Stripe fees are paid by Z Fashion; the subscription is billed separately. A store never has to give money back. Rules: `fashion-domain/src/payouts.js`, mirrored by migration `20261016150000_z_fashion_store_payouts_v1.sql` (`fashion.partner_payout_lines()`).
+
+| Route | What it does |
+| --- | --- |
+| `GET /partners/:id/payouts` | Account status (refreshed from Stripe), every paid ticket with its state (`awaiting_delivery`, `return_window`, `return_in_progress`, `due`, `transferred`, `nothing_due`), expected Monday, totals. Shown in the console tab **Versements**. |
+| `POST /partners/:id/payouts/onboarding` | Creates the store's Express account (once; controller: Z Fashion pays fees and carries losses, Stripe collects identity and IBAN) and returns a Stripe-hosted onboarding link. Store must be approved. |
+| `POST /partners/:id/payouts/dashboard` | One-time link to the store's Stripe Express dashboard. |
+| `GET /admin/payouts`, `POST /admin/payouts/run`, `POST /internal/payouts/run` | Overview and the payout run (by hand or weekly scheduler). |
+
+The run claims each due ticket in the database before calling Stripe (idempotency key per attempt), funds the transfer from the Order's own charge (`source_transaction`) and, on a retry, first asks Stripe whether a transfer for that Order and store already exists — a ticket is never paid twice. A refused transfer stays `failed` and is retried next run. Database mode only (503 in memory mode).

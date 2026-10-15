@@ -63,6 +63,11 @@ const SCOPED_ROUTES = [
   ['POST', `/clients/${CLIENT}/orders/${PARTNER}/cancel`],
   ['POST', `/clients/${CLIENT}/orders/${PARTNER}/payment`],
   ['GET', `/partners/${PARTNER}/orders`],
+  ['GET', `/partners/${PARTNER}/payouts`],
+  ['POST', `/partners/${PARTNER}/payouts/onboarding`],
+  ['POST', `/partners/${PARTNER}/payouts/dashboard`],
+  ['GET', '/admin/payouts'],
+  ['POST', '/admin/payouts/run'],
 ];
 
 function request(port, method, urlPath, body) {
@@ -160,6 +165,10 @@ function runStartup(extraEnv) {
     assert.strictEqual(refusedWithCors.status, 401);
     assert.strictEqual(refusedWithCors.headers['access-control-allow-origin'], 'https://admin.example.test',
       'a 401 must still carry CORS headers so the dashboard can read it');
+
+    // The weekly scheduler route needs its own secret, never a user token.
+    const cron = await request(4712, 'POST', '/internal/payouts/run');
+    assert.strictEqual(cron.status, 401);
 
     for (const [method, urlPath, body] of SCOPED_ROUTES) {
       const res = await request(4712, method, urlPath, body);

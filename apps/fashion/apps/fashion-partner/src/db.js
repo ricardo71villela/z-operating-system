@@ -1180,6 +1180,74 @@ async function getOrderPaymentPg(pool, orderId) {
     paymentExpiresAt: r.payment_expires_at ? new Date(r.payment_expires_at).toISOString() : null } : null;
 }
 
+/* ---------- store payouts (migration 20261016150000) ---------- */
+
+function toPayoutAccount(row) {
+  return row ? {
+    partnerId: row.partner_id, stripeAccountId: row.stripe_account_id, detailsSubmitted: row.details_submitted,
+    transfersActive: row.transfers_active, payoutsEnabled: row.payouts_enabled, requirementsDue: row.requirements_due || [],
+    updatedAt: new Date(row.updated_at).toISOString(),
+  } : null;
+}
+
+async function getPayoutAccountPg(pool, partnerId) {
+  const r = await pool.query('select * from fashion.partner_payout_accounts where partner_id = $1', [partnerId]);
+  return toPayoutAccount(r.rows[0]);
+}
+
+async function listPayoutAccountsPg(pool) {
+  const r = await pool.query('select * from fashion.partner_payout_accounts');
+  return r.rows.map(toPayoutAccount);
+}
+
+/** Saves the store's account and its status as Stripe reports it. */
+async function upsertPayoutAccountPg(pool, partnerId, { stripeAccountId, detailsSubmitted, transfersActive, payoutsEnabled, requirementsDue }) {
+  const r = await pool.query(
+    `insert into fashion.partner_payout_accounts
+       (partner_id, stripe_account_id, details_submitted, transfers_active, payouts_enabled, requirements_due)
+     values ($1, $2, $3, $4, $5, $6::text[])
+     on conflict (partner_id) do update set
+       details_submitted = excluded.details_submitted, transfers_active = excluded.transfers_active,
+       payouts_enabled = excluded.payouts_enabled, requirements_due = excluded.requirements_due, updated_at = now()
+     where fashion.partner_payout_accounts.stripe_account_id = excluded.stripe_account_id
+     returning *`,
+    [partnerId, stripeAccountId, !!detailsSubmitted, !!transfersActive, !!payoutsEnabled, requirementsDue || []]
+  );
+  if (!r.rows[0]) throw new Error('upsertPayoutAccountPg: store already has another Stripe account');
+  return toPayoutAccount(r.rows[0]);
+}
+
+function toPayoutLine(r) {
+  const iso = (v) => (v ? new Date(v).toISOString() : null);
+  return {
+    orderId: r.order_id, partnerId: r.partner_id, orderCreatedAt: iso(r.order_created_at),
+    grossMinorUnits: r.gross_minor_units, refundedMinorUnits: r.refunded_minor_units, keptMinorUnits: r.kept_minor_units,
+    commissionRatePercent: r.commission_rate_percent, commissionMinorUnits: r.commission_minor_units, netMinorUnits: r.net_minor_units,
+    deliveredAt: iso(r.delivered_at), eligibleAt: iso(r.eligible_at), openReturns: r.open_returns,
+    state: r.state, transferStatus: r.transfer_status, stripeTransferId: r.stripe_transfer_id, transferredAt: iso(r.transferred_at),
+  };
+}
+
+async function listPayoutLinesPg(pool, partnerId = null, now = null) {
+  const r = now
+    ? await pool.query('select * from fashion.partner_payout_lines($1, $2)', [partnerId, now])
+    : await pool.query('select * from fashion.partner_payout_lines($1)', [partnerId]);
+  return r.rows.map(toPayoutLine);
+}
+
+async function claimPartnerTransferPg(pool, orderId, partnerId) {
+  const r = await pool.query('select fashion.claim_partner_transfer($1, $2) as claim', [orderId, partnerId]);
+  return r.rows[0].claim;
+}
+
+async function completePartnerTransferPg(pool, orderId, partnerId, transferId) {
+  await pool.query('select fashion.complete_partner_transfer($1, $2, $3)', [orderId, partnerId, transferId]);
+}
+
+async function failPartnerTransferPg(pool, orderId, partnerId, failure) {
+  await pool.query('select fashion.fail_partner_transfer($1, $2, $3)', [orderId, partnerId, failure]);
+}
+
 module.exports = {
   createPool, insertPartner, updatePartnerStatus, getPartner,
   getAuthUserEmail, getPartnerOfferPg, submitPartnerApplicationPg,
@@ -1200,4 +1268,6 @@ module.exports = {
   getOrderPg, listOrdersForClientPg, listOrdersForPartnerPg, partnerSalesSincePg, getStoreNamesPg,
   getProductsByIdsPg, getBrandsByIdsPg,
   startOrderPaymentPg, attachPaymentIntentPg, recordStripePaymentEventPg, getOrderPaymentPg,
+  getPayoutAccountPg, listPayoutAccountsPg, upsertPayoutAccountPg, listPayoutLinesPg,
+  claimPartnerTransferPg, completePartnerTransferPg, failPartnerTransferPg,
 };

@@ -92,6 +92,54 @@ function createStripeClient({ secretKey, apiBase = DEFAULT_API_BASE, fetchImpl =
     retrievePaymentIntent(paymentIntentId) {
       return request('GET', `/payment_intents/${encodeURIComponent(paymentIntentId)}`);
     },
+    /* ---------- Connect (store payouts) ---------- */
+
+    /** Express connected account owned by Z Fashion; Stripe collects the identity checks. */
+    createConnectedAccount({ partnerId, country, email, businessName }) {
+      const params = {
+        country,
+        'capabilities[transfers][requested]': 'true',
+        'controller[fees][payer]': 'application',
+        'controller[losses][payments]': 'application',
+        'controller[stripe_dashboard][type]': 'express',
+        'controller[requirement_collection]': 'stripe',
+        'metadata[partner_id]': partnerId,
+        'metadata[platform]': 'zfashion',
+      };
+      if (email) params.email = email;
+      if (businessName) params['business_profile[name]'] = businessName;
+      return request('POST', '/accounts', { idempotencyKey: `zfashion-account-${partnerId}`, params });
+    },
+    retrieveAccount(accountId) {
+      return request('GET', `/accounts/${encodeURIComponent(accountId)}`);
+    },
+    createAccountLink({ accountId, refreshUrl, returnUrl }) {
+      return request('POST', '/account_links', {
+        params: { account: accountId, refresh_url: refreshUrl, return_url: returnUrl, type: 'account_onboarding' },
+      });
+    },
+    createLoginLink(accountId) {
+      return request('POST', `/accounts/${encodeURIComponent(accountId)}/login_links`, { params: {} });
+    },
+    /** Transfers already made for one Order to one store (guards against paying twice). */
+    listTransfers({ transferGroup, destination }) {
+      const q = new URLSearchParams({ transfer_group: transferGroup, destination, limit: '10' });
+      return request('GET', `/transfers?${q}`);
+    },
+    createTransfer({ amountMinorUnits, destination, transferGroup, sourceTransaction, orderId, partnerId, attempt }) {
+      const params = {
+        amount: String(amountMinorUnits),
+        currency: 'eur',
+        destination,
+        transfer_group: transferGroup,
+        'metadata[order_id]': orderId,
+        'metadata[partner_id]': partnerId,
+        'metadata[platform]': 'zfashion',
+      };
+      if (sourceTransaction) params.source_transaction = sourceTransaction;
+      return request('POST', '/transfers', { idempotencyKey: `zfashion-transfer-${orderId}-${partnerId}-${attempt}`, params });
+    },
+
     /** Full refund of a payment that cannot be kept. */
     refundPaymentIntent(paymentIntentId, reasonTag) {
       return request('POST', '/refunds', {

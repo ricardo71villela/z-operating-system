@@ -30,6 +30,7 @@ const checkoutDomain = require('../../../packages/fashion-domain/src/checkout');
 const { productName } = require('../../../packages/fashion-domain/src/product');
 const memoryCheckout = require('./memory-checkout');
 const stripeLib = require('./stripe');
+const payoutsService = require('./payouts-service');
 const { STRIPE_EVENT_STATUS } = require('../../../packages/fashion-domain/src/payment');
 const db = require('./db');
 const { resolveAuthenticatedUserId, loadSupabaseAuthConfigFromEnv } = require('./auth');
@@ -1819,6 +1820,149 @@ async function handleStripeWebhook(req, res) {
   }
 }
 
+/* ============================================================
+   Store payouts (task 12): Stripe Connect Express accounts, weekly
+   transfers of closed sales (payouts.js). Database mode only — the
+   ledger lives in fashion.partner_payout_lines() / partner_transfers.
+   ============================================================ */
+
+function consoleUrl() {
+  const raw = (process.env.FASHION_PARTNER_CONSOLE_URL || '').trim();
+  try {
+    const u = new URL(raw);
+    if (u.protocol === 'https:' || (u.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(u.hostname))) return u;
+  } catch (e) { /* not set */ }
+  return null;
+}
+
+function payoutsUnavailable(res) {
+  if (!usingPostgres) { sendJson(res, 503, { error: 'payouts_require_database' }); return true; }
+  if (!stripeClient) { sendJson(res, 503, { error: 'payments_not_configured' }); return true; }
+  return false;
+}
+
+function accountView(account) {
+  if (!account) return { connected: false, ready: false, detailsSubmitted: false, payoutsEnabled: false, requirementsDue: [] };
+  return {
+    connected: true,
+    ready: account.transfersActive && account.payoutsEnabled,
+    detailsSubmitted: account.detailsSubmitted,
+    payoutsEnabled: account.payoutsEnabled,
+    requirementsDue: account.requirementsDue,
+  };
+}
+
+/** GET /partners/:id/payouts — account status, every paid ticket with its payout state, totals. */
+async function handleGetPartnerPayouts(req, res, partnerId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
+  if (payoutsUnavailable(res)) return;
+  try {
+    let account = await db.getPayoutAccountPg(pool, partnerId);
+    if (account) {
+      try { account = await payoutsService.refreshAccount({ pool, db, stripe: stripeClient }, partnerId); } catch (err) { /* keep cached status */ }
+    }
+    const lines = payoutsService.withExpectedDates(await db.listPayoutLinesPg(pool, partnerId));
+    sendJson(res, 200, { account: accountView(account), lines, totals: payoutsService.summarize(lines), payoutWeekday: 'monday' });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
+/** POST /partners/:id/payouts/onboarding — Stripe-hosted page where the store gives its identity and bank account. */
+async function handlePayoutOnboarding(req, res, partnerId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
+  if (payoutsUnavailable(res)) return;
+  const base = consoleUrl();
+  if (!base) return sendJson(res, 503, { error: 'payouts_not_configured' });
+  try {
+    let account = await db.getPayoutAccountPg(pool, partnerId);
+    if (!account) {
+      const application = await db.getPartnerApplicationPg(pool, partnerId);
+      const partner = await db.getPartner(pool, partnerId);
+      if (!partner) return sendJson(res, 404, { error: 'partner_not_found' });
+      if (!['approved', 'active'].includes(partner.onboardingStatus)) return sendJson(res, 409, { error: 'store_not_approved' });
+      const created = await stripeClient.createConnectedAccount({
+        partnerId,
+        country: (application && application.countryIso) || partner.countryIso || 'FR',
+        email: application && application.contactEmail,
+        businessName: application && application.tradeName,
+      });
+      account = await db.upsertPayoutAccountPg(pool, partnerId, payoutsService.accountStatus(created));
+    }
+    const back = (flag) => { const u = new URL(base.toString()); u.searchParams.set('payouts', flag); u.hash = 'payouts'; return u.toString(); };
+    const link = await stripeClient.createAccountLink({ accountId: account.stripeAccountId, refreshUrl: back('refresh'), returnUrl: back('return') });
+    sendJson(res, 200, { url: link.url });
+  } catch (err) {
+    if (err instanceof stripeLib.StripeError) {
+      console.error('stripe connect onboarding failed', partnerId, err.code, err.httpStatus, err.stripeCode);
+      return sendJson(res, 502, { error: 'payment_provider_error' });
+    }
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
+/** POST /partners/:id/payouts/dashboard — one-time link to the store's Stripe Express dashboard. */
+async function handlePayoutDashboardLink(req, res, partnerId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
+  if (payoutsUnavailable(res)) return;
+  try {
+    const account = await db.getPayoutAccountPg(pool, partnerId);
+    if (!account || !account.detailsSubmitted) return sendJson(res, 409, { error: 'payout_account_not_ready' });
+    const link = await stripeClient.createLoginLink(account.stripeAccountId);
+    sendJson(res, 200, { url: link.url });
+  } catch (err) {
+    if (err instanceof stripeLib.StripeError) return sendJson(res, 502, { error: 'payment_provider_error' });
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
+/** GET /admin/payouts — every store's tickets and accounts. */
+async function handleAdminListPayouts(req, res) {
+  if (!(await authorizeAdminRequest(req, res))) return;
+  if (payoutsUnavailable(res)) return;
+  try {
+    const lines = payoutsService.withExpectedDates(await db.listPayoutLinesPg(pool, null));
+    const accounts = await db.listPayoutAccountsPg(pool);
+    const names = await db.getStoreNamesPg(pool, [...new Set(lines.map((l) => l.partnerId).concat(accounts.map((a) => a.partnerId)))]);
+    sendJson(res, 200, {
+      lines: lines.map((l) => ({ ...l, storeName: names[l.partnerId] || null })),
+      accounts: accounts.map((a) => ({ partnerId: a.partnerId, storeName: names[a.partnerId] || null, ...accountView(a) })),
+      totals: payoutsService.summarize(lines),
+    });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
+async function runPayoutsAndRespond(res) {
+  try {
+    const result = await payoutsService.runPayouts({ pool, db, stripe: stripeClient });
+    sendJson(res, 200, { result });
+  } catch (err) {
+    console.error('payouts run failed', err.message);
+    sendJson(res, 500, { error: 'payouts_run_failed' });
+  }
+}
+
+/** POST /admin/payouts/run — an admin starts the payout run by hand. */
+async function handleAdminRunPayouts(req, res) {
+  if (!(await authorizeAdminRequest(req, res))) return;
+  if (payoutsUnavailable(res)) return;
+  return runPayoutsAndRespond(res);
+}
+
+/** POST /internal/payouts/run — the weekly scheduler (Bearer FASHION_CRON_SECRET, 32+ characters). */
+async function handleCronRunPayouts(req, res) {
+  const secret = (process.env.FASHION_CRON_SECRET || '').trim();
+  const given = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  const a = Buffer.from(given); const b = Buffer.from(secret);
+  if (secret.length < 32 || a.length !== b.length || !require('crypto').timingSafeEqual(a, b)) {
+    return sendJson(res, 401, { error: 'unauthorized' });
+  }
+  if (payoutsUnavailable(res)) return;
+  return runPayoutsAndRespond(res);
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const parts = url.pathname.split('/').filter(Boolean);
@@ -1973,6 +2117,18 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'GET' && parts[0] === 'partners' && parts[2] === 'orders' && parts.length === 3) {
       return await handleListPartnerOrders(req, res, parts[1]);
+    }
+    if (parts[0] === 'partners' && parts[2] === 'payouts') {
+      if (req.method === 'GET' && parts.length === 3) return await handleGetPartnerPayouts(req, res, parts[1]);
+      if (req.method === 'POST' && parts.length === 4 && parts[3] === 'onboarding') return await handlePayoutOnboarding(req, res, parts[1]);
+      if (req.method === 'POST' && parts.length === 4 && parts[3] === 'dashboard') return await handlePayoutDashboardLink(req, res, parts[1]);
+    }
+    if (parts[0] === 'admin' && parts[1] === 'payouts') {
+      if (req.method === 'GET' && parts.length === 2) return await handleAdminListPayouts(req, res);
+      if (req.method === 'POST' && parts.length === 3 && parts[2] === 'run') return await handleAdminRunPayouts(req, res);
+    }
+    if (req.method === 'POST' && parts[0] === 'internal' && parts[1] === 'payouts' && parts[2] === 'run' && parts.length === 3) {
+      return await handleCronRunPayouts(req, res);
     }
     if (req.method === 'POST' && parts[0] === 'shipments' && parts.length === 1) {
       return await handleCreateShipment(req, res);
