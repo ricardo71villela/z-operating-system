@@ -24,6 +24,7 @@ A disposable local database can run without authentication by setting `FASHION_A
 | `SUPABASE_SECRET_KEY` (or `SUPABASE_SERVICE_ROLE_KEY`) | for photos and logos | Server-side key used **only** to write to the `zfashion-media` Storage bucket. Without it, uploads return 503. Never sent to a browser. |
 | `FASHION_MEDIA_BUCKET` | no | Storage bucket name (default `zfashion-media`). |
 | `FASHION_PUBLIC_API_URL` | no | In-memory mode only: base URL used for `/media/...` links (default `http://127.0.0.1:$PORT`). |
+| `FASHION_SHIPPING_COUNTRIES` | no | Comma-separated ISO codes a Client may ship to (default `FR`). |
 | `FASHION_ALLOW_UNAUTHENTICATED` | no | `1` disables authentication. Local disposable databases only. |
 | `FASHION_DB_SSL_MODE`, `FASHION_DB_SCHEMA` | no | See `src/db.js`. |
 
@@ -37,9 +38,10 @@ Requests carry `Authorization: Bearer <Supabase access token>`.
 | `GET /admin/partner-applications[?status=]`, `GET /admin/partner-applications/:partnerId`, `POST /admin/partner-applications/:partnerId/decision` | Admin. Decisions follow the onboarding graph; rejecting or suspending needs a note (shown to the store); activating needs the stock mode. Status and note are written in one transaction. |
 | `GET /partners/:id/application` | A person who manages that Partner: application status and latest decision note |
 | `/partners/:id/...` (stock, brands, products, inventory, price, photos, logo, Corner, commission, shipments, returns) | A person who manages that Partner (ZOS membership → registry binding) |
+| `GET /partners/:id/orders` | A person who manages that Partner: its paid Orders, its own lines only |
 | `POST /shipments`, `POST /returns` | A person who manages the `partnerId` in the body |
 | `POST /shipments/:id/transition`, `POST /returns/:id/transition` | A person who manages the Partner that owns the record |
-| `/clients/:clientId/...` (wishlist, follows, addresses) | The client themself: `clientId` must equal the caller's auth user id |
+| `/clients/:clientId/...` (wishlist, follows, addresses, cart, checkout, orders) | The client themself: `clientId` must equal the caller's auth user id |
 | `POST /partner-applications` | Any signed-in person: submits the adhesion form; creates the store (`applied`) and links the account to it (see migration `20261014230000_z_fashion_partner_onboarding_v1.sql`) |
 | `GET /me` | Any signed-in person: returns their user id, `isAdmin` and the Partner ids they manage (grants nothing by itself) |
 | `GET /onboarding/offer` | Public: offer from the database + published terms |
@@ -70,3 +72,19 @@ Product photos and store logos are uploaded **through this API** (raw JPEG, PNG 
 
 Rules live in `fashion-domain/src/media.js` (type recognised from the file content, size, count, paths built from ids). Files go to the public-read bucket `zfashion-media` under `partners/<partnerId>/...`; rows in `fashion.product_images` (migration `20261015150000_z_fashion_product_images_v1.sql`, which also refuses a 9th photo and a photo of another store's product). Inventory, product pages and listing cards (`imageUrl`) include them. The Partner console scales photos down to 2000 px before sending.
 
+
+## Cart, checkout and orders
+
+| Route | What it does |
+| --- | --- |
+| `GET /clients/:id/cart` | The open Cart priced at **current** prices: lines (name, brand, size, photo, store, stock status), one block per store, subtotal, delivery, total, `canCheckout`, `pendingOrderId`. |
+| `PUT /clients/:id/cart/items/:productId` | `{ quantity }` 1–10 (0 removes). 409 `insufficient_stock` (with `sellable`) or `product_unavailable` (store not active, no price). |
+| `DELETE /clients/:id/cart/items/:productId` | Removes the line. |
+| `POST /clients/:id/checkout` | `{ addressId }` (a shipping address of this Client, in `FASHION_SHIPPING_COUNTRIES`). Creates a `pending_payment` Order: lines repriced and frozen, address frozen, one ticket per store with its commission, stock held 30 minutes. All-or-nothing. |
+| `GET /clients/:id/orders`, `GET /clients/:id/orders/:orderId` | The Client's Orders (no commission shown). |
+| `POST /clients/:id/orders/:orderId/cancel` | Abandons an unpaid checkout and releases the stock. Refused (409) while a payment is processing or once paid. |
+| `GET /partners/:id/orders` | The store's **paid** Orders: its lines, its ticket (amount, rate, commission), delivery address, shipment. |
+
+Rules (`fashion-domain/src/checkout.js`, mirrored by migration `20261016090000_z_fashion_checkout_v2.sql`): one open Cart per Client; changing the Cart or checking out again cancels its unpaid Order; an unpaid Order past its hold is cancelled automatically (`fashion.expire_pending_orders()`, run before each Cart read and checkout) unless its payment is processing; delivery is included (0 €) at launch; a paid Order closes the Cart. `GET /partners/:id/commission` now reports this month's real sales and commission from paid Orders.
+
+Payment is not wired yet: an Order becomes `paid` only through `fashion.confirm_order_payment()`, which the Stripe webhook will call (task 11).

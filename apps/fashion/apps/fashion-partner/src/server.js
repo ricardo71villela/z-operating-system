@@ -26,6 +26,9 @@ const { buildListingCards } = require('../../../packages/fashion-domain/src/cata
 const { validatePartnerApplication } = require('../../../packages/fashion-domain/src/partner-application');
 const { launchedMarkets } = require('../../../packages/fashion-domain/src/markets');
 const mediaDomain = require('../../../packages/fashion-domain/src/media');
+const checkoutDomain = require('../../../packages/fashion-domain/src/checkout');
+const { productName } = require('../../../packages/fashion-domain/src/product');
+const memoryCheckout = require('./memory-checkout');
 const db = require('./db');
 const { resolveAuthenticatedUserId, loadSupabaseAuthConfigFromEnv } = require('./auth');
 const { isAuthRequired, loadAdminUserIds, decideAccess } = require('./access');
@@ -1345,22 +1348,11 @@ async function handleSetDefaultClientAddress(req, res, clientId, addressId) {
 
 /**
  * Partner-facing Commission/Billing view — GET /partners/:id/commission.
- * Closes half of today's Dashboard gap flagged by Ricardo: the
- * Overview panel's own empty-state literally said "not built yet."
- *
- * Deliberately honest about what cannot be shown: no column anywhere
- * in this schema tracks a Partner's own revenue — fashion.orders.
- * total_minor_units is the whole (possibly multi-Partner) Order's
- * total, never split per Partner, and fashion.shipments (the
- * Partner-scoped unit) carries no monetary column at all. Since no
- * checkout API exists yet either (no real completed sale has ever
- * happened through this system), `monthlyGmvMinorUnits` is honestly 0
- * for every Partner today — never fabricated, never estimated from
- * Shipment counts as a stand-in for money. What this endpoint CAN
- * show honestly: the price structure itself (this store's monthly
- * subscription for its number of categories and the per-ticket
- * commission tiers) — true regardless of whether any real sale has
- * happened yet.
+ * The price structure (subscription for the store's number of
+ * categories, ticket commission tiers) plus this month's real sales:
+ * the store's tickets of PAID Orders since the 1st of the month (UTC)
+ * and the commission computed on each ticket at checkout. Unpaid or
+ * cancelled checkouts are never counted as sales.
  */
 async function handleGetPartnerCommission(req, res, partnerId) {
   if (!(await authorizePartnerRequest(req, res, partnerId))) return;
@@ -1368,9 +1360,11 @@ async function handleGetPartnerCommission(req, res, partnerId) {
     const partner = usingPostgres ? await db.getPartner(pool, partnerId) : memory.partners.get(partnerId);
     if (!partner) return sendJson(res, 404, { error: `no partner with id ${partnerId}` });
 
-    // Real, honest, always 0 today — no checkout API exists to create
-    // a completed sale, so no Partner's GMV can be anything else.
-    const monthlyGmvMinorUnits = 0;
+    const now = new Date();
+    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const sales = usingPostgres
+      ? await db.partnerSalesSincePg(pool, partnerId, monthStart)
+      : memoryCheckout.partnerSalesSince(memory, partnerId, monthStart);
     const offer = await currentOffer();
 
     sendJson(res, 200, {
@@ -1379,8 +1373,10 @@ async function handleGetPartnerCommission(req, res, partnerId) {
       pricesExcludeVat: offer.pricesExcludeVat,
       firstMonthFree: offer.firstMonthFree,
       ticketCommissionTiers: offer.ticketCommissionTiers,
-      monthlyGmvMinorUnits,
-      gmvNote: 'Aucune vente réelle possible pour l’instant — aucune API de paiement/checkout n’existe encore (voir ZOS-ALIGNMENT.md).',
+      periodStart: monthStart.toISOString(),
+      monthlyGmvMinorUnits: sales.gmvMinorUnits,
+      monthlyCommissionMinorUnits: sales.commissionMinorUnits,
+      monthlyTicketCount: sales.ticketCount,
     });
   } catch (err) {
     sendJson(res, 400, { error: err.message });
@@ -1468,6 +1464,257 @@ async function handleGetCornerDetail(req, res, partnerId) {
       .map((card) => ({ ...card, imageUrl: (coverById[card.productId] || [])[0] ? coverById[card.productId][0].url : null }));
 
     sendJson(res, 200, { cornerConfig: config, products: cards, total: cards.length });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
+/* ============================================================
+   Cart, checkout and orders (task 10). The Client acts on their own
+   account only (authorizeClientRequest); a store sees only its own
+   lines of paid Orders (authorizePartnerRequest). Rules: checkout.js;
+   database authority: migration 20261016090000_z_fashion_checkout_v2.
+   Payment (Stripe) is the next step: an Order stays pending_payment
+   until fashion.confirm_order_payment() runs, and is cancelled (stock
+   released) when its hold runs out.
+   ============================================================ */
+
+const shippingCountries = checkoutDomain.parseShippingCountries(process.env.FASHION_SHIPPING_COUNTRIES);
+
+const CHECKOUT_ERROR_STATUS = {
+  insufficient_stock: 409, product_unavailable: 409, payment_in_progress: 409, order_not_cancellable: 409,
+  empty_cart: 422, address_not_found: 422, shipping_country_not_served: 422, invalid_quantity: 422,
+  order_not_found: 404,
+};
+
+function sendCheckoutError(res, err) {
+  const status = CHECKOUT_ERROR_STATUS[err && err.code];
+  if (!status) return sendJson(res, 400, { error: err.message });
+  const body = { error: err.code };
+  if (err.productId) body.productId = err.productId;
+  if (typeof err.sellable === 'number' && !Number.isNaN(err.sellable)) body.sellable = err.sellable;
+  return sendJson(res, status, body);
+}
+
+/** Names, brands, sizes, cover photos and store names for product lines. */
+async function describeLines(productIds, partnerIds) {
+  const ids = [...new Set(productIds)];
+  const stores = [...new Set(partnerIds.filter(Boolean))];
+  let productsById, brandsById, storeNames;
+  if (usingPostgres) {
+    productsById = await db.getProductsByIdsPg(pool, ids);
+    const brandIds = [...new Set(Object.values(productsById).map((p) => p.brandId).filter(Boolean))];
+    brandsById = await db.getBrandsByIdsPg(pool, brandIds);
+    storeNames = await db.getStoreNamesPg(pool, stores);
+  } else {
+    productsById = Object.fromEntries(ids.map((id) => [id, memory.products.get(id)]).filter(([, p]) => p));
+    brandsById = {};
+    for (const p of Object.values(productsById)) if (p.brandId && memory.brands.get(p.brandId)) brandsById[p.brandId] = memory.brands.get(p.brandId);
+    storeNames = Object.fromEntries(stores.map((id) => {
+      const corner = memory.cornerConfigs.get(id);
+      const form = memory.partnerApplications.get(id);
+      const partner = memory.partners.get(id);
+      return [id, (corner && corner.displayName) || (form && form.tradeName) || (partner && partner.legalName) || null];
+    }));
+  }
+  const images = await imagesByProductId(ids);
+  return { productsById, brandsById, storeNames, images };
+}
+
+function lineView(line, described) {
+  const product = described.productsById[line.productId];
+  const cover = (described.images[line.productId] || [])[0];
+  return {
+    ...line,
+    name: product ? productName(product) : null,
+    brandName: product && described.brandsById[product.brandId] ? described.brandsById[product.brandId].name : null,
+    size: product ? product.size : null,
+    format: product ? product.format : null,
+    sku: product ? product.sku : null,
+    imageUrl: cover ? cover.url : null,
+    storeName: described.storeNames[line.partnerId] || null,
+  };
+}
+
+async function buildCartView(clientId) {
+  if (usingPostgres) await db.expirePendingOrdersPg(pool);
+  else memoryCheckout.expirePendingOrders(memory);
+  const open = usingPostgres ? await db.getOpenCartPg(pool, clientId) : memoryCheckout.getOpenCart(memory, clientId);
+  const productIds = open.items.map((i) => i.productId);
+
+  let productsById, pricesById, stockById;
+  if (usingPostgres) {
+    productsById = await db.getProductsByIdsPg(pool, productIds);
+    pricesById = await db.getCurrentPricesPg(pool, productIds);
+    stockById = await db.getStockForProductsPg(pool, productIds);
+  } else {
+    productsById = Object.fromEntries(productIds.map((id) => [id, memory.products.get(id)]).filter(([, p]) => p));
+    pricesById = Object.fromEntries(productIds.map((id) => [id,
+      priceHistory.currentPrice(memory.priceHistoryByProductId.get(id) || priceHistory.emptyHistory())]));
+    stockById = Object.fromEntries(productIds.map((id) => [id, memory.stockByProductId.get(id) || initStock(id)]));
+  }
+
+  // Units held by this Client's own unpaid checkout are still theirs to buy.
+  if (open.pendingOrderId) {
+    const pending = usingPostgres ? await db.getOrderPg(pool, open.pendingOrderId) : memoryCheckout.getOrder(memory, open.pendingOrderId);
+    for (const item of (pending ? pending.items : [])) {
+      const s = stockById[item.productId];
+      if (s) stockById[item.productId] = { ...s, quantityReserved: Math.max(0, s.quantityReserved - item.quantity) };
+    }
+  }
+
+  const priced = checkoutDomain.priceCart({
+    items: open.items, productsById, pricesById, stockById, activePartnerIds: await activePartnerIdSet(),
+  });
+  const described = await describeLines(productIds, priced.lines.map((l) => l.partnerId));
+  return {
+    cartId: open.cartId,
+    currency: 'eur',
+    lines: priced.lines.map((l) => lineView(l, described)),
+    stores: priced.tickets.map((t) => ({
+      partnerId: t.partnerId, storeName: described.storeNames[t.partnerId] || null,
+      subtotalMinorUnits: t.subtotalMinorUnits, itemCount: t.itemCount,
+    })),
+    subtotalMinorUnits: priced.subtotalMinorUnits,
+    shippingMinorUnits: priced.shippingMinorUnits,
+    totalMinorUnits: priced.totalMinorUnits,
+    itemCount: priced.itemCount,
+    canCheckout: priced.canCheckout,
+    pendingOrderId: open.pendingOrderId,
+    maxLineQuantity: checkoutDomain.MAX_LINE_QUANTITY,
+    shippingCountries: [...shippingCountries],
+  };
+}
+
+/** Order for the Client: lines described, one block per store, no commission. */
+async function clientOrderView(order) {
+  const described = await describeLines(order.items.map((i) => i.productId), order.items.map((i) => i.partnerId));
+  const { tickets, clientUserId, ...rest } = order;
+  return {
+    ...rest,
+    items: order.items.map((i) => lineView(i, described)),
+    stores: tickets.map((t) => ({
+      partnerId: t.partnerId, storeName: described.storeNames[t.partnerId] || null,
+      subtotalMinorUnits: t.subtotalMinorUnits, itemCount: t.itemCount,
+      shipmentStatus: ((order.shipments || []).find((s) => s.partnerId === t.partnerId) || {}).status || null,
+    })),
+    shipments: undefined,
+  };
+}
+
+/** Order for a store: its own lines and ticket (with commission), the delivery address. */
+async function partnerOrderView(order) {
+  const described = await describeLines(order.items.map((i) => i.productId), order.items.map((i) => i.partnerId));
+  const { clientUserId, tickets, shipments, subtotalMinorUnits, shippingMinorUnits, totalMinorUnits, refundedMinorUnits, ...rest } = order;
+  return {
+    ...rest,
+    items: order.items.map((i) => lineView(i, described)),
+    ticket: tickets[0] || null,
+    shipment: (shipments || [])[0] || null,
+  };
+}
+
+async function handleGetCart(req, res, clientId) {
+  if (!(await authorizeClientRequest(req, res, clientId))) return;
+  try {
+    sendJson(res, 200, { cart: await buildCartView(clientId) });
+  } catch (err) {
+    sendCheckoutError(res, err);
+  }
+}
+
+/** PUT /clients/:id/cart/items/:productId { quantity } — 0 removes the line. */
+async function handleSetCartItem(req, res, clientId, productId, forcedQuantity) {
+  if (!(await authorizeClientRequest(req, res, clientId))) return;
+  const body = forcedQuantity === undefined ? await readBody(req) : { quantity: forcedQuantity };
+  const quantity = body.quantity;
+  if (checkoutDomain.lineQuantityError(quantity)) {
+    return sendJson(res, 422, { error: 'invalid_quantity', maxLineQuantity: checkoutDomain.MAX_LINE_QUANTITY });
+  }
+  try {
+    if (usingPostgres) {
+      if (!/^[0-9a-f-]{36}$/i.test(productId)) return sendJson(res, 409, { error: 'product_unavailable', productId });
+      await db.setCartItemPg(pool, clientId, productId, quantity);
+    } else {
+      memoryCheckout.setCartItem(memory, { clientUserId: clientId, productId, quantity, activePartnerIds: await activePartnerIdSet() });
+    }
+    sendJson(res, 200, { cart: await buildCartView(clientId) });
+  } catch (err) {
+    sendCheckoutError(res, err);
+  }
+}
+
+/** POST /clients/:id/checkout { addressId } — creates the pending-payment Order. */
+async function handleCheckout(req, res, clientId) {
+  if (!(await authorizeClientRequest(req, res, clientId))) return;
+  const body = await readBody(req);
+  if (!body.addressId || typeof body.addressId !== 'string') return sendJson(res, 422, { error: 'address_not_found' });
+  try {
+    const options = { addressId: body.addressId, allowedCountries: [...shippingCountries], holdSeconds: checkoutDomain.PAYMENT_HOLD_SECONDS };
+    const orderId = usingPostgres
+      ? await db.checkoutCartPg(pool, clientId, options)
+      : memoryCheckout.checkoutCart(memory, { ...options, clientUserId: clientId, activePartnerIds: await activePartnerIdSet() });
+    const order = usingPostgres ? await db.getOrderPg(pool, orderId) : memoryCheckout.getOrder(memory, orderId);
+    sendJson(res, 201, { order: await clientOrderView(order) });
+  } catch (err) {
+    sendCheckoutError(res, err);
+  }
+}
+
+async function handleListClientOrders(req, res, clientId) {
+  if (!(await authorizeClientRequest(req, res, clientId))) return;
+  try {
+    if (usingPostgres) await db.expirePendingOrdersPg(pool); else memoryCheckout.expirePendingOrders(memory);
+    const orders = usingPostgres ? await db.listOrdersForClientPg(pool, clientId) : memoryCheckout.listOrdersForClient(memory, clientId);
+    const views = [];
+    for (const o of orders) views.push(await clientOrderView(o));
+    sendJson(res, 200, { orders: views, total: views.length });
+  } catch (err) {
+    sendCheckoutError(res, err);
+  }
+}
+
+async function loadClientOrder(clientId, orderId) {
+  if (usingPostgres && !/^[0-9a-f-]{36}$/i.test(orderId)) return null;
+  const order = usingPostgres ? await db.getOrderPg(pool, orderId) : memoryCheckout.getOrder(memory, orderId);
+  return order && order.clientUserId === clientId ? order : null;
+}
+
+async function handleGetClientOrder(req, res, clientId, orderId) {
+  if (!(await authorizeClientRequest(req, res, clientId))) return;
+  try {
+    if (usingPostgres) await db.expirePendingOrdersPg(pool); else memoryCheckout.expirePendingOrders(memory);
+    const order = await loadClientOrder(clientId, orderId);
+    if (!order) return sendJson(res, 404, { error: 'order_not_found' });
+    sendJson(res, 200, { order: await clientOrderView(order) });
+  } catch (err) {
+    sendCheckoutError(res, err);
+  }
+}
+
+/** POST /clients/:id/orders/:orderId/cancel — abandons an unpaid checkout, releases the stock. */
+async function handleCancelClientOrder(req, res, clientId, orderId) {
+  if (!(await authorizeClientRequest(req, res, clientId))) return;
+  try {
+    const order = await loadClientOrder(clientId, orderId);
+    if (!order) return sendJson(res, 404, { error: 'order_not_found' });
+    if (usingPostgres) await db.cancelUnpaidOrderPg(pool, orderId);
+    else memoryCheckout.cancelUnpaidOrder(memory, orderId);
+    const updated = usingPostgres ? await db.getOrderPg(pool, orderId) : memoryCheckout.getOrder(memory, orderId);
+    sendJson(res, 200, { order: await clientOrderView(updated) });
+  } catch (err) {
+    sendCheckoutError(res, err);
+  }
+}
+
+/** GET /partners/:id/orders — the store's paid Orders (its lines only). */
+async function handleListPartnerOrders(req, res, partnerId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
+  try {
+    const orders = usingPostgres ? await db.listOrdersForPartnerPg(pool, partnerId) : memoryCheckout.listOrdersForPartner(memory, partnerId);
+    const views = [];
+    for (const o of orders) views.push(await partnerOrderView(o));
+    sendJson(res, 200, { orders: views, total: views.length });
   } catch (err) {
     sendJson(res, 400, { error: err.message });
   }
@@ -1607,6 +1854,22 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && parts[0] === 'clients' && parts[2] === 'addresses' && parts[4] === 'set-default') {
       return await handleSetDefaultClientAddress(req, res, parts[1], parts[3]);
+    }
+    if (parts[0] === 'clients' && parts[2] === 'cart') {
+      if (req.method === 'GET' && parts.length === 3) return await handleGetCart(req, res, parts[1]);
+      if (req.method === 'PUT' && parts[3] === 'items' && parts.length === 5) return await handleSetCartItem(req, res, parts[1], parts[4]);
+      if (req.method === 'DELETE' && parts[3] === 'items' && parts.length === 5) return await handleSetCartItem(req, res, parts[1], parts[4], 0);
+    }
+    if (req.method === 'POST' && parts[0] === 'clients' && parts[2] === 'checkout' && parts.length === 3) {
+      return await handleCheckout(req, res, parts[1]);
+    }
+    if (parts[0] === 'clients' && parts[2] === 'orders') {
+      if (req.method === 'GET' && parts.length === 3) return await handleListClientOrders(req, res, parts[1]);
+      if (req.method === 'GET' && parts.length === 4) return await handleGetClientOrder(req, res, parts[1], parts[3]);
+      if (req.method === 'POST' && parts.length === 5 && parts[4] === 'cancel') return await handleCancelClientOrder(req, res, parts[1], parts[3]);
+    }
+    if (req.method === 'GET' && parts[0] === 'partners' && parts[2] === 'orders' && parts.length === 3) {
+      return await handleListPartnerOrders(req, res, parts[1]);
     }
     if (req.method === 'POST' && parts[0] === 'shipments' && parts.length === 1) {
       return await handleCreateShipment(req, res);

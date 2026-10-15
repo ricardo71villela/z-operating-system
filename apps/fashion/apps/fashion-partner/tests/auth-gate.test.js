@@ -54,6 +54,14 @@ const SCOPED_ROUTES = [
   ['GET', `/clients/${CLIENT}/follows`],
   ['GET', `/clients/${CLIENT}/addresses`],
   ['POST', `/clients/${CLIENT}/addresses`, { line1: 'x' }],
+  ['GET', `/clients/${CLIENT}/cart`],
+  ['PUT', `/clients/${CLIENT}/cart/items/${PARTNER}`, { quantity: 1 }],
+  ['DELETE', `/clients/${CLIENT}/cart/items/${PARTNER}`],
+  ['POST', `/clients/${CLIENT}/checkout`, { addressId: PARTNER }],
+  ['GET', `/clients/${CLIENT}/orders`],
+  ['GET', `/clients/${CLIENT}/orders/${PARTNER}`],
+  ['POST', `/clients/${CLIENT}/orders/${PARTNER}/cancel`],
+  ['GET', `/partners/${PARTNER}/orders`],
 ];
 
 function request(port, method, urlPath, body) {

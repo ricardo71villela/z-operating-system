@@ -407,10 +407,11 @@ async function run() {
   assert.strictEqual(res.body.pricesExcludeVat, true);
   assert.strictEqual(res.body.firstMonthFree, true);
   assert.deepStrictEqual(res.body.ticketCommissionTiers.map((t) => t.ratePercent), [10, 8, 6]);
-  // Honest: no checkout API exists, GMV is genuinely 0 for every
-  // Partner today — never fabricated.
+  // No paid Order yet: this month's sales are 0, never estimated.
   assert.strictEqual(res.body.monthlyGmvMinorUnits, 0);
-  assert.ok(/Aucune vente réelle possible/.test(res.body.gmvNote));
+  assert.strictEqual(res.body.monthlyCommissionMinorUnits, 0);
+  assert.strictEqual(res.body.monthlyTicketCount, 0);
+  assert.ok(res.body.periodStart.endsWith('-01T00:00:00.000Z'));
 
   res = await request('GET', '/partners/does_not_exist/commission');
   assert.strictEqual(res.status, 404);
@@ -729,6 +730,167 @@ async function run() {
   res = await requestRaw('POST', `/partners/${appliedPartnerId}/logo`, PNG, 'image/png');
   assert.strictEqual(res.status, 201);
   assert.match(res.body.url, /\/media\/partners\/.+\/logo\/.+\.png$/);
+
+  // --- Cart, checkout and orders (task 10) ---
+  {
+    const buyer = 'client_lea';
+    res = await request('POST', '/partners/partner_atelier/brands', { name: 'Maison Panier' });
+    const cartBrandA = res.body.brand.id;
+    res = await request('POST', '/partners/partner_other_corner/brands', { name: 'Autre Marque' });
+    const cartBrandB = res.body.brand.id;
+    const mk = async (partnerId, brand, name, price, qty, category = 'clothing') => {
+      const r = await request('POST', `/partners/${partnerId}/products`, {
+        brandId: brand, names: { fr: name }, gender: 'female', categories: [category],
+        size: { system: 'alpha', value: 'M' }, ...(price === null ? {} : { priceMinorUnits: price }),
+      });
+      assert.strictEqual(r.status, 201, JSON.stringify(r.body));
+      if (qty !== null) await request('POST', `/partners/${partnerId}/stock/${r.body.product.id}`, { quantityAvailable: qty, observedAt: '2026-10-01T10:00:00.000Z' });
+      return r.body.product.id;
+    };
+    const robe = await mk('partner_atelier', cartBrandA, 'Robe panier', 6000, 3);
+    const jupe = await mk('partner_atelier', cartBrandA, 'Jupe panier', 4500, 1);
+    const manteau = await mk('partner_other_corner', cartBrandB, 'Manteau panier', 25000, 2);
+    const sansPrix = await mk('partner_atelier', cartBrandA, 'Sans prix', null, 5);
+
+    res = await request('GET', `/clients/${buyer}/cart`);
+    assert.strictEqual(res.status, 200);
+    assert.deepStrictEqual(res.body.cart.lines, []);
+    assert.strictEqual(res.body.cart.canCheckout, false);
+
+    res = await request('PUT', `/clients/${buyer}/cart/items/${robe}`, { quantity: 4 });
+    assert.strictEqual(res.status, 409, 'more than the stock');
+    assert.deepStrictEqual(res.body, { error: 'insufficient_stock', productId: robe, sellable: 3 });
+    res = await request('PUT', `/clients/${buyer}/cart/items/${robe}`, { quantity: 11 });
+    assert.strictEqual(res.status, 422);
+    assert.strictEqual(res.body.error, 'invalid_quantity');
+    res = await request('PUT', `/clients/${buyer}/cart/items/${sansPrix}`, { quantity: 1 });
+    assert.strictEqual(res.status, 409);
+    assert.strictEqual(res.body.error, 'product_unavailable', 'no price, not sold');
+    res = await request('PUT', `/clients/${buyer}/cart/items/does-not-exist`, { quantity: 1 });
+    assert.strictEqual(res.status, 409);
+
+    res = await request('PUT', `/clients/${buyer}/cart/items/${robe}`, { quantity: 2 });
+    assert.strictEqual(res.status, 200);
+    res = await request('PUT', `/clients/${buyer}/cart/items/${jupe}`, { quantity: 1 });
+    res = await request('PUT', `/clients/${buyer}/cart/items/${manteau}`, { quantity: 1 });
+    assert.strictEqual(res.status, 200);
+    let cart = res.body.cart;
+    assert.strictEqual(cart.lines.length, 3);
+    assert.strictEqual(cart.subtotalMinorUnits, 12000 + 4500 + 25000);
+    assert.strictEqual(cart.shippingMinorUnits, 0);
+    assert.strictEqual(cart.totalMinorUnits, 41500);
+    assert.strictEqual(cart.itemCount, 4);
+    assert.strictEqual(cart.canCheckout, true);
+    const robeLine = cart.lines.find((l) => l.productId === robe);
+    assert.strictEqual(robeLine.name, 'Robe panier');
+    assert.strictEqual(robeLine.brandName, 'Maison Panier');
+    assert.strictEqual(robeLine.status, 'ok');
+    assert.strictEqual(cart.stores.length, 2, 'one block per store');
+    assert.ok(cart.stores.every((st) => !('commissionMinorUnits' in st)), 'the client never sees the commission');
+    assert.strictEqual(cart.stores.find((st) => st.partnerId === 'partner_other_corner').storeName, 'Autre Boutique');
+
+    // Updating a line replaces the quantity; DELETE removes it.
+    res = await request('PUT', `/clients/${buyer}/cart/items/${robe}`, { quantity: 1 });
+    assert.strictEqual(res.body.cart.lines.find((l) => l.productId === robe).quantity, 1);
+    res = await request('DELETE', `/clients/${buyer}/cart/items/${jupe}`);
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.body.cart.lines.length, 2);
+    res = await request('PUT', `/clients/${buyer}/cart/items/${jupe}`, { quantity: 1 });
+    res = await request('PUT', `/clients/${buyer}/cart/items/${robe}`, { quantity: 2 });
+
+    // Another client's cart is separate.
+    res = await request('GET', '/clients/someone_else/cart');
+    assert.deepStrictEqual(res.body.cart.lines, []);
+
+    // Addresses: shipping in France only by default.
+    res = await request('POST', `/clients/${buyer}/addresses`, {
+      type: 'shipping', recipientName: 'Léa Martin', line1: '3 rue des Lilas', postalCode: '69001', city: 'Lyon', countryIso: 'FR', isDefault: true,
+    });
+    const leaAddress = res.body.address.id;
+    res = await request('POST', `/clients/${buyer}/addresses`, {
+      type: 'shipping', line1: 'Rua Augusta 1', postalCode: '1100-048', city: 'Lisboa', countryIso: 'PT',
+    });
+    const portugueseAddress = res.body.address.id;
+
+    res = await request('POST', `/clients/${buyer}/checkout`, { addressId: portugueseAddress });
+    assert.strictEqual(res.status, 422);
+    assert.strictEqual(res.body.error, 'shipping_country_not_served');
+    res = await request('POST', `/clients/${buyer}/checkout`, { addressId: addr1Id });
+    assert.strictEqual(res.status, 422, "another client's address is refused");
+    assert.strictEqual(res.body.error, 'address_not_found');
+    res = await request('POST', '/clients/someone_else/checkout', { addressId: leaAddress });
+    assert.strictEqual(res.status, 422);
+    assert.strictEqual(res.body.error, 'empty_cart');
+
+    // The price changed after the item was added: checkout uses the current price.
+    res = await request('POST', `/partners/partner_atelier/products/${robe}/price`, { priceMinorUnits: 5500 });
+    assert.strictEqual(res.status, 200);
+
+    res = await request('POST', `/clients/${buyer}/checkout`, { addressId: leaAddress });
+    assert.strictEqual(res.status, 201, JSON.stringify(res.body));
+    let order = res.body.order;
+    assert.strictEqual(order.status, 'pending_payment');
+    assert.strictEqual(order.paymentStatus, 'requires_payment_method');
+    assert.strictEqual(order.subtotalMinorUnits, 11000 + 4500 + 25000);
+    assert.strictEqual(order.totalMinorUnits, 40500);
+    assert.strictEqual(order.items.find((i) => i.productId === robe).unitPriceMinorUnits, 5500);
+    assert.deepStrictEqual(order.shippingAddress, { recipientName: 'Léa Martin', line1: '3 rue des Lilas', line2: null, postalCode: '69001', city: 'Lyon', countryIso: 'FR' });
+    assert.ok(new Date(order.paymentExpiresAt) > new Date(Date.now() + 29 * 60 * 1000), 'stock held ~30 min');
+    assert.deepStrictEqual(order.stores.map((st) => [st.partnerId, st.subtotalMinorUnits]).sort(),
+      [['partner_atelier', 15500], ['partner_other_corner', 25000]]);
+    assert.ok(!('tickets' in order) && !('clientUserId' in order));
+
+    // Stock is held: the last jupe cannot go into another cart.
+    res = await request('PUT', `/clients/someone_else/cart/items/${jupe}`, { quantity: 1 });
+    assert.strictEqual(res.status, 409);
+    assert.strictEqual(res.body.sellable, 0);
+    // ...but the buyer's own cart still shows it as theirs.
+    res = await request('GET', `/clients/${buyer}/cart`);
+    assert.strictEqual(res.body.cart.pendingOrderId, order.id);
+    assert.strictEqual(res.body.cart.canCheckout, true);
+
+    // Checking out again replaces the unpaid Order (no double hold).
+    res = await request('POST', `/clients/${buyer}/checkout`, { addressId: leaAddress });
+    assert.strictEqual(res.status, 201);
+    const secondOrder = res.body.order;
+    res = await request('GET', `/clients/${buyer}/orders/${order.id}`);
+    assert.strictEqual(res.body.order.status, 'cancelled');
+
+    // Orders list and detail are private to the client.
+    res = await request('GET', `/clients/${buyer}/orders`);
+    assert.strictEqual(res.status, 200);
+    assert.deepStrictEqual(res.body.orders.map((o) => o.status).sort(), ['cancelled', 'pending_payment']);
+    res = await request('GET', `/clients/someone_else/orders/${secondOrder.id}`);
+    assert.strictEqual(res.status, 404);
+
+    // Abandoning the checkout releases the stock.
+    res = await request('POST', `/clients/${buyer}/orders/${secondOrder.id}/cancel`);
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.body.order.status, 'cancelled');
+    res = await request('PUT', `/clients/someone_else/cart/items/${jupe}`, { quantity: 1 });
+    assert.strictEqual(res.status, 200, 'released stock is sellable again');
+    res = await request('DELETE', `/clients/someone_else/cart/items/${jupe}`);
+
+    // Changing the cart cancels an unpaid Order of that cart.
+    res = await request('POST', `/clients/${buyer}/checkout`, { addressId: leaAddress });
+    const thirdOrder = res.body.order;
+    res = await request('PUT', `/clients/${buyer}/cart/items/${robe}`, { quantity: 3 });
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.body.cart.pendingOrderId, null);
+    res = await request('GET', `/clients/${buyer}/orders/${thirdOrder.id}`);
+    assert.strictEqual(res.body.order.status, 'cancelled');
+
+    // Insufficient stock at checkout names the product.
+    await request('POST', `/partners/partner_atelier/stock/${robe}`, { quantityAvailable: 2, observedAt: '2026-10-02T10:00:00.000Z' });
+    res = await request('POST', `/clients/${buyer}/checkout`, { addressId: leaAddress });
+    assert.strictEqual(res.status, 409);
+    assert.deepStrictEqual(res.body, { error: 'insufficient_stock', productId: robe, sellable: 2 });
+
+    // A store only sees PAID orders (none yet: payment is the next step).
+    res = await request('GET', '/partners/partner_atelier/orders');
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.body.total, 0);
+  }
 
   // GET /me in in-memory mode: nobody is authenticated, nothing granted.
   res = await request('GET', '/me');

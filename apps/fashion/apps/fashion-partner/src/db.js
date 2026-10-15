@@ -919,6 +919,213 @@ async function reorderProductImagesPg(pool, productId, orderedIds) {
   }
 }
 
+/* ---------- cart, checkout, orders (migration 20261016090000) ---------- */
+
+const CHECKOUT_ERROR_KEYS = new Set([
+  'insufficient_stock', 'product_unavailable', 'empty_cart', 'address_not_found',
+  'shipping_country_not_served', 'payment_in_progress', 'invalid_quantity',
+  'order_not_cancellable', 'order_not_found',
+]);
+
+/** Turns a keyed RAISE from the checkout functions into an Error with
+ *  .code (the key), .productId (DETAIL when it is a product) and
+ *  .sellable (HINT, for insufficient_stock). Other errors pass through. */
+function checkoutError(err) {
+  const key = err && typeof err.message === 'string' ? err.message.trim() : '';
+  if (!CHECKOUT_ERROR_KEYS.has(key)) return err;
+  const out = new Error(key);
+  out.code = key;
+  if (err.detail && /^[0-9a-f-]{36}$/i.test(err.detail)) out.productId = err.detail;
+  else if (err.detail) out.detail = err.detail;
+  if (key === 'insufficient_stock' && err.hint !== undefined) out.sellable = Number(err.hint);
+  return out;
+}
+
+async function expirePendingOrdersPg(pool) {
+  const result = await pool.query('select fashion.expire_pending_orders() as n');
+  return Number(result.rows[0].n);
+}
+
+async function setCartItemPg(pool, clientUserId, productId, quantity) {
+  try {
+    await pool.query('select fashion.set_cart_item($1, $2, $3)', [clientUserId, productId, quantity]);
+  } catch (err) {
+    throw checkoutError(err);
+  }
+}
+
+/** The Client's open Cart: lines and the unpaid Order of this Cart, if any. */
+async function getOpenCartPg(pool, clientUserId) {
+  const cart = await pool.query(
+    `select id from fashion.carts where client_user_id = $1 and checked_out_at is null`,
+    [clientUserId]
+  );
+  if (cart.rows.length === 0) return { cartId: null, items: [], pendingOrderId: null };
+  const cartId = cart.rows[0].id;
+  const items = await pool.query(
+    `select product_id, partner_id, quantity from fashion.cart_items where cart_id = $1 order by created_at, id`,
+    [cartId]
+  );
+  const pending = await pool.query(
+    `select id from fashion.orders where cart_id = $1 and status = 'pending_payment' order by created_at desc limit 1`,
+    [cartId]
+  );
+  return {
+    cartId,
+    items: items.rows.map((r) => ({ productId: r.product_id, partnerId: r.partner_id, quantity: r.quantity })),
+    pendingOrderId: pending.rows[0] ? pending.rows[0].id : null,
+  };
+}
+
+async function checkoutCartPg(pool, clientUserId, { addressId, allowedCountries, holdSeconds }) {
+  try {
+    const result = await pool.query(
+      'select fashion.checkout_cart($1, $2, $3::text[], $4) as order_id',
+      [clientUserId, addressId, allowedCountries, holdSeconds]
+    );
+    return result.rows[0].order_id;
+  } catch (err) {
+    if (err.code === '22P02') { // malformed uuid
+      const e = new Error('address_not_found'); e.code = 'address_not_found'; throw e;
+    }
+    throw checkoutError(err);
+  }
+}
+
+async function cancelUnpaidOrderPg(pool, orderId) {
+  try {
+    await pool.query('select fashion.cancel_unpaid_order($1)', [orderId]);
+  } catch (err) {
+    throw checkoutError(err);
+  }
+}
+
+const ORDER_COLUMNS = `o.id, o.client_user_id, o.status, o.payment_status, o.currency, o.subtotal_minor_units,
+  o.shipping_minor_units, o.total_minor_units, o.refunded_minor_units, o.shipping_address,
+  o.payment_expires_at, o.created_at`;
+
+function toOrderShape(row) {
+  return {
+    id: row.id,
+    clientUserId: row.client_user_id,
+    status: row.status,
+    paymentStatus: row.payment_status,
+    currency: row.currency,
+    subtotalMinorUnits: row.subtotal_minor_units,
+    shippingMinorUnits: row.shipping_minor_units,
+    totalMinorUnits: row.total_minor_units,
+    refundedMinorUnits: row.refunded_minor_units,
+    shippingAddress: row.shipping_address,
+    paymentExpiresAt: row.payment_expires_at ? new Date(row.payment_expires_at).toISOString() : null,
+    createdAt: new Date(row.created_at).toISOString(),
+    items: [],
+    tickets: [],
+  };
+}
+
+/** Attaches items, tickets and shipments to orders (one query each). */
+async function decorateOrdersPg(pool, orders, { partnerId = null } = {}) {
+  if (orders.length === 0) return orders;
+  const ids = orders.map((o) => o.id);
+  const byId = new Map(orders.map((o) => [o.id, o]));
+  const partnerFilter = partnerId ? 'and partner_id = $2' : '';
+  const params = partnerId ? [ids, partnerId] : [ids];
+  const items = await pool.query(
+    `select order_id, product_id, partner_id, quantity, unit_price_minor_units, line_total_minor_units
+     from fashion.order_items where order_id = any($1::uuid[]) ${partnerFilter} order by created_at, id`, params);
+  for (const r of items.rows) byId.get(r.order_id).items.push({
+    productId: r.product_id, partnerId: r.partner_id, quantity: r.quantity,
+    unitPriceMinorUnits: r.unit_price_minor_units, lineTotalMinorUnits: r.line_total_minor_units,
+  });
+  const tickets = await pool.query(
+    `select order_id, partner_id, subtotal_minor_units, item_count, commission_rate_percent, commission_minor_units
+     from fashion.order_tickets where order_id = any($1::uuid[]) ${partnerFilter} order by partner_id`, params);
+  for (const r of tickets.rows) byId.get(r.order_id).tickets.push({
+    partnerId: r.partner_id, subtotalMinorUnits: r.subtotal_minor_units, itemCount: r.item_count,
+    commissionRatePercent: r.commission_rate_percent, commissionMinorUnits: r.commission_minor_units,
+  });
+  const shipments = await pool.query(
+    `select id, order_id, partner_id, status from fashion.shipments where order_id = any($1::uuid[]) ${partnerFilter}`, params);
+  for (const o of orders) o.shipments = [];
+  for (const r of shipments.rows) byId.get(r.order_id).shipments.push({ id: r.id, partnerId: r.partner_id, status: r.status });
+  return orders;
+}
+
+async function getOrderPg(pool, orderId) {
+  const result = await pool.query(`select ${ORDER_COLUMNS} from fashion.orders o where o.id = $1`, [orderId]);
+  if (result.rows.length === 0) return null;
+  const [order] = await decorateOrdersPg(pool, [toOrderShape(result.rows[0])]);
+  return order;
+}
+
+async function listOrdersForClientPg(pool, clientUserId, { limit = 50 } = {}) {
+  const result = await pool.query(
+    `select ${ORDER_COLUMNS} from fashion.orders o where o.client_user_id = $1 order by o.created_at desc limit $2`,
+    [clientUserId, limit]
+  );
+  return decorateOrdersPg(pool, result.rows.map(toOrderShape));
+}
+
+const SOLD_STATUSES = ['paid', 'fulfilling', 'fulfilled', 'partially_refunded', 'refunded'];
+
+/** A store's sales: paid Orders that contain its products, with only
+ *  its own lines, ticket and shipment. Unpaid Orders are not sales. */
+async function listOrdersForPartnerPg(pool, partnerId, { limit = 100 } = {}) {
+  const result = await pool.query(
+    `select ${ORDER_COLUMNS} from fashion.orders o
+     join fashion.order_tickets t on t.order_id = o.id and t.partner_id = $1
+     where o.status = any($2::text[])
+     order by o.created_at desc limit $3`,
+    [partnerId, SOLD_STATUSES, limit]
+  );
+  return decorateOrdersPg(pool, result.rows.map(toOrderShape), { partnerId });
+}
+
+/** Sales and commission of one store since a date (paid Orders only). */
+async function partnerSalesSincePg(pool, partnerId, since) {
+  const result = await pool.query(
+    `select coalesce(sum(t.subtotal_minor_units), 0)::bigint as gmv,
+            coalesce(sum(t.commission_minor_units), 0)::bigint as commission,
+            count(*)::int as tickets
+     from fashion.order_tickets t join fashion.orders o on o.id = t.order_id
+     where t.partner_id = $1 and o.status = any($2::text[]) and o.created_at >= $3`,
+    [partnerId, SOLD_STATUSES, since]
+  );
+  const r = result.rows[0];
+  return { gmvMinorUnits: Number(r.gmv), commissionMinorUnits: Number(r.commission), ticketCount: r.tickets };
+}
+
+async function getProductsByIdsPg(pool, productIds) {
+  if (productIds.length === 0) return {};
+  const result = await pool.query(
+    `select id, partner_id, brand_id, names, descriptions, categories, technical_purpose,
+            gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id, partner_sku
+     from fashion.products where id = any($1::uuid[])`,
+    [productIds]
+  );
+  return Object.fromEntries(result.rows.map((r) => [r.id, toProductDomainShape(r)]));
+}
+
+async function getBrandsByIdsPg(pool, brandIds) {
+  if (brandIds.length === 0) return {};
+  const result = await pool.query(`select id, name from fashion.brands where id = any($1::uuid[])`, [brandIds]);
+  return Object.fromEntries(result.rows.map((r) => [r.id, { id: r.id, name: r.name }]));
+}
+
+/** Display name per store: Corner name, else the trade name of the application, else the legal name. */
+async function getStoreNamesPg(pool, partnerIds) {
+  if (partnerIds.length === 0) return {};
+  const result = await pool.query(
+    `select p.id, coalesce(c.display_name, a.trade_name, p.legal_name) as name
+     from fashion.partners p
+     left join fashion.corner_configs c on c.partner_id = p.id
+     left join fashion.partner_applications a on a.partner_id = p.id
+     where p.id = any($1::uuid[])`,
+    [partnerIds]
+  );
+  return Object.fromEntries(result.rows.map((r) => [r.id, r.name]));
+}
+
 module.exports = {
   createPool, insertPartner, updatePartnerStatus, getPartner,
   getAuthUserEmail, getPartnerOfferPg, submitPartnerApplicationPg,
@@ -935,4 +1142,7 @@ module.exports = {
   addWishlistItemPg, removeWishlistItemPg, listWishlistForClientPg,
   followCornerPg, unfollowCornerPg, listFollowsForClientPg,
   insertClientAddressPg, listClientAddressesPg, setDefaultClientAddressPg,
+  expirePendingOrdersPg, setCartItemPg, getOpenCartPg, checkoutCartPg, cancelUnpaidOrderPg,
+  getOrderPg, listOrdersForClientPg, listOrdersForPartnerPg, partnerSalesSincePg, getStoreNamesPg,
+  getProductsByIdsPg, getBrandsByIdsPg,
 };
