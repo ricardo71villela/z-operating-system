@@ -1,0 +1,22 @@
+/* ============================================================
+   Z Fashion — tricolour mark (brand/zfashion-mark*.svg)
+   The pin-and-Z shape is unchanged; its colour runs from bleu
+   France at the top, through an implied white, to rouge at the
+   point. zfashion-mark.svg on light backgrounds,
+   zfashion-mark-dark.svg (true white band) on dark ones.
+   Loaded last: replaces the black tile of the earlier mark.
+   ============================================================ */
+
+/* Home page header: the black tile (::before) goes; the mark (::after) is drawn in colour, same place. */
+.site-header .brand::before{display:none!important}
+.site-header .brand::after{left:3vw;top:3px;width:2.6rem;height:3.2rem;background:url('./brand/zfashion-mark.svg') center/contain no-repeat;-webkit-mask:none;mask:none}
+
+/* Customer pages header */
+.customer-header .customer-brand-logo,.customer-header .customer-brand-logo-dark{width:2.6rem;height:3.2rem;object-fit:contain;filter:none;border-radius:0;background:none}
+
+/* Footers (dark): the white band is visible */
+.site-footer .footer-brand::before{background-image:url('/brand/zfashion-mark-dark.svg')!important;background-size:contain!important;background-repeat:no-repeat!important;background-position:center!important}
+.site-footer .footer-brand img.zf-mark,.customer-footer .footer-brand-logo,.tech-footer-brand img{filter:none!important;object-fit:contain!important;background:none!important}
+
+/* Technical pages (404, maintenance) */
+.tech-logo img{object-fit:contain;filter:none}

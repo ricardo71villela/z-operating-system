@@ -25,8 +25,11 @@ assert.match(shell, /id="localeSelect"/);
 for (const locale of ['fr','pt','en','es','it','de']) assert.match(shell, new RegExp(`<option value="${locale}">`));
 assert.match(shell, /customer-brand-mark/);
 assert.match(shell, /customer-brand-authority\.css/);
-assert.match(shell, /customer-brand-logo customer-brand-logo-dark/);
-assert.match(shell, /zos-mark-white-tile\.svg/);
+// Tricolour mark (2026-10-15): colour on light header, white-band variant on the dark footer.
+assert.match(shell, /<img src="\/brand\/zfashion-mark\.svg" alt="" class="customer-brand-logo">/);
+assert.match(shell, /<img src="\/brand\/zfashion-mark-dark\.svg" alt="" class="footer-brand-logo">/);
+assert.match(shell, /brand-tricolore\.css/);
+assert.ok(shell.indexOf('brand-tricolore.css') > shell.indexOf('customer-brand-authority.css'), 'tricolour styles load after the earlier brand styles');
 assert.match(shell, />Fashion<\/span>/);
 assert.match(shell, /footer-brand-logo/);
 assert.match(shell, /id="brandEndorsement"/);
