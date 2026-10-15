@@ -58,4 +58,16 @@ assert.ok(js.includes("var room = 8 - images.length;") && media.MAX_IMAGES_PER_P
 assert.deepStrictEqual(JSON.parse(JSON.stringify(vm.runInNewContext(js.match(/ACCEPTED = (\[[^\]]*\])/)[1]))), Object.keys(media.FORMATS));
 for (const route of ["'/images'", "'/images/order'", "'/logo'"]) assert.ok(js.includes(route), `missing call ${route}`);
 
+// Tricolour Z Fashion mark (2026-10-15) on the Partner pages, the backoffice and the shared sign-in card.
+{
+  const fsx = require('fs'); const px = require('path');
+  const readx = (f) => fsx.readFileSync(px.join(__dirname, '..', f), 'utf8');
+  for (const [file, id] of [['public/dashboard.html', 'zf-tri-pc'], ['public/adhesion.html', 'zf-tri-ad'], ['../fashion-admin/index.html', 'zf-tri-admin']]) {
+    const html = readx(file);
+    assert.match(html, new RegExp(`<linearGradient id="${id}"`), `${file}: tricolour mark`);
+    assert.match(html, /stop-color="#E1000F"|stop-color="#FFFFFF"/);
+    assert.match(html, /<link rel="icon" type="image\/svg\+xml" href="data:image\/svg\+xml,/, `${file}: favicon`);
+  }
+  assert.match(readx('public/zfashion-auth.js'), /function brandMark\(\)/);
+}
 console.log('Z_FASHION_PARTNER_CONSOLE=PASS');

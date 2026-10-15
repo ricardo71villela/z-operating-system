@@ -91,6 +91,28 @@
     },
   };
 
+
+  /** Tricolour Z Fashion mark (same drawing as brand/zfashion-mark.svg), built node by node. */
+  function brandMark() {
+    var NS = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '200 120 634 770'); svg.setAttribute('width', '26'); svg.setAttribute('height', '31');
+    svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('focusable', 'false'); svg.setAttribute('class', 'zf-auth-mark');
+    var grad = document.createElementNS(NS, 'linearGradient');
+    grad.setAttribute('id', 'zf-tri-auth'); grad.setAttribute('gradientUnits', 'userSpaceOnUse');
+    grad.setAttribute('x1', '0'); grad.setAttribute('y1', '149'); grad.setAttribute('x2', '0'); grad.setAttribute('y2', '856');
+    [['0','#000091'],['0.34','#1B2FA6'],['0.47','#B8C1E8'],['0.53','#F4B9BF'],['0.66','#E1000F'],['1','#C8000D']].forEach(function (s) {
+      var stop = document.createElementNS(NS, 'stop'); stop.setAttribute('offset', s[0]); stop.setAttribute('stop-color', s[1]); grad.appendChild(stop);
+    });
+    var defs = document.createElementNS(NS, 'defs'); defs.appendChild(grad); svg.appendChild(defs);
+    var g = document.createElementNS(NS, 'g'); g.setAttribute('fill', 'url(#zf-tri-auth)');
+    ['M678.9 679L517.5 855.1L307.7 626.2A284.5 284.5 0 1 1 702.1 650.5L691.1 621.5A255.5 255.5 0 1 0 329.1 606.6L517.5 812.2L639.5 679Z', 'M379 324H664L435.2 621.5H691.1L702.1 650.5H377L605.8 353H379Z'].forEach(function (d) {
+      var path = document.createElementNS(NS, 'path'); path.setAttribute('d', d); g.appendChild(path);
+    });
+    svg.appendChild(g);
+    return svg;
+  }
+
   function lang() {
     var l = (document.documentElement.dataset.locale || document.documentElement.lang || 'fr').slice(0, 2);
     return STRINGS[l] ? l : 'fr';
@@ -109,7 +131,8 @@
     '.zf-auth{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:16px;background:#f6f4f1;font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;color:#151515}',
     '.zf-auth[hidden]{display:none}',
     '.zf-auth-card{width:100%;max-width:380px;background:#fff;border:1px solid #e4e0da;border-radius:14px;padding:28px 24px;box-shadow:0 10px 40px rgba(0,0,0,.06)}',
-    '.zf-auth-brand{font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:12px;color:#6b6560;margin:0 0 8px}',
+    '.zf-auth-brand{display:flex;align-items:center;gap:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:12px;color:#6b6560;margin:0 0 8px}',
+    '.zf-auth-mark{flex:none;display:block}',
     '.zf-auth h1{font-size:22px;margin:0 0 6px;font-weight:650}',
     '.zf-auth p{margin:0 0 16px;color:#4a4540}',
     '.zf-auth label{display:block;font-size:13px;font-weight:600;margin:0 0 6px}',
@@ -141,7 +164,9 @@
 
     ui.root = el('div', { class: 'zf-auth', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'zf-auth-title' });
     var card = el('div', { class: 'zf-auth-card' });
-    card.appendChild(el('p', { class: 'zf-auth-brand' }, 'Z Fashion'));
+    var brand = el('p', { class: 'zf-auth-brand' });
+    brand.append(brandMark(), document.createTextNode('Z Fashion'));
+    card.appendChild(brand);
     ui.title = el('h1', { id: 'zf-auth-title' });
     ui.subtitle = el('p');
     ui.msg = el('div', { class: 'zf-auth-msg', role: 'status', 'aria-live': 'polite' });
