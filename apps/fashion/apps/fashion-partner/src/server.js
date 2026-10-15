@@ -28,6 +28,8 @@ const { launchedMarkets } = require('../../../packages/fashion-domain/src/market
 const mediaDomain = require('../../../packages/fashion-domain/src/media');
 const checkoutDomain = require('../../../packages/fashion-domain/src/checkout');
 const { productName } = require('../../../packages/fashion-domain/src/product');
+const { storefrontSections } = require('../../../packages/fashion-domain/src/storefront');
+const { stockAvailabilityLabel } = require('../../../packages/fashion-domain/src/stock');
 const memoryCheckout = require('./memory-checkout');
 const stripeLib = require('./stripe');
 const payoutsService = require('./payouts-service');
@@ -1963,6 +1965,69 @@ async function handleCronRunPayouts(req, res) {
   return runPayoutsAndRespond(res);
 }
 
+/**
+ * GET /catalog/listing — the whole public storefront in one response:
+ * every priced product of active stores (names, descriptions, brand,
+ * size/format, price, stock label, photos, store, site sections) and
+ * the stores' Corners. Newest first. The site filters and sorts
+ * client-side. Never exposes stock quantities, only the label.
+ */
+async function handleGetCatalogListing(req, res) {
+  try {
+    let rows;
+    if (usingPostgres) {
+      rows = await db.listCatalogPg(pool);
+    } else {
+      const activeIds = await activePartnerIdSet();
+      rows = [...memory.products.values()].reverse()
+        .filter((p) => activeIds.has(p.partnerId))
+        .map((p) => ({
+          product: p,
+          brandName: p.brandId && memory.brands.get(p.brandId) ? memory.brands.get(p.brandId).name : null,
+          priceMinorUnits: priceHistory.currentPrice(memory.priceHistoryByProductId.get(p.id) || priceHistory.emptyHistory()),
+          stock: memory.stockByProductId.get(p.id) || initStock(p.id),
+        }))
+        .filter((r) => r.priceMinorUnits !== null && r.priceMinorUnits !== undefined);
+    }
+    const ids = rows.map((r) => r.product.id);
+    const images = await imagesByProductId(ids);
+    const partnerIds = [...new Set(rows.map((r) => r.product.partnerId))];
+    const configs = usingPostgres ? await db.listCornerConfigs(pool) : [...memory.cornerConfigs.values()];
+    const activeIds = await activePartnerIdSet();
+    const described = await describeLines([], [...new Set(partnerIds.concat(configs.map((c) => c.partnerId)))].filter((id) => activeIds.has(id)));
+
+    const products = rows.map(({ product, brandName, priceMinorUnits, stock }) => ({
+      id: product.id,
+      partnerId: product.partnerId,
+      storeName: described.storeNames[product.partnerId] || null,
+      brandName,
+      names: product.names,
+      descriptions: product.descriptions || {},
+      categories: product.categories,
+      gender: product.gender,
+      ageSegments: product.ageSegments,
+      size: product.size || null,
+      format: product.format || null,
+      styleId: product.styleId || null,
+      sections: storefrontSections(product),
+      priceMinorUnits,
+      availability: { label: stockAvailabilityLabel(stock), sellable: stockAvailabilityLabel(stock) !== 'out_of_stock' },
+      images: (images[product.id] || []).map((i) => i.url),
+      createdAt: product.createdAt || null,
+    }));
+    const counts = {};
+    for (const p of products) counts[p.partnerId] = (counts[p.partnerId] || 0) + 1;
+    const stores = configs.filter((c) => activeIds.has(c.partnerId)).map((c) => ({
+      partnerId: c.partnerId, name: c.displayName, byline: c.byline || null, accentColor: c.accentColor || null,
+      logoUrl: c.logoUrl || null, productCount: counts[c.partnerId] || 0,
+    }));
+    res.setHeader('Cache-Control', 'public, max-age=60');
+    sendJson(res, 200, { products, stores, total: products.length });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const parts = url.pathname.split('/').filter(Boolean);
@@ -2055,6 +2120,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'GET' && parts[0] === 'products' && parts.length === 2) {
       return await handleGetProduct(req, res, parts[1]);
+    }
+    if (req.method === 'GET' && parts[0] === 'catalog' && parts[1] === 'listing' && parts.length === 2) {
+      return await handleGetCatalogListing(req, res);
     }
     if (req.method === 'GET' && parts[0] === 'catalog' && parts[1] === 'products' && parts.length === 3) {
       return await handleGetCatalogProduct(req, res, parts[2]);

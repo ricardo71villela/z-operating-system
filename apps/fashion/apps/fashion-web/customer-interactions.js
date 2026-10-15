@@ -65,6 +65,7 @@
 
   const renderCustomerArea=()=>{
     if(route?.group!=='customer'||!AREA)return;
+    if(window.ZFashionLive&&window.ZFashionLive.owns(route))return;
     page.innerHTML=AREA.render(route,locale());
     AREA.wire(route,locale(),renderCustomerArea);
   };

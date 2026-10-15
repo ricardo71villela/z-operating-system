@@ -53,7 +53,7 @@ Requests carry `Authorization: Bearer <Supabase access token>`.
 | `POST /partner-applications` | Any signed-in person: submits the adhesion form; creates the store (`applied`) and links the account to it (see migration `20261014230000_z_fashion_partner_onboarding_v1.sql`) |
 | `GET /me` | Any signed-in person: returns their user id, `isAdmin` and the Partner ids they manage (grants nothing by itself) |
 | `GET /onboarding/offer` | Public: offer from the database + published terms |
-| `POST /partners` (apply), `/catalog/...`, `/products/:id`, `/health` | Public |
+| `POST /partners` (apply), `/catalog/...` (including `GET /catalog/listing`, the whole storefront in one response), `/products/:id`, `/health` | Public |
 
 The decision logic lives in `src/access.js` and is covered by `tests/access.test.js` (every branch) and `tests/auth-gate.test.js` (every scoped route over HTTP, refused before any database query).
 

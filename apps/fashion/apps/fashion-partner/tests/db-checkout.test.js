@@ -190,6 +190,15 @@ async function run() {
   const names = await db.getStoreNamesPg(pool, [storeA.id, storeB.id]);
   assert.deepStrictEqual(names, { [storeA.id]: 'Boutique A', [storeB.id]: 'Corner B' });
 
+  // --- storefront listing: priced products of active stores, current price, newest first
+  const listing = await db.listCatalogPg(pool);
+  const listed = (id) => listing.find((r) => r.product.id === id);
+  assert.strictEqual(listed(robe.id).priceMinorUnits, 5500, 'latest price');
+  assert.strictEqual(listed(robe.id).brandName, 'Marque A');
+  assert.ok(listed(robe.id).product.createdAt);
+  assert.ok(!listed(unpriced.id), 'unpriced products are not listed');
+  assert.ok(!listed(hidden.id), 'stores that are not active are not listed');
+
   // --- not callable by API roles
   const g = (await pool.query(`select
       has_function_privilege('anon', 'fashion.checkout_cart(uuid,uuid,text[],integer)', 'execute') as anon,

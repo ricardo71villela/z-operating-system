@@ -752,6 +752,20 @@ async function run() {
     const manteau = await mk('partner_other_corner', cartBrandB, 'Manteau panier', 25000, 2);
     const sansPrix = await mk('partner_atelier', cartBrandA, 'Sans prix', null, 5);
 
+    // Public storefront listing: priced products of active stores only.
+    res = await request('GET', '/catalog/listing');
+    assert.strictEqual(res.status, 200);
+    const robeCard = res.body.products.find((p) => p.id === robe);
+    assert.strictEqual(robeCard.names.fr, 'Robe panier');
+    assert.strictEqual(robeCard.brandName, 'Maison Panier');
+    assert.strictEqual(robeCard.priceMinorUnits, 6000);
+    assert.deepStrictEqual(robeCard.sections, ['women']);
+    assert.deepStrictEqual(robeCard.availability, { label: 'low_stock', sellable: true });
+    assert.ok(!('stock' in robeCard) && !('sku' in robeCard), 'no stock quantities or internal references');
+    assert.ok(!res.body.products.some((p) => p.id === sansPrix), 'unpriced products are not listed');
+    assert.ok(res.body.stores.some((st) => st.partnerId === 'partner_other_corner'));
+    assert.strictEqual(res.body.products.find((p) => p.id === manteau).storeName, res.body.stores.find((st) => st.partnerId === 'partner_other_corner').name);
+
     res = await request('GET', `/clients/${buyer}/cart`);
     assert.strictEqual(res.status, 200);
     assert.deepStrictEqual(res.body.cart.lines, []);
