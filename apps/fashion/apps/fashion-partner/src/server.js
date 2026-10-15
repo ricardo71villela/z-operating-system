@@ -29,6 +29,8 @@ const mediaDomain = require('../../../packages/fashion-domain/src/media');
 const checkoutDomain = require('../../../packages/fashion-domain/src/checkout');
 const { productName } = require('../../../packages/fashion-domain/src/product');
 const memoryCheckout = require('./memory-checkout');
+const stripeLib = require('./stripe');
+const { STRIPE_EVENT_STATUS } = require('../../../packages/fashion-domain/src/payment');
 const db = require('./db');
 const { resolveAuthenticatedUserId, loadSupabaseAuthConfigFromEnv } = require('./auth');
 const { isAuthRequired, loadAdminUserIds, decideAccess } = require('./access');
@@ -1482,7 +1484,7 @@ async function handleGetCornerDetail(req, res, partnerId) {
 const shippingCountries = checkoutDomain.parseShippingCountries(process.env.FASHION_SHIPPING_COUNTRIES);
 
 const CHECKOUT_ERROR_STATUS = {
-  insufficient_stock: 409, product_unavailable: 409, payment_in_progress: 409, order_not_cancellable: 409,
+  insufficient_stock: 409, product_unavailable: 409, payment_in_progress: 409, order_not_cancellable: 409, order_not_payable: 409,
   empty_cart: 422, address_not_found: 422, shipping_country_not_served: 422, invalid_quantity: 422,
   order_not_found: 404,
 };
@@ -1720,6 +1722,103 @@ async function handleListPartnerOrders(req, res, partnerId) {
   }
 }
 
+/* ============================================================
+   Payment (task 11): Stripe PaymentIntent per Order + signed webhook.
+   The browser pays with Stripe.js using the client secret; only the
+   webhook (signature checked) can move an Order to paid.
+   ============================================================ */
+
+const stripeConfig = stripeLib.loadStripeConfig();
+const stripeClient = stripeConfig.payments
+  ? stripeLib.createStripeClient({ secretKey: stripeConfig.payments.secretKey, apiBase: stripeConfig.payments.apiBase })
+  : null;
+
+/** POST /clients/:id/orders/:orderId/payment — client secret for the payment form. */
+async function handleStartPayment(req, res, clientId, orderId) {
+  if (!(await authorizeClientRequest(req, res, clientId))) return;
+  if (!stripeClient) return sendJson(res, 503, { error: 'payments_not_configured' });
+  try {
+    const order = await loadClientOrder(clientId, orderId);
+    if (!order) return sendJson(res, 404, { error: 'order_not_found' });
+    let paymentIntentId = usingPostgres
+      ? await db.startOrderPaymentPg(pool, orderId)
+      : memoryCheckout.startOrderPayment(memory, orderId);
+
+    let intent = null;
+    if (paymentIntentId) {
+      intent = await stripeClient.retrievePaymentIntent(paymentIntentId);
+      if (intent.status === 'canceled' || intent.amount !== order.totalMinorUnits) {
+        return sendJson(res, 409, { error: 'order_not_payable' });
+      }
+    } else {
+      intent = await stripeClient.createPaymentIntent({
+        orderId, clientUserId: clientId, amountMinorUnits: order.totalMinorUnits, currency: order.currency || 'eur',
+      });
+      paymentIntentId = intent.id;
+      if (usingPostgres) await db.attachPaymentIntentPg(pool, orderId, paymentIntentId);
+      else memoryCheckout.attachPaymentIntent(memory, orderId, paymentIntentId);
+    }
+    const payment = usingPostgres ? await db.getOrderPaymentPg(pool, orderId) : memoryCheckout.getOrderPayment(memory, orderId);
+    sendJson(res, 200, {
+      payment: {
+        orderId,
+        clientSecret: intent.client_secret,
+        publishableKey: stripeConfig.payments.publishableKey,
+        amountMinorUnits: order.totalMinorUnits,
+        currency: order.currency || 'eur',
+        expiresAt: payment.paymentExpiresAt,
+        livemode: stripeConfig.payments.livemode,
+      },
+    });
+  } catch (err) {
+    if (err instanceof stripeLib.StripeError) {
+      console.error('stripe payment start failed', err.code, err.httpStatus, err.stripeCode);
+      return sendJson(res, 502, { error: 'payment_provider_error' });
+    }
+    sendCheckoutError(res, err);
+  }
+}
+
+/** POST /stripe/webhook — Stripe-signed events; the only way an Order becomes paid. */
+async function handleStripeWebhook(req, res) {
+  if (!stripeConfig.webhookSecret || !stripeClient) return sendJson(res, 503, { error: 'payments_not_configured' });
+  const raw = await readRawBody(req, 262144);
+  if (!raw) return sendJson(res, 413, { error: 'webhook_body_too_large' });
+  let event;
+  try {
+    event = stripeLib.verifyWebhook(raw, req.headers['stripe-signature'], stripeConfig.webhookSecret);
+  } catch (err) {
+    return sendJson(res, 400, { error: err.code || 'webhook_invalid' });
+  }
+  const status = STRIPE_EVENT_STATUS[event.type];
+  const intent = event.data && event.data.object;
+  if (!status || !intent || intent.object !== 'payment_intent' || !(intent.metadata && intent.metadata.platform === 'zfashion')) {
+    return sendJson(res, 200, { received: true, outcome: 'ignored' });
+  }
+  const orderId = intent.metadata.order_id;
+  const input = {
+    eventId: event.id,
+    eventType: event.type,
+    paymentIntentId: intent.id,
+    orderId: /^[0-9a-f-]{36}$/i.test(orderId || '') || !usingPostgres ? orderId || null : null,
+    status,
+    amountReceivedMinorUnits: Number.isInteger(intent.amount_received) ? intent.amount_received : null,
+  };
+  const onRefund = (paymentIntentId, reason) => stripeClient.refundPaymentIntent(paymentIntentId, reason);
+  try {
+    const outcome = usingPostgres
+      ? await db.recordStripePaymentEventPg(pool, input, { onRefund })
+      : await memoryCheckout.recordStripePaymentEvent(memory, input, { onRefund });
+    if (outcome === 'late_payment' || outcome === 'amount_mismatch' || outcome === 'unknown_payment_intent') {
+      console.warn('stripe webhook', event.id, event.type, intent.id, outcome);
+    }
+    sendJson(res, 200, { received: true, outcome });
+  } catch (err) {
+    console.error('stripe webhook processing failed', event.id, event.type, err.code || err.message);
+    sendJson(res, 500, { error: 'webhook_processing_failed' }); // Stripe retries
+  }
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const parts = url.pathname.split('/').filter(Boolean);
@@ -1734,6 +1833,9 @@ const server = http.createServer(async (req, res) => {
   try {
     if (req.method === 'GET' && parts[0] === 'health') {
       return sendJson(res, 200, { ok: true, usingPostgres });
+    }
+    if (req.method === 'POST' && parts[0] === 'stripe' && parts[1] === 'webhook' && parts.length === 2) {
+      return await handleStripeWebhook(req, res);
     }
     if (req.method === 'GET' && parts[0] === 'me' && parts.length === 1) {
       return await handleMe(req, res);
@@ -1867,6 +1969,7 @@ const server = http.createServer(async (req, res) => {
       if (req.method === 'GET' && parts.length === 3) return await handleListClientOrders(req, res, parts[1]);
       if (req.method === 'GET' && parts.length === 4) return await handleGetClientOrder(req, res, parts[1], parts[3]);
       if (req.method === 'POST' && parts.length === 5 && parts[4] === 'cancel') return await handleCancelClientOrder(req, res, parts[1], parts[3]);
+      if (req.method === 'POST' && parts.length === 5 && parts[4] === 'payment') return await handleStartPayment(req, res, parts[1], parts[3]);
     }
     if (req.method === 'GET' && parts[0] === 'partners' && parts[2] === 'orders' && parts.length === 3) {
       return await handleListPartnerOrders(req, res, parts[1]);
@@ -1908,6 +2011,9 @@ if (require.main === module) {
   }
   if (usingPostgres && !mediaStorage) {
     console.warn('fashion-partner API: SUPABASE_SECRET_KEY (or SUPABASE_SERVICE_ROLE_KEY) not set — photo and logo uploads are refused (503).');
+  }
+  if (!stripeConfig.payments || !stripeConfig.webhookSecret) {
+    console.warn('fashion-partner API: Stripe not configured (STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY, STRIPE_WEBHOOK_SECRET) — payments are refused (503).');
   }
   if (usingPostgres && !authRequired) {
     console.warn('fashion-partner API: FASHION_ALLOW_UNAUTHENTICATED=1 — authentication is OFF. Never use this in production.');

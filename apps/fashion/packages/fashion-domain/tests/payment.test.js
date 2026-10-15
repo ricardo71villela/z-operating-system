@@ -60,4 +60,32 @@ assert.throws(() => transition(fresh, 'refunded'), /cannot move from "requires_p
 
 assert.deepStrictEqual(STATUSES, ['requires_payment_method', 'requires_confirmation', 'processing', 'succeeded', 'failed', 'refunded']);
 
+// --- Stripe webhook events applied to an Order
+const { applyPaymentEvent, STRIPE_EVENT_STATUS } = require('../src/payment');
+const pending = { status: 'pending_payment', paymentStatus: 'requires_payment_method', totalMinorUnits: 4000 };
+assert.strictEqual(STRIPE_EVENT_STATUS['payment_intent.succeeded'], 'succeeded');
+assert.deepStrictEqual(applyPaymentEvent(pending, { status: 'succeeded', amountReceivedMinorUnits: 4000 }),
+  { steps: ['processing', 'succeeded'], outcome: 'confirmed', confirm: true, refund: false });
+assert.deepStrictEqual(applyPaymentEvent({ ...pending, paymentStatus: 'failed' }, { status: 'succeeded', amountReceivedMinorUnits: 4000 }).steps,
+  ['requires_payment_method', 'processing', 'succeeded'], 'retry after a decline');
+assert.strictEqual(applyPaymentEvent(pending, { status: 'succeeded', amountReceivedMinorUnits: 3999 }).outcome, 'amount_mismatch');
+assert.strictEqual(applyPaymentEvent(pending, { status: 'succeeded', amountReceivedMinorUnits: 3999 }).refund, true);
+assert.deepStrictEqual(applyPaymentEvent({ ...pending, status: 'cancelled' }, { status: 'succeeded', amountReceivedMinorUnits: 4000 }),
+  { steps: ['processing', 'succeeded'], outcome: 'late_payment', confirm: false, refund: true });
+assert.strictEqual(applyPaymentEvent({ ...pending, status: 'paid', paymentStatus: 'succeeded' }, { status: 'succeeded', amountReceivedMinorUnits: 4000 }).outcome, 'already_recorded');
+assert.strictEqual(applyPaymentEvent({ ...pending, paymentStatus: 'succeeded' }, { status: 'processing' }).outcome, 'ignored', 'never backward');
+assert.deepStrictEqual(applyPaymentEvent(pending, { status: 'processing' }).steps, ['processing']);
+assert.deepStrictEqual(applyPaymentEvent({ ...pending, paymentStatus: 'processing' }, { status: 'failed' }).steps, ['failed']);
+assert.strictEqual(applyPaymentEvent({ ...pending, paymentStatus: 'failed' }, { status: 'failed' }).outcome, 'ignored');
+// Every step is a legal transition.
+for (const from of STATUSES) {
+  for (const target of ['processing', 'failed', 'succeeded']) {
+    let cur = from;
+    for (const step of applyPaymentEvent({ ...pending, paymentStatus: from }, { status: target, amountReceivedMinorUnits: 4000 }).steps) {
+      assert.ok(ALLOWED_TRANSITIONS[cur].includes(step), `${cur} -> ${step}`);
+      cur = step;
+    }
+  }
+}
+
 console.log('payment.js: all invariant checks passed.');

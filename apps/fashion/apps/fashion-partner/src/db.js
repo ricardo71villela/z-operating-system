@@ -922,6 +922,7 @@ async function reorderProductImagesPg(pool, productId, orderedIds) {
 /* ---------- cart, checkout, orders (migration 20261016090000) ---------- */
 
 const CHECKOUT_ERROR_KEYS = new Set([
+  'order_not_payable',
   'insufficient_stock', 'product_unavailable', 'empty_cart', 'address_not_found',
   'shipping_country_not_served', 'payment_in_progress', 'invalid_quantity',
   'order_not_cancellable', 'order_not_found',
@@ -1126,6 +1127,59 @@ async function getStoreNamesPg(pool, partnerIds) {
   return Object.fromEntries(result.rows.map((r) => [r.id, r.name]));
 }
 
+/* ---------- Stripe payment (migration 20261016120000) ---------- */
+
+/** Opens the payment of an Order; returns its existing PaymentIntent id or null. */
+async function startOrderPaymentPg(pool, orderId) {
+  try {
+    const result = await pool.query('select fashion.start_order_payment($1) as pi', [orderId]);
+    return result.rows[0].pi;
+  } catch (err) {
+    throw checkoutError(err);
+  }
+}
+
+async function attachPaymentIntentPg(pool, orderId, paymentIntentId) {
+  await pool.query('select fashion.attach_payment_intent($1, $2)', [orderId, paymentIntentId]);
+}
+
+/**
+ * Applies one Stripe event in a transaction. `onRefund(paymentIntentId)`
+ * is called inside it when the payment must be given back; if it
+ * throws, nothing is recorded (Stripe will deliver the event again).
+ */
+async function recordStripePaymentEventPg(pool, event, { onRefund }) {
+  const client = await pool.connect();
+  try {
+    await client.query('begin');
+    const result = await client.query(
+      'select fashion.record_stripe_payment_event($1, $2, $3, $4, $5, $6) as outcome',
+      [event.eventId, event.eventType, event.paymentIntentId, event.orderId, event.status, event.amountReceivedMinorUnits]
+    );
+    const outcome = result.rows[0].outcome;
+    if (outcome === 'late_payment' || outcome === 'amount_mismatch') {
+      await onRefund(event.paymentIntentId, outcome);
+      await client.query('select fashion.mark_late_payment_refunded($1)', [event.paymentIntentId]);
+    }
+    await client.query('commit');
+    return outcome;
+  } catch (err) {
+    await client.query('rollback').catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/** Order id and Stripe ids, for the payment route. */
+async function getOrderPaymentPg(pool, orderId) {
+  const result = await pool.query(
+    'select id, stripe_payment_intent_id, payment_status, payment_expires_at from fashion.orders where id = $1', [orderId]);
+  const r = result.rows[0];
+  return r ? { orderId: r.id, paymentIntentId: r.stripe_payment_intent_id, paymentStatus: r.payment_status,
+    paymentExpiresAt: r.payment_expires_at ? new Date(r.payment_expires_at).toISOString() : null } : null;
+}
+
 module.exports = {
   createPool, insertPartner, updatePartnerStatus, getPartner,
   getAuthUserEmail, getPartnerOfferPg, submitPartnerApplicationPg,
@@ -1145,4 +1199,5 @@ module.exports = {
   expirePendingOrdersPg, setCartItemPg, getOpenCartPg, checkoutCartPg, cancelUnpaidOrderPg,
   getOrderPg, listOrdersForClientPg, listOrdersForPartnerPg, partnerSalesSincePg, getStoreNamesPg,
   getProductsByIdsPg, getBrandsByIdsPg,
+  startOrderPaymentPg, attachPaymentIntentPg, recordStripePaymentEventPg, getOrderPaymentPg,
 };

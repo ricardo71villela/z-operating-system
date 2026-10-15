@@ -147,6 +147,7 @@ jobs:
           npm ci --prefix apps/fashion/apps/fashion-partner
           node apps/fashion/apps/fashion-partner/tests/db.test.js
           node apps/fashion/apps/fashion-partner/tests/db-checkout.test.js
+          node apps/fashion/apps/fashion-partner/tests/db-payment.test.js
 
       - name: Final Fashion PostgreSQL marker
         env:
