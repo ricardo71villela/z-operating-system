@@ -134,6 +134,69 @@ function isPaymentConfirmed(paymentIntent) {
   return paymentIntent.status === 'succeeded';
 }
 
+/**
+ * Stripe webhook statuses this platform acts on, mapped from the
+ * PaymentIntent event types. Anything else is acknowledged and ignored.
+ */
+const STRIPE_EVENT_STATUS = Object.freeze({
+  'payment_intent.processing': 'processing',
+  'payment_intent.succeeded': 'succeeded',
+  'payment_intent.payment_failed': 'failed',
+});
+
+/**
+ * Walks the payment graph forward to `target`, never backward: Stripe
+ * delivers events at least once and not always in order, so a late
+ * "processing" after "succeeded" is ignored, and "succeeded" after
+ * "failed" (the Client retried) passes through requires_payment_method
+ * and processing. Returns the list of statuses to apply, [] when the
+ * event changes nothing.
+ */
+function pathTo(current, target) {
+  const forward = {
+    processing: { requires_payment_method: ['processing'], requires_confirmation: ['processing'] },
+    failed: { requires_payment_method: ['failed'], requires_confirmation: ['failed'], processing: ['failed'] },
+    succeeded: {
+      requires_payment_method: ['processing', 'succeeded'],
+      requires_confirmation: ['processing', 'succeeded'],
+      processing: ['succeeded'],
+      failed: ['requires_payment_method', 'processing', 'succeeded'],
+    },
+  };
+  return ((forward[target] || {})[current] || []).slice();
+}
+
+/**
+ * What one PaymentIntent event does to an Order (mirrored by
+ * fashion.record_stripe_payment_event() in SQL).
+ *
+ * @param {{ status: string, paymentStatus: string, totalMinorUnits: number }} order
+ * @param {{ status: 'processing'|'succeeded'|'failed', amountReceivedMinorUnits?: number }} event
+ * @returns {{ steps: string[], outcome: string, confirm: boolean, refund: boolean }}
+ *   outcome: processing | failed | confirmed | already_recorded |
+ *            late_payment (Order was cancelled: refund) |
+ *            amount_mismatch (refund) | ignored
+ */
+function applyPaymentEvent(order, event) {
+  const steps = pathTo(order.paymentStatus, event.status);
+  if (event.status !== 'succeeded') {
+    return { steps, outcome: steps.length ? event.status : 'ignored', confirm: false, refund: false };
+  }
+  if (steps.length === 0) {
+    return { steps, outcome: 'already_recorded', confirm: false, refund: false };
+  }
+  if (order.status === 'cancelled') {
+    return { steps, outcome: 'late_payment', confirm: false, refund: true };
+  }
+  if (order.status !== 'pending_payment') {
+    return { steps, outcome: 'already_recorded', confirm: false, refund: false };
+  }
+  if (event.amountReceivedMinorUnits !== order.totalMinorUnits) {
+    return { steps, outcome: 'amount_mismatch', confirm: false, refund: true };
+  }
+  return { steps, outcome: 'confirmed', confirm: true, refund: false };
+}
+
 module.exports = {
   STATUSES,
   ALLOWED_TRANSITIONS,
@@ -141,4 +204,6 @@ module.exports = {
   attachStripePaymentIntentId,
   transition,
   isPaymentConfirmed,
+  STRIPE_EVENT_STATUS,
+  applyPaymentEvent,
 };

@@ -9,7 +9,8 @@
    ============================================================ */
 
 const crypto = require('crypto');
-const { initStock, reserveStock, releaseReservation } = require('../../../packages/fashion-domain/src/stock');
+const { initStock, reserveStock, releaseReservation, confirmReservation } = require('../../../packages/fashion-domain/src/stock');
+const { applyPaymentEvent } = require('../../../packages/fashion-domain/src/payment');
 const priceHistory = require('../../../packages/fashion-domain/src/price-history');
 const checkout = require('../../../packages/fashion-domain/src/checkout');
 const addressDomain = require('../../../packages/fashion-domain/src/address');
@@ -173,11 +174,81 @@ function checkoutCart(memory, { clientUserId, addressId, allowedCountries, holdS
   return order.id;
 }
 
+
+/* ---------- payment (mirrors migration 20261016120000) ---------- */
+
+function startOrderPayment(memory, orderId, now = new Date()) {
+  ensureState(memory);
+  const order = memory.orders.get(orderId);
+  if (!order) throw fail('order_not_found');
+  const busy = ['processing', 'succeeded'].includes(order.paymentStatus);
+  if (order.status !== 'pending_payment' || (!busy && new Date(order.paymentExpiresAt) <= now)) {
+    throw fail('order_not_payable', { detail: order.status });
+  }
+  if (busy) throw fail('payment_in_progress');
+  if (order.paymentStatus === 'failed') order.paymentStatus = 'requires_payment_method';
+  const cap = new Date(order.createdAt).getTime() + 60 * 60 * 1000;
+  const wanted = Math.max(new Date(order.paymentExpiresAt).getTime(), now.getTime() + 15 * 60 * 1000);
+  order.paymentExpiresAt = new Date(Math.min(cap, wanted)).toISOString();
+  return order.stripePaymentIntentId || null;
+}
+
+function attachPaymentIntent(memory, orderId, paymentIntentId) {
+  const order = memory.orders.get(orderId);
+  if (!order) throw fail('order_not_found');
+  if (order.stripePaymentIntentId && order.stripePaymentIntentId !== paymentIntentId) throw new Error('attach_payment_intent: already attached');
+  order.stripePaymentIntentId = paymentIntentId;
+}
+
+function getOrderPayment(memory, orderId) {
+  ensureState(memory);
+  const o = memory.orders.get(orderId);
+  return o ? { orderId: o.id, paymentIntentId: o.stripePaymentIntentId || null, paymentStatus: o.paymentStatus, paymentExpiresAt: o.paymentExpiresAt } : null;
+}
+
+function confirmPaid(memory, order) {
+  for (const r of order._reservations) {
+    const stock = memory.stockByProductId.get(r.productId) || initStock(r.productId);
+    memory.stockByProductId.set(r.productId, confirmReservation(stock, r));
+  }
+  order._reservations = [];
+  order.status = 'paid';
+  order.shipments = order.tickets.map((t) => ({ id: crypto.randomUUID(), partnerId: t.partnerId, status: 'confirmed' }));
+  const cart = memory.carts.get(order.clientUserId);
+  if (cart && cart.id === order._cartId) memory.carts.delete(order.clientUserId);
+}
+
+/** Same contract as db.recordStripePaymentEventPg(). */
+async function recordStripePaymentEvent(memory, event, { onRefund }) {
+  ensureState(memory);
+  if (!memory.stripeEvents) memory.stripeEvents = new Map();
+  if (memory.stripeEvents.has(event.eventId)) return 'duplicate';
+  let order = [...memory.orders.values()].find((o) => o.stripePaymentIntentId === event.paymentIntentId);
+  if (!order && event.orderId) {
+    const byId = memory.orders.get(event.orderId);
+    if (byId && !byId.stripePaymentIntentId) { order = byId; }
+  }
+  if (!order) { memory.stripeEvents.set(event.eventId, 'unknown_payment_intent'); return 'unknown_payment_intent'; }
+
+  const decision = applyPaymentEvent(order, { status: event.status, amountReceivedMinorUnits: event.amountReceivedMinorUnits });
+  if (decision.refund) await onRefund(event.paymentIntentId, decision.outcome); // throws -> nothing recorded
+  order.stripePaymentIntentId = event.paymentIntentId;
+  if (decision.steps.length) order.paymentStatus = decision.steps[decision.steps.length - 1];
+  if (event.status === 'succeeded' && decision.steps.length) order.paymentAmountMinorUnits = event.amountReceivedMinorUnits;
+  if (decision.confirm) confirmPaid(memory, order);
+  if (decision.refund) {
+    if (order.status === 'pending_payment') releaseOrder(memory, order);
+    order.paymentStatus = 'refunded';
+  }
+  memory.stripeEvents.set(event.eventId, decision.outcome);
+  return decision.outcome;
+}
+
 const SOLD_STATUSES = ['paid', 'fulfilling', 'fulfilled', 'partially_refunded', 'refunded'];
 
 function publicOrder(order) {
   if (!order) return null;
-  const { _cartId, _reservations, ...rest } = order;
+  const { _cartId, _reservations, stripePaymentIntentId, paymentAmountMinorUnits, ...rest } = order;
   return JSON.parse(JSON.stringify(rest));
 }
 
@@ -224,4 +295,5 @@ function partnerSalesSince(memory, partnerId, since) {
 module.exports = {
   setCartItem, getOpenCart, checkoutCart, cancelUnpaidOrder, expirePendingOrders,
   getOrder, listOrdersForClient, listOrdersForPartner, partnerSalesSince,
+  startOrderPayment, attachPaymentIntent, getOrderPayment, recordStripePaymentEvent,
 };

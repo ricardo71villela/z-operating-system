@@ -61,6 +61,7 @@ const SCOPED_ROUTES = [
   ['GET', `/clients/${CLIENT}/orders`],
   ['GET', `/clients/${CLIENT}/orders/${PARTNER}`],
   ['POST', `/clients/${CLIENT}/orders/${PARTNER}/cancel`],
+  ['POST', `/clients/${CLIENT}/orders/${PARTNER}/payment`],
   ['GET', `/partners/${PARTNER}/orders`],
 ];
 
