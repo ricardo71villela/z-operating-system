@@ -74,9 +74,15 @@
       noSku: 'sans référence',
       // corner
       cornerIntro: 'Votre Corner est l’espace à votre image dans Z Fashion. Il apparaît quand votre boutique est en ligne.',
-      fDisplayName: 'Nom affiché *', fByline: 'Accroche (140 caractères max.)', fAccent: 'Couleur de la boutique', fLogo: 'Adresse du logo (https) *',
-      fLogoHint: 'Le téléversement du logo arrive avec les photos produits. En attendant, indiquez l’adresse d’une image en ligne.',
-      preview: 'Aperçu', cornerSaved: 'Corner enregistré.', e_displayName: 'Indiquez le nom affiché.', e_logo: 'Indiquez une adresse https valide pour le logo.', e_byline: 'Accroche trop longue.',
+      fDisplayName: 'Nom affiché *', fByline: 'Accroche (140 caractères max.)', fAccent: 'Couleur de la boutique', fLogo: 'Logo *',
+      fLogoHint: 'PNG avec fond transparent de préférence.',
+      preview: 'Aperçu', cornerSaved: 'Corner enregistré.', e_displayName: 'Indiquez le nom affiché.', e_logo: 'Ajoutez un logo (fichier ou adresse https).', e_byline: 'Accroche trop longue.',
+      colPhoto: 'Photo', photos: 'Photos', photosTitle: 'Photos — {name}', photosHint: 'Jusqu’à 8 photos (JPEG, PNG ou WebP). La première est la couverture affichée dans le catalogue. Les photos sont réduites à 2000 px avant l’envoi.',
+      addPhotos: 'Ajouter des photos', cover: 'Couverture', moveLeft: 'Avancer', moveRight: 'Reculer', remove: 'Supprimer', close: 'Fermer',
+      uploading: 'Envoi de {n} photo(s)…', photosAdded: '{n} photo(s) ajoutée(s).', photoRemoved: 'Photo supprimée.', noPhotos: 'Aucune photo pour ce produit.',
+      e_photoType: '« {name} » n’est pas une image JPEG, PNG ou WebP.', e_photoLarge: '« {name} » est trop lourde (5 Mo max. après réduction).', e_photoLimit: 'Ce produit a déjà 8 photos.',
+      e_photoStorage: 'L’envoi des photos n’est pas encore activé sur le serveur.', e_photoFailed: 'L’envoi de « {name} » a échoué.',
+      uploadLogo: 'Téléverser un logo', logoUploaded: 'Logo téléversé — pensez à enregistrer.', fLogoUrl: 'ou adresse du logo (https)',
     },
     en: {
       partnerSpace: 'Partner space', store: 'Store', language: 'Language',
@@ -123,9 +129,15 @@
       csvInvalid: 'Unreadable lines: {list}', csvImport: 'Import {n} line(s)', csvNone: 'No line recognised in this file.', csvDuplicate: 'Duplicate references (last value kept): {list}',
       noSku: 'no reference',
       cornerIntro: 'Your Corner is your own space in Z Fashion. It appears when your store is live.',
-      fDisplayName: 'Display name *', fByline: 'Tagline (140 characters max.)', fAccent: 'Store colour', fLogo: 'Logo address (https) *',
-      fLogoHint: 'Logo upload arrives with product photos. Meanwhile, enter the address of an online image.',
-      preview: 'Preview', cornerSaved: 'Corner saved.', e_displayName: 'Enter the display name.', e_logo: 'Enter a valid https address for the logo.', e_byline: 'Tagline too long.',
+      fDisplayName: 'Display name *', fByline: 'Tagline (140 characters max.)', fAccent: 'Store colour', fLogo: 'Logo *',
+      fLogoHint: 'Preferably a PNG with a transparent background.',
+      preview: 'Preview', cornerSaved: 'Corner saved.', e_displayName: 'Enter the display name.', e_logo: 'Add a logo (file or https address).', e_byline: 'Tagline too long.',
+      colPhoto: 'Photo', photos: 'Photos', photosTitle: 'Photos — {name}', photosHint: 'Up to 8 photos (JPEG, PNG or WebP). The first is the cover shown in the catalogue. Photos are scaled down to 2000 px before sending.',
+      addPhotos: 'Add photos', cover: 'Cover', moveLeft: 'Move earlier', moveRight: 'Move later', remove: 'Remove', close: 'Close',
+      uploading: 'Sending {n} photo(s)…', photosAdded: '{n} photo(s) added.', photoRemoved: 'Photo removed.', noPhotos: 'No photos for this product.',
+      e_photoType: '“{name}” is not a JPEG, PNG or WebP image.', e_photoLarge: '“{name}” is too large (5 MB max. after scaling).', e_photoLimit: 'This product already has 8 photos.',
+      e_photoStorage: 'Photo upload is not enabled on the server yet.', e_photoFailed: 'Sending “{name}” failed.',
+      uploadLogo: 'Upload a logo', logoUploaded: 'Logo uploaded — remember to save.', fLogoUrl: 'or logo address (https)',
     },
   };
 
@@ -157,6 +169,13 @@
     if (!v) return '—';
     return new Date(v).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
+  /** https only — plus plain http on this machine, for local development. */
+  function isImageUrl(u) {
+    try {
+      var url = new URL(String(u || '').trim());
+      return url.protocol === 'https:' || (url.protocol === 'http:' && (url.hostname === 'localhost' || url.hostname === '127.0.0.1'));
+    } catch (e) { return false; }
+  }
   function productName(p) { return (p.names && (p.names[locale] || p.names.fr)) || '—'; }
   function sizeLabel(p) {
     if (p.size) return (p.size.system === 'ALPHA' ? '' : p.size.system + ' ') + p.size.value;
@@ -166,7 +185,7 @@
 
   // ---------- state
 
-  var state = { partnerId: null, partnerIds: [], app: null, inventory: [], brands: [], corner: null, tab: 'overview', showForm: false, csv: null };
+  var state = { partnerId: null, partnerIds: [], app: null, inventory: [], brands: [], corner: null, tab: 'overview', showForm: false, csv: null, photosFor: null };
   function api(path, init) { return window.ZFashionAuth.apiFetch('/partners/' + encodeURIComponent(state.partnerId) + path, init); }
   function json(res) { return res.json().catch(function () { return {}; }).then(function (body) { return { status: res.status, ok: res.ok, body: body }; }); }
 
@@ -282,6 +301,8 @@
     }
     nodes.push(bar);
     if (state.showForm) nodes.push(productForm());
+    var photoProduct = state.photosFor && state.inventory.filter(function (p) { return p.id === state.photosFor; })[0];
+    if (photoProduct) nodes.push(photoManager(photoProduct));
     nodes.push(catalogueTable());
     root.replaceChildren.apply(root, nodes);
   }
@@ -291,12 +312,20 @@
     if (!state.inventory.length) { wrap.appendChild(el('p', { class: 'pc-empty' }, t('noProducts'))); return wrap; }
     var table = el('table', { class: 'pc-table' });
     var hr = el('tr');
-    [['colRef'], ['colProduct'], ['colBrand'], ['colCategory'], ['colSize'], ['colPrice', 'num'], ['colStock', 'num']].forEach(function (c) { hr.appendChild(el('th', { scope: 'col', class: c[1] || null }, t(c[0]))); });
+    [['colPhoto'], ['colRef'], ['colProduct'], ['colBrand'], ['colCategory'], ['colSize'], ['colPrice', 'num'], ['colStock', 'num']].forEach(function (c) { hr.appendChild(el('th', { scope: 'col', class: c[1] || null }, t(c[0]))); });
     var thead = el('thead'); thead.appendChild(hr);
     var tbody = el('tbody');
     state.inventory.forEach(function (p) {
       var tr = el('tr');
-      tr.append(el('td', null, p.sku || '—'), el('td', null, productName(p)), el('td', null, p.brandName || '—'),
+      var photoCell = el('td', { class: 'pc-thumb-cell' });
+      var cover = (p.images || [])[0];
+      var pb = el('button', { type: 'button', class: 'pc-thumb', 'aria-label': t('photos') + ' — ' + productName(p) });
+      if (cover) pb.appendChild(el('img', { src: cover.url, alt: '' }));
+      else pb.appendChild(el('span', null, '+'));
+      pb.appendChild(el('small', null, String((p.images || []).length) + '/8'));
+      pb.addEventListener('click', function () { state.photosFor = p.id; render(); window.scrollTo(0, 0); });
+      photoCell.appendChild(pb);
+      tr.append(photoCell, el('td', null, p.sku || '—'), el('td', null, productName(p)), el('td', null, p.brandName || '—'),
         el('td', null, (p.categories || []).map(function (c) { return t('cat_' + c); }).join(', ')), el('td', null, sizeLabel(p)));
       var priceCell = el('td', { class: 'num' });
       priceCell.appendChild(el('span', null, money(p.priceMinorUnits) + ' '));
@@ -484,6 +513,116 @@
     return form;
   }
 
+  // ---------- photos
+
+  var MAX_SIDE = 2000, MAX_BYTES = 5 * 1024 * 1024, ACCEPTED = ['image/jpeg', 'image/png', 'image/webp'];
+
+  /** Scales a photo down to 2000 px on its longest side (JPEG 85 %; PNG
+   *  kept as PNG so logos keep their transparency). Small files that are
+   *  already the right type are sent untouched. */
+  function prepareImage(file, keepPng) {
+    if (ACCEPTED.indexOf(file.type) === -1) return Promise.reject({ code: 'type', name: file.name });
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        URL.revokeObjectURL(url);
+        var w = img.naturalWidth, h = img.naturalHeight, scale = Math.min(1, MAX_SIDE / Math.max(w, h));
+        if (scale === 1 && file.size <= MAX_BYTES) return resolve(file);
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.round(w * scale); canvas.height = Math.round(h * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        var type = keepPng && file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+        canvas.toBlob(function (blob) {
+          if (!blob) return reject({ code: 'type', name: file.name });
+          if (blob.size > MAX_BYTES) return reject({ code: 'large', name: file.name });
+          resolve(blob);
+        }, type, 0.85);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject({ code: 'type', name: file.name }); };
+      img.src = url;
+    });
+  }
+
+  function uploadErrorText(err, name) {
+    if (err && err.code === 'type') return t('e_photoType', { name: name });
+    if (err && err.code === 'large') return t('e_photoLarge', { name: name });
+    if (err && err.status === 409) return t('e_photoLimit');
+    if (err && err.status === 503) return t('e_photoStorage');
+    if (err && (err.status === 415)) return t('e_photoType', { name: name });
+    if (err && (err.status === 413)) return t('e_photoLarge', { name: name });
+    return t('e_photoFailed', { name: name });
+  }
+
+  function refreshImages(p, images) { p.images = images; render(); }
+
+  function photoManager(p) {
+    var card = el('article', { class: 'pc-card pc-photos' });
+    var head = el('div', { class: 'pc-toolbar' });
+    head.appendChild(el('h2', null, t('photosTitle', { name: productName(p) })));
+    var close = el('button', { class: 'pc-btn secondary', type: 'button' }, t('close'));
+    close.addEventListener('click', function () { state.photosFor = null; render(); });
+    head.appendChild(close);
+    card.append(head, el('p', { class: 'pc-muted' }, t('photosHint')));
+
+    var images = p.images || [];
+    var grid = el('div', { class: 'pc-photo-grid' });
+    if (!images.length) grid.appendChild(el('p', { class: 'pc-muted' }, t('noPhotos')));
+    images.forEach(function (img, i) {
+      var fig = el('figure', { class: 'pc-photo' });
+      fig.appendChild(el('img', { src: img.url, alt: productName(p) + ' — ' + (i + 1) }));
+      if (i === 0) fig.appendChild(el('span', { class: 'pc-badge good pc-cover' }, t('cover')));
+      var tools = el('div', { class: 'pc-photo-tools' });
+      function move(delta) {
+        var ids = images.map(function (x) { return x.id; });
+        var j = i + delta; var tmp = ids[i]; ids[i] = ids[j]; ids[j] = tmp;
+        api('/products/' + encodeURIComponent(p.id) + '/images/order', { method: 'POST', body: { imageIds: ids } }).then(json)
+          .then(function (r) { if (!r.ok) throw r; refreshImages(p, r.body.images); })
+          .catch(function () { flash(t('unavailable'), true); });
+      }
+      var left = el('button', { type: 'button', class: 'pc-btn secondary small', 'aria-label': t('moveLeft'), disabled: i === 0 }, '←');
+      left.addEventListener('click', function () { move(-1); });
+      var right = el('button', { type: 'button', class: 'pc-btn secondary small', 'aria-label': t('moveRight'), disabled: i === images.length - 1 }, '→');
+      right.addEventListener('click', function () { move(1); });
+      var del = el('button', { type: 'button', class: 'pc-btn secondary small', 'aria-label': t('remove'), title: t('remove') }, '✕');
+      del.addEventListener('click', function () {
+        del.disabled = true;
+        api('/products/' + encodeURIComponent(p.id) + '/images/' + encodeURIComponent(img.id), { method: 'DELETE' }).then(json)
+          .then(function (r) { if (!r.ok) throw r; flash(t('photoRemoved')); refreshImages(p, r.body.images); })
+          .catch(function () { del.disabled = false; flash(t('unavailable'), true); });
+      });
+      tools.append(left, right, del); fig.appendChild(tools); grid.appendChild(fig);
+    });
+    card.appendChild(grid);
+
+    var room = 8 - images.length;
+    var pick = el('input', { type: 'file', accept: ACCEPTED.join(','), multiple: true, 'aria-label': t('addPhotos'), hidden: true });
+    var add = el('button', { class: 'pc-btn', type: 'button', disabled: room <= 0 }, t('addPhotos'));
+    add.addEventListener('click', function () { pick.click(); });
+    pick.addEventListener('change', function () {
+      var files = Array.prototype.slice.call(pick.files || []).slice(0, room);
+      if (!files.length) return;
+      add.disabled = true; add.textContent = t('uploading', { n: files.length });
+      var errors = [], added = 0, latest = null;
+      files.reduce(function (chain, file) {
+        return chain.then(function () {
+          return prepareImage(file, false).then(function (blob) {
+            return api('/products/' + encodeURIComponent(p.id) + '/images', { method: 'POST', body: blob, headers: { 'Content-Type': blob.type || file.type } }).then(json);
+          }).then(function (r) {
+            if (!r.ok) throw { status: r.status };
+            added += 1; latest = r.body.image;
+          }).catch(function (err) { errors.push(uploadErrorText(err, file.name)); });
+        });
+      }, Promise.resolve()).then(function () {
+        if (added) flash(t('photosAdded', { n: added }) + (errors.length ? ' ' + errors.join(' ') : ''), errors.length > 0);
+        else if (errors.length) flash(errors.join(' '), true);
+        return loadAll();
+      });
+    });
+    var bar = el('div', { class: 'pc-toolbar' }); bar.append(add, pick); card.appendChild(bar);
+    return card;
+  }
+
   // ---------- stock
 
   function renderStock() {
@@ -618,9 +757,26 @@
     var byline = el('input', { maxlength: '140', value: c.byline || '' });
     var accent = el('input', { type: 'color', value: c.accentColor || '#151515' });
     var logo = el('input', { type: 'url', inputmode: 'url', placeholder: 'https://', value: c.logoUrl || '' });
+    var logoFile = el('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp', hidden: true, 'aria-label': t('uploadLogo') });
+    var logoBtn = el('button', { class: 'pc-btn secondary', type: 'button' }, t('uploadLogo'));
+    logoBtn.addEventListener('click', function () { logoFile.click(); });
+    logoFile.addEventListener('change', function () {
+      var f = logoFile.files && logoFile.files[0]; if (!f) return;
+      logoBtn.disabled = true;
+      prepareImage(f, true).then(function (blob) {
+        return api('/logo', { method: 'POST', body: blob, headers: { 'Content-Type': blob.type || f.type } }).then(json);
+      }).then(function (r) {
+        logoBtn.disabled = false;
+        if (!r.ok) throw { status: r.status };
+        logo.value = r.body.url; sync(); flash(t('logoUploaded'));
+      }).catch(function (err) { logoBtn.disabled = false; flash(uploadErrorText(err, f.name), true); });
+    });
     var g = el('div', { class: 'pc-grid2' });
     g.append(field(t('fDisplayName'), name), field(t('fAccent'), accent));
-    form.append(g, field(t('fByline'), byline), field(t('fLogo'), logo, t('fLogoHint')));
+    var logoRow = el('div', { class: 'pc-field' });
+    logoRow.append(el('span', null, t('fLogo')), (function () { var b = el('div', { class: 'pc-toolbar' }); b.append(logoBtn, logoFile); return b; })(),
+      field(t('fLogoUrl'), logo), el('p', { class: 'pc-hint' }, t('fLogoHint')));
+    form.append(g, field(t('fByline'), byline), logoRow);
 
     var preview = el('div', { class: 'pc-corner-preview', 'aria-label': t('preview') });
     var band = el('div', { class: 'pc-corner-band' }); var bodyBox = el('div', { class: 'pc-corner-body' });
@@ -628,7 +784,7 @@
     txt.append(pn, pb); bodyBox.append(img, txt); preview.append(band, bodyBox);
     function sync() {
       band.style.background = accent.value; pn.textContent = name.value || '—'; pb.textContent = byline.value;
-      if (/^https:\/\//.test(logo.value.trim())) { img.src = logo.value.trim(); img.hidden = false; } else { img.removeAttribute('src'); img.hidden = true; }
+      if (isImageUrl(logo.value)) { img.src = logo.value.trim(); img.hidden = false; } else { img.removeAttribute('src'); img.hidden = true; }
     }
     form.addEventListener('input', sync); sync();
     form.append(el('p', { class: 'pc-label' }, t('preview')), preview);
@@ -640,9 +796,8 @@
       var errors = [];
       if (!name.value.trim()) errors.push(t('e_displayName'));
       if (byline.value.length > 140) errors.push(t('e_byline'));
-      var url = logo.value.trim(); var okUrl = false;
-      try { okUrl = new URL(url).protocol === 'https:'; } catch (err) { okUrl = false; }
-      if (!okUrl) errors.push(t('e_logo'));
+      var url = logo.value.trim();
+      if (!isImageUrl(url)) errors.push(t('e_logo'));
       if (errors.length) { errBox.textContent = errors.join(' '); errBox.hidden = false; return; }
       errBox.hidden = true; save.disabled = true; save.textContent = t('saving');
       api('/corner-config', { method: 'POST', body: { displayName: name.value.trim(), byline: byline.value.trim() || null, accentColor: accent.value, logoUrl: url } })

@@ -25,16 +25,22 @@ const commissionDomain = require('../../../packages/fashion-domain/src/commissio
 const { buildListingCards } = require('../../../packages/fashion-domain/src/catalog-listing');
 const { validatePartnerApplication } = require('../../../packages/fashion-domain/src/partner-application');
 const { launchedMarkets } = require('../../../packages/fashion-domain/src/markets');
+const mediaDomain = require('../../../packages/fashion-domain/src/media');
 const db = require('./db');
 const { resolveAuthenticatedUserId, loadSupabaseAuthConfigFromEnv } = require('./auth');
 const { isAuthRequired, loadAdminUserIds, decideAccess } = require('./access');
 const { loadAllowedOrigins, corsHeadersFor } = require('./cors');
+const { createMediaStorage, publicUrlFor } = require('./media-storage');
 
 const usingPostgres = !!process.env.DATABASE_URL;
 const pool = usingPostgres ? db.createPool() : null;
 
 const authRequired = isAuthRequired({ usingPostgres });
 const allowedOrigins = loadAllowedOrigins();
+const mediaStorage = createMediaStorage({
+  usingPostgres,
+  publicBaseUrl: (process.env.FASHION_PUBLIC_API_URL || `http://127.0.0.1:${process.env.PORT || 4001}`).replace(/\/+$/, ''),
+});
 
 /**
  * Request gates. Each returns a truthy value on success; on failure it
@@ -405,6 +411,7 @@ async function handleGetInventory(req, res, partnerId) {
       priceHistory.currentPrice(memory.priceHistoryByProductId.get(p.id) || priceHistory.emptyHistory())]));
     brandsById = Object.fromEntries([...memory.brands.values()].map((b) => [b.id, b]));
   }
+  const imagesById = await imagesByProductId(products.map((p) => p.id));
   const items = products.map((p) => {
     const stock = stockById[p.id] || null;
     return {
@@ -419,6 +426,7 @@ async function handleGetInventory(req, res, partnerId) {
       size: p.size,
       format: p.format,
       priceMinorUnits: priceById[p.id] == null ? null : priceById[p.id],
+      images: imagesById[p.id] || [],
       stock: stock
         ? { quantityAvailable: stock.quantityAvailable, quantityReserved: stock.quantityReserved, sellable: sellableQuantity(stock), lastUpdatedAt: stock.lastUpdatedAt }
         : null,
@@ -457,6 +465,136 @@ async function handleGetOwnCornerConfig(req, res, partnerId) {
   sendJson(res, 200, { cornerConfig: config });
 }
 
+/* ---------- Product photos and store logo (task 7b) ---------- */
+
+function imageUrl(path) { return publicUrlFor({ usingPostgres, storage: mediaStorage, path }); }
+function imageView(img) { return { id: img.id, url: imageUrl(img.storagePath), position: img.position }; }
+
+/** Photos of several products: { productId: [{ id, url, position }] }, cover first. */
+async function imagesByProductId(productIds) {
+  if (usingPostgres) {
+    const rows = await db.listImagesForProductsPg(pool, productIds);
+    return Object.fromEntries(productIds.map((id) => [id, (rows[id] || []).map(imageView)]));
+  }
+  return Object.fromEntries(productIds.map((id) => [id, (memory.productImages.get(id) || []).map(imageView)]));
+}
+
+/** Reads a binary request body, at most `limit` bytes (null when larger). */
+function readRawBody(req, limit) {
+  return new Promise((resolve, reject) => {
+    const chunks = []; let size = 0; let tooLarge = false;
+    req.on('data', (chunk) => {
+      size += chunk.length;
+      if (size > limit) { tooLarge = true; return; }
+      chunks.push(chunk);
+    });
+    req.on('end', () => resolve(tooLarge ? null : Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
+}
+
+async function readImageUpload(req, res) {
+  if (!mediaStorage) { sendJson(res, 503, { error: 'media_storage_not_configured' }); return null; }
+  const bytes = await readRawBody(req, mediaDomain.MAX_IMAGE_BYTES);
+  if (bytes === null) { sendJson(res, 413, { error: 'too_large' }); return null; }
+  const check = mediaDomain.validateImageUpload({ declaredType: req.headers['content-type'], bytes });
+  if (!check.ok) { sendJson(res, check.code === 'too_large' ? 413 : 415, { error: check.code }); return null; }
+  return { bytes, ...check };
+}
+
+/** POST /partners/:id/products/:productId/images — raw JPEG/PNG/WebP body. */
+async function handleUploadProductImage(req, res, partnerId, productId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
+  try { await assertProductOwnership(partnerId, productId); } catch (err) { req.resume(); return sendJson(res, err.statusCode || 422, { error: err.message }); }
+  const current = (await imagesByProductId([productId]))[productId];
+  if (current.length >= mediaDomain.MAX_IMAGES_PER_PRODUCT) { req.resume(); return sendJson(res, 409, { error: 'image_limit' }); }
+  const upload = await readImageUpload(req, res);
+  if (!upload) return;
+
+  const id = require('crypto').randomUUID();
+  const storagePath = mediaDomain.productImagePath(partnerId, productId, id, upload.extension);
+  try {
+    await mediaStorage.put(storagePath, upload.bytes, upload.contentType);
+  } catch (err) {
+    console.error('[media] upload failed', err.message);
+    return sendJson(res, 502, { error: 'storage_failed' });
+  }
+  try {
+    let image;
+    if (usingPostgres) {
+      image = await db.insertProductImagePg(pool, { id, productId, partnerId, storagePath, contentType: upload.contentType, byteSize: upload.byteSize });
+    } else {
+      const list = memory.productImages.get(productId) || [];
+      if (list.length >= mediaDomain.MAX_IMAGES_PER_PRODUCT) { const e = new Error('image_limit'); e.code = 'image_limit'; throw e; }
+      image = { id, productId, partnerId, storagePath, contentType: upload.contentType, byteSize: upload.byteSize, position: list.length };
+      memory.productImages.set(productId, [...list, image]);
+    }
+    sendJson(res, 201, { image: imageView(image) });
+  } catch (err) {
+    await mediaStorage.remove(storagePath).catch(() => {});
+    if (err.code === 'image_limit') return sendJson(res, 409, { error: 'image_limit' });
+    throw err;
+  }
+}
+
+/** DELETE /partners/:id/products/:productId/images/:imageId */
+async function handleDeleteProductImage(req, res, partnerId, productId, imageId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
+  try { await assertProductOwnership(partnerId, productId); } catch (err) { return sendJson(res, err.statusCode || 422, { error: err.message }); }
+  let removed = null;
+  if (usingPostgres) {
+    removed = await db.deleteProductImagePg(pool, productId, imageId);
+  } else {
+    const list = memory.productImages.get(productId) || [];
+    removed = list.find((i) => i.id === imageId) || null;
+    memory.productImages.set(productId, list.filter((i) => i.id !== imageId).map((i, n) => ({ ...i, position: n })));
+  }
+  if (!removed) return sendJson(res, 404, { error: 'image_not_found' });
+  if (mediaStorage) {
+    await mediaStorage.remove(removed.storagePath).catch((err) => console.error('[media] delete failed, file left in storage', removed.storagePath, err.message));
+  }
+  sendJson(res, 200, { images: (await imagesByProductId([productId]))[productId] });
+}
+
+/** POST /partners/:id/products/:productId/images/order — { imageIds } (cover first). */
+async function handleReorderProductImages(req, res, partnerId, productId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
+  try { await assertProductOwnership(partnerId, productId); } catch (err) { return sendJson(res, err.statusCode || 422, { error: err.message }); }
+  const body = await readBody(req);
+  const currentIds = (await imagesByProductId([productId]))[productId].map((i) => i.id);
+  if (!mediaDomain.isValidImageOrder(currentIds, body.imageIds)) return sendJson(res, 422, { error: 'invalid_order' });
+  if (usingPostgres) {
+    await db.reorderProductImagesPg(pool, productId, body.imageIds);
+  } else {
+    const byId = Object.fromEntries((memory.productImages.get(productId) || []).map((i) => [i.id, i]));
+    memory.productImages.set(productId, body.imageIds.map((id, n) => ({ ...byId[id], position: n })));
+  }
+  sendJson(res, 200, { images: (await imagesByProductId([productId]))[productId] });
+}
+
+/** POST /partners/:id/logo — raw image; returns its public URL for the Corner settings. */
+async function handleUploadLogo(req, res, partnerId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
+  const upload = await readImageUpload(req, res);
+  if (!upload) return;
+  const storagePath = mediaDomain.logoPath(partnerId, require('crypto').randomUUID(), upload.extension);
+  try {
+    await mediaStorage.put(storagePath, upload.bytes, upload.contentType);
+  } catch (err) {
+    console.error('[media] logo upload failed', err.message);
+    return sendJson(res, 502, { error: 'storage_failed' });
+  }
+  sendJson(res, 201, { url: imageUrl(storagePath) });
+}
+
+/** GET /media/<path> — in-memory mode only (local development). */
+function handleMemoryMedia(req, res, path) {
+  const file = mediaStorage && mediaStorage.kind === 'memory' ? mediaStorage.get(path) : null;
+  if (!file) return sendJson(res, 404, { error: 'not found' });
+  res.writeHead(200, { 'Content-Type': file.contentType, 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'public, max-age=60' });
+  res.end(file.bytes);
+}
+
 // In-memory fallback store — only reachable when usingPostgres is false.
 const memory = {
   partners: new Map(), applications: new Map(), stockByProductId: new Map(),
@@ -466,6 +604,7 @@ const memory = {
   addressBook: addressDomain.emptyAddressBook(),
   partnerApplications: new Map(),
   applicationDecisions: new Map(),
+  productImages: new Map(),
 };
 
 function readBody(req) {
@@ -945,7 +1084,8 @@ async function handleGetCatalogProduct(req, res, productId) {
       allProducts: siblingProducts, stockByProductId,
     });
 
-    sendJson(res, 200, { productPage: viewModel });
+    const images = (await imagesByProductId([product.id]))[product.id];
+    sendJson(res, 200, { productPage: { ...viewModel, images } });
   } catch (err) {
     sendJson(res, 400, { error: err.message });
   }
@@ -1006,8 +1146,10 @@ async function handleGetAllSale(req, res, query) {
       }
 
       const [card] = buildListingCards([product], stockByProductId, brand ? { [brand.id]: brand } : {});
+      const [cover] = (await imagesByProductId([product.id]))[product.id];
       cards.push({
         ...card,
+        imageUrl: cover ? cover.url : null,
         priceMinorUnits: price,
         cornerName: partner ? partner.legalName : null,
       });
@@ -1321,7 +1463,9 @@ async function handleGetCornerDetail(req, res, partnerId) {
     }
 
     const cornerCatalog = cornerProducts(allProducts, partnerId);
-    const cards = buildListingCards(cornerCatalog, stockByProductId, brandsById);
+    const coverById = await imagesByProductId(cornerCatalog.map((p) => p.id));
+    const cards = buildListingCards(cornerCatalog, stockByProductId, brandsById)
+      .map((card) => ({ ...card, imageUrl: (coverById[card.productId] || [])[0] ? coverById[card.productId][0].url : null }));
 
     sendJson(res, 200, { cornerConfig: config, products: cards, total: cards.length });
   } catch (err) {
@@ -1370,6 +1514,21 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'GET' && parts[0] === 'partners' && parts[2] === 'inventory' && parts.length === 3) {
       return await handleGetInventory(req, res, parts[1]);
+    }
+    if (req.method === 'POST' && parts[0] === 'partners' && parts[2] === 'products' && parts[4] === 'images' && parts.length === 5) {
+      return await handleUploadProductImage(req, res, parts[1], parts[3]);
+    }
+    if (req.method === 'POST' && parts[0] === 'partners' && parts[2] === 'products' && parts[4] === 'images' && parts[5] === 'order' && parts.length === 6) {
+      return await handleReorderProductImages(req, res, parts[1], parts[3]);
+    }
+    if (req.method === 'DELETE' && parts[0] === 'partners' && parts[2] === 'products' && parts[4] === 'images' && parts.length === 6) {
+      return await handleDeleteProductImage(req, res, parts[1], parts[3], parts[5]);
+    }
+    if (req.method === 'POST' && parts[0] === 'partners' && parts[2] === 'logo' && parts.length === 3) {
+      return await handleUploadLogo(req, res, parts[1]);
+    }
+    if (req.method === 'GET' && parts[0] === 'media' && parts.length > 1 && !usingPostgres) {
+      return handleMemoryMedia(req, res, parts.slice(1).join('/'));
     }
     if (req.method === 'POST' && parts[0] === 'partners' && parts[2] === 'products' && parts[4] === 'price' && parts.length === 5) {
       return await handleSetPrice(req, res, parts[1], parts[3]);
@@ -1483,6 +1642,9 @@ if (require.main === module) {
       'For a disposable local database only, set FASHION_ALLOW_UNAUTHENTICATED=1.'
     );
     process.exit(1);
+  }
+  if (usingPostgres && !mediaStorage) {
+    console.warn('fashion-partner API: SUPABASE_SECRET_KEY (or SUPABASE_SERVICE_ROLE_KEY) not set — photo and logo uploads are refused (503).');
   }
   if (usingPostgres && !authRequired) {
     console.warn('fashion-partner API: FASHION_ALLOW_UNAUTHENTICATED=1 — authentication is OFF. Never use this in production.');

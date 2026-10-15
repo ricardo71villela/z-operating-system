@@ -21,6 +21,9 @@ A disposable local database can run without authentication by setting `FASHION_A
 | `FASHION_ADMIN_USER_IDS` | for admin actions | Comma-separated Supabase auth user ids allowed to approve, reject or suspend Partners. Empty means nobody can. Temporary until ZOS has an admin-role model. |
 | `FASHION_ALLOWED_ORIGINS` | for the dashboards | Comma-separated origins of the Partner dashboard and admin backoffice (exact match, e.g. `https://admin.zfashion.online`). Others get no CORS headers. |
 | `FASHION_PARTNER_TERMS_VERSION`, `FASHION_PARTNER_TERMS_URL` | to open store applications | Version label and https URL of the published Partner terms. Until both are set, the adhesion page says applications are not open and `POST /partner-applications` returns 503. Changing the version makes stores accept the new one. |
+| `SUPABASE_SECRET_KEY` (or `SUPABASE_SERVICE_ROLE_KEY`) | for photos and logos | Server-side key used **only** to write to the `zfashion-media` Storage bucket. Without it, uploads return 503. Never sent to a browser. |
+| `FASHION_MEDIA_BUCKET` | no | Storage bucket name (default `zfashion-media`). |
+| `FASHION_PUBLIC_API_URL` | no | In-memory mode only: base URL used for `/media/...` links (default `http://127.0.0.1:$PORT`). |
 | `FASHION_ALLOW_UNAUTHENTICATED` | no | `1` disables authentication. Local disposable databases only. |
 | `FASHION_DB_SSL_MODE`, `FASHION_DB_SCHEMA` | no | See `src/db.js`. |
 
@@ -33,7 +36,7 @@ Requests carry `Authorization: Bearer <Supabase access token>`.
 | `POST /partners/:id/transition` | Admin (`FASHION_ADMIN_USER_IDS`) |
 | `GET /admin/partner-applications[?status=]`, `GET /admin/partner-applications/:partnerId`, `POST /admin/partner-applications/:partnerId/decision` | Admin. Decisions follow the onboarding graph; rejecting or suspending needs a note (shown to the store); activating needs the stock mode. Status and note are written in one transaction. |
 | `GET /partners/:id/application` | A person who manages that Partner: application status and latest decision note |
-| `/partners/:id/...` (stock, brands, products, inventory, price, Corner, commission, shipments, returns) | A person who manages that Partner (ZOS membership → registry binding) |
+| `/partners/:id/...` (stock, brands, products, inventory, price, photos, logo, Corner, commission, shipments, returns) | A person who manages that Partner (ZOS membership → registry binding) |
 | `POST /shipments`, `POST /returns` | A person who manages the `partnerId` in the body |
 | `POST /shipments/:id/transition`, `POST /returns/:id/transition` | A person who manages the Partner that owns the record |
 | `/clients/:clientId/...` (wishlist, follows, addresses) | The client themself: `clientId` must equal the caller's auth user id |
@@ -53,4 +56,17 @@ Stores apply on `public/adhesion.html`: the account that submits the form become
 `public/dashboard.html` (+ `console.js`, `console.css`) is the real Partner space, behind the Partner sign-in: overview (status, decision note, subscription, readiness checklist), catalogue (create products with brand, reference, size or format, price; edit prices), stock (edit quantities, import a `reference;quantity` CSV, download the template) and Corner settings. It uses `GET /partners/:id/inventory`, `GET /partners/:id/brands`, `POST /partners/:id/products/:productId/price` and `GET /partners/:id/corner-config`. Products can carry the store's own reference (`sku`, unique per store, migration `20261015120000_z_fashion_product_sku_v1.sql`), which is how stock files are matched.
 
 `public/preview-dashboard.html` is the earlier visual mock-up, kept as a design reference; it holds no real data and needs no sign-in.
+
+## Photos and logos
+
+Product photos and store logos are uploaded **through this API** (raw JPEG, PNG or WebP body), never straight from a browser to Storage:
+
+| Route | What it does |
+| --- | --- |
+| `POST /partners/:id/products/:productId/images` | Adds a photo (appended; first = cover). 415 if the content is not JPEG/PNG/WebP or does not match the declared type, 413 above 5 MB, 409 above 8 photos. |
+| `POST /partners/:id/products/:productId/images/order` | `{ imageIds }`, cover first; must name every photo once. |
+| `DELETE /partners/:id/products/:productId/images/:imageId` | Removes the photo and its file; positions close up. |
+| `POST /partners/:id/logo` | Stores a logo and returns its public URL for the Corner settings. |
+
+Rules live in `fashion-domain/src/media.js` (type recognised from the file content, size, count, paths built from ids). Files go to the public-read bucket `zfashion-media` under `partners/<partnerId>/...`; rows in `fashion.product_images` (migration `20261015150000_z_fashion_product_images_v1.sql`, which also refuses a 9th photo and a photo of another store's product). Inventory, product pages and listing cards (`imageUrl`) include them. The Partner console scales photos down to 2000 px before sending.
 
