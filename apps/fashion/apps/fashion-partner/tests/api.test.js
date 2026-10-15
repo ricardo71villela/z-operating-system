@@ -586,12 +586,58 @@ async function run() {
   assert.strictEqual(res.status, 200);
   assert.strictEqual(res.body.onboardingStatus, 'suspended');
   assert.strictEqual(res.body.decisionNote, 'Stock non mis à jour depuis 30 jours.', 'the store sees why');
+  assert.deepStrictEqual(res.body.categories, ['clothing'], 'the console knows which categories the store may use');
+  assert.deepStrictEqual(res.body.ageSegments, ['adults']);
   res = await decide(appliedPartnerId, { toStatus: 'active', feedReliabilityTier: 'degraded' });
   assert.strictEqual(res.status, 200, 'reactivation');
   res = await request('GET', `/partners/${appliedPartnerId}/application`);
   assert.strictEqual(res.body.decisionNote, 'Stock non mis à jour depuis 30 jours.', 'note kept when reactivating without a new one');
 
   delete process.env.FASHION_PARTNER_TERMS_VERSION; delete process.env.FASHION_PARTNER_TERMS_URL;
+
+  // --- Partner console (task 7): brands, inventory, price, SKU, own Corner.
+  res = await request('GET', `/partners/${appliedPartnerId}/brands`);
+  assert.deepStrictEqual(res.body.brands.map((b) => b.name), ['Maison Léman']);
+  res = await request('POST', `/partners/${appliedPartnerId}/products`, {
+    brandId: lemanBrand, sku: 'VES-40', names: { fr: 'Veste Léman 40' }, gender: 'female', categories: ['clothing'],
+    size: { system: 'EU', value: 40 }, priceMinorUnits: 18900,
+  });
+  assert.strictEqual(res.status, 201);
+  assert.strictEqual(res.body.product.sku, 'VES-40');
+  const ves40 = res.body.product.id;
+  res = await request('POST', `/partners/${appliedPartnerId}/products`, {
+    brandId: lemanBrand, sku: 'VES-40', names: { fr: 'Doublon' }, gender: 'female', categories: ['clothing'], size: { system: 'EU', value: 42 },
+  });
+  assert.strictEqual(res.status, 409, 'SKU unique per store');
+  assert.strictEqual(res.body.error, 'sku_taken');
+  res = await request('POST', `/partners/${appliedPartnerId}/products`, {
+    brandId: lemanBrand, names: { fr: 'Prix faux' }, gender: 'female', categories: ['clothing'], size: { system: 'EU', value: 44 }, priceMinorUnits: 12.5,
+  });
+  assert.strictEqual(res.status, 422);
+  assert.strictEqual(res.body.error, 'invalid_price');
+
+  res = await request('GET', `/partners/${appliedPartnerId}/inventory`);
+  assert.strictEqual(res.status, 200);
+  const invVes40 = res.body.products.find((p) => p.id === ves40);
+  assert.deepStrictEqual(
+    { sku: invVes40.sku, brandName: invVes40.brandName, price: invVes40.priceMinorUnits, stock: invVes40.stock },
+    { sku: 'VES-40', brandName: 'Maison Léman', price: 18900, stock: null }
+  );
+  const invLeman = res.body.products.find((p) => p.id === lemanProduct);
+  assert.strictEqual(invLeman.stock.quantityAvailable, 3);
+  assert.strictEqual(invLeman.stock.sellable, 3);
+
+  res = await request('POST', `/partners/${appliedPartnerId}/products/${ves40}/price`, { priceMinorUnits: 16900 });
+  assert.strictEqual(res.status, 200);
+  res = await request('GET', `/partners/${appliedPartnerId}/inventory`);
+  assert.strictEqual(res.body.products.find((p) => p.id === ves40).priceMinorUnits, 16900, 'latest price wins');
+  res = await request('POST', `/partners/${appliedPartnerId}/products/${ves40}/price`, { priceMinorUnits: 0 });
+  assert.strictEqual(res.status, 422);
+  res = await request('POST', `/partners/partner_atelier/products/${ves40}/price`, { priceMinorUnits: 100 });
+  assert.strictEqual(res.status, 403, 'another store cannot price this product');
+
+  res = await request('GET', `/partners/${appliedPartnerId}/corner-config`);
+  assert.strictEqual(res.body.cornerConfig.displayName, 'Maison Léman', 'own Corner readable whatever the status');
 
   // GET /me in in-memory mode: nobody is authenticated, nothing granted.
   res = await request('GET', '/me');

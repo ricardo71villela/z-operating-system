@@ -33,7 +33,7 @@ Requests carry `Authorization: Bearer <Supabase access token>`.
 | `POST /partners/:id/transition` | Admin (`FASHION_ADMIN_USER_IDS`) |
 | `GET /admin/partner-applications[?status=]`, `GET /admin/partner-applications/:partnerId`, `POST /admin/partner-applications/:partnerId/decision` | Admin. Decisions follow the onboarding graph; rejecting or suspending needs a note (shown to the store); activating needs the stock mode. Status and note are written in one transaction. |
 | `GET /partners/:id/application` | A person who manages that Partner: application status and latest decision note |
-| `/partners/:id/...` (stock, brands, products, Corner, commission, shipments, returns) | A person who manages that Partner (ZOS membership → registry binding) |
+| `/partners/:id/...` (stock, brands, products, inventory, price, Corner, commission, shipments, returns) | A person who manages that Partner (ZOS membership → registry binding) |
 | `POST /shipments`, `POST /returns` | A person who manages the `partnerId` in the body |
 | `POST /shipments/:id/transition`, `POST /returns/:id/transition` | A person who manages the Partner that owns the record |
 | `/clients/:clientId/...` (wishlist, follows, addresses) | The client themself: `clientId` must equal the caller's auth user id |
@@ -47,3 +47,10 @@ The decision logic lives in `src/access.js` and is covered by `tests/access.test
 Only **active** stores are visible in the public catalogue (`/catalog/*`, `/products/:id`, wishlist and followed Corners); applied, under-review, approved, rejected and suspended stores are hidden.
 
 Stores apply on `public/adhesion.html`: the account that submits the form becomes the store's manager in the same transaction, so `GET /me` lists the store immediately (status `applied`). Approval stays an admin action. Stores created another way have no manager until linked.
+
+## Partner console
+
+`public/dashboard.html` (+ `console.js`, `console.css`) is the real Partner space, behind the Partner sign-in: overview (status, decision note, subscription, readiness checklist), catalogue (create products with brand, reference, size or format, price; edit prices), stock (edit quantities, import a `reference;quantity` CSV, download the template) and Corner settings. It uses `GET /partners/:id/inventory`, `GET /partners/:id/brands`, `POST /partners/:id/products/:productId/price` and `GET /partners/:id/corner-config`. Products can carry the store's own reference (`sku`, unique per store, migration `20261015120000_z_fashion_product_sku_v1.sql`), which is how stock files are matched.
+
+`public/preview-dashboard.html` is the earlier visual mock-up, kept as a design reference; it holds no real data and needs no sign-in.
+

@@ -361,7 +361,100 @@ async function handleGetOwnApplication(req, res, partnerId) {
     decidedAt: application.decidedAt,
     createdAt: application.createdAt,
     monthlySubscriptionFeeMinorUnits: applicationWithFee(application).monthlySubscriptionFeeMinorUnits,
+    categories: application.categories || [],
+    ageSegments: application.ageSegments || [],
+    minorSafeDataAcknowledged: !!application.minorSafeDataAcknowledged,
   });
+}
+
+/* ---------- Partner console (task 7) ---------- */
+
+/** Prices are integer euro cents, at least 0.01 and at most 100 000 EUR. */
+function isValidPrice(value) {
+  return Number.isInteger(value) && value > 0 && value <= 10000000;
+}
+
+/** GET /partners/:id/brands — brands the store can pick for a product. */
+async function handleListBrands(req, res, partnerId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
+  if (usingPostgres) return sendJson(res, 200, { brands: await db.listBrandsForPartnerPg(pool, partnerId) });
+  const usedIds = new Set([...memory.products.values()].filter((p) => p.partnerId === partnerId).map((p) => p.brandId));
+  const brands = [...memory.brands.values()]
+    .filter((b) => b.houseLabelOfPartnerId === partnerId || usedIds.has(b.id))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  sendJson(res, 200, { brands });
+}
+
+/**
+ * GET /partners/:id/inventory — the store's products with brand name,
+ * current price and stock, in one call for the Partner console.
+ */
+async function handleGetInventory(req, res, partnerId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
+  let products, stockById, priceById, brandsById;
+  if (usingPostgres) {
+    products = await db.listProductsForPartner(pool, partnerId);
+    const ids = products.map((p) => p.id);
+    stockById = await db.getStockForProductsPg(pool, ids);
+    priceById = await db.getCurrentPricesPg(pool, ids);
+    brandsById = Object.fromEntries((await db.listBrandsForPartnerPg(pool, partnerId)).map((b) => [b.id, b]));
+  } else {
+    products = [...memory.products.values()].filter((p) => p.partnerId === partnerId);
+    stockById = Object.fromEntries(products.map((p) => [p.id, memory.stockByProductId.get(p.id) || null]));
+    priceById = Object.fromEntries(products.map((p) => [p.id,
+      priceHistory.currentPrice(memory.priceHistoryByProductId.get(p.id) || priceHistory.emptyHistory())]));
+    brandsById = Object.fromEntries([...memory.brands.values()].map((b) => [b.id, b]));
+  }
+  const items = products.map((p) => {
+    const stock = stockById[p.id] || null;
+    return {
+      id: p.id,
+      sku: p.sku || null,
+      names: p.names,
+      brandId: p.brandId,
+      brandName: brandsById[p.brandId] ? brandsById[p.brandId].name : null,
+      categories: p.categories,
+      gender: p.gender,
+      ageSegments: p.ageSegments,
+      size: p.size,
+      format: p.format,
+      priceMinorUnits: priceById[p.id] == null ? null : priceById[p.id],
+      stock: stock
+        ? { quantityAvailable: stock.quantityAvailable, quantityReserved: stock.quantityReserved, sellable: sellableQuantity(stock), lastUpdatedAt: stock.lastUpdatedAt }
+        : null,
+    };
+  });
+  sendJson(res, 200, { products: items, total: items.length });
+}
+
+/** POST /partners/:id/products/:productId/price — { priceMinorUnits }.
+ *  Appends to the price history (never rewrites it: the legal reference
+ *  price for discounts depends on that history). */
+async function handleSetPrice(req, res, partnerId, productId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
+  const body = await readBody(req);
+  if (!isValidPrice(body.priceMinorUnits)) return sendJson(res, 422, { error: 'invalid_price' });
+  try {
+    await assertProductOwnership(partnerId, productId);
+  } catch (err) {
+    return sendJson(res, err.statusCode || 422, { error: err.message });
+  }
+  const observedAt = new Date().toISOString();
+  if (usingPostgres) {
+    await db.recordPricePg(pool, productId, body.priceMinorUnits, observedAt);
+  } else {
+    const history = memory.priceHistoryByProductId.get(productId) || priceHistory.emptyHistory();
+    memory.priceHistoryByProductId.set(productId, priceHistory.recordPrice(history, { priceMinorUnits: body.priceMinorUnits, observedAt }));
+  }
+  sendJson(res, 200, { productId, priceMinorUnits: body.priceMinorUnits, observedAt });
+}
+
+/** GET /partners/:id/corner-config — the store's own Corner settings,
+ *  whatever its status (the public Corner routes only show active stores). */
+async function handleGetOwnCornerConfig(req, res, partnerId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
+  const config = usingPostgres ? await db.getCornerConfig(pool, partnerId) : memory.cornerConfigs.get(partnerId) || null;
+  sendJson(res, 200, { cornerConfig: config });
 }
 
 // In-memory fallback store — only reachable when usingPostgres is false.
@@ -607,8 +700,11 @@ async function handleCreateProduct(req, res, partnerId) {
       // certification, sized-category size requirement, names.fr) before
       // the DB ever sees the row — the DB's own CHECK constraints and
       // triggers are the second, independent enforcement, not the only one.
-      createProduct({ ...body, id: 'pending', partnerId });
-      const row = await db.insertProduct(pool, { ...body, partnerId });
+      const validated = createProduct({ ...body, id: 'pending', partnerId });
+      if (body.priceMinorUnits !== undefined && !isValidPrice(body.priceMinorUnits)) {
+        return sendJson(res, 422, { error: 'invalid_price' });
+      }
+      const row = await db.insertProduct(pool, { ...validated, partnerId });
 
       // priceMinorUnits is optional on creation — Price is a separate
       // History concept (price-history.js), never a field on Product
@@ -622,6 +718,12 @@ async function handleCreateProduct(req, res, partnerId) {
     }
 
     const product = createProduct({ ...body, id: require('crypto').randomUUID(), partnerId });
+    if (body.priceMinorUnits !== undefined && !isValidPrice(body.priceMinorUnits)) {
+      return sendJson(res, 422, { error: 'invalid_price' });
+    }
+    if (product.sku && [...memory.products.values()].some((p) => p.partnerId === partnerId && p.sku === product.sku)) {
+      return sendJson(res, 409, { error: 'sku_taken' });
+    }
     memory.products.set(product.id, product);
 
     if (typeof body.priceMinorUnits === 'number') {
@@ -634,6 +736,7 @@ async function handleCreateProduct(req, res, partnerId) {
 
     sendJson(res, 201, { product });
   } catch (err) {
+    if (err.code === 'sku_taken') return sendJson(res, 409, { error: 'sku_taken' });
     sendJson(res, 422, { error: err.message });
   }
 }
@@ -1261,6 +1364,18 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'GET' && parts[0] === 'partners' && parts[2] === 'application' && parts.length === 3) {
       return await handleGetOwnApplication(req, res, parts[1]);
+    }
+    if (req.method === 'GET' && parts[0] === 'partners' && parts[2] === 'brands' && parts.length === 3) {
+      return await handleListBrands(req, res, parts[1]);
+    }
+    if (req.method === 'GET' && parts[0] === 'partners' && parts[2] === 'inventory' && parts.length === 3) {
+      return await handleGetInventory(req, res, parts[1]);
+    }
+    if (req.method === 'POST' && parts[0] === 'partners' && parts[2] === 'products' && parts[4] === 'price' && parts.length === 5) {
+      return await handleSetPrice(req, res, parts[1], parts[3]);
+    }
+    if (req.method === 'GET' && parts[0] === 'partners' && parts[2] === 'corner-config' && parts.length === 3) {
+      return await handleGetOwnCornerConfig(req, res, parts[1]);
     }
     if (req.method === 'POST' && parts[0] === 'partners' && parts.length === 1) {
       return await handleApplyPartner(req, res);
