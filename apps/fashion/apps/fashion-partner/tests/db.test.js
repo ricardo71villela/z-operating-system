@@ -69,9 +69,21 @@ async function run() {
 
   // --- Store adhesion: one transaction links the applicant to the new store.
   const offer = await getPartnerOfferPg(pool);
-  assert.strictEqual(offer.monthlySubscriptionFeeMinorUnits, 3500);
-  assert.strictEqual(offer.commissionRatesPercent.accessories_leather_goods, 15);
-  assert.ok(offer.volumeDiscountTiers.length >= 1);
+  // Pricing v2: database and fashion-domain/commission.js hold the same numbers.
+  const pricing = require('../../../packages/fashion-domain/src/commission');
+  assert.deepStrictEqual(offer.subscriptionTiers, pricing.SUBSCRIPTION_TIERS.map((t) => ({ ...t })));
+  assert.deepStrictEqual(offer.ticketCommissionTiers, pricing.TICKET_COMMISSION_TIERS.map((t) => ({ ...t })));
+  for (const [count, cats] of [[1, ['clothing']], [2, ['clothing', 'footwear']], [3, ['clothing', 'footwear', 'cosmetics']], [5, ['clothing', 'footwear', 'sportswear', 'accessories_leather_goods', 'cosmetics']]]) {
+    const sqlFee = (await pool.query('select fashion.subscription_fee_minor_units($1) as fee', [count])).rows[0].fee;
+    assert.strictEqual(sqlFee, pricing.subscriptionFeeMinorUnits(cats), `fee for ${count} categories`);
+  }
+  for (const ticket of [0, 9999, 10000, 10001, 19999, 20000, 20001, 123456]) {
+    const row = (await pool.query('select fashion.ticket_commission_rate_percent($1) as rate, fashion.ticket_commission_owed_minor_units($1) as owed', [ticket])).rows[0];
+    assert.strictEqual(row.rate, pricing.ticketCommissionRatePercent(ticket), `rate for ${ticket}`);
+    assert.strictEqual(Number(row.owed), pricing.ticketCommissionOwedMinorUnits(ticket), `owed for ${ticket}`);
+  }
+  assert.strictEqual((await pool.query('select fashion.subscription_fee_owed_minor_units(1, 2) as fee')).rows[0].fee, 0, 'first month free');
+  assert.strictEqual(await pool.query(`select to_regclass('fashion.commission_rates') as t`).then((r) => r.rows[0].t), null, 'v1 price tables are gone');
 
   const applicant = (await pool.query(
     `insert into auth.users (email) values ('adhesion-' || gen_random_uuid() || '@example.fr') returning id, email`
@@ -109,7 +121,7 @@ async function run() {
   )).rows[0];
   assert.strictEqual(stored.terms_version, 'pt-2027-01');
   assert.ok(stored.terms_accepted_at instanceof Date);
-  assert.strictEqual(stored.offer_snapshot.monthlySubscriptionFeeMinorUnits, 3500);
+  assert.strictEqual(stored.offer_snapshot.subscriptionTiers[0].monthlyFeeMinorUnits, 3900);
   assert.strictEqual(stored.contact_email, applicant.email);
 
   await assert.rejects(

@@ -46,3 +46,5 @@ legend{font-weight:650;font-size:16px;margin:0 0 10px}
 .ad-submit[disabled]{opacity:.6;cursor:default}
 .ad-success{background:var(--ok-bg)}
 @media(max-width:560px){.ad-intro h1{font-size:28px}.ad-card{padding:18px}}
+.ad-fee{font-weight:600;margin:4px 0 14px}
+.ad-fee:empty{display:none}

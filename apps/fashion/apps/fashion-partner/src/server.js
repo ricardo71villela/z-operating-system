@@ -156,15 +156,18 @@ function currentPartnerTerms() {
 }
 
 async function currentOffer() {
-  const base = usingPostgres
+  const tiers = usingPostgres
     ? await db.getPartnerOfferPg(pool)
     : {
-      monthlySubscriptionFeeMinorUnits: commissionDomain.MONTHLY_SUBSCRIPTION_FEE_MINOR_UNITS,
-      commissionRatesPercent: { ...commissionDomain.BASE_COMMISSION_RATE_PERCENT },
-      volumeDiscountTiers: [...commissionDomain.VOLUME_DISCOUNT_TIERS]
-        .sort((a, b) => a.minMonthlyGmvMinorUnits - b.minMonthlyGmvMinorUnits),
+      subscriptionTiers: commissionDomain.SUBSCRIPTION_TIERS.map((t) => ({ ...t })),
+      ticketCommissionTiers: commissionDomain.TICKET_COMMISSION_TIERS.map((t) => ({ ...t })),
     };
-  return { currency: 'EUR', firstMonthFree: true, ...base };
+  return {
+    currency: 'EUR',
+    pricesExcludeVat: commissionDomain.PRICES_EXCLUDE_VAT,
+    firstMonthFree: commissionDomain.FIRST_MONTH_FREE,
+    ...tiers,
+  };
 }
 
 /** GET /onboarding/offer — public: what the adhesion page shows. */
@@ -971,9 +974,9 @@ async function handleSetDefaultClientAddress(req, res, clientId, addressId) {
  * happened through this system), `monthlyGmvMinorUnits` is honestly 0
  * for every Partner today — never fabricated, never estimated from
  * Shipment counts as a stand-in for money. What this endpoint CAN
- * show honestly: the rate structure itself (base rates per Category,
- * volume-discount tiers, subscription fee), computed directly from
- * commission.js — true regardless of whether any real sale has
+ * show honestly: the price structure itself (this store's monthly
+ * subscription for its number of categories and the per-ticket
+ * commission tiers) — true regardless of whether any real sale has
  * happened yet.
  */
 async function handleGetPartnerCommission(req, res, partnerId) {
@@ -985,20 +988,16 @@ async function handleGetPartnerCommission(req, res, partnerId) {
     // Real, honest, always 0 today — no checkout API exists to create
     // a completed sale, so no Partner's GMV can be anything else.
     const monthlyGmvMinorUnits = 0;
-
-    const categoryRates = (partner.categories || []).map((category) => {
-      const rate = commissionDomain.effectiveCommissionRate({
-        category, monthlyGmvMinorUnits, partnerQualityScore: null, // always null — see PARTNER-QUALITY-SCORE-STATUS.md
-      });
-      return { category, ...rate };
-    });
+    const offer = await currentOffer();
 
     sendJson(res, 200, {
-      monthlySubscriptionFeeMinorUnits: commissionDomain.MONTHLY_SUBSCRIPTION_FEE_MINOR_UNITS,
+      categoryCount: new Set(partner.categories || []).size,
+      monthlySubscriptionFeeMinorUnits: commissionDomain.subscriptionFeeMinorUnits(partner.categories || []),
+      pricesExcludeVat: offer.pricesExcludeVat,
+      firstMonthFree: offer.firstMonthFree,
+      ticketCommissionTiers: offer.ticketCommissionTiers,
       monthlyGmvMinorUnits,
       gmvNote: 'Aucune vente réelle possible pour l’instant — aucune API de paiement/checkout n’existe encore (voir ZOS-ALIGNMENT.md).',
-      categoryRates,
-      volumeDiscountTiers: commissionDomain.VOLUME_DISCOUNT_TIERS,
     });
   } catch (err) {
     sendJson(res, 400, { error: err.message });

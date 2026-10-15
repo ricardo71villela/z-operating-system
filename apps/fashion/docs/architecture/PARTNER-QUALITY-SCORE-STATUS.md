@@ -6,6 +6,13 @@ Records the decision made closing ponto 4 of the partner-side audit
 Partner Quality Score (PQS) while the real, cross-vertical ZOS
 implementation does not yet exist.
 
+> **Update 2026-10-14:** pricing v2 (`commission.js`, migration
+> `20261015000000_z_fashion_pricing_v2.sql`) removed the quality-score
+> commission discount by decision of Ricardo — commission now depends only
+> on the ticket amount. `homepage.js`'s `isEligibleForSponsorship()` is the
+> only remaining consumer of a Partner Quality Score; the rest of this
+> note still applies to it.
+
 ## Finding
 Two places in `fashion-domain` already consume a `partnerQualityScore`:
 `commission.js`'s `qualityScoreDiscount()` (feeds into the progressive

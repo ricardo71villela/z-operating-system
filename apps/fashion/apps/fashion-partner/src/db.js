@@ -649,22 +649,19 @@ async function getAuthUserEmail(pool, authUserId) {
   return result.rows[0] ? result.rows[0].email : null;
 }
 
-/** The commercial offer as configured in the database — the single
+/** The Partner price list as configured in the database — the single
  *  source shown on the adhesion page and snapshotted with each
- *  application. */
+ *  application (migration 20261015000000_z_fashion_pricing_v2.sql). */
 async function getPartnerOfferPg(pool) {
-  const [config, rates, tiers] = await Promise.all([
-    pool.query(`select key, value_minor_units, value_integer from fashion.partner_monetization_config`),
-    pool.query(`select category::text as category, base_rate_percent from fashion.commission_rates order by category`),
-    pool.query(`select min_monthly_gmv_minor_units, discount_percentage_points from fashion.volume_discount_tiers order by min_monthly_gmv_minor_units`),
+  const [subs, tickets] = await Promise.all([
+    pool.query(`select min_category_count, monthly_fee_minor_units from fashion.subscription_fee_tiers order by min_category_count`),
+    pool.query(`select max_ticket_minor_units, rate_percent from fashion.ticket_commission_tiers order by max_ticket_minor_units asc nulls last`),
   ]);
-  const fee = config.rows.find((r) => r.key === 'monthly_subscription_fee_minor_units');
   return {
-    monthlySubscriptionFeeMinorUnits: fee ? fee.value_minor_units : null,
-    commissionRatesPercent: Object.fromEntries(rates.rows.map((r) => [r.category, r.base_rate_percent])),
-    volumeDiscountTiers: tiers.rows.map((r) => ({
-      minMonthlyGmvMinorUnits: Number(r.min_monthly_gmv_minor_units),
-      discountPercentagePoints: r.discount_percentage_points,
+    subscriptionTiers: subs.rows.map((r) => ({ minCategories: r.min_category_count, monthlyFeeMinorUnits: r.monthly_fee_minor_units })),
+    ticketCommissionTiers: tickets.rows.map((r) => ({
+      maxTicketMinorUnits: r.max_ticket_minor_units === null ? null : Number(r.max_ticket_minor_units),
+      ratePercent: r.rate_percent,
     })),
   };
 }
