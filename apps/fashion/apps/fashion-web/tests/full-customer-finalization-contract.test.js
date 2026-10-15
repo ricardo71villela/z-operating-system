@@ -28,7 +28,9 @@ assert.doesNotMatch(i18n, /fetch\(|XMLHttpRequest|WebSocket|EventSource|navigato
 
 for (const html of [notFound, technicalShell]) {
   assert.match(html, /noindex,nofollow/);
-  assert.equal((html.match(/zos-mark-white-tile\.svg/g)||[]).length, 2, 'technical shell must reuse exact approved logo asset in header and footer');
+  assert.match(html, /class="tech-logo"[^>]*><img src="\/brand\/zfashion-mark\.svg"/, 'technical header uses the tricolour mark');
+  assert.match(html, /tech-footer-brand"><img src="\/brand\/zfashion-mark-dark\.svg"/, 'technical footer uses the dark-background mark');
+  assert.match(html, /brand-tricolore\.css/);
   assert.match(html, /technical\.css/);
   assert.match(html, /technical\.js/);
   for (const locale of ['fr','pt','en','es','it','de']) assert.match(html, new RegExp(`<option value="${locale}">`));

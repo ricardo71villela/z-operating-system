@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="200 120 634 770" role="img" aria-label="Z Fashion">
+<title>Z Fashion</title>
+<defs><linearGradient id="zf-tricolore" gradientUnits="userSpaceOnUse" x1="0" y1="149" x2="0" y2="856"><stop offset="0" stop-color="#000091"/><stop offset="0.34" stop-color="#1B2FA6"/><stop offset="0.47" stop-color="#B8C1E8"/><stop offset="0.53" stop-color="#F4B9BF"/><stop offset="0.66" stop-color="#E1000F"/><stop offset="1" stop-color="#C8000D"/></linearGradient></defs>
+<g fill="url(#zf-tricolore)"><path d="M678.9 679L517.5 855.1L307.7 626.2A284.5 284.5 0 1 1 702.1 650.5L691.1 621.5A255.5 255.5 0 1 0 329.1 606.6L517.5 812.2L639.5 679Z"/><path d="M379 324H664L435.2 621.5H691.1L702.1 650.5H377L605.8 353H379Z"/></g>
+</svg>
