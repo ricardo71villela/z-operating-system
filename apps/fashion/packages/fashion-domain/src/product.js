@@ -59,6 +59,7 @@ const GENDERS = Object.freeze(['female', 'male', 'unisex']);
    wallets) carry no size dimension; the subset that does (belts,
    gloves) is a future refinement, not assumed by default. */
 const SIZED_CATEGORIES = Object.freeze(['clothing', 'footwear', 'sportswear']);
+const SKU_RE = /^[^;,"\r\n]{1,64}$/;
 
 /**
  * Creates a Product record. Throws on any violation of the invariants
@@ -161,6 +162,15 @@ function createProduct(input) {
     );
   }
 
+  // Store's own reference (SKU), optional. Used to match rows of a stock
+  // file, so it must survive a CSV round-trip: 1–64 characters, no
+  // separator (; ,), quote or line break. Unique per store (database).
+  if (input.sku !== undefined && input.sku !== null && input.sku !== '') {
+    if (typeof input.sku !== 'string' || !SKU_RE.test(input.sku.trim())) {
+      errors.push('sku, when provided, must be 1–64 characters without ; , " or line breaks');
+    }
+  }
+
   if (input.styleId !== undefined && input.styleId !== null && (typeof input.styleId !== 'string' || !input.styleId.trim())) {
     errors.push('styleId, when provided, must be a non-empty string');
   }
@@ -217,6 +227,7 @@ function createProduct(input) {
     size: input.size ? { ...input.size } : null,
     format: input.format ? { ...input.format } : null,
     styleId: input.styleId || null,
+    sku: typeof input.sku === 'string' && input.sku.trim() ? input.sku.trim() : null,
     // Opt-out, not opt-in — a published Product is in All Sale by default.
     cornerExclusive: !!input.cornerExclusive,
     campaignIds: [...(input.campaignIds || [])],
@@ -256,6 +267,7 @@ module.exports = {
   SIZED_CATEGORIES,
   GENDERS,
   REQUIRED_NAME_LOCALE,
+  SKU_RE,
   createProduct,
   isInAllSale,
   isReturnEligible,

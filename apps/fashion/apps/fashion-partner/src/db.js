@@ -184,27 +184,35 @@ async function insertProduct(pool, product) {
   const result = await pool.query(
     `insert into fashion.products
        (partner_id, brand_id, names, descriptions, categories, technical_purpose,
-        gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id)
+        gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id, partner_sku)
      values ($1, $2, $3::jsonb, $4::jsonb, $5::fashion.category[], $6,
-             $7::fashion.gender, $8::fashion.age_segment[], $9, $10::jsonb, $11::jsonb, $12, $13)
+             $7::fashion.gender, $8::fashion.age_segment[], $9, $10::jsonb, $11::jsonb, $12, $13, $14)
      returning id, partner_id, brand_id, names, descriptions, categories, technical_purpose,
-               gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id`,
+               gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id, partner_sku`,
     [
       product.partnerId,
       product.brandId,
       JSON.stringify(product.names),
       JSON.stringify(product.descriptions || {}),
       product.categories,
-      product.technicalPurpose,
+      !!product.technicalPurpose,
       product.gender,
-      product.ageSegments,
+      product.ageSegments && product.ageSegments.length ? product.ageSegments : ['adults'],
       product.safetyCertifications || [],
       product.size ? JSON.stringify(product.size) : null,
       product.format ? JSON.stringify(product.format) : null,
       product.cornerExclusive || false,
       product.styleId || null,
+      product.sku || null,
     ]
-  );
+  ).catch((err) => {
+    if (err.code === '23505' && /partner_sku/.test(err.constraint || err.message || '')) {
+      const taken = new Error(`sku_taken: reference "${product.sku}" is already used by another product of this store`);
+      taken.code = 'sku_taken';
+      throw taken;
+    }
+    throw err;
+  });
   return toProductDomainShape(result.rows[0]);
 }
 
@@ -215,7 +223,7 @@ async function insertProduct(pool, product) {
 async function listProductsForPartner(pool, partnerId) {
   const result = await pool.query(
     `select id, partner_id, brand_id, names, descriptions, categories, technical_purpose,
-            gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id
+            gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id, partner_sku
      from fashion.products where partner_id = $1
      order by created_at desc`,
     [partnerId]
@@ -226,7 +234,7 @@ async function listProductsForPartner(pool, partnerId) {
 async function getProduct(pool, productId) {
   const result = await pool.query(
     `select id, partner_id, brand_id, names, descriptions, categories, technical_purpose,
-            gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id
+            gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id, partner_sku
      from fashion.products where id = $1`,
     [productId]
   );
@@ -240,15 +248,16 @@ function toProductDomainShape(row) {
     brandId: row.brand_id,
     names: row.names,
     descriptions: row.descriptions,
-    categories: row.categories,
+    categories: parsePgEnumArray(row.categories),
     technicalPurpose: row.technical_purpose,
     gender: row.gender,
-    ageSegments: row.age_segments,
+    ageSegments: parsePgEnumArray(row.age_segments),
     safetyCertifications: row.safety_certifications,
     size: row.size,
     format: row.format,
     cornerExclusive: row.corner_exclusive,
     styleId: row.style_id,
+    sku: row.partner_sku || null,
   };
 }
 
@@ -460,7 +469,7 @@ async function getBrand(pool, brandId) {
 async function listAllProducts(pool) {
   const result = await pool.query(
     `select id, partner_id, brand_id, names, descriptions, categories, technical_purpose,
-            gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id
+            gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id, partner_sku
      from fashion.products`
   );
   return result.rows.map(toProductDomainShape);
@@ -802,9 +811,37 @@ async function decidePartnerApplicationPg(pool, partnerId, { toStatus, feedRelia
   return getPartnerApplicationPg(pool, partnerId);
 }
 
+/** Brands a store can pick when creating a product: the ones it created
+ *  and any already used by its products. */
+async function listBrandsForPartnerPg(pool, partnerId) {
+  const result = await pool.query(
+    `select distinct b.id, b.name, b.house_label_of_partner_id
+     from fashion.brands b
+     where b.house_label_of_partner_id = $1
+        or b.id in (select brand_id from fashion.products where partner_id = $1)
+     order by b.name`,
+    [partnerId]
+  );
+  return result.rows.map((r) => ({ id: r.id, name: r.name, houseLabelOfPartnerId: r.house_label_of_partner_id }));
+}
+
+/** Current price for many products at once (latest observation each). */
+async function getCurrentPricesPg(pool, productIds) {
+  if (productIds.length === 0) return {};
+  const result = await pool.query(
+    `select distinct on (product_id) product_id, price_minor_units
+     from fashion.price_history
+     where product_id = any($1::uuid[])
+     order by product_id, observed_at desc`,
+    [productIds]
+  );
+  return Object.fromEntries(result.rows.map((r) => [r.product_id, Number(r.price_minor_units)]));
+}
+
 module.exports = {
   createPool, insertPartner, updatePartnerStatus, getPartner,
   getAuthUserEmail, getPartnerOfferPg, submitPartnerApplicationPg,
+  listBrandsForPartnerPg, getCurrentPricesPg,
   listActivePartnerIds, listPartnerApplicationsPg, getPartnerApplicationPg, decidePartnerApplicationPg,
   resolveFashionPartnerIdsForAuthUser,
   insertBrand, getBrand, insertProduct, listProductsForPartner, listAllProducts, getProduct,

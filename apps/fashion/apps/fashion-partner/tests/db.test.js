@@ -8,6 +8,7 @@ const {
   createPool, insertPartner, updatePartnerStatus, getPartner,
   getAuthUserEmail, getPartnerOfferPg, submitPartnerApplicationPg, resolveFashionPartnerIdsForAuthUser,
   listActivePartnerIds, listPartnerApplicationsPg, getPartnerApplicationPg, decidePartnerApplicationPg,
+  insertBrand, insertProduct, listProductsForPartner, getProduct, listBrandsForPartnerPg, getCurrentPricesPg, recordPricePg,
 } = require('../src/db');
 
 async function advanceToApproved(pool, partnerId) {
@@ -176,6 +177,33 @@ async function run() {
     () => decidePartnerApplicationPg(pool, '00000000-0000-0000-0000-000000000000', { toStatus: 'under_review' }),
     (err) => err.statusCode === 404
   );
+
+  // --- Partner console (task 7): SKU, enum arrays on products, brands, prices.
+  const brand = await insertBrand(pool, { name: 'Maison Léman', houseLabelOfPartnerId: again.partnerId });
+  const jacket = await insertProduct(pool, {
+    partnerId: again.partnerId, brandId: brand.id, names: { fr: 'Veste' }, categories: ['clothing', 'sportswear'],
+    technicalPurpose: true, gender: 'female', ageSegments: ['adults'], size: { system: 'EU', value: 38 }, sku: 'VES-38',
+  });
+  assert.strictEqual(jacket.sku, 'VES-38');
+  assert.deepStrictEqual(jacket.categories, ['clothing', 'sportswear'], 'product enum arrays come back as arrays');
+  assert.deepStrictEqual((await getProduct(pool, jacket.id)).ageSegments, ['adults']);
+  await assert.rejects(
+    () => insertProduct(pool, { partnerId: again.partnerId, brandId: brand.id, names: { fr: 'Doublon' }, categories: ['clothing'], gender: 'female', ageSegments: ['adults'], size: { system: 'EU', value: 40 }, sku: 'VES-38' }),
+    (err) => err.code === 'sku_taken'
+  );
+  const otherStore = await insertPartner(pool, { legalName: 'Autre', countryIso: 'FR', locales: ['fr'], categories: ['clothing'], ageSegments: ['adults'], minorSafeDataAcknowledged: false });
+  const otherBrand = await insertBrand(pool, { name: 'Autre', houseLabelOfPartnerId: otherStore.id });
+  const sameSkuElsewhere = await insertProduct(pool, { partnerId: otherStore.id, brandId: otherBrand.id, names: { fr: 'X' }, categories: ['clothing'], gender: 'male', ageSegments: ['adults'], size: { system: 'EU', value: 40 }, sku: 'VES-38' });
+  assert.strictEqual(sameSkuElsewhere.sku, 'VES-38', 'SKU unique per store, not globally');
+  await assert.rejects(
+    () => pool.query(`update fashion.products set partner_sku = 'A;B' where id = $1`, [jacket.id]),
+    /fashion_products_partner_sku_format/
+  );
+  assert.deepStrictEqual((await listBrandsForPartnerPg(pool, again.partnerId)).map((b) => b.name), ['Maison Léman']);
+  await recordPricePg(pool, jacket.id, 18900, '2026-10-15T08:00:00Z');
+  await recordPricePg(pool, jacket.id, 16900, '2026-10-15T09:00:00Z');
+  assert.deepStrictEqual(await getCurrentPricesPg(pool, [jacket.id, sameSkuElsewhere.id]), { [jacket.id]: 16900 }, 'latest price; none when unpriced');
+  assert.strictEqual((await listProductsForPartner(pool, again.partnerId))[0].sku, 'VES-38');
 
   // Not callable by API roles other than the privileged connection.
   const grants = (await pool.query(`select

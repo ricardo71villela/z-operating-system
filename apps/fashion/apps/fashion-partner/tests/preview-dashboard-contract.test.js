@@ -4,11 +4,11 @@ const assert=require('assert');
 
 const root=path.resolve(__dirname,'..');
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
-const html=read('public/dashboard.html');
-const css=read('public/dashboard.css');
-const js=read('public/dashboard.js');
+const html=read('public/preview-dashboard.html');
+const css=read('public/preview-dashboard.css');
+const js=read('public/preview-dashboard.js');
 
-for(const asset of ['dashboard.css','dashboard.js']) assert.match(html,new RegExp(asset.replace('.','\\.')));
+for(const asset of ['preview-dashboard.css','preview-dashboard.js']) assert.match(html,new RegExp(asset.replace('.','\\.')));
 assert.match(html,/noindex,nofollow/);
 assert.match(html,/<html lang="fr-FR" data-locale="fr">/);
 
@@ -23,8 +23,7 @@ for(const label of ['Catalogue','Stock','Commandes','Expéditions','Retours','Co
 
 assert.match(html,/Maison Nord/);
 assert.match(html,/Aperçu uniquement\. Connexion réelle active ; stock, commandes, paiements et versements réels restent désactivés\./);
-assert.match(html,/<script src="\.\/zfashion-config\.js"><\/script>\s*<script src="\.\/zfashion-auth\.js" data-surface="partner"><\/script>\s*<\/head>/);
-assert.ok(fs.existsSync(path.join(root,'public/zfashion-auth.js')),'missing synced zfashion-auth.js');
+assert.doesNotMatch(html,/zfashion-auth/,'the design reference page needs no sign-in and holds no real data');
 assert.match(html,/aucun règlement, transfert Stripe ou versement réel n’est activé/);
 assert.match(js,/Z_FASHION_PARTNER_DASHBOARD='PREVIEW_PASS'/);
 assert.doesNotMatch(js,/fetch\(|XMLHttpRequest|WebSocket|EventSource|navigator\.sendBeacon|supabase|createOrder|reserveStock|insert\(|update\(|delete\(/i);

@@ -215,3 +215,16 @@ assert.strictEqual(productName(multilingualBag, 'de'), 'Sac besace en cuir'); //
 assert.strictEqual(productName(multilingualBag), 'Sac besace en cuir'); // default locale
 
 console.log('product.js: all invariant checks passed.');
+
+// --- store reference (SKU)
+{
+  const base = { id: 'p_sku', partnerId: 'x', brandId: 'b', names: { fr: 'Veste' }, gender: 'female', categories: ['clothing'], size: { system: 'EU', value: 38 } };
+  assert.strictEqual(createProduct(base).sku, null, 'optional');
+  assert.strictEqual(createProduct({ ...base, sku: '  VES-38-NOIR ' }).sku, 'VES-38-NOIR', 'trimmed');
+  assert.strictEqual(createProduct({ ...base, sku: '' }).sku, null);
+  for (const bad of ['A;B', 'A,B', 'A"B', 'A\nB', 'x'.repeat(65), 12]) {
+    assert.throws(() => createProduct({ ...base, sku: bad }), /sku/, `rejects ${JSON.stringify(bad)}`);
+  }
+  console.log('product.js sku: all checks passed.');
+}
+
