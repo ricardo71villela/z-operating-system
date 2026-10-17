@@ -93,6 +93,7 @@
 
   const render = () => {
     if (window.ZFashionLive && window.ZFashionLive.owns(route)) return;
+    if (window.ZFashionLegal && window.ZFashionLegal.DOCS[route.id]) return; // customer-legal.js
     const content=document.getElementById('pageContent'); if(!content) return;
     if (route.group==='checkout') content.innerHTML=renderCheckout();
     if (route.group==='service') content.innerHTML=renderService();

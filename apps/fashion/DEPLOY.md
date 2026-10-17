@@ -41,8 +41,8 @@ Comprar `zfashion.online` (se ainda não estiver comprado) e, no registo DNS, cr
 | `SUPABASE_SECRET_KEY` | Supabase → API Keys → *secret* (só aqui, nunca num site) |
 | `FASHION_ADMIN_USER_IDS` | `e1a18bfc-6fa1-46fd-b4b4-0e96d2c4972e` (a sua conta; separar outras por vírgulas) |
 | `FASHION_ALLOWED_ORIGINS` | `https://zfashion.online,https://www.zfashion.online,https://partner.zfashion.online,https://admin.zfashion.online` |
-| `FASHION_PARTNER_TERMS_VERSION` | ex. `cgv-partner-2027-01` (tarefa 5) |
-| `FASHION_PARTNER_TERMS_URL` | endereço https das condições Partner publicadas (tarefa 5) |
+| `FASHION_PARTNER_TERMS_VERSION` | `cgv-partner-2026-10` (igual a `VERSION.partner` em `fashion-web/legal-content.js`; mudar os dois juntos) |
+| `FASHION_PARTNER_TERMS_URL` | `https://zfashion.online/conditions-partenaires` |
 | `FASHION_PARTNER_CONSOLE_URL` | `https://partner.zfashion.online/dashboard.html` |
 | `FASHION_SHIPPING_COUNTRIES` | `FR` |
 | `STRIPE_SECRET_KEY` | `sk_test_…` (depois `sk_live_…`) |
@@ -95,6 +95,15 @@ Sem estes dois segredos o trabalho não faz nada. Pode ser lançado à mão em *
 - **Authentication → URL Configuration**: *Site URL* `https://zfashion.online`; *Redirect URLs*: `https://zfashion.online/**`, `https://partner.zfashion.online/**`, `https://admin.zfashion.online/**`.
 - **Authentication → Emails**: o código de 6 dígitos precisa de um SMTP próprio para volumes reais (tarefa 16, Resend).
 - Este projeto chama-se *ZOS-staging*: a decisão sobre o projeto de produção é a tarefa 4.
+
+## Textos legais (tarefa 5)
+
+Os textos estão em `apps/fashion-web/legal-content.js` (francês, versão que faz fé). Faltam os dados da empresa que explora o Z Fashion e o mediador do consumo: aparecem a amarelo no site. Antes do lançamento:
+
+1. Criar a empresa e escolher um mediador do consumo (obrigatório, art. L. 612-1 do code de la consommation).
+2. Substituir cada `{{...}}` em `legal-content.js`.
+3. `node apps/fashion/scripts/check-legal-ready.js` tem de passar.
+4. Fazer reler os textos por um advogado.
 
 ## Verificação final
 

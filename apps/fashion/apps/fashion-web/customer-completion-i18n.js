@@ -92,6 +92,7 @@
   };
 
   const render = () => {
+    if (window.ZFashionLegal && window.ZFashionLegal.DOCS[route.id]) return; // customer-legal.js
     const target=content(); if(!target) return;
     const lang=locale(); if(!['es','it','de'].includes(lang)) return;
     const data=route.group==='service'?service():legal();
