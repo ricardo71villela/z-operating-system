@@ -34,6 +34,7 @@ const memoryCheckout = require('./memory-checkout');
 const stripeLib = require('./stripe');
 const payoutsService = require('./payouts-service');
 const { STRIPE_EVENT_STATUS } = require('../../../packages/fashion-domain/src/payment');
+const moderation = require('../../../packages/fashion-domain/src/moderation');
 const db = require('./db');
 const { resolveAuthenticatedUserId, loadSupabaseAuthConfigFromEnv } = require('./auth');
 const { isAuthRequired, loadAdminUserIds, decideAccess } = require('./access');
@@ -435,6 +436,8 @@ async function handleGetInventory(req, res, partnerId) {
       format: p.format,
       priceMinorUnits: priceById[p.id] == null ? null : priceById[p.id],
       images: imagesById[p.id] || [],
+      moderationStatus: p.moderationStatus || 'pending',
+      moderationNote: p.moderationNote || null,
       stock: stock
         ? { quantityAvailable: stock.quantityAvailable, quantityReserved: stock.quantityReserved, sellable: sellableQuantity(stock), lastUpdatedAt: stock.lastUpdatedAt }
         : null,
@@ -864,7 +867,7 @@ async function handleCreateProduct(req, res, partnerId) {
       return sendJson(res, 201, { product: row });
     }
 
-    const product = createProduct({ ...body, id: require('crypto').randomUUID(), partnerId });
+    const product = { ...createProduct({ ...body, id: require('crypto').randomUUID(), partnerId }), ...moderation.initialModeration(), createdAt: new Date().toISOString() };
     if (body.priceMinorUnits !== undefined && !isValidPrice(body.priceMinorUnits)) {
       return sendJson(res, 422, { error: 'invalid_price' });
     }
@@ -907,7 +910,7 @@ async function handleGetProduct(req, res, productId) {
   try {
     const product = usingPostgres ? await db.getProduct(pool, productId) : memory.products.get(productId);
     const active = await activePartnerIdSet();
-    if (!product || !active.has(product.partnerId)) return sendJson(res, 404, { error: `no product with id ${productId}` });
+    if (!product || !active.has(product.partnerId) || !moderation.isApproved(product)) return sendJson(res, 404, { error: `no product with id ${productId}` });
     sendJson(res, 200, { product });
   } catch (err) {
     sendJson(res, 400, { error: err.message });
@@ -1077,8 +1080,8 @@ async function handleGetCatalogProduct(req, res, productId) {
     }
 
     const activeIds = await activePartnerIdSet();
-    if (!activeIds.has(product.partnerId)) return sendJson(res, 404, { error: `no product with id ${productId}` });
-    siblingProducts = siblingProducts.filter((p) => activeIds.has(p.partnerId));
+    if (!activeIds.has(product.partnerId) || !moderation.isApproved(product)) return sendJson(res, 404, { error: `no product with id ${productId}` });
+    siblingProducts = siblingProducts.filter((p) => activeIds.has(p.partnerId) && moderation.isApproved(p));
 
     if (!partner) {
       return sendJson(res, 422, { error: `product ${productId} references partner ${product.partnerId}, which was not found — cannot render without the professional-seller disclosure` });
@@ -1138,7 +1141,7 @@ async function handleGetAllSale(req, res, query) {
     }
 
     const activeIds = await activePartnerIdSet();
-    const matching = allSale(allProducts.filter((p) => activeIds.has(p.partnerId)), filter);
+    const matching = allSale(allProducts.filter((p) => activeIds.has(p.partnerId) && moderation.isApproved(p)), filter);
 
     const cards = [];
     for (const product of matching) {
@@ -1224,7 +1227,7 @@ async function handleListWishlist(req, res, clientId) {
         if (p) products.push(p);
       }
       const activeIds = await activePartnerIdSet();
-      products = products.filter((p) => activeIds.has(p.partnerId));
+      products = products.filter((p) => activeIds.has(p.partnerId) && moderation.isApproved(p));
       stockByProductId = await db.getStockForProductsPg(pool, products.map((p) => p.id));
       brandsById = {};
       for (const p of products) {
@@ -1233,7 +1236,7 @@ async function handleListWishlist(req, res, clientId) {
     } else {
       const activeIds = await activePartnerIdSet();
       const productIds = accountDomain.listWishlistProductIds(memory.wishlist, clientId);
-      products = productIds.map((id) => memory.products.get(id)).filter((p) => p && activeIds.has(p.partnerId));
+      products = productIds.map((id) => memory.products.get(id)).filter((p) => p && activeIds.has(p.partnerId) && moderation.isApproved(p));
       stockByProductId = Object.fromEntries(products.map((p) => [p.id, memory.stockByProductId.get(p.id) || initStock(p.id)]));
       brandsById = {};
       for (const p of products) {
@@ -1463,7 +1466,7 @@ async function handleGetCornerDetail(req, res, partnerId) {
       }
     }
 
-    const cornerCatalog = cornerProducts(allProducts, partnerId);
+    const cornerCatalog = cornerProducts(allProducts.filter(moderation.isApproved), partnerId);
     const coverById = await imagesByProductId(cornerCatalog.map((p) => p.id));
     const cards = buildListingCards(cornerCatalog, stockByProductId, brandsById)
       .map((card) => ({ ...card, imageUrl: (coverById[card.productId] || [])[0] ? coverById[card.productId][0].url : null }));
@@ -1965,6 +1968,125 @@ async function handleCronRunPayouts(req, res) {
   return runPayoutsAndRespond(res);
 }
 
+
+/* ============================================================
+   Product moderation (task 8). A new product waits for an admin's
+   approval before it can appear on the site, be added to a cart or be
+   ordered (moderation.js; the database refuses it too). Only the first
+   publication is moderated; an admin can withdraw a product later.
+   ============================================================ */
+
+/** GET /admin/products?status=pending|approved|rejected — admins only. */
+async function handleAdminListProducts(req, res, query) {
+  if (!(await authorizeAdminRequest(req, res))) return;
+  const status = query.get('status') || 'pending';
+  if (!moderation.MODERATION_STATUSES.includes(status)) return sendJson(res, 422, { error: 'unknown status' });
+  try {
+    let rows;
+    if (usingPostgres) {
+      rows = await db.listProductsForModerationPg(pool, { status });
+    } else {
+      rows = [...memory.products.values()].filter((p) => p.moderationStatus === status)
+        .sort((a, b) => (status === 'pending' ? (a.submittedAt < b.submittedAt ? -1 : 1) : ((a.moderatedAt || '') < (b.moderatedAt || '') ? 1 : -1)))
+        .map((p) => ({
+          product: p,
+          brandName: p.brandId && memory.brands.get(p.brandId) ? memory.brands.get(p.brandId).name : null,
+          priceMinorUnits: priceHistory.currentPrice(memory.priceHistoryByProductId.get(p.id) || priceHistory.emptyHistory()),
+          quantityAvailable: (memory.stockByProductId.get(p.id) || initStock(p.id)).quantityAvailable,
+        }));
+    }
+    const ids = rows.map((r) => r.product.id);
+    const images = await imagesByProductId(ids);
+    const described = await describeLines([], [...new Set(rows.map((r) => r.product.partnerId))]);
+    const counts = await moderationCounts();
+    sendJson(res, 200, {
+      status,
+      counts,
+      products: rows.map(({ product, brandName, priceMinorUnits, quantityAvailable }) => ({
+        id: product.id,
+        partnerId: product.partnerId,
+        storeName: described.storeNames[product.partnerId] || null,
+        brandName,
+        names: product.names,
+        descriptions: product.descriptions || {},
+        categories: product.categories,
+        gender: product.gender,
+        ageSegments: product.ageSegments,
+        safetyCertifications: product.safetyCertifications || [],
+        size: product.size || null,
+        format: product.format || null,
+        sku: product.sku || null,
+        priceMinorUnits: priceMinorUnits === undefined ? null : priceMinorUnits,
+        quantityAvailable,
+        images: (images[product.id] || []).map((i) => i.url),
+        moderationStatus: product.moderationStatus,
+        moderationNote: product.moderationNote || null,
+        moderatedAt: product.moderatedAt || null,
+        submittedAt: product.submittedAt || null,
+      })),
+    });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
+async function moderationCounts() {
+  if (usingPostgres) {
+    const r = await pool.query(`select moderation_status::text as s, count(*)::int as n from fashion.products group by 1`);
+    return Object.fromEntries(moderation.MODERATION_STATUSES.map((st) => [st, (r.rows.find((x) => x.s === st) || { n: 0 }).n]));
+  }
+  const counts = Object.fromEntries(moderation.MODERATION_STATUSES.map((st) => [st, 0]));
+  for (const p of memory.products.values()) if (counts[p.moderationStatus] !== undefined) counts[p.moderationStatus] += 1;
+  return counts;
+}
+
+const MODERATION_ERROR_STATUS = { not_found: 404, invalid_transition: 409, invalid_decision: 422, note_required: 422, note_too_long: 422, note_invalid: 422, admin_required: 403 };
+
+/** POST /admin/products/:productId/moderation — admins only.
+ *  Body: { toStatus: 'approved'|'rejected', note? }. */
+async function handleAdminModerateProduct(req, res, productId) {
+  const decision = await authorizeAdminRequest(req, res);
+  if (!decision) return;
+  const body = await readBody(req);
+  const product = usingPostgres ? await db.getProduct(pool, productId) : memory.products.get(productId);
+  let fields;
+  try {
+    fields = moderation.decide(product, { toStatus: body.toStatus, note: body.note, adminUserId: decision.userId || 'memory-admin' });
+  } catch (err) {
+    return sendJson(res, MODERATION_ERROR_STATUS[err.code] || 422, { error: err.code || 'invalid_decision', detail: err.message, from: product ? product.moderationStatus : null });
+  }
+  if (usingPostgres) {
+    const updated = await db.setProductModerationPg(pool, productId, product.moderationStatus, { ...fields, moderatedBy: /^[0-9a-f-]{36}$/i.test(fields.moderatedBy) ? fields.moderatedBy : null });
+    if (!updated) return sendJson(res, 409, { error: 'conflict' });
+    return sendJson(res, 200, { product: updated });
+  }
+  const updated = { ...product, ...fields };
+  memory.products.set(productId, updated);
+  sendJson(res, 200, { product: updated });
+}
+
+/** POST /partners/:partnerId/products/:productId/resubmit — the store
+ *  asks for a new review of a refused or withdrawn product. */
+async function handleResubmitProduct(req, res, partnerId, productId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
+  const product = usingPostgres ? await db.getProduct(pool, productId) : memory.products.get(productId);
+  if (!product || product.partnerId !== partnerId) return sendJson(res, 404, { error: `no product with id ${productId}` });
+  let fields;
+  try {
+    fields = moderation.resubmit(product);
+  } catch (err) {
+    return sendJson(res, MODERATION_ERROR_STATUS[err.code] || 422, { error: err.code, detail: err.message });
+  }
+  if (usingPostgres) {
+    const updated = await db.setProductModerationPg(pool, productId, 'rejected', fields);
+    if (!updated) return sendJson(res, 409, { error: 'conflict' });
+    return sendJson(res, 200, { product: updated });
+  }
+  const updated = { ...product, ...fields };
+  memory.products.set(productId, updated);
+  sendJson(res, 200, { product: updated });
+}
+
 /**
  * GET /catalog/listing — the whole public storefront in one response:
  * every priced product of active stores (names, descriptions, brand,
@@ -1980,7 +2102,7 @@ async function handleGetCatalogListing(req, res) {
     } else {
       const activeIds = await activePartnerIdSet();
       rows = [...memory.products.values()].reverse()
-        .filter((p) => activeIds.has(p.partnerId))
+        .filter((p) => activeIds.has(p.partnerId) && moderation.isApproved(p))
         .map((p) => ({
           product: p,
           brandName: p.brandId && memory.brands.get(p.brandId) ? memory.brands.get(p.brandId).name : null,
@@ -2054,6 +2176,15 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && parts[0] === 'partner-applications' && parts.length === 1) {
       return await handleSubmitPartnerApplication(req, res);
+    }
+    if (req.method === 'GET' && parts[0] === 'admin' && parts[1] === 'products' && parts.length === 2) {
+      return await handleAdminListProducts(req, res, url.searchParams);
+    }
+    if (req.method === 'POST' && parts[0] === 'admin' && parts[1] === 'products' && parts[3] === 'moderation' && parts.length === 4) {
+      return await handleAdminModerateProduct(req, res, parts[2]);
+    }
+    if (req.method === 'POST' && parts[0] === 'partners' && parts[2] === 'products' && parts[4] === 'resubmit' && parts.length === 5) {
+      return await handleResubmitProduct(req, res, parts[1], parts[3]);
     }
     if (req.method === 'GET' && parts[0] === 'admin' && parts[1] === 'partner-applications' && parts.length === 2) {
       return await handleAdminListApplications(req, res, url.searchParams);

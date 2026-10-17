@@ -9,6 +9,7 @@
    ============================================================ */
 
 const crypto = require('crypto');
+const { isApproved } = require('../../../packages/fashion-domain/src/moderation');
 const { initStock, reserveStock, releaseReservation, confirmReservation } = require('../../../packages/fashion-domain/src/stock');
 const { applyPaymentEvent } = require('../../../packages/fashion-domain/src/payment');
 const priceHistory = require('../../../packages/fashion-domain/src/price-history');
@@ -88,7 +89,7 @@ function setCartItem(memory, { clientUserId, productId, quantity, activePartnerI
   if (quantity === 0) { cart.items.delete(productId); return cart; }
 
   const product = memory.products.get(productId);
-  if (!product || !activePartnerIds.has(product.partnerId) || currentPrice(memory, productId) === null) {
+  if (!product || !activePartnerIds.has(product.partnerId) || !isApproved(product) || currentPrice(memory, productId) === null) {
     throw fail('product_unavailable', { productId });
   }
   const available = sellable(memory, productId);
@@ -128,7 +129,7 @@ function checkoutCart(memory, { clientUserId, addressId, allowedCountries, holdS
   for (const line of lines) {
     const product = memory.products.get(line.productId);
     const price = currentPrice(memory, line.productId);
-    if (!product || !activePartnerIds.has(product.partnerId) || price === null) {
+    if (!product || !activePartnerIds.has(product.partnerId) || !isApproved(product) || price === null) {
       throw fail('product_unavailable', { productId: line.productId });
     }
     const available = sellable(memory, line.productId) + heldByPrevious(line.productId);

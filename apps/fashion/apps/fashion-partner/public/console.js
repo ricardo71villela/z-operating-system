@@ -57,7 +57,10 @@
       fPrice: 'Prix de vente TTC (€) *', fInitialStock: 'Stock initial',
       cat_clothing: 'Vêtements', cat_footwear: 'Chaussures', cat_sportswear: 'Sport', cat_accessories_leather_goods: 'Accessoires et maroquinerie', cat_cosmetics: 'Cosmétiques et parfums',
       age_adults: 'Adultes', age_youth: 'Adolescents', age_children: 'Enfants', age_baby: 'Bébés',
-      productCreated: 'Produit créé.',
+      productCreated: 'Produit créé. Il apparaîtra sur le site dès que Z Fashion l’aura validé.',
+      colStatus: 'Statut', mod_pending: 'En attente de validation', mod_approved: 'En ligne', mod_rejected: 'Refusé',
+      mod_pendingHint: 'Z Fashion vérifie chaque nouveau produit avant sa mise en ligne.', mod_reason: 'Motif :',
+      mod_resubmit: 'Demander une nouvelle validation', mod_resubmitted: 'Demande envoyée : le produit sera revu par Z Fashion.',
       e_name: 'Indiquez le nom du produit en français.', e_brand: 'Choisissez ou créez une marque.', e_categories: 'Choisissez au moins une catégorie.',
       e_technical: 'La catégorie Sport demande un usage technique (sinon choisissez Vêtements ou Chaussures).', e_gender: 'Choisissez le genre.',
       e_ages: 'Choisissez au moins une clientèle.', e_certs: 'Indiquez au moins une certification de sécurité pour les enfants.',
@@ -124,7 +127,10 @@
       fPrice: 'Selling price incl. VAT (€) *', fInitialStock: 'Initial stock',
       cat_clothing: 'Clothing', cat_footwear: 'Footwear', cat_sportswear: 'Sportswear', cat_accessories_leather_goods: 'Accessories and leather goods', cat_cosmetics: 'Cosmetics and fragrance',
       age_adults: 'Adults', age_youth: 'Teens', age_children: 'Children', age_baby: 'Babies',
-      productCreated: 'Product created.',
+      productCreated: 'Product created. It will show on the site once Z Fashion has approved it.',
+      colStatus: 'Status', mod_pending: 'Awaiting approval', mod_approved: 'Online', mod_rejected: 'Refused',
+      mod_pendingHint: 'Z Fashion checks every new product before it goes online.', mod_reason: 'Reason:',
+      mod_resubmit: 'Ask for a new review', mod_resubmitted: 'Request sent: Z Fashion will review the product.',
       e_name: 'Enter the product name in French.', e_brand: 'Choose or create a brand.', e_categories: 'Choose at least one category.',
       e_technical: 'Sportswear needs a technical use (otherwise choose Clothing or Footwear).', e_gender: 'Choose the gender.',
       e_ages: 'Choose at least one customer group.', e_certs: 'Enter at least one children’s safety certification.',
@@ -333,7 +339,7 @@
     if (!state.inventory.length) { wrap.appendChild(el('p', { class: 'pc-empty' }, t('noProducts'))); return wrap; }
     var table = el('table', { class: 'pc-table' });
     var hr = el('tr');
-    [['colPhoto'], ['colRef'], ['colProduct'], ['colBrand'], ['colCategory'], ['colSize'], ['colPrice', 'num'], ['colStock', 'num']].forEach(function (c) { hr.appendChild(el('th', { scope: 'col', class: c[1] || null }, t(c[0]))); });
+    [['colPhoto'], ['colRef'], ['colProduct'], ['colBrand'], ['colCategory'], ['colSize'], ['colPrice', 'num'], ['colStock', 'num'], ['colStatus']].forEach(function (c) { hr.appendChild(el('th', { scope: 'col', class: c[1] || null }, t(c[0]))); });
     var thead = el('thead'); thead.appendChild(hr);
     var tbody = el('tbody');
     state.inventory.forEach(function (p) {
@@ -353,11 +359,34 @@
       var eb = el('button', { class: 'pc-btn secondary small', type: 'button' }, t('edit'));
       eb.addEventListener('click', function () { editPrice(priceCell, p); });
       priceCell.appendChild(eb);
-      tr.append(priceCell, el('td', { class: 'num' }, p.stock ? String(p.stock.sellable) : '—'));
+      tr.append(priceCell, el('td', { class: 'num' }, p.stock ? String(p.stock.sellable) : '—'), moderationCell(p));
       tbody.appendChild(tr);
     });
     table.append(thead, tbody); wrap.appendChild(table);
     return wrap;
+  }
+
+  // Moderation (task 8): a new product appears on the site once Z Fashion
+  // has approved it. A refused or withdrawn product shows the reason and
+  // can be sent back for review.
+  function moderationCell(p) {
+    var td = el('td', { class: 'pc-mod' });
+    var st = p.moderationStatus || 'pending';
+    td.appendChild(el('span', { class: 'pc-badge ' + ({ approved: 'ok', pending: 'wait', rejected: 'no' })[st] }, t('mod_' + st)));
+    if (st === 'pending') td.appendChild(el('p', { class: 'pc-hint' }, t('mod_pendingHint')));
+    if (st === 'rejected') {
+      if (p.moderationNote) td.appendChild(el('p', { class: 'pc-hint' }, t('mod_reason') + ' ' + p.moderationNote));
+      var b = el('button', { class: 'pc-btn secondary small', type: 'button' }, t('mod_resubmit'));
+      b.addEventListener('click', function () {
+        b.disabled = true;
+        api('/products/' + encodeURIComponent(p.id) + '/resubmit', { method: 'POST' }).then(json).then(function (r) {
+          if (!r.ok) { b.disabled = false; return flash(t('unavailable'), true); }
+          p.moderationStatus = 'pending'; flash(t('mod_resubmitted')); render();
+        }).catch(function () { b.disabled = false; flash(t('unavailable'), true); });
+      });
+      td.appendChild(b);
+    }
+    return td;
   }
 
   function editPrice(cell, p) {
