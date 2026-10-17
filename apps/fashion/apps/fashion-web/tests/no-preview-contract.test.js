@@ -17,7 +17,9 @@ for (const page of ['launch.html', 'customer-shell.html', '404.html', 'technical
 }
 
 const vercel = JSON.parse(read('vercel.json'));
-assert.match(vercel.buildCommand, /rm -f public\/fr\.html public\/polished\.html/, 'old preview pages are not deployed');
+const siteBuild = vercel.buildCommand + '\n' + require('fs').readFileSync(require('path').join(__dirname, '..', 'build.sh'), 'utf8');
+require('assert').ok(vercel.buildCommand.length <= 256, 'Vercel limits buildCommand to 256 characters');
+assert.match(siteBuild, /rm -f public\/fr\.html public\/polished\.html/, 'old preview pages are not deployed');
 const served = new Set(vercel.rewrites.map((r) => r.destination));
 for (const old of ['/fr.html', '/polished.html', '/index.html']) assert.ok(!served.has(old), `${old} is not routed`);
 
