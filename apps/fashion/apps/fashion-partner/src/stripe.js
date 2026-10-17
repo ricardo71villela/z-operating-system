@@ -140,6 +140,62 @@ function createStripeClient({ secretKey, apiBase = DEFAULT_API_BASE, fetchImpl =
       return request('POST', '/transfers', { idempotencyKey: `zfashion-transfer-${orderId}-${partnerId}-${attempt}`, params });
     },
 
+    /* ---------- Billing (store subscription, task 9) ---------- */
+
+    /** The store as a Stripe customer of Z Fashion (one per store). */
+    createCustomer({ partnerId, email, name }) {
+      const params = { 'metadata[partner_id]': partnerId, 'metadata[platform]': 'zfashion', preferred_locales: 'fr' };
+      if (email) params.email = email;
+      if (name) params.name = name;
+      return request('POST', '/customers', { idempotencyKey: `zfashion-customer-${partnerId}`, params });
+    },
+    listTaxRates() {
+      return request('GET', '/tax_rates?active=true&limit=100');
+    },
+    createTaxRate({ percentage, key }) {
+      return request('POST', '/tax_rates', {
+        idempotencyKey: `zfashion-taxrate-${key}`,
+        params: { display_name: 'TVA', percentage: String(percentage), inclusive: 'false', country: 'FR', jurisdiction: 'FR', description: `TVA ${percentage} %`, 'metadata[zfashion]': key },
+      });
+    },
+    /** Stripe-hosted page where the store sets up its monthly subscription
+     *  (payment methods enabled in the Dashboard that support recurring
+     *  payments: card and SEPA Direct Debit). */
+    createSubscriptionCheckout({ customerId, partnerId, feeMinorUnits, productName, taxRateId, trialEnd, successUrl, cancelUrl, attempt }) {
+      const params = {
+        mode: 'subscription',
+        customer: customerId,
+        locale: 'fr',
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        'line_items[0][quantity]': '1',
+        'line_items[0][price_data][currency]': 'eur',
+        'line_items[0][price_data][unit_amount]': String(feeMinorUnits),
+        'line_items[0][price_data][recurring][interval]': 'month',
+        'line_items[0][price_data][tax_behavior]': 'exclusive',
+        'line_items[0][price_data][product_data][name]': productName,
+        'line_items[0][tax_rates][0]': taxRateId,
+        'tax_id_collection[enabled]': 'true',
+        'customer_update[name]': 'auto',
+        'customer_update[address]': 'auto',
+        'billing_address_collection': 'required',
+        'subscription_data[metadata][partner_id]': partnerId,
+        'subscription_data[metadata][platform]': 'zfashion',
+        'metadata[partner_id]': partnerId,
+        'metadata[platform]': 'zfashion',
+        'metadata[purpose]': 'subscription',
+      };
+      if (trialEnd) params['subscription_data[trial_end]'] = String(Math.floor(new Date(trialEnd).getTime() / 1000));
+      return request('POST', '/checkout/sessions', { idempotencyKey: `zfashion-subscription-${partnerId}-${attempt}`, params });
+    },
+    retrieveSubscription(subscriptionId) {
+      return request('GET', `/subscriptions/${encodeURIComponent(subscriptionId)}`);
+    },
+    /** Stripe customer portal: payment method, invoices, cancellation. */
+    createBillingPortalSession({ customerId, returnUrl }) {
+      return request('POST', '/billing_portal/sessions', { params: { customer: customerId, return_url: returnUrl, locale: 'fr' } });
+    },
+
     /** Full refund of a payment that cannot be kept. */
     refundPaymentIntent(paymentIntentId, reasonTag) {
       return request('POST', '/refunds', {

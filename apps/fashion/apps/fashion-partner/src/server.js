@@ -35,6 +35,7 @@ const stripeLib = require('./stripe');
 const payoutsService = require('./payouts-service');
 const { STRIPE_EVENT_STATUS } = require('../../../packages/fashion-domain/src/payment');
 const moderation = require('../../../packages/fashion-domain/src/moderation');
+const subscriptionDomain = require('../../../packages/fashion-domain/src/subscription');
 const db = require('./db');
 const { resolveAuthenticatedUserId, loadSupabaseAuthConfigFromEnv } = require('./auth');
 const { isAuthRequired, loadAdminUserIds, decideAccess } = require('./access');
@@ -1796,6 +1797,7 @@ async function handleStripeWebhook(req, res) {
   } catch (err) {
     return sendJson(res, 400, { error: err.code || 'webhook_invalid' });
   }
+  if (SUBSCRIPTION_EVENT_TYPES.includes(event.type)) return handleSubscriptionEvent(res, event);
   const status = STRIPE_EVENT_STATUS[event.type];
   const intent = event.data && event.data.object;
   if (!status || !intent || intent.object !== 'payment_intent' || !(intent.metadata && intent.metadata.platform === 'zfashion')) {
@@ -1822,6 +1824,176 @@ async function handleStripeWebhook(req, res) {
   } catch (err) {
     console.error('stripe webhook processing failed', event.id, event.type, err.code || err.message);
     sendJson(res, 500, { error: 'webhook_processing_failed' }); // Stripe retries
+  }
+}
+
+
+/* ============================================================
+   Store subscription (task 9): Stripe Billing, apart from payouts.
+   The store sets it up once on a Stripe-hosted page (card or SEPA
+   direct debit); the first month after activation is a Stripe trial
+   (subscription.js). Stripe is the source of truth: every billing
+   webhook event makes the API read the subscription again from
+   Stripe and store it. Database mode only.
+   ============================================================ */
+
+const SUBSCRIPTION_EVENT_TYPES = [
+  'checkout.session.completed',
+  'customer.subscription.created', 'customer.subscription.updated', 'customer.subscription.deleted',
+  'customer.subscription.trial_will_end',
+  'invoice.paid', 'invoice.payment_failed',
+];
+const VAT_RATE_KEY = 'fr-vat-20';
+let vatRatePromise = null;
+
+/** The 20 % French VAT tax rate in Stripe, created once and reused. */
+function ensureVatRate() {
+  if (!vatRatePromise) {
+    vatRatePromise = (async () => {
+      const list = await stripeClient.listTaxRates();
+      const found = (list.data || []).find((t) => t.metadata && t.metadata.zfashion === VAT_RATE_KEY && Number(t.percentage) === subscriptionDomain.VAT_RATE_PERCENT && !t.inclusive);
+      if (found) return found.id;
+      return (await stripeClient.createTaxRate({ percentage: subscriptionDomain.VAT_RATE_PERCENT, key: VAT_RATE_KEY })).id;
+    })().catch((err) => { vatRatePromise = null; throw err; });
+  }
+  return vatRatePromise;
+}
+
+function subscriptionUnavailable(res) {
+  if (!usingPostgres) { sendJson(res, 503, { error: 'subscription_requires_database' }); return true; }
+  if (!stripeClient) { sendJson(res, 503, { error: 'payments_not_configured' }); return true; }
+  return false;
+}
+
+function consoleBack(flag) {
+  const base = consoleUrl();
+  if (!base) return null;
+  const u = new URL(base.toString()); u.searchParams.set('subscription', flag); u.hash = 'subscription';
+  return u.toString();
+}
+
+/** GET /partners/:id/subscription — fee, free month, state, next billing. */
+async function handleGetSubscription(req, res, partnerId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
+  if (subscriptionUnavailable(res)) return;
+  try {
+    const info = await db.getPartnerBillingInfoPg(pool, partnerId);
+    if (!info) return sendJson(res, 404, { error: 'partner_not_found' });
+    const record = await db.getSubscriptionPg(pool, partnerId);
+    sendJson(res, 200, { subscription: subscriptionDomain.view({ record, activatedAt: info.activatedAt, categories: info.categories }) });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
+/** POST /partners/:id/subscription/checkout — Stripe page to set up the subscription. */
+async function handleSubscriptionCheckout(req, res, partnerId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
+  if (subscriptionUnavailable(res)) return;
+  const successUrl = consoleBack('done'); const cancelUrl = consoleBack('cancel');
+  if (!successUrl) return sendJson(res, 503, { error: 'subscription_not_configured' });
+  try {
+    const info = await db.getPartnerBillingInfoPg(pool, partnerId);
+    if (!info) return sendJson(res, 404, { error: 'partner_not_found' });
+    if (!['approved', 'active'].includes(info.onboardingStatus)) return sendJson(res, 409, { error: 'store_not_approved' });
+    let record = await db.getSubscriptionPg(pool, partnerId);
+    if (!subscriptionDomain.canSetUp(record)) return sendJson(res, 409, { error: 'subscription_exists' });
+    if (!record) {
+      const customer = await stripeClient.createCustomer({ partnerId, email: info.email, name: info.name });
+      record = await db.createSubscriptionCustomerPg(pool, partnerId, customer.id);
+    }
+    const amounts = subscriptionDomain.monthlyAmounts(info.categories);
+    const count = new Set(info.categories).size;
+    const session = await stripeClient.createSubscriptionCheckout({
+      customerId: record.stripeCustomerId,
+      partnerId,
+      feeMinorUnits: amounts.feeMinorUnits,
+      productName: `Abonnement Z Fashion — ${count} catégorie${count > 1 ? 's' : ''}`,
+      taxRateId: await ensureVatRate(),
+      trialEnd: subscriptionDomain.trialEndFor({ activatedAt: info.activatedAt }),
+      successUrl,
+      cancelUrl,
+      attempt: Date.now(),
+    });
+    sendJson(res, 200, { url: session.url });
+  } catch (err) {
+    if (err instanceof stripeLib.StripeError) {
+      console.error('stripe subscription checkout failed', partnerId, err.code, err.httpStatus, err.stripeCode);
+      return sendJson(res, 502, { error: 'payment_provider_error' });
+    }
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
+/** POST /partners/:id/subscription/portal — Stripe page to change the payment method, see invoices, cancel. */
+async function handleSubscriptionPortal(req, res, partnerId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
+  if (subscriptionUnavailable(res)) return;
+  const returnUrl = consoleBack('portal');
+  if (!returnUrl) return sendJson(res, 503, { error: 'subscription_not_configured' });
+  try {
+    const record = await db.getSubscriptionPg(pool, partnerId);
+    if (!record) return sendJson(res, 409, { error: 'subscription_not_set_up' });
+    const session = await stripeClient.createBillingPortalSession({ customerId: record.stripeCustomerId, returnUrl });
+    sendJson(res, 200, { url: session.url });
+  } catch (err) {
+    if (err instanceof stripeLib.StripeError) return sendJson(res, 502, { error: 'payment_provider_error' });
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
+/** GET /admin/subscriptions — every active or suspended store and its subscription. */
+async function handleAdminListSubscriptions(req, res) {
+  if (!(await authorizeAdminRequest(req, res))) return;
+  if (subscriptionUnavailable(res)) return;
+  try {
+    const rows = await db.listSubscriptionsPg(pool);
+    const names = await db.getStoreNamesPg(pool, rows.map((r) => r.partnerId));
+    const stores = rows.map((r) => ({
+      partnerId: r.partnerId,
+      storeName: names[r.partnerId] || null,
+      onboardingStatus: r.onboardingStatus,
+      activatedAt: r.activatedAt,
+      ...subscriptionDomain.view({ record: r.subscription, activatedAt: r.activatedAt, categories: r.categories }),
+    }));
+    const counts = {};
+    for (const st of stores) counts[st.state] = (counts[st.state] || 0) + 1;
+    sendJson(res, 200, { stores, counts });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
+/** Billing webhook events: read the subscription again from Stripe and store it. */
+async function handleSubscriptionEvent(res, event) {
+  const obj = (event.data && event.data.object) || {};
+  let subscriptionId = null; let customerId = typeof obj.customer === 'string' ? obj.customer : obj.customer && obj.customer.id;
+  if (obj.object === 'checkout.session') {
+    if (!(obj.metadata && obj.metadata.platform === 'zfashion' && obj.metadata.purpose === 'subscription')) return sendJson(res, 200, { received: true, outcome: 'ignored' });
+    subscriptionId = typeof obj.subscription === 'string' ? obj.subscription : obj.subscription && obj.subscription.id;
+  } else if (obj.object === 'subscription') {
+    subscriptionId = obj.id;
+  } else if (obj.object === 'invoice') {
+    const details = obj.parent && obj.parent.subscription_details;
+    subscriptionId = (details && (typeof details.subscription === 'string' ? details.subscription : details.subscription && details.subscription.id))
+      || (typeof obj.subscription === 'string' ? obj.subscription : null);
+  }
+  if (!subscriptionId || !customerId) return sendJson(res, 200, { received: true, outcome: 'ignored' });
+  try {
+    const record = await db.getSubscriptionByCustomerPg(pool, customerId);
+    if (!record) return sendJson(res, 200, { received: true, outcome: 'unknown_customer' });
+    const sub = await stripeClient.retrieveSubscription(subscriptionId);
+    if (!(sub.metadata && sub.metadata.platform === 'zfashion')) return sendJson(res, 200, { received: true, outcome: 'ignored' });
+    // A store has one subscription: an older, canceled one never replaces a live one.
+    if (record.stripeSubscriptionId && record.stripeSubscriptionId !== sub.id && record.state !== 'canceled' && subscriptionDomain.stateFromStripeStatus(sub.status) === 'canceled') {
+      return sendJson(res, 200, { received: true, outcome: 'stale_subscription' });
+    }
+    const saved = await db.saveSubscriptionStatePg(pool, record.partnerId, subscriptionDomain.fromStripeSubscription(sub));
+    if (event.type === 'invoice.payment_failed') console.warn('subscription payment failed', record.partnerId, sub.id);
+    sendJson(res, 200, { received: true, outcome: saved.state });
+  } catch (err) {
+    console.error('subscription webhook failed', event.id, event.type, err.code || err.message);
+    sendJson(res, 500, { error: 'webhook_processing_failed' });
   }
 }
 
@@ -2176,6 +2348,18 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && parts[0] === 'partner-applications' && parts.length === 1) {
       return await handleSubmitPartnerApplication(req, res);
+    }
+    if (req.method === 'GET' && parts[0] === 'partners' && parts[2] === 'subscription' && parts.length === 3) {
+      return await handleGetSubscription(req, res, parts[1]);
+    }
+    if (req.method === 'POST' && parts[0] === 'partners' && parts[2] === 'subscription' && parts[3] === 'checkout' && parts.length === 4) {
+      return await handleSubscriptionCheckout(req, res, parts[1]);
+    }
+    if (req.method === 'POST' && parts[0] === 'partners' && parts[2] === 'subscription' && parts[3] === 'portal' && parts.length === 4) {
+      return await handleSubscriptionPortal(req, res, parts[1]);
+    }
+    if (req.method === 'GET' && parts[0] === 'admin' && parts[1] === 'subscriptions' && parts.length === 2) {
+      return await handleAdminListSubscriptions(req, res);
     }
     if (req.method === 'GET' && parts[0] === 'admin' && parts[1] === 'products' && parts.length === 2) {
       return await handleAdminListProducts(req, res, url.searchParams);

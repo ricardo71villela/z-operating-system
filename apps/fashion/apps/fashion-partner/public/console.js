@@ -58,6 +58,18 @@
       cat_clothing: 'Vêtements', cat_footwear: 'Chaussures', cat_sportswear: 'Sport', cat_accessories_leather_goods: 'Accessoires et maroquinerie', cat_cosmetics: 'Cosmétiques et parfums',
       age_adults: 'Adultes', age_youth: 'Adolescents', age_children: 'Enfants', age_baby: 'Bébés',
       productCreated: 'Produit créé. Il apparaîtra sur le site dès que Z Fashion l’aura validé.',
+      tabSubscription: 'Abonnement', subTitle: 'Votre abonnement Z Fashion', subDisabled: 'L’abonnement en ligne n’est pas encore ouvert.',
+      sub_not_set_up: 'À mettre en place', sub_trial: 'Mois offert', sub_active: 'Actif', sub_past_due: 'Paiement en échec', sub_canceled: 'Résilié',
+      subFee: 'Abonnement mensuel', subHT: 'HT', subVat: 'TVA', subTotal: 'Total TTC par mois',
+      subFreeUntil: 'Premier mois offert : jusqu’au {date}.', subFreeOver: 'Votre mois offert est terminé.',
+      subFirstBilling: 'Premier prélèvement le {date}.', subNextBilling: 'Prochain prélèvement le {date}.',
+      subCancelAtEnd: 'Résiliation demandée : l’abonnement prendra fin à la fin de la période en cours.',
+      subPastDue: 'Le dernier paiement a échoué (depuis le {date}). Mettez à jour votre moyen de paiement pour éviter la suspension de votre boutique.',
+      subSetUpBody: 'Enregistrez dès maintenant votre carte ou votre IBAN (prélèvement SEPA) : rien n’est prélevé avant la fin du mois offert.',
+      subSetUpNow: 'Mettez en place le paiement de votre abonnement pour continuer à vendre sur Z Fashion.',
+      subCanceled: 'Votre abonnement est résilié.', subSetUp: 'Mettre en place le paiement', subRestart: 'Reprendre l’abonnement',
+      subManage: 'Moyen de paiement, factures, résiliation', subReturned: 'Merci : votre abonnement est en place.',
+      subRulesTitle: 'Comment ça marche', subRules: 'L’abonnement dépend du nombre de catégories que vous vendez (1 : 39 €, 2 : 49 €, 3 ou plus : 59 € HT par mois). Il est payé par carte ou prélèvement SEPA via Stripe, qui vous envoie une facture chaque mois. Il est indépendant de vos versements, sur lesquels seule la commission est déduite. Vous pouvez résilier à tout moment : la résiliation prend effet à la fin du mois en cours.',
       colStatus: 'Statut', mod_pending: 'En attente de validation', mod_approved: 'En ligne', mod_rejected: 'Refusé',
       mod_pendingHint: 'Z Fashion vérifie chaque nouveau produit avant sa mise en ligne.', mod_reason: 'Motif :',
       mod_resubmit: 'Demander une nouvelle validation', mod_resubmitted: 'Demande envoyée : le produit sera revu par Z Fashion.',
@@ -128,6 +140,18 @@
       cat_clothing: 'Clothing', cat_footwear: 'Footwear', cat_sportswear: 'Sportswear', cat_accessories_leather_goods: 'Accessories and leather goods', cat_cosmetics: 'Cosmetics and fragrance',
       age_adults: 'Adults', age_youth: 'Teens', age_children: 'Children', age_baby: 'Babies',
       productCreated: 'Product created. It will show on the site once Z Fashion has approved it.',
+      tabSubscription: 'Subscription', subTitle: 'Your Z Fashion subscription', subDisabled: 'Online subscription is not open yet.',
+      sub_not_set_up: 'To set up', sub_trial: 'Free month', sub_active: 'Active', sub_past_due: 'Payment failed', sub_canceled: 'Cancelled',
+      subFee: 'Monthly subscription', subHT: 'excl. VAT', subVat: 'VAT', subTotal: 'Total incl. VAT per month',
+      subFreeUntil: 'First month free: until {date}.', subFreeOver: 'Your free month is over.',
+      subFirstBilling: 'First payment on {date}.', subNextBilling: 'Next payment on {date}.',
+      subCancelAtEnd: 'Cancellation requested: the subscription ends at the end of the current period.',
+      subPastDue: 'The last payment failed (since {date}). Update your payment method to avoid your store being suspended.',
+      subSetUpBody: 'Save your card or IBAN (SEPA direct debit) now: nothing is charged before the end of the free month.',
+      subSetUpNow: 'Set up your subscription payment to keep selling on Z Fashion.',
+      subCanceled: 'Your subscription is cancelled.', subSetUp: 'Set up payment', subRestart: 'Restart the subscription',
+      subManage: 'Payment method, invoices, cancellation', subReturned: 'Thank you: your subscription is set up.',
+      subRulesTitle: 'How it works', subRules: 'The subscription depends on how many categories you sell (1: €39, 2: €49, 3 or more: €59 excl. VAT per month). It is paid by card or SEPA direct debit through Stripe, which sends you an invoice every month. It is separate from your payouts, from which only the commission is deducted. You can cancel at any time: cancellation takes effect at the end of the current month.',
       colStatus: 'Status', mod_pending: 'Awaiting approval', mod_approved: 'Online', mod_rejected: 'Refused',
       mod_pendingHint: 'Z Fashion checks every new product before it goes online.', mod_reason: 'Reason:',
       mod_resubmit: 'Ask for a new review', mod_resubmitted: 'Request sent: Z Fashion will review the product.',
@@ -263,8 +287,8 @@
 
   function render() {
     document.querySelectorAll('.pc-tabs button').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.tab === state.tab)); });
-    ['overview', 'catalogue', 'stock', 'corner', 'payouts'].forEach(function (id) { $('tab-' + id).hidden = id !== state.tab; });
-    ({ overview: renderOverview, catalogue: renderCatalogue, stock: renderStock, corner: renderCorner, payouts: renderPayouts })[state.tab]();
+    ['overview', 'catalogue', 'stock', 'corner', 'payouts', 'subscription'].forEach(function (id) { $('tab-' + id).hidden = id !== state.tab; });
+    ({ overview: renderOverview, catalogue: renderCatalogue, stock: renderStock, corner: renderCorner, payouts: renderPayouts, subscription: renderSubscription })[state.tab]();
   }
 
   // ---------- overview
@@ -948,6 +972,63 @@
     root.replaceChildren.apply(root, nodes);
   }
 
+
+  // ---------- subscription (Stripe Billing, task 9)
+
+  var SUB_BADGE = { not_set_up: 'warn', trial: 'good', active: 'good', past_due: 'bad', canceled: 'bad' };
+
+  function renderSubscription() {
+    var root = $('tab-subscription');
+    root.replaceChildren(el('p', { class: 'pc-muted' }, t('loading')));
+    api('/subscription').then(json).then(function (r) {
+      if (r.status === 503) { root.replaceChildren(el('p', { class: 'pc-card pc-muted' }, t('subDisabled'))); return; }
+      if (!r.ok) throw new Error('subscription ' + r.status);
+      if (state.tab === 'subscription') drawSubscription(root, r.body.subscription);
+    }).catch(function () { root.replaceChildren(el('p', { class: 'pc-error' }, t('unavailable'))); });
+  }
+
+  function drawSubscription(root, sub) {
+    var nodes = [];
+    var card = el('article', { class: 'pc-card' });
+    var head = el('div', { class: 'pc-store-head' });
+    head.append(el('h2', null, t('subTitle')), el('span', { class: 'pc-badge ' + (SUB_BADGE[sub.state] || '') }, t('sub_' + sub.state)));
+    card.appendChild(head);
+
+    var kpis = el('div', { class: 'pc-kpis' });
+    [[t('subFee'), money(sub.feeMinorUnits) + ' ' + t('subHT')], [t('subVat') + ' (' + sub.vatRatePercent + ' %)', money(sub.vatMinorUnits)], [t('subTotal'), money(sub.totalMinorUnits)]]
+      .forEach(function (k) { var d = el('div', { class: 'pc-kpi' }); d.append(el('span', null, k[0]), el('strong', null, k[1])); kpis.appendChild(d); });
+    card.appendChild(kpis);
+
+    var lines = [];
+    if (sub.freeUntil) lines.push(sub.freeMonthOver ? t('subFreeOver') : t('subFreeUntil').replace('{date}', dateOnly(sub.freeUntil)));
+    if (sub.state === 'trial' && sub.nextBillingAt) lines.push(t('subFirstBilling').replace('{date}', dateOnly(sub.nextBillingAt)));
+    if (sub.state === 'active' && sub.nextBillingAt) lines.push(t('subNextBilling').replace('{date}', dateOnly(sub.nextBillingAt)));
+    if (sub.cancelAtPeriodEnd) lines.push(t('subCancelAtEnd'));
+    if (sub.state === 'past_due') lines.push(t('subPastDue').replace('{date}', dateOnly(sub.pastDueSince)));
+    if (sub.state === 'not_set_up') lines.push(sub.freeMonthOver ? t('subSetUpNow') : t('subSetUpBody'));
+    if (sub.state === 'canceled') lines.push(t('subCanceled'));
+    lines.forEach(function (l) { card.appendChild(el('p', { class: 'pc-muted' }, l)); });
+
+    var buttons = el('div', { class: 'pc-toolbar' });
+    if (sub.canSetUp) {
+      var go = el('button', { class: 'pc-btn', type: 'button' }, t(sub.state === 'canceled' ? 'subRestart' : 'subSetUp'));
+      go.addEventListener('click', function () { goToStripe('/subscription/checkout', go); });
+      buttons.appendChild(go);
+    }
+    if (sub.canManage && sub.state !== 'not_set_up') {
+      var manage = el('button', { class: 'pc-btn secondary', type: 'button' }, t('subManage'));
+      manage.addEventListener('click', function () { goToStripe('/subscription/portal', manage); });
+      buttons.appendChild(manage);
+    }
+    card.appendChild(buttons);
+    nodes.push(card);
+
+    var rules = el('article', { class: 'pc-card' });
+    rules.append(el('h3', null, t('subRulesTitle')), el('p', { class: 'pc-muted' }, t('subRules')));
+    nodes.push(rules);
+    root.replaceChildren.apply(root, nodes);
+  }
+
   // ---------- start
 
   function start() {
@@ -975,6 +1056,12 @@
     }
     // Back from Stripe's onboarding page (?payouts=return|refresh): open the payouts tab.
     var back = null; try { back = new URLSearchParams(window.location.search).get('payouts'); } catch (e) {}
+    var subBack = null; try { subBack = new URLSearchParams(window.location.search).get('subscription'); } catch (e) {}
+    if (subBack) {
+      state.tab = 'subscription';
+      try { history.replaceState(null, '', window.location.pathname + '#subscription'); } catch (e) {}
+      if (subBack === 'done') flash(t('subReturned'));
+    }
     if (back === 'return' || back === 'refresh') {
       state.tab = 'payouts';
       try { history.replaceState(null, '', window.location.pathname + '#payouts'); } catch (e) {}

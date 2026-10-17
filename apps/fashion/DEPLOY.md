@@ -70,10 +70,15 @@ Igual ao passo 2: projeto `z-fashion-admin`, Root Directory `apps/fashion/apps/f
 
 ## 4. Stripe
 
-1. **Developers → Webhooks → Add endpoint**: `https://api.zfashion.online/stripe/webhook`, eventos `payment_intent.succeeded`, `payment_intent.processing`, `payment_intent.payment_failed`. Copiar o *Signing secret* para `STRIPE_WEBHOOK_SECRET` no projeto `z-fashion-api`.
+1. **Developers → Webhooks → Add endpoint**: `https://api.zfashion.online/stripe/webhook`, eventos `payment_intent.succeeded`, `payment_intent.processing`, `payment_intent.payment_failed` (encomendas) e `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `customer.subscription.trial_will_end`, `invoice.paid`, `invoice.payment_failed` (assinaturas das lojas). Copiar o *Signing secret* para `STRIPE_WEBHOOK_SECRET` no projeto `z-fashion-api`.
 2. **Connect → Get started**: ativar o Connect (plataforma em França, contas Express). Os pagamentos às lojas usam *separate charges and transfers*.
 3. **Settings → Branding / Public details**: nome Z Fashion, site, e-mail de apoio (aparecem no formulário de pagamento e nos recibos).
-4. Começar em **modo de teste** (`sk_test_`/`pk_test_`). Passar a `live` só depois do teste completo (tarefa 20): novas chaves, novo webhook live, novo `whsec_`.
+4. **Assinaturas das lojas (tarefa 9)**:
+   - **Settings → Payment methods**: ativar *Cards* e *SEPA Direct Debit* (a página de assinatura mostra os meios ativos que aceitam pagamentos recorrentes).
+   - **Settings → Billing → Customer portal**: guardar a configuração (permitir mudar o meio de pagamento, ver faturas, cancelar no fim do período). Sem isto o botão "Moyen de paiement, factures, résiliation" falha.
+   - **Settings → Billing → Invoices**: dados da empresa e número de TVA nas faturas; **Subscriptions and emails**: ativar os e-mails de pagamento falhado e as novas tentativas automáticas.
+   - A taxa de TVA de 20 % é criada automaticamente na primeira assinatura.
+5. Começar em **modo de teste** (`sk_test_`/`pk_test_`). Passar a `live` só depois do teste completo (tarefa 20): novas chaves, novo webhook live, novo `whsec_`.
 
 ## 5. Site público (projeto `z-fashion`, já existe)
 

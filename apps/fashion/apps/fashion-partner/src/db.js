@@ -1341,6 +1341,110 @@ async function countProductsPendingModerationPg(pool) {
   return r.rows[0].n;
 }
 
+// ---------- store subscriptions (task 9)
+
+function toSubscriptionShape(row) {
+  if (!row) return null;
+  const iso = (v) => (v ? new Date(v).toISOString() : null);
+  return {
+    partnerId: row.partner_id,
+    stripeCustomerId: row.stripe_customer_id,
+    stripeSubscriptionId: row.stripe_subscription_id || null,
+    stripeStatus: row.stripe_status || null,
+    state: row.state,
+    monthlyFeeMinorUnits: row.monthly_fee_minor_units === null ? null : Number(row.monthly_fee_minor_units),
+    trialEndsAt: iso(row.trial_ends_at),
+    currentPeriodEnd: iso(row.current_period_end),
+    cancelAtPeriodEnd: row.cancel_at_period_end,
+    canceledAt: iso(row.canceled_at),
+    pastDueSince: iso(row.past_due_since),
+    updatedAt: iso(row.updated_at),
+  };
+}
+
+/** When the store first became active (starts the free month), and its categories. */
+async function getPartnerBillingInfoPg(pool, partnerId) {
+  const r = await pool.query(
+    `select p.id, p.onboarding_status, p.categories, p.activated_at, a.contact_email, a.trade_name, a.legal_name as application_legal_name
+       from fashion.partners p left join fashion.partner_applications a on a.partner_id = p.id
+      where p.id = $1`,
+    [partnerId]
+  );
+  const row = r.rows[0];
+  if (!row) return null;
+  return {
+    partnerId: row.id,
+    onboardingStatus: row.onboarding_status,
+    categories: parsePgEnumArray(row.categories),
+    activatedAt: row.activated_at ? new Date(row.activated_at).toISOString() : null,
+    email: row.contact_email || null,
+    name: row.trade_name || row.application_legal_name || null,
+  };
+}
+
+async function getSubscriptionPg(pool, partnerId) {
+  const r = await pool.query(`select * from fashion.partner_subscriptions where partner_id = $1`, [partnerId]);
+  return toSubscriptionShape(r.rows[0]);
+}
+
+async function getSubscriptionByCustomerPg(pool, stripeCustomerId) {
+  const r = await pool.query(`select * from fashion.partner_subscriptions where stripe_customer_id = $1`, [stripeCustomerId]);
+  return toSubscriptionShape(r.rows[0]);
+}
+
+async function createSubscriptionCustomerPg(pool, partnerId, stripeCustomerId) {
+  const r = await pool.query(
+    `insert into fashion.partner_subscriptions (partner_id, stripe_customer_id) values ($1, $2)
+     on conflict (partner_id) do update set updated_at = now()
+     returning *`,
+    [partnerId, stripeCustomerId]
+  );
+  return toSubscriptionShape(r.rows[0]);
+}
+
+/** Stores the subscription as Stripe reports it (subscription.js
+ *  fromStripeSubscription). past_due_since is set on the first failure
+ *  of an incident and cleared once paid again. */
+async function saveSubscriptionStatePg(pool, partnerId, rec) {
+  const r = await pool.query(
+    `update fashion.partner_subscriptions
+        set stripe_subscription_id = $2,
+            stripe_customer_id = coalesce($3, stripe_customer_id),
+            stripe_status = $4,
+            state = $5,
+            monthly_fee_minor_units = coalesce($6, monthly_fee_minor_units),
+            trial_ends_at = $7,
+            current_period_end = $8,
+            cancel_at_period_end = $9,
+            canceled_at = $10,
+            past_due_since = case when $5 = 'past_due' then coalesce(past_due_since, now()) else null end,
+            updated_at = now()
+      where partner_id = $1
+      returning *`,
+    [partnerId, rec.stripeSubscriptionId, rec.stripeCustomerId || null, rec.stripeStatus, rec.state, rec.monthlyFeeMinorUnits,
+     rec.trialEndsAt, rec.currentPeriodEnd, rec.cancelAtPeriodEnd, rec.canceledAt]
+  );
+  return toSubscriptionShape(r.rows[0]);
+}
+
+/** Every active or suspended store with its subscription (backoffice). */
+async function listSubscriptionsPg(pool) {
+  const r = await pool.query(
+    `select p.id as store_id, p.onboarding_status, p.categories, p.activated_at, s.*
+       from fashion.partners p
+       left join fashion.partner_subscriptions s on s.partner_id = p.id
+      where p.onboarding_status in ('active', 'suspended')
+      order by p.activated_at desc nulls last`
+  );
+  return r.rows.map((row) => ({
+    partnerId: row.store_id,
+    onboardingStatus: row.onboarding_status,
+    categories: parsePgEnumArray(row.categories),
+    activatedAt: row.activated_at ? new Date(row.activated_at).toISOString() : null,
+    subscription: row.partner_id ? toSubscriptionShape(row) : null,
+  }));
+}
+
 module.exports = {
   createPool, insertPartner, updatePartnerStatus, getPartner,
   getAuthUserEmail, getPartnerOfferPg, submitPartnerApplicationPg,
@@ -1365,4 +1469,5 @@ module.exports = {
   claimPartnerTransferPg, completePartnerTransferPg, failPartnerTransferPg,
   listCatalogPg,
   listProductsForModerationPg, setProductModerationPg, countProductsPendingModerationPg,
+  getPartnerBillingInfoPg, getSubscriptionPg, getSubscriptionByCustomerPg, createSubscriptionCustomerPg, saveSubscriptionStatePg, listSubscriptionsPg,
 };
