@@ -24,9 +24,9 @@ assert.doesNotThrow(() => c.shippingAddressSnapshot({ ...address, countryIso: 'B
 
 // --- pricing a two-store cart
 const productsById = {
-  p1: { id: 'p1', partnerId: 'A' },
-  p2: { id: 'p2', partnerId: 'A' },
-  p3: { id: 'p3', partnerId: 'B' },
+  p1: { id: 'p1', partnerId: 'A', moderationStatus: 'approved' },
+  p2: { id: 'p2', partnerId: 'A', moderationStatus: 'approved' },
+  p3: { id: 'p3', partnerId: 'B', moderationStatus: 'approved' },
 };
 const stock = (available, reserved = 0) => ({ quantityAvailable: available, quantityReserved: reserved });
 const priced = c.priceCart({
