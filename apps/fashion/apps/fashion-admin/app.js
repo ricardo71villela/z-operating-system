@@ -1,4 +1,26 @@
-const T={fr:{overview:"Vue d’ensemble",applications:"Adhésions",partners:"Partners",catalogue:"Catalogue",orders:"Commandes",returns:"Retours",campaigns:"Campagnes",finance:"Finance",risk:"Risque & conformité",support:"Support",system:"État du système",settings:"Paramètres",preview:"Backoffice interne de démonstration · aucune action réelle"},pt:{overview:"Visão geral",applications:"Adesões",partners:"Partners",catalogue:"Catálogo",orders:"Encomendas",returns:"Devoluções",campaigns:"Campanhas",finance:"Financeiro",risk:"Risco & conformidade",support:"Suporte",system:"Estado do sistema",settings:"Definições",preview:"Backoffice interno de demonstração · nenhuma ação real"},en:{overview:"Overview",applications:"Applications",partners:"Partners",catalogue:"Catalogue",orders:"Orders",returns:"Returns",campaigns:"Campaigns",finance:"Finance",risk:"Risk & compliance",support:"Support",system:"System status",settings:"Settings",preview:"Internal demo backoffice · no real actions"},es:{overview:"Resumen",applications:"Adhesiones",partners:"Partners",catalogue:"Catálogo",orders:"Pedidos",returns:"Devoluciones",campaigns:"Campañas",finance:"Finanzas",risk:"Riesgo y cumplimiento",support:"Soporte",system:"Estado del sistema",settings:"Configuración",preview:"Backoffice interno de demostración · sin acciones reales"},it:{overview:"Panoramica",applications:"Adesioni",partners:"Partner",catalogue:"Catalogo",orders:"Ordini",returns:"Resi",campaigns:"Campagne",finance:"Finanza",risk:"Rischio e conformità",support:"Supporto",system:"Stato sistema",settings:"Impostazioni",preview:"Backoffice interno dimostrativo · nessuna azione reale"},de:{overview:"Übersicht",applications:"Anträge",partners:"Partner",catalogue:"Katalog",orders:"Bestellungen",returns:"Retouren",campaigns:"Kampagnen",finance:"Finanzen",risk:"Risiko & Compliance",support:"Support",system:"Systemstatus",settings:"Einstellungen",preview:"Internes Demo-Backoffice · keine echten Aktionen"}};let locale="fr";try{const s=localStorage.getItem("zfashion_admin_locale");if(T[s])locale=s}catch(_){ }const sel=document.getElementById("localeSelect");function applyLang(){sel.value=locale;document.documentElement.dataset.locale=locale;document.documentElement.lang=locale==="fr"?"fr-FR":locale;document.getElementById("previewText").textContent=T[locale].preview;document.querySelectorAll("[data-key]").forEach(el=>{el.textContent=T[locale][el.dataset.key]||T.fr[el.dataset.key]});const active=document.querySelector(".nav button.active");if(active)document.getElementById("pageTitle").textContent=T[locale][active.dataset.page]||T.fr[active.dataset.page]}sel.addEventListener("change",e=>{locale=e.target.value;try{localStorage.setItem("zfashion_admin_locale",locale)}catch(_){ }applyLang()});applyLang();
-const sidebar=document.getElementById("sidebar"),backdrop=document.getElementById("backdrop");function closeMenu(){sidebar.classList.remove("open");backdrop.hidden=true}document.getElementById("menuButton").addEventListener("click",()=>{sidebar.classList.add("open");backdrop.hidden=false});backdrop.addEventListener("click",closeMenu);function show(id){document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===id));document.querySelectorAll(".nav button[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===id));document.getElementById("pageTitle").textContent=T[locale][id]||T.fr[id]||id;window.scrollTo({top:0,behavior:"smooth"});closeMenu()}document.querySelectorAll("[data-page]").forEach(b=>b.addEventListener("click",()=>show(b.dataset.page)));document.querySelectorAll("[data-jump]").forEach(b=>b.addEventListener("click",()=>show(b.dataset.jump)));
-const toast=document.getElementById("toast");let timer;function demo(){const m={fr:"Backoffice Preview — aucune action réelle n’a été exécutée.",pt:"Backoffice Preview — nenhuma ação real foi executada.",en:"Backoffice Preview — no real action was executed.",es:"Backoffice Preview — no se ejecutó ninguna acción real.",it:"Backoffice Preview — nessuna azione reale è stata eseguita.",de:"Backoffice Preview — es wurde keine echte Aktion ausgeführt."}[locale];toast.textContent=m;toast.hidden=false;clearTimeout(timer);timer=setTimeout(()=>toast.hidden=true,2400)}document.querySelectorAll("[data-demo]").forEach(x=>x.addEventListener("click",demo));
-window.Z_FASHION_ADMIN_BACKOFFICE='PREVIEW_PASS';
+/* Z Fashion backoffice shell: navigation between the real pages.
+   Each page is its own module (backoffice-*.js) that loads real data
+   through the signed-in admin session. French only. */
+(function () {
+  'use strict';
+  var sidebar = document.getElementById('sidebar');
+  var backdrop = document.getElementById('backdrop');
+  function closeMenu() { sidebar.classList.remove('open'); backdrop.hidden = true; }
+  document.getElementById('menuButton').addEventListener('click', function () { sidebar.classList.add('open'); backdrop.hidden = false; });
+  backdrop.addEventListener('click', closeMenu);
+  function show(id) {
+    document.querySelectorAll('.page').forEach(function (p) { p.classList.toggle('active', p.id === id); });
+    var title = id;
+    document.querySelectorAll('.nav button[data-page]').forEach(function (b) {
+      var on = b.dataset.page === id;
+      b.classList.toggle('active', on);
+      if (on) title = b.textContent.replace(/^\S+\s*/, '').trim() || b.textContent.trim();
+    });
+    document.getElementById('pageTitle').textContent = title;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    closeMenu();
+    document.dispatchEvent(new CustomEvent('zfashion:admin-page', { detail: { page: id } }));
+  }
+  document.querySelectorAll('[data-page]').forEach(function (b) { b.addEventListener('click', function () { show(b.dataset.page); }); });
+  window.ZFashionAdmin = { show: show };
+})();

@@ -3,7 +3,7 @@
   "ignoreCommand": "B=${VERCEL_GIT_PREVIOUS_SHA:-HEAD^};[ \"$B\" = \"$VERCEL_GIT_COMMIT_SHA\" ]&&exit 1;git cat-file -e \"$B^{commit}\" 2>/dev/null||exit 1;git diff --quiet \"$B\" HEAD -- ':(top)apps/fashion/apps/fashion-web/**'",
   "cleanUrls": false,
   "trailingSlash": false,
-  "buildCommand": "rm -rf public && mkdir -p public && cp ./*.html ./*.css ./*.js public/ && cp launch.html public/index.html && cp -R brand public/brand && node ../../scripts/write-zfashion-config.js public && echo Z_FASHION_STATIC_PREVIEW_BUILD=PASS",
+  "buildCommand": "rm -rf public && mkdir -p public && cp ./*.html ./*.css ./*.js public/ && cp launch.html public/index.html && rm -f public/fr.html public/polished.html && cp -R brand public/brand && node ../../scripts/write-zfashion-config.js public && echo Z_FASHION_STATIC_PREVIEW_BUILD=PASS",
   "outputDirectory": "public",
   "rewrites": [
     {

@@ -19,3 +19,6 @@
 .apps-primary{background:#111;color:#fff}
 .apps-danger{background:#fff;color:var(--bad);border-color:var(--bad)!important}
 .apps-actions button[disabled]{opacity:.5;cursor:default}
+
+/* No ribbon above the backoffice: the sidebar and top bar start at the top. */
+.app{padding-top:0}.sidebar{top:0}.topbar{top:0}@media(max-width:820px){.backdrop{inset:0}}

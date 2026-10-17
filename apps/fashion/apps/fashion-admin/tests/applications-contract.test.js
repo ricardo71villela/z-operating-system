@@ -11,7 +11,7 @@ const { ALLOWED_TRANSITIONS } = require('../../../packages/fashion-domain/src/on
 
 // Wired in: nav entry, page, script after app.js, behind the admin sign-in.
 assert.match(html, /data-page="applications"/);
-assert.match(html, /<section class="page" id="applications"><div id="adminApplications"><\/div><\/section>/);
+assert.match(html, /<section class="page[^"]*" id="applications"><div id="adminApplications"><\/div><\/section>/);
 assert.match(html, /<script src="\.\/app\.js"><\/script>\s*<script src="\.\/backoffice-applications\.js"><\/script>/);
 assert.match(html, /zfashion-auth\.js" data-surface="admin"/);
 

@@ -18,8 +18,8 @@
   const STATE = window.ZFashionCustomerState;
 
   const COPY = {
-    fr: { allSaleCopy: 'Les dernières pièces mises en ligne par les boutiques.', seeAll: 'Voir toutes les nouveautés', pieces: 'pièces', empty: 'Les boutiques mettent leurs premières pièces en ligne. Revenez bientôt.', enter: 'Entrer dans le Corner', unavailable: 'Le catalogue est momentanément indisponible.' },
-    en: { allSaleCopy: 'The latest pieces put online by the boutiques.', seeAll: 'See all new pieces', pieces: 'pieces', empty: 'Boutiques are putting their first pieces online. Come back soon.', enter: 'Enter the Corner', unavailable: 'The catalogue is temporarily unavailable.' },
+    fr: { campaignCopy: 'Des sélections réservées aux membres, préparées avec les boutiques partenaires.', allSaleCopy: 'Les dernières pièces mises en ligne par les boutiques.', seeAll: 'Voir toutes les nouveautés', pieces: 'pièces', empty: 'Les boutiques mettent leurs premières pièces en ligne. Revenez bientôt.', enter: 'Entrer dans le Corner', unavailable: 'Le catalogue est momentanément indisponible.' },
+    en: { campaignCopy: 'Members-only selections, prepared with our partner boutiques.', allSaleCopy: 'The latest pieces put online by the boutiques.', seeAll: 'See all new pieces', pieces: 'pieces', empty: 'Boutiques are putting their first pieces online. Come back soon.', enter: 'Enter the Corner', unavailable: 'The catalogue is temporarily unavailable.' },
   };
   const LOCALES = { fr: 'fr-FR', pt: 'pt-PT', en: 'en-GB', es: 'es-ES', it: 'it-IT', de: 'de-DE' };
   const locale = () => document.documentElement.dataset.locale || 'fr';
@@ -33,8 +33,8 @@
   let data = null;
   let failed = false;
 
-  // Demonstration notices do not apply to the live site.
-  document.querySelectorAll('.preview-ribbon, [data-i18n="footerPreview"]').forEach((n) => n.remove());
+  // The bag, favourites, account and member buttons lead to the real
+  // pages, so the home page's own drawers are never opened on the live site.
 
   // Bag, favourites and search lead to the real pages.
   const asLink = (selector, href) => {
@@ -46,6 +46,7 @@
     while (node.firstChild) a.appendChild(node.firstChild);
     node.replaceWith(a);
   };
+  asLink('#accountButton', '/compte'); asLink('#memberButton', '/vente-privee');
   asLink('#cartButton', '/panier'); asLink('#wishlistButton', '/favoris'); asLink('#searchTrigger', '/recherche');
   asLink('#mobileCart', '/panier'); asLink('#mobileWishlist', '/favoris'); asLink('#mobileSearch', '/recherche'); asLink('#mobileAccount', '/compte');
 
@@ -63,6 +64,7 @@
     const pills = $('#filterPills'); if (pills) pills.hidden = true;
     const sort = $('.sort-control'); if (sort) sort.hidden = true;
     const copy = $('[data-i18n="allSaleCopy"]'); if (copy) copy.textContent = t('allSaleCopy');
+    const campaign = $('[data-i18n="campaignCopy"]'); if (campaign) campaign.textContent = t('campaignCopy');
     if (failed) { grid.innerHTML = `<p class="empty-drawer" data-live="1">${esc(t('unavailable'))}</p>`; return; }
     if (!data) return;
     const list = data.products.slice(0, 8);

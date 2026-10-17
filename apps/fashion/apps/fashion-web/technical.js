@@ -20,7 +20,7 @@
     document.documentElement.lang=locale==='fr'?'fr-FR':locale;
     document.documentElement.dataset.locale=locale;
     if(select) select.value=locale;
-    document.getElementById('technicalPreview').textContent=c.preview;
+    
     document.getElementById('technicalCode').textContent=s.code;
     document.getElementById('technicalEyebrow').textContent=s.eyebrow;
     document.getElementById('technicalTitle').textContent=s.title;
