@@ -11,14 +11,16 @@ const css = read('customer-pages.css');
 const brandCss = read('customer-brand-authority.css');
 const tile = read('brand/zos-mark-white-tile.svg');
 const vercel = JSON.parse(read('vercel.json'));
+const siteBuild = vercel.buildCommand + '\n' + require('fs').readFileSync(require('path').join(__dirname, '..', 'build.sh'), 'utf8');
+require('assert').ok(vercel.buildCommand.length <= 256, 'Vercel limits buildCommand to 256 characters');
 
 assert.equal(vercel.cleanUrls, false, 'static .html rewrite destinations require cleanUrls disabled');
 assert.equal(vercel.outputDirectory, 'public');
-assert.match(vercel.buildCommand, /mkdir -p public/);
-assert.match(vercel.buildCommand, /cp \.\/\*\.html \.\/\*\.css \.\/\*\.js public\//);
-assert.match(vercel.buildCommand, /cp launch\.html public\/index\.html/);
-assert.match(vercel.buildCommand, /cp -R brand public\/brand/);
-assert.match(vercel.buildCommand, /Z_FASHION_STATIC_PREVIEW_BUILD=PASS/);
+assert.match(siteBuild, /mkdir -p public/);
+assert.match(siteBuild, /cp \.\/\*\.html \.\/\*\.css \.\/\*\.js public\//);
+assert.match(siteBuild, /cp launch\.html public\/index\.html/);
+assert.match(siteBuild, /cp -R brand public\/brand/);
+assert.match(siteBuild, /Z_FASHION_STATIC_PREVIEW_BUILD=PASS/);
 
 assert.match(shell, /<html lang="fr-FR" data-locale="fr">/);
 assert.match(shell, /id="localeSelect"/);

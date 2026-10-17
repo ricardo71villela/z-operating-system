@@ -29,7 +29,10 @@ console.log('write-zfashion-config: all checks passed.');
 // Every Vercel build of a Z Fashion site writes the config and sends security headers.
 for (const app of ['fashion-web', 'fashion-partner', 'fashion-admin']) {
   const cfg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'apps', app, 'vercel.json'), 'utf8'));
-  assert.match(cfg.buildCommand, /node \.\.\/\.\.\/scripts\/write-zfashion-config\.js (public|dist)/, `${app} build writes zfashion-config.js`);
+  const buildFile = path.join(__dirname, '..', 'apps', app, 'build.sh');
+  const build = cfg.buildCommand + (fs.existsSync(buildFile) ? '\n' + fs.readFileSync(buildFile, 'utf8') : '');
+  assert.ok(cfg.buildCommand.length <= 256, `${app} buildCommand within Vercel's 256 characters`);
+  assert.match(build, /node \.\.\/\.\.\/scripts\/write-zfashion-config\.js (public|dist)/, `${app} build writes zfashion-config.js`);
   const headers = Object.fromEntries(cfg.headers[0].headers.map((h) => [h.key, h.value]));
   assert.match(headers['Content-Security-Policy'], /frame-ancestors 'none'/, `${app} CSP`);
   assert.match(headers['Content-Security-Policy'], /object-src 'none'/);

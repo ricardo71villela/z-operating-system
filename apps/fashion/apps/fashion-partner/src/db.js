@@ -188,7 +188,8 @@ async function insertProduct(pool, product) {
      values ($1, $2, $3::jsonb, $4::jsonb, $5::fashion.category[], $6,
              $7::fashion.gender, $8::fashion.age_segment[], $9, $10::jsonb, $11::jsonb, $12, $13, $14)
      returning id, partner_id, brand_id, names, descriptions, categories, technical_purpose,
-               gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id, partner_sku`,
+               gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id, partner_sku,
+            moderation_status, moderation_note, moderated_at, submitted_at`,
     [
       product.partnerId,
       product.brandId,
@@ -223,7 +224,8 @@ async function insertProduct(pool, product) {
 async function listProductsForPartner(pool, partnerId) {
   const result = await pool.query(
     `select id, partner_id, brand_id, names, descriptions, categories, technical_purpose,
-            gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id, partner_sku
+            gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id, partner_sku,
+            moderation_status, moderation_note, moderated_at, submitted_at
      from fashion.products where partner_id = $1
      order by created_at desc`,
     [partnerId]
@@ -234,7 +236,8 @@ async function listProductsForPartner(pool, partnerId) {
 async function getProduct(pool, productId) {
   const result = await pool.query(
     `select id, partner_id, brand_id, names, descriptions, categories, technical_purpose,
-            gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id, partner_sku
+            gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id, partner_sku,
+            moderation_status, moderation_note, moderated_at, submitted_at
      from fashion.products where id = $1`,
     [productId]
   );
@@ -258,6 +261,10 @@ function toProductDomainShape(row) {
     cornerExclusive: row.corner_exclusive,
     styleId: row.style_id,
     sku: row.partner_sku || null,
+    moderationStatus: row.moderation_status || null,
+    moderationNote: row.moderation_note || null,
+    moderatedAt: row.moderated_at ? new Date(row.moderated_at).toISOString() : null,
+    submittedAt: row.submitted_at ? new Date(row.submitted_at).toISOString() : null,
   };
 }
 
@@ -469,7 +476,8 @@ async function getBrand(pool, brandId) {
 async function listAllProducts(pool) {
   const result = await pool.query(
     `select id, partner_id, brand_id, names, descriptions, categories, technical_purpose,
-            gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id, partner_sku
+            gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id, partner_sku,
+            moderation_status, moderation_note, moderated_at, submitted_at
      from fashion.products`
   );
   return result.rows.map(toProductDomainShape);
@@ -1100,7 +1108,8 @@ async function getProductsByIdsPg(pool, productIds) {
   if (productIds.length === 0) return {};
   const result = await pool.query(
     `select id, partner_id, brand_id, names, descriptions, categories, technical_purpose,
-            gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id, partner_sku
+            gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id, partner_sku,
+            moderation_status, moderation_note, moderated_at, submitted_at
      from fashion.products where id = any($1::uuid[])`,
     [productIds]
   );
@@ -1255,6 +1264,7 @@ async function listCatalogPg(pool, { limit = 2000 } = {}) {
   const r = await pool.query(
     `select p.id, p.partner_id, p.brand_id, p.names, p.descriptions, p.categories, p.technical_purpose,
             p.gender, p.age_segments, p.safety_certifications, p.size, p.format, p.corner_exclusive, p.style_id, p.partner_sku,
+            p.moderation_status, p.moderation_note, p.moderated_at, p.submitted_at,
             p.created_at, b.name as brand_name, pr.price_minor_units,
             coalesce(s.quantity_available, 0) as quantity_available, coalesce(s.quantity_reserved, 0) as quantity_reserved
      from fashion.products p
@@ -1263,6 +1273,7 @@ async function listCatalogPg(pool, { limit = 2000 } = {}) {
      left join fashion.stock s on s.product_id = p.id
      join lateral (select ph.price_minor_units from fashion.price_history ph
                    where ph.product_id = p.id order by ph.observed_at desc limit 1) pr on true
+     where p.moderation_status = 'approved'
      order by p.created_at desc
      limit $1`,
     [limit]
@@ -1272,6 +1283,165 @@ async function listCatalogPg(pool, { limit = 2000 } = {}) {
     brandName: row.brand_name || null,
     priceMinorUnits: Number(row.price_minor_units),
     stock: { productId: row.id, quantityAvailable: row.quantity_available, quantityReserved: row.quantity_reserved, lastUpdatedAt: null },
+  }));
+}
+
+// ---------- product moderation (task 8)
+
+/** Products in one moderation state, with what an admin needs to judge
+ *  them: store, brand, current price, stock. Oldest submission first for
+ *  the queue, latest decision first otherwise. */
+async function listProductsForModerationPg(pool, { status = 'pending', limit = 200 } = {}) {
+  const r = await pool.query(
+    `select p.id, p.partner_id, p.brand_id, p.names, p.descriptions, p.categories, p.technical_purpose,
+            p.gender, p.age_segments, p.safety_certifications, p.size, p.format, p.corner_exclusive, p.style_id, p.partner_sku,
+            p.moderation_status, p.moderation_note, p.moderated_at, p.submitted_at, p.created_at,
+            b.name as brand_name,
+            (select ph.price_minor_units from fashion.price_history ph where ph.product_id = p.id order by ph.observed_at desc limit 1) as price_minor_units,
+            coalesce(s.quantity_available, 0) as quantity_available
+       from fashion.products p
+       left join fashion.brands b on b.id = p.brand_id
+       left join fashion.stock s on s.product_id = p.id
+      where p.moderation_status = $1::fashion.product_moderation_status
+      order by case when $1 = 'pending' then p.submitted_at end asc,
+               p.moderated_at desc nulls last, p.created_at desc
+      limit $2`,
+    [status, limit]
+  );
+  return r.rows.map((row) => ({
+    product: { ...toProductDomainShape(row), createdAt: new Date(row.created_at).toISOString() },
+    brandName: row.brand_name || null,
+    priceMinorUnits: row.price_minor_units === null ? null : Number(row.price_minor_units),
+    quantityAvailable: Number(row.quantity_available),
+  }));
+}
+
+/** Writes a moderation change only if the product is still in the
+ *  status the decision was made from (no lost update). Returns the
+ *  product, or null when the status changed in between. */
+async function setProductModerationPg(pool, productId, fromStatus, fields) {
+  const r = await pool.query(
+    `update fashion.products
+        set moderation_status = $3::fashion.product_moderation_status,
+            moderation_note = $4,
+            moderated_at = coalesce($5::timestamptz, moderated_at),
+            moderated_by = coalesce($6::uuid, moderated_by),
+            submitted_at = coalesce($7::timestamptz, submitted_at),
+            updated_at = now()
+      where id = $1 and moderation_status = $2::fashion.product_moderation_status
+      returning id`,
+    [productId, fromStatus, fields.moderationStatus, fields.moderationNote || null,
+     fields.moderatedAt || null, fields.moderatedBy || null, fields.submittedAt || null]
+  );
+  return r.rowCount ? getProduct(pool, productId) : null;
+}
+
+async function countProductsPendingModerationPg(pool) {
+  const r = await pool.query(`select count(*)::int as n from fashion.products where moderation_status = 'pending'`);
+  return r.rows[0].n;
+}
+
+// ---------- store subscriptions (task 9)
+
+function toSubscriptionShape(row) {
+  if (!row) return null;
+  const iso = (v) => (v ? new Date(v).toISOString() : null);
+  return {
+    partnerId: row.partner_id,
+    stripeCustomerId: row.stripe_customer_id,
+    stripeSubscriptionId: row.stripe_subscription_id || null,
+    stripeStatus: row.stripe_status || null,
+    state: row.state,
+    monthlyFeeMinorUnits: row.monthly_fee_minor_units === null ? null : Number(row.monthly_fee_minor_units),
+    trialEndsAt: iso(row.trial_ends_at),
+    currentPeriodEnd: iso(row.current_period_end),
+    cancelAtPeriodEnd: row.cancel_at_period_end,
+    canceledAt: iso(row.canceled_at),
+    pastDueSince: iso(row.past_due_since),
+    updatedAt: iso(row.updated_at),
+  };
+}
+
+/** When the store first became active (starts the free month), and its categories. */
+async function getPartnerBillingInfoPg(pool, partnerId) {
+  const r = await pool.query(
+    `select p.id, p.onboarding_status, p.categories, p.activated_at, a.contact_email, a.trade_name, a.legal_name as application_legal_name
+       from fashion.partners p left join fashion.partner_applications a on a.partner_id = p.id
+      where p.id = $1`,
+    [partnerId]
+  );
+  const row = r.rows[0];
+  if (!row) return null;
+  return {
+    partnerId: row.id,
+    onboardingStatus: row.onboarding_status,
+    categories: parsePgEnumArray(row.categories),
+    activatedAt: row.activated_at ? new Date(row.activated_at).toISOString() : null,
+    email: row.contact_email || null,
+    name: row.trade_name || row.application_legal_name || null,
+  };
+}
+
+async function getSubscriptionPg(pool, partnerId) {
+  const r = await pool.query(`select * from fashion.partner_subscriptions where partner_id = $1`, [partnerId]);
+  return toSubscriptionShape(r.rows[0]);
+}
+
+async function getSubscriptionByCustomerPg(pool, stripeCustomerId) {
+  const r = await pool.query(`select * from fashion.partner_subscriptions where stripe_customer_id = $1`, [stripeCustomerId]);
+  return toSubscriptionShape(r.rows[0]);
+}
+
+async function createSubscriptionCustomerPg(pool, partnerId, stripeCustomerId) {
+  const r = await pool.query(
+    `insert into fashion.partner_subscriptions (partner_id, stripe_customer_id) values ($1, $2)
+     on conflict (partner_id) do update set updated_at = now()
+     returning *`,
+    [partnerId, stripeCustomerId]
+  );
+  return toSubscriptionShape(r.rows[0]);
+}
+
+/** Stores the subscription as Stripe reports it (subscription.js
+ *  fromStripeSubscription). past_due_since is set on the first failure
+ *  of an incident and cleared once paid again. */
+async function saveSubscriptionStatePg(pool, partnerId, rec) {
+  const r = await pool.query(
+    `update fashion.partner_subscriptions
+        set stripe_subscription_id = $2,
+            stripe_customer_id = coalesce($3, stripe_customer_id),
+            stripe_status = $4,
+            state = $5,
+            monthly_fee_minor_units = coalesce($6, monthly_fee_minor_units),
+            trial_ends_at = $7,
+            current_period_end = $8,
+            cancel_at_period_end = $9,
+            canceled_at = $10,
+            past_due_since = case when $5 = 'past_due' then coalesce(past_due_since, now()) else null end,
+            updated_at = now()
+      where partner_id = $1
+      returning *`,
+    [partnerId, rec.stripeSubscriptionId, rec.stripeCustomerId || null, rec.stripeStatus, rec.state, rec.monthlyFeeMinorUnits,
+     rec.trialEndsAt, rec.currentPeriodEnd, rec.cancelAtPeriodEnd, rec.canceledAt]
+  );
+  return toSubscriptionShape(r.rows[0]);
+}
+
+/** Every active or suspended store with its subscription (backoffice). */
+async function listSubscriptionsPg(pool) {
+  const r = await pool.query(
+    `select p.id as store_id, p.onboarding_status, p.categories, p.activated_at, s.*
+       from fashion.partners p
+       left join fashion.partner_subscriptions s on s.partner_id = p.id
+      where p.onboarding_status in ('active', 'suspended')
+      order by p.activated_at desc nulls last`
+  );
+  return r.rows.map((row) => ({
+    partnerId: row.store_id,
+    onboardingStatus: row.onboarding_status,
+    categories: parsePgEnumArray(row.categories),
+    activatedAt: row.activated_at ? new Date(row.activated_at).toISOString() : null,
+    subscription: row.partner_id ? toSubscriptionShape(row) : null,
   }));
 }
 
@@ -1298,4 +1468,6 @@ module.exports = {
   getPayoutAccountPg, listPayoutAccountsPg, upsertPayoutAccountPg, listPayoutLinesPg,
   claimPartnerTransferPg, completePartnerTransferPg, failPartnerTransferPg,
   listCatalogPg,
+  listProductsForModerationPg, setProductModerationPg, countProductsPendingModerationPg,
+  getPartnerBillingInfoPg, getSubscriptionPg, getSubscriptionByCustomerPg, createSubscriptionCustomerPg, saveSubscriptionStatePg, listSubscriptionsPg,
 };

@@ -149,6 +149,7 @@ jobs:
           node apps/fashion/apps/fashion-partner/tests/db-checkout.test.js
           node apps/fashion/apps/fashion-partner/tests/db-payment.test.js
           node apps/fashion/apps/fashion-partner/tests/payouts-pg.test.js
+          node apps/fashion/apps/fashion-partner/tests/subscription-pg.test.js
 
       - name: Final Fashion PostgreSQL marker
         env:

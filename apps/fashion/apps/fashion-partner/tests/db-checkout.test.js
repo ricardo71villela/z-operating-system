@@ -16,11 +16,12 @@ async function activeStore(pool, name, categories) {
   return p;
 }
 
-async function product(pool, partner, brand, name, price, quantity) {
+async function product(pool, partner, brand, name, price, quantity, approve = true) {
   const p = await db.insertProduct(pool, {
     partnerId: partner.id, brandId: brand.id, names: { fr: name }, categories: ['clothing'],
     gender: 'female', ageSegments: ['adults'], size: { system: 'alpha', value: 'M' },
   });
+  if (approve) await db.setProductModerationPg(pool, p.id, 'pending', { moderationStatus: 'approved', moderatedAt: new Date().toISOString() });
   if (price !== null) await db.recordPricePg(pool, p.id, price, '2026-10-01T08:00:00Z');
   if (quantity !== null) await db.applyStockUpdatePg(pool, p.id, quantity, '2026-10-01T08:00:00Z');
   return p;
@@ -198,6 +199,37 @@ async function run() {
   assert.ok(listed(robe.id).product.createdAt);
   assert.ok(!listed(unpriced.id), 'unpriced products are not listed');
   assert.ok(!listed(hidden.id), 'stores that are not active are not listed');
+
+  // --- product moderation (task 8)
+  {
+    const fresh = await product(pool, storeA, brandA, 'Nouveau gilet', 7000, 4, false);
+    const row = await db.getProduct(pool, fresh.id);
+    assert.strictEqual(row.moderationStatus, 'pending', 'new products wait for an admin');
+    assert.ok(row.submittedAt);
+    assert.ok(!(await db.listCatalogPg(pool)).some((r) => r.product.id === fresh.id), 'pending: not listed');
+    const buyer = await user(pool, 'moderation');
+    await assert.rejects(() => db.setCartItemPg(pool, buyer, fresh.id, 1), (e) => e.code === 'product_unavailable', 'pending: not in a cart');
+    const queue = await db.listProductsForModerationPg(pool, { status: 'pending' });
+    const q = queue.find((r) => r.product.id === fresh.id);
+    assert.ok(q, 'in the queue');
+    assert.strictEqual(q.priceMinorUnits, 7000);
+    assert.strictEqual(q.quantityAvailable, 4);
+    assert.strictEqual(q.brandName, 'Marque A');
+    await assert.rejects(() => pool.query(`update fashion.products set moderation_status = 'rejected' where id = $1`, [fresh.id]), /fashion_products_rejection_needs_note/, 'a refusal needs a note');
+    assert.strictEqual(await db.setProductModerationPg(pool, fresh.id, 'approved', { moderationStatus: 'rejected', moderationNote: 'x' }), null, 'stale decision is refused');
+    const ok = await db.setProductModerationPg(pool, fresh.id, 'pending', { moderationStatus: 'approved', moderatedAt: new Date().toISOString(), moderatedBy: buyer });
+    assert.strictEqual(ok.moderationStatus, 'approved');
+    assert.ok((await db.listCatalogPg(pool)).some((r) => r.product.id === fresh.id), 'approved: listed');
+    await db.setCartItemPg(pool, buyer, fresh.id, 1);
+    // Withdrawn while in a cart: checkout refuses it.
+    await db.setProductModerationPg(pool, fresh.id, 'approved', { moderationStatus: 'rejected', moderationNote: 'Retiré', moderatedAt: new Date().toISOString() });
+    const addr = await db.insertClientAddressPg(pool, { clientUserId: buyer, type: 'shipping', line1: '1 rue', postalCode: '75001', city: 'Paris', countryIso: 'FR' });
+    await assert.rejects(() => db.checkoutCartPg(pool, buyer, { addressId: addr.id, allowedCountries: ['FR'], holdSeconds: 1800 }), (e) => e.code === 'product_unavailable' && e.productId === fresh.id);
+    const back = await db.setProductModerationPg(pool, fresh.id, 'rejected', { moderationStatus: 'pending', moderationNote: 'Retiré', submittedAt: new Date().toISOString() });
+    assert.strictEqual(back.moderationStatus, 'pending');
+    assert.strictEqual(back.moderationNote, 'Retiré', 'the last note stays visible to the store');
+    assert.ok((await db.countProductsPendingModerationPg(pool)) >= 1);
+  }
 
   // --- not callable by API roles
   const g = (await pool.query(`select

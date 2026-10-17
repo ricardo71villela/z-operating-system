@@ -14,7 +14,7 @@
     document.querySelectorAll('.nav button[data-page]').forEach(function (b) {
       var on = b.dataset.page === id;
       b.classList.toggle('active', on);
-      if (on) title = b.textContent.replace(/^\S+\s*/, '').trim() || b.textContent.trim();
+      if (on) { var spans = b.querySelectorAll('span'); title = (spans.length ? spans[spans.length - 1].textContent : b.textContent).trim(); }
     });
     document.getElementById('pageTitle').textContent = title;
     window.scrollTo({ top: 0, behavior: 'smooth' });

@@ -34,6 +34,8 @@ const memoryCheckout = require('./memory-checkout');
 const stripeLib = require('./stripe');
 const payoutsService = require('./payouts-service');
 const { STRIPE_EVENT_STATUS } = require('../../../packages/fashion-domain/src/payment');
+const moderation = require('../../../packages/fashion-domain/src/moderation');
+const subscriptionDomain = require('../../../packages/fashion-domain/src/subscription');
 const db = require('./db');
 const { resolveAuthenticatedUserId, loadSupabaseAuthConfigFromEnv } = require('./auth');
 const { isAuthRequired, loadAdminUserIds, decideAccess } = require('./access');
@@ -435,6 +437,8 @@ async function handleGetInventory(req, res, partnerId) {
       format: p.format,
       priceMinorUnits: priceById[p.id] == null ? null : priceById[p.id],
       images: imagesById[p.id] || [],
+      moderationStatus: p.moderationStatus || 'pending',
+      moderationNote: p.moderationNote || null,
       stock: stock
         ? { quantityAvailable: stock.quantityAvailable, quantityReserved: stock.quantityReserved, sellable: sellableQuantity(stock), lastUpdatedAt: stock.lastUpdatedAt }
         : null,
@@ -864,7 +868,7 @@ async function handleCreateProduct(req, res, partnerId) {
       return sendJson(res, 201, { product: row });
     }
 
-    const product = createProduct({ ...body, id: require('crypto').randomUUID(), partnerId });
+    const product = { ...createProduct({ ...body, id: require('crypto').randomUUID(), partnerId }), ...moderation.initialModeration(), createdAt: new Date().toISOString() };
     if (body.priceMinorUnits !== undefined && !isValidPrice(body.priceMinorUnits)) {
       return sendJson(res, 422, { error: 'invalid_price' });
     }
@@ -907,7 +911,7 @@ async function handleGetProduct(req, res, productId) {
   try {
     const product = usingPostgres ? await db.getProduct(pool, productId) : memory.products.get(productId);
     const active = await activePartnerIdSet();
-    if (!product || !active.has(product.partnerId)) return sendJson(res, 404, { error: `no product with id ${productId}` });
+    if (!product || !active.has(product.partnerId) || !moderation.isApproved(product)) return sendJson(res, 404, { error: `no product with id ${productId}` });
     sendJson(res, 200, { product });
   } catch (err) {
     sendJson(res, 400, { error: err.message });
@@ -1077,8 +1081,8 @@ async function handleGetCatalogProduct(req, res, productId) {
     }
 
     const activeIds = await activePartnerIdSet();
-    if (!activeIds.has(product.partnerId)) return sendJson(res, 404, { error: `no product with id ${productId}` });
-    siblingProducts = siblingProducts.filter((p) => activeIds.has(p.partnerId));
+    if (!activeIds.has(product.partnerId) || !moderation.isApproved(product)) return sendJson(res, 404, { error: `no product with id ${productId}` });
+    siblingProducts = siblingProducts.filter((p) => activeIds.has(p.partnerId) && moderation.isApproved(p));
 
     if (!partner) {
       return sendJson(res, 422, { error: `product ${productId} references partner ${product.partnerId}, which was not found — cannot render without the professional-seller disclosure` });
@@ -1138,7 +1142,7 @@ async function handleGetAllSale(req, res, query) {
     }
 
     const activeIds = await activePartnerIdSet();
-    const matching = allSale(allProducts.filter((p) => activeIds.has(p.partnerId)), filter);
+    const matching = allSale(allProducts.filter((p) => activeIds.has(p.partnerId) && moderation.isApproved(p)), filter);
 
     const cards = [];
     for (const product of matching) {
@@ -1224,7 +1228,7 @@ async function handleListWishlist(req, res, clientId) {
         if (p) products.push(p);
       }
       const activeIds = await activePartnerIdSet();
-      products = products.filter((p) => activeIds.has(p.partnerId));
+      products = products.filter((p) => activeIds.has(p.partnerId) && moderation.isApproved(p));
       stockByProductId = await db.getStockForProductsPg(pool, products.map((p) => p.id));
       brandsById = {};
       for (const p of products) {
@@ -1233,7 +1237,7 @@ async function handleListWishlist(req, res, clientId) {
     } else {
       const activeIds = await activePartnerIdSet();
       const productIds = accountDomain.listWishlistProductIds(memory.wishlist, clientId);
-      products = productIds.map((id) => memory.products.get(id)).filter((p) => p && activeIds.has(p.partnerId));
+      products = productIds.map((id) => memory.products.get(id)).filter((p) => p && activeIds.has(p.partnerId) && moderation.isApproved(p));
       stockByProductId = Object.fromEntries(products.map((p) => [p.id, memory.stockByProductId.get(p.id) || initStock(p.id)]));
       brandsById = {};
       for (const p of products) {
@@ -1463,7 +1467,7 @@ async function handleGetCornerDetail(req, res, partnerId) {
       }
     }
 
-    const cornerCatalog = cornerProducts(allProducts, partnerId);
+    const cornerCatalog = cornerProducts(allProducts.filter(moderation.isApproved), partnerId);
     const coverById = await imagesByProductId(cornerCatalog.map((p) => p.id));
     const cards = buildListingCards(cornerCatalog, stockByProductId, brandsById)
       .map((card) => ({ ...card, imageUrl: (coverById[card.productId] || [])[0] ? coverById[card.productId][0].url : null }));
@@ -1793,6 +1797,7 @@ async function handleStripeWebhook(req, res) {
   } catch (err) {
     return sendJson(res, 400, { error: err.code || 'webhook_invalid' });
   }
+  if (SUBSCRIPTION_EVENT_TYPES.includes(event.type)) return handleSubscriptionEvent(res, event);
   const status = STRIPE_EVENT_STATUS[event.type];
   const intent = event.data && event.data.object;
   if (!status || !intent || intent.object !== 'payment_intent' || !(intent.metadata && intent.metadata.platform === 'zfashion')) {
@@ -1819,6 +1824,176 @@ async function handleStripeWebhook(req, res) {
   } catch (err) {
     console.error('stripe webhook processing failed', event.id, event.type, err.code || err.message);
     sendJson(res, 500, { error: 'webhook_processing_failed' }); // Stripe retries
+  }
+}
+
+
+/* ============================================================
+   Store subscription (task 9): Stripe Billing, apart from payouts.
+   The store sets it up once on a Stripe-hosted page (card or SEPA
+   direct debit); the first month after activation is a Stripe trial
+   (subscription.js). Stripe is the source of truth: every billing
+   webhook event makes the API read the subscription again from
+   Stripe and store it. Database mode only.
+   ============================================================ */
+
+const SUBSCRIPTION_EVENT_TYPES = [
+  'checkout.session.completed',
+  'customer.subscription.created', 'customer.subscription.updated', 'customer.subscription.deleted',
+  'customer.subscription.trial_will_end',
+  'invoice.paid', 'invoice.payment_failed',
+];
+const VAT_RATE_KEY = 'fr-vat-20';
+let vatRatePromise = null;
+
+/** The 20 % French VAT tax rate in Stripe, created once and reused. */
+function ensureVatRate() {
+  if (!vatRatePromise) {
+    vatRatePromise = (async () => {
+      const list = await stripeClient.listTaxRates();
+      const found = (list.data || []).find((t) => t.metadata && t.metadata.zfashion === VAT_RATE_KEY && Number(t.percentage) === subscriptionDomain.VAT_RATE_PERCENT && !t.inclusive);
+      if (found) return found.id;
+      return (await stripeClient.createTaxRate({ percentage: subscriptionDomain.VAT_RATE_PERCENT, key: VAT_RATE_KEY })).id;
+    })().catch((err) => { vatRatePromise = null; throw err; });
+  }
+  return vatRatePromise;
+}
+
+function subscriptionUnavailable(res) {
+  if (!usingPostgres) { sendJson(res, 503, { error: 'subscription_requires_database' }); return true; }
+  if (!stripeClient) { sendJson(res, 503, { error: 'payments_not_configured' }); return true; }
+  return false;
+}
+
+function consoleBack(flag) {
+  const base = consoleUrl();
+  if (!base) return null;
+  const u = new URL(base.toString()); u.searchParams.set('subscription', flag); u.hash = 'subscription';
+  return u.toString();
+}
+
+/** GET /partners/:id/subscription — fee, free month, state, next billing. */
+async function handleGetSubscription(req, res, partnerId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
+  if (subscriptionUnavailable(res)) return;
+  try {
+    const info = await db.getPartnerBillingInfoPg(pool, partnerId);
+    if (!info) return sendJson(res, 404, { error: 'partner_not_found' });
+    const record = await db.getSubscriptionPg(pool, partnerId);
+    sendJson(res, 200, { subscription: subscriptionDomain.view({ record, activatedAt: info.activatedAt, categories: info.categories }) });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
+/** POST /partners/:id/subscription/checkout — Stripe page to set up the subscription. */
+async function handleSubscriptionCheckout(req, res, partnerId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
+  if (subscriptionUnavailable(res)) return;
+  const successUrl = consoleBack('done'); const cancelUrl = consoleBack('cancel');
+  if (!successUrl) return sendJson(res, 503, { error: 'subscription_not_configured' });
+  try {
+    const info = await db.getPartnerBillingInfoPg(pool, partnerId);
+    if (!info) return sendJson(res, 404, { error: 'partner_not_found' });
+    if (!['approved', 'active'].includes(info.onboardingStatus)) return sendJson(res, 409, { error: 'store_not_approved' });
+    let record = await db.getSubscriptionPg(pool, partnerId);
+    if (!subscriptionDomain.canSetUp(record)) return sendJson(res, 409, { error: 'subscription_exists' });
+    if (!record) {
+      const customer = await stripeClient.createCustomer({ partnerId, email: info.email, name: info.name });
+      record = await db.createSubscriptionCustomerPg(pool, partnerId, customer.id);
+    }
+    const amounts = subscriptionDomain.monthlyAmounts(info.categories);
+    const count = new Set(info.categories).size;
+    const session = await stripeClient.createSubscriptionCheckout({
+      customerId: record.stripeCustomerId,
+      partnerId,
+      feeMinorUnits: amounts.feeMinorUnits,
+      productName: `Abonnement Z Fashion — ${count} catégorie${count > 1 ? 's' : ''}`,
+      taxRateId: await ensureVatRate(),
+      trialEnd: subscriptionDomain.trialEndFor({ activatedAt: info.activatedAt }),
+      successUrl,
+      cancelUrl,
+      attempt: Date.now(),
+    });
+    sendJson(res, 200, { url: session.url });
+  } catch (err) {
+    if (err instanceof stripeLib.StripeError) {
+      console.error('stripe subscription checkout failed', partnerId, err.code, err.httpStatus, err.stripeCode);
+      return sendJson(res, 502, { error: 'payment_provider_error' });
+    }
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
+/** POST /partners/:id/subscription/portal — Stripe page to change the payment method, see invoices, cancel. */
+async function handleSubscriptionPortal(req, res, partnerId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
+  if (subscriptionUnavailable(res)) return;
+  const returnUrl = consoleBack('portal');
+  if (!returnUrl) return sendJson(res, 503, { error: 'subscription_not_configured' });
+  try {
+    const record = await db.getSubscriptionPg(pool, partnerId);
+    if (!record) return sendJson(res, 409, { error: 'subscription_not_set_up' });
+    const session = await stripeClient.createBillingPortalSession({ customerId: record.stripeCustomerId, returnUrl });
+    sendJson(res, 200, { url: session.url });
+  } catch (err) {
+    if (err instanceof stripeLib.StripeError) return sendJson(res, 502, { error: 'payment_provider_error' });
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
+/** GET /admin/subscriptions — every active or suspended store and its subscription. */
+async function handleAdminListSubscriptions(req, res) {
+  if (!(await authorizeAdminRequest(req, res))) return;
+  if (subscriptionUnavailable(res)) return;
+  try {
+    const rows = await db.listSubscriptionsPg(pool);
+    const names = await db.getStoreNamesPg(pool, rows.map((r) => r.partnerId));
+    const stores = rows.map((r) => ({
+      partnerId: r.partnerId,
+      storeName: names[r.partnerId] || null,
+      onboardingStatus: r.onboardingStatus,
+      activatedAt: r.activatedAt,
+      ...subscriptionDomain.view({ record: r.subscription, activatedAt: r.activatedAt, categories: r.categories }),
+    }));
+    const counts = {};
+    for (const st of stores) counts[st.state] = (counts[st.state] || 0) + 1;
+    sendJson(res, 200, { stores, counts });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
+/** Billing webhook events: read the subscription again from Stripe and store it. */
+async function handleSubscriptionEvent(res, event) {
+  const obj = (event.data && event.data.object) || {};
+  let subscriptionId = null; let customerId = typeof obj.customer === 'string' ? obj.customer : obj.customer && obj.customer.id;
+  if (obj.object === 'checkout.session') {
+    if (!(obj.metadata && obj.metadata.platform === 'zfashion' && obj.metadata.purpose === 'subscription')) return sendJson(res, 200, { received: true, outcome: 'ignored' });
+    subscriptionId = typeof obj.subscription === 'string' ? obj.subscription : obj.subscription && obj.subscription.id;
+  } else if (obj.object === 'subscription') {
+    subscriptionId = obj.id;
+  } else if (obj.object === 'invoice') {
+    const details = obj.parent && obj.parent.subscription_details;
+    subscriptionId = (details && (typeof details.subscription === 'string' ? details.subscription : details.subscription && details.subscription.id))
+      || (typeof obj.subscription === 'string' ? obj.subscription : null);
+  }
+  if (!subscriptionId || !customerId) return sendJson(res, 200, { received: true, outcome: 'ignored' });
+  try {
+    const record = await db.getSubscriptionByCustomerPg(pool, customerId);
+    if (!record) return sendJson(res, 200, { received: true, outcome: 'unknown_customer' });
+    const sub = await stripeClient.retrieveSubscription(subscriptionId);
+    if (!(sub.metadata && sub.metadata.platform === 'zfashion')) return sendJson(res, 200, { received: true, outcome: 'ignored' });
+    // A store has one subscription: an older, canceled one never replaces a live one.
+    if (record.stripeSubscriptionId && record.stripeSubscriptionId !== sub.id && record.state !== 'canceled' && subscriptionDomain.stateFromStripeStatus(sub.status) === 'canceled') {
+      return sendJson(res, 200, { received: true, outcome: 'stale_subscription' });
+    }
+    const saved = await db.saveSubscriptionStatePg(pool, record.partnerId, subscriptionDomain.fromStripeSubscription(sub));
+    if (event.type === 'invoice.payment_failed') console.warn('subscription payment failed', record.partnerId, sub.id);
+    sendJson(res, 200, { received: true, outcome: saved.state });
+  } catch (err) {
+    console.error('subscription webhook failed', event.id, event.type, err.code || err.message);
+    sendJson(res, 500, { error: 'webhook_processing_failed' });
   }
 }
 
@@ -1965,6 +2140,125 @@ async function handleCronRunPayouts(req, res) {
   return runPayoutsAndRespond(res);
 }
 
+
+/* ============================================================
+   Product moderation (task 8). A new product waits for an admin's
+   approval before it can appear on the site, be added to a cart or be
+   ordered (moderation.js; the database refuses it too). Only the first
+   publication is moderated; an admin can withdraw a product later.
+   ============================================================ */
+
+/** GET /admin/products?status=pending|approved|rejected — admins only. */
+async function handleAdminListProducts(req, res, query) {
+  if (!(await authorizeAdminRequest(req, res))) return;
+  const status = query.get('status') || 'pending';
+  if (!moderation.MODERATION_STATUSES.includes(status)) return sendJson(res, 422, { error: 'unknown status' });
+  try {
+    let rows;
+    if (usingPostgres) {
+      rows = await db.listProductsForModerationPg(pool, { status });
+    } else {
+      rows = [...memory.products.values()].filter((p) => p.moderationStatus === status)
+        .sort((a, b) => (status === 'pending' ? (a.submittedAt < b.submittedAt ? -1 : 1) : ((a.moderatedAt || '') < (b.moderatedAt || '') ? 1 : -1)))
+        .map((p) => ({
+          product: p,
+          brandName: p.brandId && memory.brands.get(p.brandId) ? memory.brands.get(p.brandId).name : null,
+          priceMinorUnits: priceHistory.currentPrice(memory.priceHistoryByProductId.get(p.id) || priceHistory.emptyHistory()),
+          quantityAvailable: (memory.stockByProductId.get(p.id) || initStock(p.id)).quantityAvailable,
+        }));
+    }
+    const ids = rows.map((r) => r.product.id);
+    const images = await imagesByProductId(ids);
+    const described = await describeLines([], [...new Set(rows.map((r) => r.product.partnerId))]);
+    const counts = await moderationCounts();
+    sendJson(res, 200, {
+      status,
+      counts,
+      products: rows.map(({ product, brandName, priceMinorUnits, quantityAvailable }) => ({
+        id: product.id,
+        partnerId: product.partnerId,
+        storeName: described.storeNames[product.partnerId] || null,
+        brandName,
+        names: product.names,
+        descriptions: product.descriptions || {},
+        categories: product.categories,
+        gender: product.gender,
+        ageSegments: product.ageSegments,
+        safetyCertifications: product.safetyCertifications || [],
+        size: product.size || null,
+        format: product.format || null,
+        sku: product.sku || null,
+        priceMinorUnits: priceMinorUnits === undefined ? null : priceMinorUnits,
+        quantityAvailable,
+        images: (images[product.id] || []).map((i) => i.url),
+        moderationStatus: product.moderationStatus,
+        moderationNote: product.moderationNote || null,
+        moderatedAt: product.moderatedAt || null,
+        submittedAt: product.submittedAt || null,
+      })),
+    });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message });
+  }
+}
+
+async function moderationCounts() {
+  if (usingPostgres) {
+    const r = await pool.query(`select moderation_status::text as s, count(*)::int as n from fashion.products group by 1`);
+    return Object.fromEntries(moderation.MODERATION_STATUSES.map((st) => [st, (r.rows.find((x) => x.s === st) || { n: 0 }).n]));
+  }
+  const counts = Object.fromEntries(moderation.MODERATION_STATUSES.map((st) => [st, 0]));
+  for (const p of memory.products.values()) if (counts[p.moderationStatus] !== undefined) counts[p.moderationStatus] += 1;
+  return counts;
+}
+
+const MODERATION_ERROR_STATUS = { not_found: 404, invalid_transition: 409, invalid_decision: 422, note_required: 422, note_too_long: 422, note_invalid: 422, admin_required: 403 };
+
+/** POST /admin/products/:productId/moderation — admins only.
+ *  Body: { toStatus: 'approved'|'rejected', note? }. */
+async function handleAdminModerateProduct(req, res, productId) {
+  const decision = await authorizeAdminRequest(req, res);
+  if (!decision) return;
+  const body = await readBody(req);
+  const product = usingPostgres ? await db.getProduct(pool, productId) : memory.products.get(productId);
+  let fields;
+  try {
+    fields = moderation.decide(product, { toStatus: body.toStatus, note: body.note, adminUserId: decision.userId || 'memory-admin' });
+  } catch (err) {
+    return sendJson(res, MODERATION_ERROR_STATUS[err.code] || 422, { error: err.code || 'invalid_decision', detail: err.message, from: product ? product.moderationStatus : null });
+  }
+  if (usingPostgres) {
+    const updated = await db.setProductModerationPg(pool, productId, product.moderationStatus, { ...fields, moderatedBy: /^[0-9a-f-]{36}$/i.test(fields.moderatedBy) ? fields.moderatedBy : null });
+    if (!updated) return sendJson(res, 409, { error: 'conflict' });
+    return sendJson(res, 200, { product: updated });
+  }
+  const updated = { ...product, ...fields };
+  memory.products.set(productId, updated);
+  sendJson(res, 200, { product: updated });
+}
+
+/** POST /partners/:partnerId/products/:productId/resubmit — the store
+ *  asks for a new review of a refused or withdrawn product. */
+async function handleResubmitProduct(req, res, partnerId, productId) {
+  if (!(await authorizePartnerRequest(req, res, partnerId))) return;
+  const product = usingPostgres ? await db.getProduct(pool, productId) : memory.products.get(productId);
+  if (!product || product.partnerId !== partnerId) return sendJson(res, 404, { error: `no product with id ${productId}` });
+  let fields;
+  try {
+    fields = moderation.resubmit(product);
+  } catch (err) {
+    return sendJson(res, MODERATION_ERROR_STATUS[err.code] || 422, { error: err.code, detail: err.message });
+  }
+  if (usingPostgres) {
+    const updated = await db.setProductModerationPg(pool, productId, 'rejected', fields);
+    if (!updated) return sendJson(res, 409, { error: 'conflict' });
+    return sendJson(res, 200, { product: updated });
+  }
+  const updated = { ...product, ...fields };
+  memory.products.set(productId, updated);
+  sendJson(res, 200, { product: updated });
+}
+
 /**
  * GET /catalog/listing — the whole public storefront in one response:
  * every priced product of active stores (names, descriptions, brand,
@@ -1980,7 +2274,7 @@ async function handleGetCatalogListing(req, res) {
     } else {
       const activeIds = await activePartnerIdSet();
       rows = [...memory.products.values()].reverse()
-        .filter((p) => activeIds.has(p.partnerId))
+        .filter((p) => activeIds.has(p.partnerId) && moderation.isApproved(p))
         .map((p) => ({
           product: p,
           brandName: p.brandId && memory.brands.get(p.brandId) ? memory.brands.get(p.brandId).name : null,
@@ -2054,6 +2348,27 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && parts[0] === 'partner-applications' && parts.length === 1) {
       return await handleSubmitPartnerApplication(req, res);
+    }
+    if (req.method === 'GET' && parts[0] === 'partners' && parts[2] === 'subscription' && parts.length === 3) {
+      return await handleGetSubscription(req, res, parts[1]);
+    }
+    if (req.method === 'POST' && parts[0] === 'partners' && parts[2] === 'subscription' && parts[3] === 'checkout' && parts.length === 4) {
+      return await handleSubscriptionCheckout(req, res, parts[1]);
+    }
+    if (req.method === 'POST' && parts[0] === 'partners' && parts[2] === 'subscription' && parts[3] === 'portal' && parts.length === 4) {
+      return await handleSubscriptionPortal(req, res, parts[1]);
+    }
+    if (req.method === 'GET' && parts[0] === 'admin' && parts[1] === 'subscriptions' && parts.length === 2) {
+      return await handleAdminListSubscriptions(req, res);
+    }
+    if (req.method === 'GET' && parts[0] === 'admin' && parts[1] === 'products' && parts.length === 2) {
+      return await handleAdminListProducts(req, res, url.searchParams);
+    }
+    if (req.method === 'POST' && parts[0] === 'admin' && parts[1] === 'products' && parts[3] === 'moderation' && parts.length === 4) {
+      return await handleAdminModerateProduct(req, res, parts[2]);
+    }
+    if (req.method === 'POST' && parts[0] === 'partners' && parts[2] === 'products' && parts[4] === 'resubmit' && parts.length === 5) {
+      return await handleResubmitProduct(req, res, parts[1], parts[3]);
     }
     if (req.method === 'GET' && parts[0] === 'admin' && parts[1] === 'partner-applications' && parts.length === 2) {
       return await handleAdminListApplications(req, res, url.searchParams);

@@ -7,7 +7,20 @@ const assert = require('assert');
 const http = require('http');
 const { server } = require('../src/server');
 
-function request(method, path, body) {
+// Products start pending moderation (task 8); these tests approve each
+// new product as an admin unless they are testing moderation itself.
+let autoApprove = true;
+async function request(method, path, body, ...rest) {
+  const r = await rawRequest(method, path, body, ...rest);
+  if (autoApprove && method === 'POST' && /^\/partners\/[^/]+\/products$/.test(path) && r.status === 201) {
+    const a = await rawRequest('POST', `/admin/products/${r.body.product.id}/moderation`, { toStatus: 'approved' });
+    if (a.status !== 200) throw new Error('auto-approve failed ' + JSON.stringify(a.body));
+    r.body.product = a.body.product;
+  }
+  return r;
+}
+
+function rawRequest(method, path, body) {
   return new Promise((resolve, reject) => {
     const data = body ? JSON.stringify(body) : null;
     const req = http.request(
@@ -904,6 +917,61 @@ async function run() {
     res = await request('GET', '/partners/partner_atelier/orders');
     assert.strictEqual(res.status, 200);
     assert.strictEqual(res.body.total, 0);
+  }
+
+  // ---------- product moderation (task 8)
+  {
+    autoApprove = false;
+    res = await request('POST', '/partners/partner_atelier/products', {
+      brandId, names: { fr: 'Foulard en soie' }, gender: 'female', categories: ['accessories_leather_goods'], priceMinorUnits: 4500,
+    });
+    assert.strictEqual(res.status, 201);
+    const foulard = res.body.product.id;
+    assert.strictEqual(res.body.product.moderationStatus, 'pending', 'new products wait for an admin');
+    await request('POST', `/partners/partner_atelier/stock/${foulard}`, { quantityAvailable: 4, observedAt: '2026-10-17T08:00:00.000Z' });
+
+    const visible = async () => (await request('GET', '/catalog/listing')).body.products.some((p) => p.id === foulard);
+    assert.strictEqual(await visible(), false, 'pending: not on the site');
+    assert.strictEqual((await request('GET', `/products/${foulard}`)).status, 404);
+    res = await request('PUT', `/clients/client_mod/cart/items/${foulard}`, { quantity: 1 });
+    assert.notStrictEqual(res.status, 200, 'pending: cannot be added to a cart');
+
+    res = await request('GET', '/admin/products?status=pending');
+    assert.strictEqual(res.status, 200);
+    const queued = res.body.products.find((p) => p.id === foulard);
+    assert.ok(queued, 'in the admin queue');
+    assert.strictEqual(queued.priceMinorUnits, 4500);
+    assert.strictEqual(queued.quantityAvailable, 4);
+    assert.ok(res.body.counts.pending >= 1);
+    assert.strictEqual((await request('GET', '/admin/products?status=nope')).status, 422);
+
+    // Refusing needs a note; the store sees it on its product.
+    res = await request('POST', `/admin/products/${foulard}/moderation`, { toStatus: 'rejected' });
+    assert.strictEqual(res.status, 422);
+    assert.strictEqual(res.body.error, 'note_required');
+    res = await request('POST', `/admin/products/${foulard}/moderation`, { toStatus: 'rejected', note: 'Ajoutez une photo nette.' });
+    assert.strictEqual(res.status, 200);
+    res = await request('GET', '/partners/partner_atelier/products');
+    const mine = res.body.products.find((p) => p.id === foulard);
+    assert.strictEqual(mine.moderationStatus, 'rejected');
+    assert.strictEqual(mine.moderationNote, 'Ajoutez une photo nette.');
+
+    // The store asks again; an admin approves; it shows.
+    res = await request('POST', `/partners/partner_atelier/products/${foulard}/resubmit`);
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.body.product.moderationStatus, 'pending');
+    assert.strictEqual((await request('POST', `/partners/partner_atelier/products/${foulard}/resubmit`)).status, 409, 'only a refused product');
+    res = await request('POST', `/admin/products/${foulard}/moderation`, { toStatus: 'approved' });
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(await visible(), true, 'approved: on the site');
+    assert.strictEqual((await request('POST', `/admin/products/${foulard}/moderation`, { toStatus: 'approved' })).status, 409);
+
+    // Withdrawn later: gone from the site again.
+    res = await request('POST', `/admin/products/${foulard}/moderation`, { toStatus: 'rejected', note: 'Retiré : contrefaçon signalée.' });
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(await visible(), false);
+    assert.strictEqual((await request('POST', '/admin/products/00000000-0000-0000-0000-000000000009/moderation', { toStatus: 'approved' })).status, 404);
+    autoApprove = true;
   }
 
   // GET /me in in-memory mode: nobody is authenticated, nothing granted.

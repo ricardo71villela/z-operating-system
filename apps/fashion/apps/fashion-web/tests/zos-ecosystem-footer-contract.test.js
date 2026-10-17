@@ -8,6 +8,8 @@ const launch = fs.readFileSync(path.join(root, 'launch.html'), 'utf8');
 const shell = fs.readFileSync(path.join(root, 'customer-shell.html'), 'utf8');
 const css = fs.readFileSync(path.join(root, 'zos-ecosystem-footer.css'), 'utf8');
 const vercel = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8'));
+const siteBuild = vercel.buildCommand + '\n' + require('fs').readFileSync(require('path').join(__dirname, '..', 'build.sh'), 'utf8');
+require('assert').ok(vercel.buildCommand.length <= 256, 'Vercel limits buildCommand to 256 characters');
 
 const expectedApps = ['Z Studio', 'Z Find', 'Z Desk', 'Z Jobs', 'Z Mobility'];
 const forbiddenCurrentApp = 'data-zos-app="fashion"';
@@ -36,7 +38,7 @@ for (const [surface, document] of [
   assert.ok(!document.includes('data-zos-app="studio" href='), `${surface} canonical app links must remain unset until validated`);
 }
 
-assert.match(vercel.buildCommand, /cp launch\.html public\/index\.html/, 'Vercel public root must continue to derive from launch.html');
+assert.match(siteBuild, /cp launch\.html public\/index\.html/, 'Vercel public root must continue to derive from launch.html');
 assert.ok(
   vercel.rewrites.some((rule) => rule.source === '/' && rule.destination === '/launch.html'),
   'Vercel root rewrite must continue to target launch.html',
