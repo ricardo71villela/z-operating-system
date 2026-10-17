@@ -70,4 +70,9 @@ for (const route of ["'/images'", "'/images/order'", "'/logo'"]) assert.ok(js.in
   }
   assert.match(readx('public/zfashion-auth.js'), /function brandMark\(\)/);
 }
+
+// Moderation (task 8): status column, reason and a way to ask a new review.
+assert.match(js, /function moderationCell\(p\)/);
+assert.match(js, /'\/resubmit'/);
+assert.match(js, /mod_pending: 'En attente de validation'/);
 console.log('Z_FASHION_PARTNER_CONSOLE=PASS');

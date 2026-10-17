@@ -188,7 +188,8 @@ async function insertProduct(pool, product) {
      values ($1, $2, $3::jsonb, $4::jsonb, $5::fashion.category[], $6,
              $7::fashion.gender, $8::fashion.age_segment[], $9, $10::jsonb, $11::jsonb, $12, $13, $14)
      returning id, partner_id, brand_id, names, descriptions, categories, technical_purpose,
-               gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id, partner_sku`,
+               gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id, partner_sku,
+            moderation_status, moderation_note, moderated_at, submitted_at`,
     [
       product.partnerId,
       product.brandId,
@@ -223,7 +224,8 @@ async function insertProduct(pool, product) {
 async function listProductsForPartner(pool, partnerId) {
   const result = await pool.query(
     `select id, partner_id, brand_id, names, descriptions, categories, technical_purpose,
-            gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id, partner_sku
+            gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id, partner_sku,
+            moderation_status, moderation_note, moderated_at, submitted_at
      from fashion.products where partner_id = $1
      order by created_at desc`,
     [partnerId]
@@ -234,7 +236,8 @@ async function listProductsForPartner(pool, partnerId) {
 async function getProduct(pool, productId) {
   const result = await pool.query(
     `select id, partner_id, brand_id, names, descriptions, categories, technical_purpose,
-            gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id, partner_sku
+            gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id, partner_sku,
+            moderation_status, moderation_note, moderated_at, submitted_at
      from fashion.products where id = $1`,
     [productId]
   );
@@ -258,6 +261,10 @@ function toProductDomainShape(row) {
     cornerExclusive: row.corner_exclusive,
     styleId: row.style_id,
     sku: row.partner_sku || null,
+    moderationStatus: row.moderation_status || null,
+    moderationNote: row.moderation_note || null,
+    moderatedAt: row.moderated_at ? new Date(row.moderated_at).toISOString() : null,
+    submittedAt: row.submitted_at ? new Date(row.submitted_at).toISOString() : null,
   };
 }
 
@@ -469,7 +476,8 @@ async function getBrand(pool, brandId) {
 async function listAllProducts(pool) {
   const result = await pool.query(
     `select id, partner_id, brand_id, names, descriptions, categories, technical_purpose,
-            gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id, partner_sku
+            gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id, partner_sku,
+            moderation_status, moderation_note, moderated_at, submitted_at
      from fashion.products`
   );
   return result.rows.map(toProductDomainShape);
@@ -1100,7 +1108,8 @@ async function getProductsByIdsPg(pool, productIds) {
   if (productIds.length === 0) return {};
   const result = await pool.query(
     `select id, partner_id, brand_id, names, descriptions, categories, technical_purpose,
-            gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id, partner_sku
+            gender, age_segments, safety_certifications, size, format, corner_exclusive, style_id, partner_sku,
+            moderation_status, moderation_note, moderated_at, submitted_at
      from fashion.products where id = any($1::uuid[])`,
     [productIds]
   );
@@ -1255,6 +1264,7 @@ async function listCatalogPg(pool, { limit = 2000 } = {}) {
   const r = await pool.query(
     `select p.id, p.partner_id, p.brand_id, p.names, p.descriptions, p.categories, p.technical_purpose,
             p.gender, p.age_segments, p.safety_certifications, p.size, p.format, p.corner_exclusive, p.style_id, p.partner_sku,
+            p.moderation_status, p.moderation_note, p.moderated_at, p.submitted_at,
             p.created_at, b.name as brand_name, pr.price_minor_units,
             coalesce(s.quantity_available, 0) as quantity_available, coalesce(s.quantity_reserved, 0) as quantity_reserved
      from fashion.products p
@@ -1263,6 +1273,7 @@ async function listCatalogPg(pool, { limit = 2000 } = {}) {
      left join fashion.stock s on s.product_id = p.id
      join lateral (select ph.price_minor_units from fashion.price_history ph
                    where ph.product_id = p.id order by ph.observed_at desc limit 1) pr on true
+     where p.moderation_status = 'approved'
      order by p.created_at desc
      limit $1`,
     [limit]
@@ -1273,6 +1284,61 @@ async function listCatalogPg(pool, { limit = 2000 } = {}) {
     priceMinorUnits: Number(row.price_minor_units),
     stock: { productId: row.id, quantityAvailable: row.quantity_available, quantityReserved: row.quantity_reserved, lastUpdatedAt: null },
   }));
+}
+
+// ---------- product moderation (task 8)
+
+/** Products in one moderation state, with what an admin needs to judge
+ *  them: store, brand, current price, stock. Oldest submission first for
+ *  the queue, latest decision first otherwise. */
+async function listProductsForModerationPg(pool, { status = 'pending', limit = 200 } = {}) {
+  const r = await pool.query(
+    `select p.id, p.partner_id, p.brand_id, p.names, p.descriptions, p.categories, p.technical_purpose,
+            p.gender, p.age_segments, p.safety_certifications, p.size, p.format, p.corner_exclusive, p.style_id, p.partner_sku,
+            p.moderation_status, p.moderation_note, p.moderated_at, p.submitted_at, p.created_at,
+            b.name as brand_name,
+            (select ph.price_minor_units from fashion.price_history ph where ph.product_id = p.id order by ph.observed_at desc limit 1) as price_minor_units,
+            coalesce(s.quantity_available, 0) as quantity_available
+       from fashion.products p
+       left join fashion.brands b on b.id = p.brand_id
+       left join fashion.stock s on s.product_id = p.id
+      where p.moderation_status = $1::fashion.product_moderation_status
+      order by case when $1 = 'pending' then p.submitted_at end asc,
+               p.moderated_at desc nulls last, p.created_at desc
+      limit $2`,
+    [status, limit]
+  );
+  return r.rows.map((row) => ({
+    product: { ...toProductDomainShape(row), createdAt: new Date(row.created_at).toISOString() },
+    brandName: row.brand_name || null,
+    priceMinorUnits: row.price_minor_units === null ? null : Number(row.price_minor_units),
+    quantityAvailable: Number(row.quantity_available),
+  }));
+}
+
+/** Writes a moderation change only if the product is still in the
+ *  status the decision was made from (no lost update). Returns the
+ *  product, or null when the status changed in between. */
+async function setProductModerationPg(pool, productId, fromStatus, fields) {
+  const r = await pool.query(
+    `update fashion.products
+        set moderation_status = $3::fashion.product_moderation_status,
+            moderation_note = $4,
+            moderated_at = coalesce($5::timestamptz, moderated_at),
+            moderated_by = coalesce($6::uuid, moderated_by),
+            submitted_at = coalesce($7::timestamptz, submitted_at),
+            updated_at = now()
+      where id = $1 and moderation_status = $2::fashion.product_moderation_status
+      returning id`,
+    [productId, fromStatus, fields.moderationStatus, fields.moderationNote || null,
+     fields.moderatedAt || null, fields.moderatedBy || null, fields.submittedAt || null]
+  );
+  return r.rowCount ? getProduct(pool, productId) : null;
+}
+
+async function countProductsPendingModerationPg(pool) {
+  const r = await pool.query(`select count(*)::int as n from fashion.products where moderation_status = 'pending'`);
+  return r.rows[0].n;
 }
 
 module.exports = {
@@ -1298,4 +1364,5 @@ module.exports = {
   getPayoutAccountPg, listPayoutAccountsPg, upsertPayoutAccountPg, listPayoutLinesPg,
   claimPartnerTransferPg, completePartnerTransferPg, failPartnerTransferPg,
   listCatalogPg,
+  listProductsForModerationPg, setProductModerationPg, countProductsPendingModerationPg,
 };

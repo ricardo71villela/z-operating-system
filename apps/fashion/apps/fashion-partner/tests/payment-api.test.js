@@ -47,7 +47,20 @@ const fakeStripe = http.createServer((req, res) => {
   });
 });
 
-function request(method, path, body, headers = {}) {
+// Products start pending moderation (task 8); these tests approve each
+// new product as an admin unless they are testing moderation itself.
+let autoApprove = true;
+async function request(method, path, body, ...rest) {
+  const r = await rawRequest(method, path, body, ...rest);
+  if (autoApprove && method === 'POST' && /^\/partners\/[^/]+\/products$/.test(path) && r.status === 201) {
+    const a = await rawRequest('POST', `/admin/products/${r.body.product.id}/moderation`, { toStatus: 'approved' });
+    if (a.status !== 200) throw new Error('auto-approve failed ' + JSON.stringify(a.body));
+    r.body.product = a.body.product;
+  }
+  return r;
+}
+
+function rawRequest(method, path, body, headers = {}) {
   return new Promise((resolve, reject) => {
     const data = body === undefined ? null : (typeof body === 'string' ? body : JSON.stringify(body));
     const req = http.request({ hostname: '127.0.0.1', port: PORT, path, method, headers: { 'Content-Type': 'application/json', ...headers } }, (res) => {
