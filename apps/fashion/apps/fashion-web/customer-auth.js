@@ -261,7 +261,7 @@
   function patchHomeDrawer(session) {
     var drawer = document.getElementById('accountDrawer');
     if (!drawer) return;
-    var button = drawer.querySelector('[data-i18n="signinPreview"]');
+    var button = drawer.querySelector('[data-account-signin]');
     var note = drawer.querySelector('[data-i18n="accountBoundary"]');
     if (!button) return;
     var link = el('a', { class: button.className, href: session ? '/compte' : '/connexion', id: 'zfCustomerDrawerLink' });

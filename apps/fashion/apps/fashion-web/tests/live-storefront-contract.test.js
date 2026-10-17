@@ -43,8 +43,9 @@ for (const r of ['renderCategory', 'renderSearch', 'renderProduct', 'renderCorne
 assert.match(live, /sections/, 'site pages come from fashion-domain storefront sections');
 assert.match(live, /MAX_QTY = 10/, 'same line limit as the API');
 assert.match(live, /Livraison incluse en France/);
-assert.match(live, /\.preview-ribbon\{display:none!important\}/, 'no demonstration ribbon on the live site');
-assert.match(home, /remove\(\)/);
+assert.match(home, /asLink\('#accountButton', '\/compte'\); asLink\('#memberButton', '\/vente-privee'\);/, 'home buttons lead to the real pages');
+for (const r of ['renderAccount', 'renderProfile', 'renderReturns', 'renderTracking']) assert.match(checkout, new RegExp(`function ${r}\\(`), `missing ${r}`);
+assert.match(checkout, /account: renderAccount, profile: renderProfile, returns: renderReturns, tracking: renderTracking/, 'every account page is live');
 
 // Checkout (task 14): signed-in calls only, Stripe-hosted card entry, bag emptied only once paid.
 assert.match(checkout, /const \{ esc, money/);

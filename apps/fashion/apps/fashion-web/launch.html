@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#111111">
   <meta name="robots" content="noindex,nofollow">
-  <title>Z Fashion — Aperçu</title>
-  <meta name="description" content="Z Fashion — aperçu du storefront mode multi-boutiques.">
+  <title>Z Fashion — Mode multi-boutiques</title>
+  <meta name="description" content="Z Fashion — la mode des boutiques indépendantes françaises, livrée chez vous.">
   <link rel="preconnect" href="https://images.unsplash.com">
   <link rel="stylesheet" href="./styles.css">
   <link rel="stylesheet" href="./polish.css">
@@ -23,7 +23,6 @@
 </head>
 <body>
   <a class="skip-link" href="#main">Aller au contenu</a>
-  <div class="preview-ribbon"><span class="preview-label">APERÇU</span><span data-i18n="preview">Catalogue de démonstration · aucun paiement réel</span></div>
 
   <header class="site-header">
     <div class="header-row">
@@ -90,7 +89,7 @@
 
     <section class="section product-section" id="all-sale">
       <div class="section-heading">
-        <div><p class="eyebrow">Z FASHION</p><h2 data-i18n="allSaleTitle">Toute la sélection</h2><p data-i18n="allSaleCopy">Une sélection transversale de plusieurs boutiques. Dans cet aperçu, les produits sont démonstratifs.</p></div>
+        <div><p class="eyebrow">Z FASHION</p><h2 data-i18n="allSaleTitle">Toute la sélection</h2><p data-i18n="allSaleCopy">Les dernières pièces mises en ligne par les boutiques partenaires.</p></div>
         <div class="filter-pills" id="filterPills" aria-label="Filtres"><button class="active" data-filter="all" data-i18n="all">Tout</button><button data-filter="women" data-i18n="women">Femme</button><button data-filter="men" data-i18n="men">Homme</button><button data-filter="sports" data-i18n="sports">Sport</button><button data-filter="accessories" data-i18n="accessories">Accessoires</button></div>
       </div>
       <div class="catalog-toolbar" aria-label="Contrôles du catalogue"><span id="productCount" class="catalog-count">8 pièces</span><label class="sort-control"><span data-i18n="sortBy">Trier</span><select id="sortSelect" aria-label="Trier les produits"><option value="featured" data-i18n="featured">Sélection</option><option value="price-asc" data-i18n="priceAsc">Prix ↑</option><option value="price-desc" data-i18n="priceDesc">Prix ↓</option></select></label></div>
@@ -106,7 +105,7 @@
       </div>
     </section>
 
-    <section class="section campaign"><div class="campaign-copy"><p class="eyebrow" data-i18n="privateSale">Vente privée</p><h2 data-i18n="campaignTitle">Une sélection réservée aux membres.</h2><p data-i18n="campaignCopy">Aperçu des campagnes Z Fashion : l’accès, le stock et les conditions commerciales restent définis par boutique et par marché.</p><button class="button dark" id="memberButton" data-i18n="memberAccess">Accès membre</button></div><div class="campaign-visual"><img src="https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=1400&q=88" alt=""></div></section>
+    <section class="section campaign"><div class="campaign-copy"><p class="eyebrow" data-i18n="privateSale">Vente privée</p><h2 data-i18n="campaignTitle">Une sélection réservée aux membres.</h2><p data-i18n="campaignCopy">Des sélections réservées aux membres, préparées avec les boutiques partenaires.</p><button class="button dark" id="memberButton" data-i18n="memberAccess">Accès membre</button></div><div class="campaign-visual"><img src="https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=1400&q=88" alt=""></div></section>
   </main>
 
   <footer class="site-footer" id="footer">
@@ -121,13 +120,12 @@
       <span class="zos-app-name" data-zos-app="jobs" data-link-state="pending">Z Jobs</span>
       <span class="zos-app-name" data-zos-app="mobility" data-link-state="pending">Z Mobility</span>
     </nav>
-    <p class="footer-note" data-i18n="footerPreview">Aperçu produit. Aucun paiement réel ni réservation de stock.</p>
   </footer>
 
   <dialog class="product-dialog" id="productDialog"><button class="dialog-close" id="productClose" aria-label="Fermer">×</button><div id="productDetail"></div></dialog>
-  <aside class="drawer" id="cartDrawer" aria-hidden="true" aria-label="Panier"><div class="drawer-header"><div><p class="eyebrow">Z FASHION</p><h2 data-i18n="cart">Panier</h2></div><button class="icon-button drawer-close" data-close="cart" aria-label="Fermer le panier">×</button></div><div id="cartItems" class="drawer-content"></div><div class="drawer-footer"><div><span>Total</span><strong id="cartTotal">€0</strong></div><p class="drawer-boundary" data-i18n="partnerFulfilment">Lors de la commande réelle, les expéditions et les retours seront identifiés par boutique.</p><button class="button dark wide" disabled data-i18n="checkoutPreview">Paiement indisponible dans cet aperçu</button></div></aside>
+  <aside class="drawer" id="cartDrawer" aria-hidden="true" aria-label="Panier"><div class="drawer-header"><div><p class="eyebrow">Z FASHION</p><h2 data-i18n="cart">Panier</h2></div><button class="icon-button drawer-close" data-close="cart" aria-label="Fermer le panier">×</button></div><div id="cartItems" class="drawer-content"></div><div class="drawer-footer"><div><span>Total</span><strong id="cartTotal">€0</strong></div><a class="button dark wide" href="/panier" data-i18n="bag">Panier</a></div></aside>
   <aside class="drawer" id="wishlistDrawer" aria-hidden="true" aria-label="Favoris"><div class="drawer-header"><div><p class="eyebrow">Z FASHION</p><h2 data-wishlist-heading>Favoris</h2></div><button class="icon-button drawer-close" data-close="wishlist" aria-label="Fermer les favoris">×</button></div><div id="wishlistItems" class="drawer-content"></div></aside>
-  <aside class="drawer account-drawer" id="accountDrawer" aria-hidden="true" aria-label="Compte"><div class="drawer-header"><div><p class="eyebrow">Z FASHION</p><h2 data-i18n="account">Compte</h2></div><button class="icon-button drawer-close" data-close="account" aria-label="Fermer le compte">×</button></div><div class="drawer-content account-content"><h3 data-i18n="accountTitle">Votre compte vous accompagne également dans Z Fashion.</h3><p data-i18n="accountCopy">Favoris, boutiques suivies, adresses et préférences restent liés au même compte, selon les autorisations de chaque produit.</p><div class="account-benefits"><div><strong>01</strong><span data-i18n="savedStyle">Enregistrer styles et favoris</span></div><div><strong>02</strong><span data-i18n="followCorners">Suivre les Corners et les boutiques</span></div><div><strong>03</strong><span data-i18n="sharedAddresses">Réutiliser les adresses autorisées</span></div></div><button class="button dark wide" disabled data-i18n="signinPreview">Connexion disponible après activation</button><small class="account-note" data-i18n="accountBoundary">Aperçu : aucune session réelle n’est ouverte.</small></div></aside>
+  <aside class="drawer account-drawer" id="accountDrawer" aria-hidden="true" aria-label="Compte"><div class="drawer-header"><div><p class="eyebrow">Z FASHION</p><h2 data-i18n="account">Compte</h2></div><button class="icon-button drawer-close" data-close="account" aria-label="Fermer le compte">×</button></div><div class="drawer-content account-content"><h3 data-i18n="accountTitle">Votre compte vous accompagne également dans Z Fashion.</h3><p data-i18n="accountCopy">Favoris, boutiques suivies, adresses et préférences restent liés au même compte, selon les autorisations de chaque produit.</p><div class="account-benefits"><div><strong>01</strong><span data-i18n="savedStyle">Enregistrer styles et favoris</span></div><div><strong>02</strong><span data-i18n="followCorners">Suivre les Corners et les boutiques</span></div><div><strong>03</strong><span data-i18n="sharedAddresses">Réutiliser les adresses autorisées</span></div></div><a class="button dark wide" href="/connexion" data-account-signin>Se connecter</a></div></aside>
 
   <div class="search-panel" id="searchPanel" hidden><div class="search-inner"><label><span class="sr-only" data-search-sr>Rechercher</span><input id="searchInput" type="search" placeholder="Rechercher marques, pièces, boutiques…" autocomplete="off"></label><button id="searchClose" data-i18n="close">Fermer</button></div><div class="search-suggestions" id="searchSuggestions"><span data-i18n="popularSearches">Recherches populaires</span><button data-search="blazer">Blazer</button><button data-search="Maison Nord">Maison Nord</button><button data-search-key="bag" data-search="sac">Sac</button><button data-search="Runner">Runner</button></div><div id="searchResults" class="search-results"></div></div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div><div class="backdrop" id="backdrop" hidden></div>

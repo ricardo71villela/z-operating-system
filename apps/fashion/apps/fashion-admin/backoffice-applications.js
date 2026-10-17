@@ -1,9 +1,8 @@
 /* ============================================================
    Z FASHION BACKOFFICE — store applications (real data)
    ============================================================
-   The "Adhésions" page. Unlike the other backoffice pages (still
-   demonstration content, see app.js), this one reads and changes real
-   data through the Partner API, as the signed-in admin:
+   The "Adhésions" page. It reads and changes real data through the
+   Partner API, as the signed-in admin:
 
      GET  /admin/partner-applications?status=
      GET  /admin/partner-applications/:partnerId
@@ -297,7 +296,6 @@
 
   // ---------- start once the admin is signed in
 
-  document.getElementById('localeSelect').addEventListener('change', function () { setTimeout(render, 0); });
   function start() { load(); }
   if (window.ZFashionAuth && window.ZFashionAuth.me()) start();
   else document.addEventListener('zfashion:auth', start);

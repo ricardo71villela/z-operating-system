@@ -18,6 +18,9 @@
      /checkout/confirmation?order=  waits for the Stripe webhook to mark
                            the order paid, then empties the bag
      /compte/commandes[/:id], /compte/adresses  real orders and addresses
+     /compte, /compte/profil, /compte/retours  account home, sign-in
+                           e-mail, how to return an item; /compte/suivi
+                           goes to the orders (tracking is per parcel)
 
    Calls carry the customer's session token (customer-auth.js). Every
    value from the API goes through esc().
@@ -58,6 +61,12 @@
       st_pending_payment: 'En attente de paiement', st_paid: 'Payée', st_fulfilling: 'En préparation', st_fulfilled: 'Livrée', st_partially_refunded: 'Partiellement remboursée', st_refunded: 'Remboursée', st_cancelled: 'Annulée',
       sh_confirmed: 'Confirmé par la boutique', sh_preparing: 'En préparation', sh_shipped: 'Expédié', sh_delivered: 'Livré', sh_cancelled: 'Annulé', sh_none: 'En attente du paiement',
       addressesEmpty: 'Aucune adresse enregistrée', setDefault: 'Définir par défaut', saved: 'Adresse enregistrée.',
+      accountTitle: 'Votre compte', accountCopy: 'Retrouvez vos commandes, vos adresses de livraison et vos favoris.',
+      t_orders: 'Mes commandes', t_ordersCopy: 'Suivez chaque colis, boutique par boutique.', t_addresses: 'Mes adresses', t_addressesCopy: 'Vos adresses de livraison en France.',
+      t_favourites: 'Mes favoris', t_favouritesCopy: 'Les pièces que vous avez mises de côté.', t_returns: 'Retours', t_returnsCopy: 'Retourner un article reçu.',
+      profileTitle: 'Votre profil', profileEmail: 'E-mail de connexion', profileCopy: 'Vous vous connectez avec un code envoyé à cette adresse. Pour la modifier, écrivez-nous.',
+      returnsTitle: 'Retourner un article', returnsCopy: 'Écrivez-nous en indiquant la référence de la commande et l’article concerné : nous vous transmettons les instructions de la boutique qui l’a expédié. Les délais et conditions figurent dans nos conditions de retour.',
+      seeOrders: 'Voir mes commandes', writeUs: 'Nous écrire', returnPolicy: 'Conditions de retour',
     },
     en: {
       steps: ['Sign in', 'Delivery', 'Summary', 'Payment', 'Confirmation'], yourOrder: 'Your order',
@@ -83,6 +92,12 @@
       st_pending_payment: 'Awaiting payment', st_paid: 'Paid', st_fulfilling: 'Being prepared', st_fulfilled: 'Delivered', st_partially_refunded: 'Partly refunded', st_refunded: 'Refunded', st_cancelled: 'Cancelled',
       sh_confirmed: 'Confirmed by the boutique', sh_preparing: 'Being prepared', sh_shipped: 'Shipped', sh_delivered: 'Delivered', sh_cancelled: 'Cancelled', sh_none: 'Awaiting payment',
       addressesEmpty: 'No saved address', setDefault: 'Make default', saved: 'Address saved.',
+      accountTitle: 'Your account', accountCopy: 'Find your orders, delivery addresses and favourites.',
+      t_orders: 'My orders', t_ordersCopy: 'Follow each parcel, boutique by boutique.', t_addresses: 'My addresses', t_addressesCopy: 'Your delivery addresses in France.',
+      t_favourites: 'My favourites', t_favouritesCopy: 'The pieces you saved.', t_returns: 'Returns', t_returnsCopy: 'Return an item you received.',
+      profileTitle: 'Your profile', profileEmail: 'Sign-in e-mail', profileCopy: 'You sign in with a code sent to this address. To change it, write to us.',
+      returnsTitle: 'Return an item', returnsCopy: 'Write to us with the order reference and the item: we send you the instructions of the boutique that shipped it. Time limits and conditions are in our returns policy.',
+      seeOrders: 'See my orders', writeUs: 'Write to us', returnPolicy: 'Returns policy',
     },
   };
   const c = (key, vars) => {
@@ -495,13 +510,45 @@
     '.zf-co-element{margin:16px 0;min-height:120px}',
     '.review-consent a{text-decoration:underline}',
     '.zf-checkout #pageActions{display:none!important}',
+    '.zf-account-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:20px}',
+    '.zf-account-tile{display:block;border:1px solid var(--zf-line,#ddd);padding:18px;text-decoration:none;color:inherit;background:#fff}',
+    '.zf-account-tile strong{display:block;margin-bottom:6px}.zf-account-tile span{font-size:14px;color:#666}',
+    '.zf-account-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}',
+    '.zf-profile dt{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#777}.zf-profile dd{margin:4px 0 16px;font-size:16px}',
   ].join('\n');
   document.head.appendChild(style);
+
+
+  // ---------- account home, profile, returns, tracking (real session only)
+
+  const email = (s) => (s && s.user && s.user.email) || '';
+  async function renderAccount() {
+    const s = await session();
+    if (!s) return;
+    const tiles = [['/compte/commandes', 't_orders', 't_ordersCopy'], ['/compte/adresses', 't_addresses', 't_addressesCopy'], ['/favoris', 't_favourites', 't_favouritesCopy'], ['/compte/retours', 't_returns', 't_returnsCopy']];
+    page.innerHTML = `<div class="service-intro"><h2>${esc(c('accountTitle'))}</h2><p>${esc(c('accountCopy'))}</p></div>
+      <div class="zf-account-tiles">${tiles.map(([href, k, copy]) => `<a class="zf-account-tile" href="${href}"><strong>${esc(c(k))}</strong><span>${esc(c(copy))}</span></a>`).join('')}</div>`;
+  }
+  async function renderProfile() {
+    const s = await session();
+    if (!s) return;
+    page.innerHTML = `<div class="service-intro"><h2>${esc(c('profileTitle'))}</h2></div>
+      <dl class="zf-profile"><dt>${esc(c('profileEmail'))}</dt><dd>${esc(email(s) || '—')}</dd></dl>
+      <p>${esc(c('profileCopy'))}</p><div class="zf-account-actions"><a class="route-button secondary" href="/contact">${esc(c('writeUs'))}</a></div>`;
+  }
+  async function renderReturns() {
+    const s = await session();
+    if (!s) return;
+    page.innerHTML = `<div class="service-intro"><h2>${esc(c('returnsTitle'))}</h2><p>${esc(c('returnsCopy'))}</p></div>
+      <div class="zf-account-actions"><a class="route-button" href="/compte/commandes">${esc(c('seeOrders'))}</a><a class="route-button secondary" href="/contact">${esc(c('writeUs'))}</a><a class="route-button secondary" href="/retours-remboursements">${esc(c('returnPolicy'))}</a></div>`;
+  }
+  async function renderTracking() { location.replace('/compte/commandes'); }
 
   const routes = {
     checkoutIdentify: renderIdentify, checkoutDelivery: renderDelivery, checkoutReview: renderReview,
     checkoutPayment: renderPayment, checkoutConfirmation: renderConfirmation,
     orders: renderOrders, order: renderOrder, addresses: renderAddresses,
+    account: renderAccount, profile: renderProfile, returns: renderReturns, tracking: renderTracking,
   };
   const CHECKOUT_IDS = ['checkoutIdentify', 'checkoutDelivery', 'checkoutReview', 'checkoutPayment', 'checkoutConfirmation'];
   Object.keys(routes).forEach((id) => LIVE.register(id, () => {
