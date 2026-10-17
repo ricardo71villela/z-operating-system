@@ -86,6 +86,24 @@ Igual ao passo 2: projeto `z-fashion-admin`, Root Directory `apps/fashion/apps/f
 2. **Domains**: `zfashion.online` e `www.zfashion.online`.
 3. Cabeçalhos (incluindo a política de segurança que autoriza o Stripe) vêm de `vercel.json`.
 
+## 5b. E-mails (Resend, tarefa 16)
+
+O Z Fashion envia: confirmação de encomenda ao cliente, aviso de nova encomenda a cada loja, decisões de adesão, produto recusado ou retirado, e as mensagens do formulário de contacto (para `contact@…`, com cópia ao cliente). Sem `RESEND_API_KEY` nada é enviado (só fica registado no log).
+
+1. **DNS de `zfashion.online`** (o domínio já existe na Resend, região Irlanda, por verificar):
+
+| Nome | Tipo | Valor |
+| --- | --- | --- |
+| `resend._domainkey` | TXT | ver em resend.com → Domains → zfashion.online (chave DKIM, começa por `p=MIGfMA0…`) |
+| `send` | CNAME | `send.forge.rmta.net` |
+| `rsend` | CNAME | `rsend-euw1.forge.rmta.net` |
+
+   Depois **Verify** na Resend.
+2. **Resend → API Keys**: criar uma chave *Sending access* só para `zfashion.online`.
+3. **Variáveis no projeto `z-fashion-api`**: `RESEND_API_KEY` (a chave, *Sensitive*), `FASHION_EMAIL_FROM` = `Z Fashion <commandes@zfashion.online>`, `FASHION_SUPPORT_EMAIL` = `contact@zfashion.online`, `FASHION_SITE_URL` = `https://zfashion.online`.
+4. **Caixa `contact@zfashion.online`**: tem de receber correio (é para lá que vão as mensagens do site e as respostas dos clientes) — criar a caixa ou um reencaminhamento no fornecedor do domínio.
+5. **Códigos de acesso por e-mail (Supabase Auth)**: Supabase → Authentication → Emails → **SMTP Settings**: host `smtp.resend.com`, porta `465`, utilizador `resend`, palavra-passe = uma chave Resend, remetente `Z Fashion <acesso@zfashion.online>`. Sem isto o Supabase só envia poucos códigos por hora.
+
 ## 6. Pagamentos semanais às lojas
 
 O ficheiro `.github/workflows/fashion-payouts.yml` corre todas as segundas às 06:00 UTC. No GitHub, **Settings → Secrets and variables → Actions**, criar:
