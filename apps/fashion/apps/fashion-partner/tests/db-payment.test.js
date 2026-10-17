@@ -15,6 +15,7 @@ async function run() {
 
   async function newOrder(label, price) {
     const p = await db.insertProduct(pool, { partnerId: store.id, brandId: brand.id, names: { fr: label }, categories: ['clothing'], gender: 'female', ageSegments: ['adults'], size: { system: 'alpha', value: 'M' } });
+    await db.setProductModerationPg(pool, p.id, 'pending', { moderationStatus: 'approved', moderatedAt: new Date().toISOString() });
     await db.recordPricePg(pool, p.id, price, '2026-10-01T00:00:00Z');
     await db.applyStockUpdatePg(pool, p.id, 3, '2026-10-01T00:00:00Z');
     const u = (await pool.query(`insert into auth.users (email) values ($1 || gen_random_uuid() || '@x.fr') returning id`, [label])).rows[0].id;

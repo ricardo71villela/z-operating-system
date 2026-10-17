@@ -23,6 +23,7 @@
    ============================================================ */
 
 const { ticketCommissionRatePercent, ticketCommissionOwedMinorUnits } = require('./commission');
+const { isApproved } = require('./moderation');
 
 const MAX_LINE_QUANTITY = 10;
 const SHIPPING_FEE_MINOR_UNITS = 0;
@@ -98,7 +99,7 @@ function priceCart({ items, productsById, pricesById, stockById, activePartnerId
     const sellable = stock ? Math.max(0, stock.quantityAvailable - stock.quantityReserved) : 0;
 
     let status = LINE_STATUSES.OK;
-    if (!product || !active.has(partnerId)) status = LINE_STATUSES.UNAVAILABLE;
+    if (!product || !active.has(partnerId) || !isApproved(product)) status = LINE_STATUSES.UNAVAILABLE;
     else if (price === null || price === undefined) status = LINE_STATUSES.NO_PRICE;
     else if (sellable < item.quantity) status = LINE_STATUSES.INSUFFICIENT_STOCK;
 

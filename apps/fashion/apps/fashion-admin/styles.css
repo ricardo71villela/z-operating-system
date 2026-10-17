@@ -22,3 +22,20 @@
 
 /* No ribbon above the backoffice: the sidebar and top bar start at the top. */
 .app{padding-top:0}.sidebar{top:0}.topbar{top:0}@media(max-width:820px){.backdrop{inset:0}}
+/* Product moderation */
+.mod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(520px,1fr));gap:12px}
+.mod-card{display:grid;grid-template-columns:200px minmax(0,1fr);min-height:260px}
+.mod-media{background:var(--soft);display:flex;flex-direction:column;gap:4px;padding:8px}
+.mod-media>img{width:100%;aspect-ratio:3/4;object-fit:cover;background:#ddd}
+.mod-thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}.mod-thumbs img{width:100%;aspect-ratio:1;object-fit:cover}
+.mod-nophoto{aspect-ratio:3/4;display:grid;place-items:center;color:#8a867f;font-size:10px;border:1px dashed #cfcac0}
+.mod-body{padding:16px 18px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.mod-body h3{font-family:var(--serif);font-weight:500;font-size:20px;margin:0}
+.mod-facts{font-size:10px;color:#666;margin:0}.mod-desc{font-size:10px;line-height:1.55;color:#444;margin:4px 0;max-height:7.8em;overflow:auto}
+.mod-metrics{margin:4px 0}.mod-warn{color:var(--warn)}
+.mod-actions{margin-top:auto;padding-top:10px;display:grid;gap:8px}.mod-actions textarea{width:100%;font:inherit;font-size:11px;padding:8px;border:1px solid var(--line)}
+.mod-buttons{display:flex;gap:8px;flex-wrap:wrap}
+.mod-btn{height:34px;padding:0 14px;border:1px solid var(--line);background:#fff;font-size:9px;letter-spacing:.08em;text-transform:uppercase}
+.mod-btn.primary{background:#111;color:#fff;border-color:#111}.mod-btn.danger{background:var(--bad);color:#fff;border-color:var(--bad)}.mod-btn:disabled{opacity:.5;cursor:wait}
+.mod-message{font-size:11px;padding:10px 12px;background:#edf4ef;color:var(--good);margin:0 0 12px}.mod-message.error{background:#f7eaea;color:var(--bad)}
+@media(max-width:820px){.mod-grid{grid-template-columns:1fr}.mod-card{grid-template-columns:1fr}.mod-media>img{aspect-ratio:4/3}}

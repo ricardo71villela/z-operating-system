@@ -9,11 +9,16 @@
 <script src="./zfashion-auth.js" data-surface="admin"></script>
 </head><body>
 <div class="app"><aside class="sidebar" id="sidebar"><div class="brand"><div class="tile"><svg class="zf-mark" viewBox="200 120 634 770" width="30" height="36" aria-hidden="true" focusable="false"><defs><linearGradient id="zf-tri-admin" gradientUnits="userSpaceOnUse" x1="0" y1="149" x2="0" y2="856"><stop offset="0" stop-color="#5A6BFF"/><stop offset="0.36" stop-color="#7F8CFF"/><stop offset="0.5" stop-color="#FFFFFF"/><stop offset="0.64" stop-color="#FF5A66"/><stop offset="1" stop-color="#E1000F"/></linearGradient></defs><g fill="url(#zf-tri-admin)"><path d="M678.9 679L517.5 855.1L307.7 626.2A284.5 284.5 0 1 1 702.1 650.5L691.1 621.5A255.5 255.5 0 1 0 329.1 606.6L517.5 812.2L639.5 679Z"/><path d="M379 324H664L435.2 621.5H691.1L702.1 650.5H377L605.8 353H379Z"/></g></svg></div><div class="brand-copy">Fashion<small>Backoffice</small></div></div>
-<div class="nav-group"><p class="nav-label">Opérations</p><nav class="nav"><button class="active" data-page="applications"><span class="ico">✎</span><span>Adhésions</span></button></nav></div>
+<div class="nav-group"><p class="nav-label">Opérations</p><nav class="nav"><button class="active" data-page="applications"><span class="ico">✎</span><span>Adhésions</span></button><button data-page="products"><span class="ico">◇</span><span>Produits</span></button></nav></div>
+<div class="nav-group"><p class="nav-label">Finances</p><nav class="nav"><button data-page="subscriptions"><span class="ico">€</span><span>Abonnements</span></button></nav></div>
 <div class="sidebar-bottom"><div class="operator"><div class="avatar">ZF</div><div><strong>Équipe Z Fashion</strong><small>Accès administrateur</small></div></div></div></aside>
 <main class="main"><header class="topbar"><div class="top-left"><button class="hamb" id="menuButton" aria-label="Menu">☰</button><div><div class="kicker">Z FASHION · BACKOFFICE</div><h1 class="title" id="pageTitle">Adhésions</h1></div></div></header>
 <div class="content">
 <section class="page active" id="applications"><div id="adminApplications"></div></section>
+<section class="page" id="products"><div id="adminProducts"></div></section>
+<section class="page" id="subscriptions"><div id="adminSubscriptions"></div></section>
 </div></main></div><div class="backdrop" id="backdrop" hidden></div><div class="toast" id="toast" hidden></div>
 <script src="./app.js"></script>
-<script src="./backoffice-applications.js"></script></body></html>
+<script src="./backoffice-applications.js"></script>
+<script src="./backoffice-products.js"></script>
+<script src="./backoffice-subscriptions.js"></script></body></html>
