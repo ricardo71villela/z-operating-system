@@ -69,6 +69,10 @@ const SCOPED_ROUTES = [
   ['GET', '/admin/payouts'],
   ['POST', '/admin/payouts/run'],
   ['GET', '/admin/products?status=pending'],
+  ['GET', `/partners/${PARTNER}/subscription`],
+  ['POST', `/partners/${PARTNER}/subscription/checkout`],
+  ['POST', `/partners/${PARTNER}/subscription/portal`],
+  ['GET', '/admin/subscriptions'],
   ['POST', '/admin/products/00000000-0000-0000-0000-000000000001/moderation', { toStatus: 'approved' }],
   ['POST', `/partners/${PARTNER}/products/00000000-0000-0000-0000-000000000001/resubmit`],
 ];

@@ -75,4 +75,12 @@ for (const route of ["'/images'", "'/images/order'", "'/logo'"]) assert.ok(js.in
 assert.match(js, /function moderationCell\(p\)/);
 assert.match(js, /'\/resubmit'/);
 assert.match(js, /mod_pending: 'En attente de validation'/);
+
+// Subscription (task 9): own tab, Stripe pages only, copy for every state.
+assert.match(html, /data-tab="subscription"/);
+assert.match(html, /id="tab-subscription"/);
+assert.match(js, /goToStripe\('\/subscription\/checkout', go\)/);
+assert.match(js, /goToStripe\('\/subscription\/portal', manage\)/);
+for (const st of ['not_set_up', 'trial', 'active', 'past_due', 'canceled']) assert.ok(js.includes(`sub_${st}: '`), `state ${st}`);
+assert.match(js, /1 : 39 €, 2 : 49 €, 3 ou plus : 59 € HT par mois/);
 console.log('Z_FASHION_PARTNER_CONSOLE=PASS');
