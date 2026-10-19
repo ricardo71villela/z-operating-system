@@ -203,7 +203,7 @@
   const renderCheckout = () => `<div class="route-list">${checkoutOrder.map((id,i)=>`<a href="${checkoutPath[id]}" ${route.id===id?'aria-current="step"':''}><span>${routeTitle(id)}</span><small>${String(i+1).padStart(2,'0')}</small></a>`).join('')}</div><div class="status-strip"><div><strong>Payment</strong><span>Disabled</span></div><div><strong>Stock reservation</strong><span>Disabled</span></div><div><strong>Order creation</strong><span>Disabled</span></div></div>`;
 
   const serviceLinks = () => [['delivery','/livraisons'],['refunds','/retours-remboursements'],['help','/aide'],['contact','/contact']];
-  const legalLinks = () => [['legalNotice','/mentions-legales'],['termsSale','/cgv'],['termsUse','/conditions-utilisation'],['privacy','/confidentialite'],['cookies','/cookies'],['consent','/consentement']];
+  const legalLinks = () => [['legalNotice','/mentions-legales'],['termsSale','/cgv'],['termsUse','/conditions-utilisation'],['privacy','/confidentialite'],['cookies','/cookies'],['consent','/consentement'],['partnerTerms','/conditions-partenaires']];
   const renderService = type => {
     if (type === 'help') return `<div class="route-list">${serviceLinks().filter(([id])=>id!=='help').map(([id,path])=>`<a href="${path}"><span>${routeTitle(id)}</span><small>${sh('open')} →</small></a>`).join('')}</div>`;
     if (type === 'contact') return `<form class="preview-form"><label>Email<input type="email" disabled></label><label>Message<textarea disabled></textarea></label><button class="route-button" type="button" disabled>${sh('previewOnly')}</button></form>`;
@@ -267,8 +267,9 @@
     if (route.group === 'commerce') content.innerHTML = renderCommerce(route.type);
     if (route.group === 'customer') content.innerHTML = renderCustomer(route.type);
     if (route.group === 'checkout') content.innerHTML = renderCheckout();
-    if (route.group === 'service') content.innerHTML = renderService(route.type);
-    if (route.group === 'legal') content.innerHTML = renderLegal(route.type);
+    if (route.group === 'service' && !(window.ZFashionLegal && window.ZFashionLegal.DOCS[route.id])) content.innerHTML = renderService(route.type);
+    if (window.ZFashionLegal && window.ZFashionLegal.DOCS[route.id]) { /* customer-legal.js */ }
+    else if (route.group === 'legal') content.innerHTML = renderLegal(route.type);
     wireCommerce();
   };
 

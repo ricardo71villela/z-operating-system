@@ -151,6 +151,10 @@
       "destination": "/customer-shell.html"
     },
     {
+      "source": "/conditions-partenaires",
+      "destination": "/customer-shell.html"
+    },
+    {
       "source": "/404",
       "destination": "/404.html"
     },
