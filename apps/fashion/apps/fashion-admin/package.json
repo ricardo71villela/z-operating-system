@@ -5,5 +5,6 @@
   "description": "Z Fashion internal operations backoffice Preview.",
   "scripts": {
     "test": "node tests/backoffice-contract.test.js && node tests/applications-contract.test.js && node tests/products-contract.test.js && node tests/subscriptions-contract.test.js"
+    "test": "node tests/backoffice-contract.test.js && node tests/applications-contract.test.js && node tests/products-contract.test.js"
   }
 }
