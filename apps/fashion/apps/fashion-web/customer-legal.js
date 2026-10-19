@@ -106,6 +106,7 @@
       if (s.ul) { var ul = el('ul'); s.ul.forEach(function (li) { ul.appendChild(rich('li', li)); }); sec.appendChild(ul); }
       body.appendChild(sec);
     });
+    if (doc.form) body.appendChild(contactForm());
     if (doc.faq) {
       var faq = el('div', { class: 'faq-list' });
       doc.faq.forEach(function (qa, i) {
@@ -125,6 +126,59 @@
     page.dataset.legal = id;
   }
 
+  // ---------- contact form (POST /contact on the API, task 16)
+
+  var TOPICS = ['Commande', 'Livraison', 'Retour', 'Paiement', 'Compte', 'Devenir partenaire', 'Autre'];
+  var FORM = {
+    fr: { name: 'Nom', email: 'E-mail', topic: 'Sujet', order: 'Référence de commande (facultatif)', message: 'Message', send: 'Envoyer', sending: 'Envoi…',
+      sent: 'Merci, votre message est envoyé. Une copie vous a été adressée par e-mail ; nous répondons sous 48 heures ouvrées.',
+      invalid: 'Vérifiez votre nom, votre e-mail et votre message (10 caractères au moins).', tooMany: 'Trop de messages envoyés : réessayez dans une heure ou écrivez-nous directement par e-mail.',
+      failed: 'L’envoi a échoué. Réessayez, ou écrivez-nous directement par e-mail.', offline: 'Écrivez-nous à ' },
+    en: { name: 'Name', email: 'E-mail', topic: 'Subject', order: 'Order reference (optional)', message: 'Message', send: 'Send', sending: 'Sending…',
+      sent: 'Thank you, your message has been sent. A copy was e-mailed to you; we answer within 2 working days.',
+      invalid: 'Check your name, your e-mail and your message (at least 10 characters).', tooMany: 'Too many messages: try again in an hour or e-mail us directly.',
+      failed: 'Sending failed. Try again, or e-mail us directly.', offline: 'Write to us at ' },
+  };
+  function f(k) { return (FORM[locale()] || FORM.en)[k]; }
+  function apiBase() {
+    var u = String((window.__ZFASHION_CONFIG__ || {}).apiBaseUrl || '').replace(/\/+$/, '');
+    return /^https?:\/\//.test(u) ? u : null;
+  }
+  function contactForm() {
+    var api = apiBase();
+    if (!api) {
+      var p = el('p', { class: 'zf-contact-offline' }, f('offline'));
+      p.appendChild(el('a', { href: 'mailto:' + LEGAL.ENTITY.email }, LEGAL.ENTITY.email));
+      return p;
+    }
+    var form = el('form', { class: 'zf-contact', novalidate: '' });
+    function field(label, control) { var l = el('label'); l.appendChild(el('span', null, label)); l.appendChild(control); return l; }
+    var name = el('input', { name: 'name', autocomplete: 'name', maxlength: '120', required: '' });
+    var email = el('input', { name: 'email', type: 'email', autocomplete: 'email', maxlength: '200', required: '' });
+    var topic = el('select', { name: 'topic' });
+    TOPICS.forEach(function (t) { topic.appendChild(el('option', { value: t }, t)); });
+    var order = el('input', { name: 'orderRef', maxlength: '40', placeholder: 'ZF-…' });
+    var message = el('textarea', { name: 'message', rows: '6', maxlength: '5000', required: '' });
+    var trap = el('input', { name: 'website', tabindex: '-1', autocomplete: 'off', 'aria-hidden': 'true', class: 'zf-contact-trap' });
+    var status = el('p', { class: 'zf-contact-status', role: 'status' });
+    var button = el('button', { type: 'submit', class: 'route-button' }, f('send'));
+    form.append(field(f('name'), name), field(f('email'), email), field(f('topic'), topic), field(f('order'), order), field(f('message'), message), trap, button, status);
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      button.disabled = true; button.textContent = f('sending'); status.textContent = '';
+      fetch(api + '/contact', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.value, email: email.value, topic: topic.value, orderRef: order.value, message: message.value, website: trap.value }) })
+        .then(function (res) {
+          button.disabled = false; button.textContent = f('send');
+          if (res.ok) { form.reset(); status.textContent = f('sent'); status.className = 'zf-contact-status ok'; return; }
+          status.className = 'zf-contact-status error';
+          status.textContent = res.status === 422 ? f('invalid') : res.status === 429 ? f('tooMany') : f('failed');
+        })
+        .catch(function () { button.disabled = false; button.textContent = f('send'); status.className = 'zf-contact-status error'; status.textContent = f('failed'); });
+    });
+    return form;
+  }
+
   var style = document.createElement('style');
   style.textContent = [
     '.zf-legal-lang{background:#f1efeb;border-left:3px solid #111;padding:10px 14px;font-size:13px;margin:0 0 18px}',
@@ -136,6 +190,10 @@
     '.zf-legal mark.zf-legal-todo{background:#fff1a8;color:#5c4700;padding:0 3px}',
     '.zf-legal .faq-list details{border-bottom:1px solid var(--zf-line,#ddd);padding:14px 0}.zf-legal .faq-list summary{cursor:pointer;display:flex;justify-content:space-between;font-size:14px}',
     '.zf-legal-cta{margin-top:20px}',
+    '.zf-contact{display:grid;gap:14px;max-width:560px;margin-top:8px}.zf-contact label{display:grid;gap:6px;font-size:13px}',
+    '.zf-contact input,.zf-contact select,.zf-contact textarea{font:inherit;font-size:15px;padding:10px 12px;border:1px solid var(--zf-line,#ccc);background:#fff}',
+    '.zf-contact .route-button{justify-self:start}.zf-contact-trap{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}',
+    '.zf-contact-status.ok{color:#22613f}.zf-contact-status.error{color:#8f2b2b}',
   ].join('\n');
   document.head.appendChild(style);
 

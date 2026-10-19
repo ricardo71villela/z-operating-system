@@ -373,6 +373,17 @@
     sections: [],
   };
 
+  DOCS.contact = {
+    title: 'Contact',
+    form: true,
+    sections: [
+      { h: 'Nous écrire', p: [
+        'Une question sur une commande, une livraison, un retour ou votre compte ? Écrivez-nous avec ce formulaire ou à ' + E.email + '. Nous répondons sous 48 heures ouvrées.',
+        'Pour une commande, indiquez sa référence (ZF-…) : elle figure dans l’e-mail de confirmation et dans votre compte.',
+      ] },
+    ],
+  };
+
   // Shown above the French text when the site is in another language.
   var FRENCH_ONLY = {
     pt: 'Este documento está redigido em francês, que é a versão que faz fé.',

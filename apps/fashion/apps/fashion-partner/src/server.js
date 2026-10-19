@@ -36,6 +36,9 @@ const payoutsService = require('./payouts-service');
 const { STRIPE_EVENT_STATUS } = require('../../../packages/fashion-domain/src/payment');
 const moderation = require('../../../packages/fashion-domain/src/moderation');
 const subscriptionDomain = require('../../../packages/fashion-domain/src/subscription');
+const emails = require('../../../packages/fashion-domain/src/emails');
+const { createMailer, EMAIL_RE } = require('./mailer');
+const mailer = createMailer();
 const db = require('./db');
 const { resolveAuthenticatedUserId, loadSupabaseAuthConfigFromEnv } = require('./auth');
 const { isAuthRequired, loadAdminUserIds, decideAccess } = require('./access');
@@ -346,6 +349,7 @@ async function handleAdminDecideApplication(req, res, partnerId) {
       note: body.note,
       reviewerUserId: decision.userId || null,
     });
+    await sendApplicationDecisionEmail(partnerId, body.toStatus, body.note);
     return sendJson(res, 200, { application: applicationWithFee(updated) });
   }
 
@@ -360,6 +364,7 @@ async function handleAdminDecideApplication(req, res, partnerId) {
   const note = typeof body.note === 'string' ? body.note.trim() : '';
   const previous = memory.applicationDecisions.get(partnerId) || {};
   memory.applicationDecisions.set(partnerId, { note: note || previous.note || null, at: new Date().toISOString() });
+  await sendApplicationDecisionEmail(partnerId, body.toStatus, note);
   sendJson(res, 200, { application: applicationWithFee(memoryApplicationView(partnerId)) });
 }
 
@@ -1820,6 +1825,7 @@ async function handleStripeWebhook(req, res) {
     if (outcome === 'late_payment' || outcome === 'amount_mismatch' || outcome === 'unknown_payment_intent') {
       console.warn('stripe webhook', event.id, event.type, intent.id, outcome);
     }
+    if (outcome === 'confirmed' && input.orderId) await sendOrderPaidEmails(input.orderId);
     sendJson(res, 200, { received: true, outcome });
   } catch (err) {
     console.error('stripe webhook processing failed', event.id, event.type, err.code || err.message);
@@ -2230,10 +2236,12 @@ async function handleAdminModerateProduct(req, res, productId) {
   if (usingPostgres) {
     const updated = await db.setProductModerationPg(pool, productId, product.moderationStatus, { ...fields, moderatedBy: /^[0-9a-f-]{36}$/i.test(fields.moderatedBy) ? fields.moderatedBy : null });
     if (!updated) return sendJson(res, 409, { error: 'conflict' });
+    if (updated.moderationStatus === 'rejected') await sendProductRefusedEmail(updated, product.moderationStatus === 'approved');
     return sendJson(res, 200, { product: updated });
   }
   const updated = { ...product, ...fields };
   memory.products.set(productId, updated);
+  if (updated.moderationStatus === 'rejected') await sendProductRefusedEmail(updated, product.moderationStatus === 'approved');
   sendJson(res, 200, { product: updated });
 }
 
@@ -2257,6 +2265,96 @@ async function handleResubmitProduct(req, res, partnerId, productId) {
   const updated = { ...product, ...fields };
   memory.products.set(productId, updated);
   sendJson(res, 200, { product: updated });
+}
+
+
+/* ============================================================
+   Transactional e-mails (task 16). Templates in fashion-domain
+   emails.js, sent through Resend (mailer.js). An e-mail that fails is
+   logged; it never fails the order or the decision that caused it.
+   ============================================================ */
+
+function siteUrl() {
+  const raw = (process.env.FASHION_SITE_URL || '').trim().replace(/\/+$/, '');
+  return /^https?:\/\//.test(raw) ? raw : 'https://zfashion.online';
+}
+
+async function storeContact(partnerId) {
+  const app = usingPostgres ? await db.getPartnerApplicationPg(pool, partnerId) : memoryApplicationView(partnerId);
+  return { email: app && app.contactEmail ? app.contactEmail : null, name: app ? app.tradeName || app.legalName || null : null };
+}
+
+/** Client confirmation and one e-mail per store, once the order is paid. */
+async function sendOrderPaidEmails(orderId) {
+  try {
+    const order = usingPostgres ? await db.getOrderPg(pool, orderId) : memoryCheckout.getOrder(memory, orderId);
+    if (!order) return;
+    const clientEmail = usingPostgres ? await db.getAuthUserEmail(pool, order.clientUserId) : null;
+    const view = await clientOrderView(order);
+    await mailer.send({ to: clientEmail, content: emails.orderConfirmed({ order: view, siteUrl: siteUrl() }), key: `order-paid-${orderId}`, replyTo: mailer.config.support, tag: 'order_confirmed' });
+    const base = consoleUrl();
+    for (const ticket of order.tickets || []) {
+      const contact = await storeContact(ticket.partnerId);
+      const own = { ...order, items: order.items.filter((i) => i.partnerId === ticket.partnerId), tickets: [ticket], shipments: (order.shipments || []).filter((sh) => sh.partnerId === ticket.partnerId) };
+      const content = emails.storeNewOrder({ order: await partnerOrderView(own), storeName: view.stores.find((st) => st.partnerId === ticket.partnerId)?.storeName || contact.name, consoleUrl: base ? base.toString() : null });
+      await mailer.send({ to: contact.email, content, key: `order-paid-${orderId}-${ticket.partnerId}`, replyTo: mailer.config.support, tag: 'store_new_order' });
+    }
+  } catch (err) {
+    console.error('order e-mails failed', orderId, err.message);
+  }
+}
+
+async function sendApplicationDecisionEmail(partnerId, toStatus, note) {
+  try {
+    const contact = await storeContact(partnerId);
+    const base = consoleUrl();
+    const content = emails.applicationDecision({ toStatus, storeName: contact.name, note: typeof note === 'string' ? note.trim() : null, consoleUrl: base ? base.toString() : null });
+    if (!content) return;
+    await mailer.send({ to: contact.email, content, key: `application-${partnerId}-${toStatus}-${Date.now()}`, replyTo: mailer.config.support, tag: 'application_decision' });
+  } catch (err) {
+    console.error('application e-mail failed', partnerId, err.message);
+  }
+}
+
+async function sendProductRefusedEmail(product, withdrawn) {
+  try {
+    const contact = await storeContact(product.partnerId);
+    const base = consoleUrl();
+    const content = emails.productRefused({ productName: productName(product) || 'Produit', note: product.moderationNote || '', withdrawn, consoleUrl: base ? base.toString() : null });
+    await mailer.send({ to: contact.email, content, key: `product-refused-${product.id}-${product.moderatedAt || Date.now()}`, replyTo: mailer.config.support, tag: 'product_refused' });
+  } catch (err) {
+    console.error('product e-mail failed', product.id, err.message);
+  }
+}
+
+// Contact form: a few messages per address per hour, honeypot field.
+const contactHits = new Map();
+const CONTACT_TOPICS = ['Commande', 'Livraison', 'Retour', 'Paiement', 'Compte', 'Devenir partenaire', 'Autre'];
+
+/** POST /contact { name, email, topic, orderRef?, message, website (must stay empty) } — public. */
+async function handleContact(req, res) {
+  const body = await readBody(req);
+  if (body.website) return sendJson(res, 200, { sent: true }); // bots fill every field
+  const name = String(body.name || '').trim().slice(0, 120);
+  const email = String(body.email || '').trim().slice(0, 200);
+  const topic = CONTACT_TOPICS.includes(body.topic) ? body.topic : 'Autre';
+  const orderRef = String(body.orderRef || '').trim().slice(0, 40) || null;
+  const message = String(body.message || '').trim().slice(0, 5000);
+  const errors = [];
+  if (name.length < 2) errors.push('name');
+  if (!EMAIL_RE.test(email)) errors.push('email');
+  if (message.length < 10) errors.push('message');
+  if (errors.length) return sendJson(res, 422, { error: 'invalid_contact', fields: errors });
+  const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+  const now = Date.now();
+  const hits = (contactHits.get(ip) || []).filter((t) => now - t < 3600000);
+  if (hits.length >= 5) return sendJson(res, 429, { error: 'too_many_messages' });
+  hits.push(now); contactHits.set(ip, hits);
+  const key = `contact-${require('crypto').createHash('sha256').update(email + '|' + message).digest('hex').slice(0, 32)}`;
+  const toSupport = await mailer.send({ to: mailer.config.support, content: emails.contactMessage({ name, email, orderRef, topic, message }), key, replyTo: email, tag: 'contact' });
+  if (!toSupport.sent && toSupport.skipped !== 'not_configured') return sendJson(res, 502, { error: 'email_failed' });
+  await mailer.send({ to: email, content: emails.contactReceipt({ name, message }), key: `${key}-receipt`, replyTo: mailer.config.support, tag: 'contact_receipt' });
+  sendJson(res, 200, { sent: true });
 }
 
 /**
@@ -2348,6 +2446,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && parts[0] === 'partner-applications' && parts.length === 1) {
       return await handleSubmitPartnerApplication(req, res);
+    }
+    if (req.method === 'POST' && parts[0] === 'contact' && parts.length === 1) {
+      return await handleContact(req, res);
     }
     if (req.method === 'GET' && parts[0] === 'partners' && parts[2] === 'subscription' && parts.length === 3) {
       return await handleGetSubscription(req, res, parts[1]);
