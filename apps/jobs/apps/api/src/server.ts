@@ -39,6 +39,7 @@ import { resolveTranslation } from '../../../packages/domain/src/rules/i18n';
 import { compareSalaryToReference } from '../../../packages/domain/src/rules/salaryReference';
 import { calculateNetSalary, calculateGermanNetSalary } from '../../../packages/domain/src/rules/netSalarySimulator';
 import { TERMINATION_TERMS_BY_COUNTRY, getTerminationTerms } from '../../../packages/domain/src/rules/terminationTerms';
+import { isLaunchCountry, isLaunchLocale, launchLocaleOrDefault } from '../../../packages/domain/src/rules/launchScope';
 import { canPublishGivenBilling, productByCode } from '../../../packages/domain/src/rules/billing';
 import type { BillingProductCode } from '../../../packages/domain/src/rules/billing';
 import { computeCVQuality, validateCoverLetterPersonalization } from '../../../packages/domain/src/rules/cvStudio';
@@ -143,9 +144,11 @@ export function createServer() {
       }
 
       // Idioma para texto GERADO pelo domínio (matching.ts, candidateScore.ts)
-      // — ver packages/domain/src/i18n/messages.ts. 'pt' por omissão, mesmo
-      // critério que resolveTranslation (i18n.ts) já usava para ofertas.
-      const requestedMessageLocale = (url.searchParams.get('locale') as MessageLocale) || 'pt';
+      // — ver packages/domain/src/i18n/messages.ts. Só as línguas do
+      // lançamento (launchScope.ts: fr, en); francês por omissão.
+      const requestedMessageLocale: MessageLocale = launchLocaleOrDefault(url.searchParams.get('locale'));
+      // Países fora do lançamento FR/BE/LU: os dados existem mas não são servidos.
+      const outOfScope = () => json(res, 404, { error: 'country_not_in_launch_scope' });
 
       async function handleRoutes(): Promise<void> {
       // /auth/signup removida — estava morta (nada lhe chamava, tudo usa
@@ -847,9 +850,11 @@ export function createServer() {
       // nunca aconselhamento jurídico.
       if (method === 'GET' && path === '/labor-legislation') {
         if (!usingPostgres) return json(res, 200, []);
-        return json(res, 200, await (store as PgStore).listCountryLaborProfiles());
+        const profiles = await (store as PgStore).listCountryLaborProfiles();
+        return json(res, 200, profiles.filter((profile: any) => profile && isLaunchCountry(profile.countryCode)));
       }
       if (method === 'GET' && path.match(/^\/labor-legislation\/[A-Za-z]{2}$/)) {
+        if (!isLaunchCountry(path.split('/')[2])) return outOfScope();
         if (!usingPostgres) return json(res, 404, { error: 'não encontrado' });
         const profile = await (store as PgStore).getCountryLaborProfile(path.split('/')[2]);
         if (!profile) return json(res, 404, { error: 'sem perfil de legislação laboral para este país' });
@@ -860,9 +865,10 @@ export function createServer() {
       // número fingido onde a lei remete para convenção coletiva. Ver
       // packages/domain/src/rules/terminationTerms.ts para o porquê.
       if (method === 'GET' && path === '/termination-terms') {
-        return json(res, 200, Object.values(TERMINATION_TERMS_BY_COUNTRY));
+        return json(res, 200, Object.values(TERMINATION_TERMS_BY_COUNTRY).filter((terms) => isLaunchCountry(terms.countryCode)));
       }
       if (method === 'GET' && path.match(/^\/termination-terms\/[A-Za-z]{2}$/)) {
+        if (!isLaunchCountry(path.split('/')[2])) return outOfScope();
         const terms = getTerminationTerms(path.split('/')[2]);
         if (!terms) return json(res, 404, { error: 'sem dados de aviso prévio/período experimental para este país' });
         return json(res, 200, terms);
@@ -871,6 +877,7 @@ export function createServer() {
       // Simulador salário bruto -> líquido (migration 0023) — orientação,
       // nunca cálculo fiscal definitivo (ver netSalarySimulator.ts).
       if (method === 'GET' && path.match(/^\/tax-simulator\/[A-Za-z]{2}$/)) {
+        if (!isLaunchCountry(path.split('/')[2])) return outOfScope();
         if (!usingPostgres) return json(res, 404, { error: 'não encontrado' });
         const countryCode = path.split('/')[2].toUpperCase();
         const grossAnnualParam = url.searchParams.get('grossAnnual');
@@ -952,9 +959,10 @@ export function createServer() {
       }
 
       if (method === 'GET' && path === '/job-offers') {
-        const requestedLocale = url.searchParams.get('locale');
+        const requestedLocaleParam = url.searchParams.get('locale');
         const offers = await store.listPublishedJobOffers();
-        if (!requestedLocale) return json(res, 200, offers);
+        if (!requestedLocaleParam) return json(res, 200, offers);
+        const requestedLocale = launchLocaleOrDefault(requestedLocaleParam);
 
         // Sequencial, não Promise.all — todas as chamadas passam pelo mesmo
         // client da transação do pedido (ver PgStore.withRequestContext);
@@ -975,7 +983,8 @@ export function createServer() {
       if (method === 'POST' && path.match(/^\/job-offers\/[^/]+\/translations$/)) {
         const jobOfferId = path.split('/')[2];
         const { field, locale, value } = await readBody(req);
-        return json(res, 201, await store.setTranslation('job_offer', jobOfferId, field, locale, value));
+        if (!isLaunchLocale(locale)) return json(res, 422, { error: 'locale_not_in_launch_scope', allowed: ['fr', 'en'] });
+        return json(res, 201, await store.setTranslation('job_offer', jobOfferId, field, String(locale).trim().toLowerCase(), value));
       }
 
       // 11. Candidato candidata-se

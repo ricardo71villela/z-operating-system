@@ -20,8 +20,11 @@ function test(name: string, fn: () => void) {
 
 console.log('i18n rules');
 
-test('pt é suportado, de (alemão) ainda não', () => {
-  assert.equal(isSupportedLocale('pt'), true);
+test('fr e en são suportados; pt, es e de ficam fora do lançamento FR/BE/LU', () => {
+  assert.equal(isSupportedLocale('fr'), true);
+  assert.equal(isSupportedLocale('en'), true);
+  assert.equal(isSupportedLocale('pt'), false);
+  assert.equal(isSupportedLocale('es'), false);
   assert.equal(isSupportedLocale('de'), false);
 });
 
@@ -59,11 +62,11 @@ test('nunca lança erro mesmo sem qualquer contexto de locale', () => {
 test('cobertura de tradução: 100% quando todos os campos obrigatórios estão traduzidos', () => {
   const r = computeTranslationCoverage({
     requiredFields: ['title', 'description'],
-    translatedFieldsByLocale: { pt: ['title', 'description'], en: ['title'], fr: [], es: [] },
+    translatedFieldsByLocale: { fr: ['title', 'description'], en: ['title'], pt: ['title', 'description'] },
   });
-  assert.equal(r.coverageByLocale.pt, 100);
+  assert.equal(r.coverageByLocale.fr, 100);
   assert.equal(r.coverageByLocale.en, 50);
-  assert.equal(r.coverageByLocale.fr, 0);
+  assert.deepEqual(Object.keys(r.coverageByLocale), ['fr', 'en'], 'só as línguas do lançamento');
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);
