@@ -391,6 +391,22 @@ async function main() {
       fallbackOffer,
     );
     check('marca isFallback=true quando usa fallback', fallbackOffer?.translation.isFallback === true);
+
+    // --- Âmbito de lançamento: França, Bélgica, Luxemburgo; francês e inglês ---
+    const ptTranslation = await fetch(`${BASE}/job-offers/${offer2.id}/translations`, {
+      method: 'POST',
+      headers: recruiterHeaders,
+      body: JSON.stringify({ field: 'title', locale: 'pt', value: 'Estágio curricular' }),
+    });
+    check('(âmbito) tradução numa língua fora do lançamento é recusada (422)', ptTranslation.status === 422);
+    const terms = await (await fetch(`${BASE}/termination-terms`)).json();
+    check('(âmbito) /termination-terms só devolve países do lançamento', Array.isArray(terms) && terms.length > 0 && terms.every((t: any) => ['FR', 'BE', 'LU'].includes(t.countryCode)), terms);
+    check('(âmbito) /termination-terms/FR disponível', (await fetch(`${BASE}/termination-terms/FR`)).status === 200);
+    for (const country of ['PT', 'DE']) {
+      const out = await fetch(`${BASE}/termination-terms/${country}`);
+      check(`(âmbito) /termination-terms/${country} fora do lançamento (404)`, out.status === 404 && (await out.json()).error === 'country_not_in_launch_scope');
+    }
+    check('(âmbito) /tax-simulator/DE fora do lançamento (404)', (await fetch(`${BASE}/tax-simulator/DE`)).status === 404);
   } finally {
     server.close();
   }

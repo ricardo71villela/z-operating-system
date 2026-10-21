@@ -5,7 +5,11 @@
 // translations table (migration 0001) é genérica; esta camada de domínio
 // decide QUAL tradução mostrar e com que grau de confiança.
 
-export const SUPPORTED_LOCALES = ['pt', 'en', 'fr', 'es'] as const;
+import { LAUNCH_LOCALES } from './launchScope';
+
+// Languages content can be translated into: the launch languages
+// (launchScope.ts — French and English).
+export const SUPPORTED_LOCALES = LAUNCH_LOCALES;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
 
 export function isSupportedLocale(code: string): code is Locale {
