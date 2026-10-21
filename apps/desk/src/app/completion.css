@@ -165,3 +165,21 @@
   .calendar-month-day { min-height: 92px; }
   .calendar-legend { gap: 10px; }
 }
+
+/* Sign-in (no sidebar) */
+.login-shell { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; background: var(--gray-50, #f7f6f2); }
+.login-page { width: 100%; max-width: 440px; padding: 0; }
+.login-panel { display: grid; gap: 14px; }
+.login-panel h1 { margin: 4px 0 0; font-family: var(--font-cormorant), Georgia, serif; font-weight: 500; font-size: 34px; letter-spacing: -.02em; line-height: 1.05; }
+.login-panel p { margin: 0; }
+.login-mark { display: flex; align-items: center; gap: 10px; }
+.login-mark-img { width: 40px; height: 40px; object-fit: contain; }
+.login-mark strong { display: block; font-family: var(--font-cormorant), serif; font-size: 22px; font-weight: 500; line-height: 1; }
+.login-mark small { color: var(--gray-500); font-size: 11px; }
+.login-form { display: grid; gap: 12px; }
+.login-form label { display: grid; gap: 6px; color: var(--gray-500); font-size: 12px; }
+.login-form input { width: 100%; font-size: 16px; }
+.login-links { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.link-button { background: none; border: 0; padding: 0; min-height: 0; color: var(--gray-500); text-decoration: underline; font-size: 12px; cursor: pointer; box-shadow: none; }
+.link-button:hover { color: var(--gold); }
+.desk-sidebar-footer .sign-out { margin-top: 8px; }

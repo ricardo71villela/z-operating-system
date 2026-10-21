@@ -2,6 +2,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { DraftEventActions } from "./draft-event-actions";
 import { ResolveMessageAction } from "./resolve-message-action";
 import { MessageActionMenu } from "./message-action-menu";
+import { redirect } from "next/navigation";
 import { deskApiFetch } from "@/lib/desk-api";
 
 interface PendingMessage { id: string; thread_id: string; body: string; ai_summary: string | null; state: string; received_at: string; }
@@ -9,8 +10,10 @@ interface DraftEvent { id: string; thread_id: string | null; title: string; star
 interface ConfirmedEvent { id: string; thread_id: string | null; title: string; starts_at: string; ends_at: string; event_type: "meeting" | "follow_up_block"; }
 interface TodayResponse { pendingMessages: PendingMessage[]; draftEvents: DraftEvent[]; confirmedEventsToday: ConfirmedEvent[]; }
 
-async function getTodayData(): Promise<TodayResponse | null> {
+async function getTodayData(locale: string): Promise<TodayResponse | null> {
   const res = await deskApiFetch("today");
+  // Signed in but no Z Desk workspace yet: create one first.
+  if (res?.status === 403) redirect(`/${locale}/welcome`);
   if (!res?.ok) return null;
   return res.json();
 }
@@ -19,7 +22,7 @@ export default async function TodayPage({ params }: { params: Promise<{ locale: 
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("Today");
-  const data = await getTodayData();
+  const data = await getTodayData(locale);
 
   if (!data) return <main><h1>{t("title")}</h1><p className="notice error">{t("backendMissing")}</p></main>;
   const { pendingMessages, draftEvents, confirmedEventsToday } = data;
