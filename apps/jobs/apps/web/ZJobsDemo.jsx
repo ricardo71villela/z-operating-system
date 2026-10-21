@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
+import { LOCALES, t, setMessagesLocale, messagesLocale, initialLocale, rememberLocale, formatAmount } from "./messages.js";
 import {
   Search,
   ShieldCheck,
@@ -47,10 +48,12 @@ let apiAuthToken = null;
 async function apiFetch(path, options = {}) {
   const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
   if (apiAuthToken) headers.Authorization = `Bearer ${apiAuthToken}`;
-  const res = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+  // The API answers its generated texts (scores, matching) in the portal language.
+  const separator = path.includes("?") ? "&" : "?";
+  const res = await fetch(`${API_BASE_URL}${path}${separator}locale=${messagesLocale()}`, { ...options, headers });
   const body = await res.json().catch(() => null);
   if (!res.ok) {
-    const error = new Error((body && body.error) || `Pedido falhou: ${res.status}`);
+    const error = new Error((body && body.error) || `HTTP ${res.status}`);
     error.status = res.status;
     error.body = body;
     throw error;
@@ -124,18 +127,10 @@ const PILLARS = [
 // ver TEMP_AGENCY_CONTRACT_TYPES lá para a justificação legal completa
 // (Diretiva 2008/104/CE, Artigos 5.º e 6.º).
 const TEMP_AGENCY_CONTRACT_TYPES = ["temporary_agency", "interim"];
-const CONTRACT_TYPE_LABELS = {
-  permanent: "Efetivo (sem termo)",
-  fixed_term: "A termo certo",
-  temporary_agency: "Empresa de Trabalho Temporário (ETT)",
-  interim: "Interim",
-  project_based: "A projeto",
-  seasonal: "Sazonal",
-  paid_internship: "Estágio remunerado",
-  trainee_program: "Programa trainee",
-  replacement_contract: "Contrato de substituição",
-  other: "Outro",
-};
+const CONTRACT_TYPES = [
+  "permanent", "fixed_term", "temporary_agency", "interim", "project_based",
+  "seasonal", "paid_internship", "trainee_program", "replacement_contract", "other",
+];
 
 const APPLICATION_TRANSITIONS = {
   submitted: ["received", "withdrawn"],
@@ -151,19 +146,8 @@ const APPLICATION_TRANSITIONS = {
   closed: [],
 };
 
-const STATUS_LABEL = {
-  submitted: "Submetida",
-  received: "Recebida",
-  screening: "Em triagem",
-  shortlisted: "Pré-selecionada",
-  interview: "Entrevista",
-  assessment: "Avaliação",
-  offer: "Proposta",
-  hired: "Contratada",
-  rejected: "Rejeitada",
-  withdrawn: "Retirada",
-  closed: "Encerrada",
-};
+const statusLabel = (status) => t(`status_${status}`);
+const offerStatusLabel = (status) => t(`offer_${status}`);
 
 /* ---- Completude de perfil (secção 6) — espelha candidateProfile.ts ---- */
 const COMPLETENESS_WEIGHTS = { title: 10, summary: 15, experience: 25, education: 15, skills: 15, languages: 10, resume: 10 };
@@ -171,34 +155,22 @@ const COMPLETENESS_WEIGHTS = { title: 10, summary: 15, experience: 25, education
 function computeProfileCompleteness(input) {
   let score = 0;
   const missing = [];
-  if (input.hasTitle) score += COMPLETENESS_WEIGHTS.title; else missing.push("título profissional");
-  if (input.hasSummary) score += COMPLETENESS_WEIGHTS.summary; else missing.push("apresentação");
-  if (input.experienceCount > 0) score += COMPLETENESS_WEIGHTS.experience; else missing.push("experiência");
-  if (input.educationCount > 0) score += COMPLETENESS_WEIGHTS.education; else missing.push("educação");
-  if (input.skillCount > 0) score += COMPLETENESS_WEIGHTS.skills; else missing.push("competências");
-  if (input.languageCount > 0) score += COMPLETENESS_WEIGHTS.languages; else missing.push("idiomas");
-  if (input.hasResume) score += COMPLETENESS_WEIGHTS.resume; else missing.push("CV");
+  if (input.hasTitle) score += COMPLETENESS_WEIGHTS.title; else missing.push(t("missing_title"));
+  if (input.hasSummary) score += COMPLETENESS_WEIGHTS.summary; else missing.push(t("missing_summary"));
+  if (input.experienceCount > 0) score += COMPLETENESS_WEIGHTS.experience; else missing.push(t("missing_experience"));
+  if (input.educationCount > 0) score += COMPLETENESS_WEIGHTS.education; else missing.push(t("missing_education"));
+  if (input.skillCount > 0) score += COMPLETENESS_WEIGHTS.skills; else missing.push(t("missing_skills"));
+  if (input.languageCount > 0) score += COMPLETENESS_WEIGHTS.languages; else missing.push(t("missing_languages"));
+  if (input.hasResume) score += COMPLETENESS_WEIGHTS.resume; else missing.push(t("missing_resume"));
   return { score, missing };
 }
 
 /* ---- Employment Responsibility Index (secção 8) — espelha employerResponsibility.ts ---- */
-const BADGE_LABELS = {
-  verified_employer: "Verified Employer",
-  salary_transparent_employer: "Salary Transparent Employer",
-  first_job_employer: "First Job Employer",
-  age_inclusive_employer: "Age Inclusive Employer",
-  responsible_recruiter: "Responsible Recruiter",
-};
+const badgeLabel = (badge) => t(`badge_${badge}`);
 
 /* ---- Traduções com fallback (secção 14) — espelha i18n.ts ---- */
-const SUPPORTED_LOCALES = [
-  { code: "pt", label: "PT" },
-  { code: "en", label: "EN" },
-  { code: "it", label: "IT" },
-  { code: "es", label: "ES" },
-  { code: "fr", label: "FR" },
-  { code: "de", label: "DE" },
-];
+// Launch scope: French and English (see messages.js).
+const SUPPORTED_LOCALES = LOCALES;
 
 /* ---- Correspondência de palavras-chave — continua local, é feedback
    instantâneo de baixo risco, ao contrário da pontuação de qualidade e
@@ -233,22 +205,23 @@ let idCounter = 1;
 const nextId = (prefix) => `${prefix}_${idCounter++}`;
 
 function currency(n) {
-  return new Intl.NumberFormat("pt-PT", { minimumFractionDigits: 0 }).format(n);
+  return formatAmount(n);
 }
 
 /* ---------------- Reusable bits ---------------- */
 
 function SalaryLedger({ min, max, currencyCode = "EUR", period = "monthly", fixed }) {
-  const periodLabel = { hourly: "/h", daily: "/dia", monthly: "/mês", yearly: "/ano" }[period] || "";
+  const periodLabel = { hourly: t("period_hourly"), daily: t("period_daily"), monthly: t("period_monthly"), yearly: t("period_yearly") }[period] || "";
   return (
     <div className="zj-ledger">
       <span className="zj-ledger-amount">
-        {currencyCode === "EUR" ? "€" : currencyCode}&nbsp;{currency(min)}
-        {max ? `\u2013${currency(max)}` : ""}
+        {messagesLocale() === "fr"
+          ? <>{currency(min)}{max ? `\u2013${currency(max)}` : ""}&nbsp;{currencyCode === "EUR" ? "€" : currencyCode}</>
+          : <>{currencyCode === "EUR" ? "€" : currencyCode}{currency(min)}{max ? `\u2013${currency(max)}` : ""}</>}
         <span className="zj-ledger-period">{periodLabel}</span>
       </span>
       <span className={`zj-ledger-tag ${fixed ? "is-fixed" : "is-risk"}`}>
-        {fixed ? <><CheckCircle2 size={12} /> fixo garantido</> : <><AlertTriangle size={12} /> sem fixo</>}
+        {fixed ? <><CheckCircle2 size={12} /> {t("salary_fixed")}</> : <><AlertTriangle size={12} /> {t("salary_not_fixed")}</>}
       </span>
     </div>
   );
@@ -256,10 +229,10 @@ function SalaryLedger({ min, max, currencyCode = "EUR", period = "monthly", fixe
 
 function VerificationBadge({ status }) {
   const map = {
-    verified: { label: "Verificada", cls: "is-trust", icon: <ShieldCheck size={13} /> },
-    enhanced_verified: { label: "Verificação reforçada", cls: "is-trust", icon: <BadgeCheck size={13} /> },
-    pending: { label: "Verificação pendente", cls: "is-pending", icon: <Clock size={13} /> },
-    unverified: { label: "Não verificada", cls: "is-muted", icon: <XCircle size={13} /> },
+    verified: { label: t("verif_verified"), cls: "is-trust", icon: <ShieldCheck size={13} /> },
+    enhanced_verified: { label: t("verif_enhanced"), cls: "is-trust", icon: <BadgeCheck size={13} /> },
+    pending: { label: t("verif_pending"), cls: "is-pending", icon: <Clock size={13} /> },
+    unverified: { label: t("verif_unverified"), cls: "is-muted", icon: <XCircle size={13} /> },
   };
   const m = map[status] || map.unverified;
   return <span className={`zj-badge ${m.cls}`}>{m.icon}{m.label}</span>;
@@ -280,7 +253,14 @@ function Field({ label, children, hint }) {
 export default function ZJobsDemo() {
   const [role, setRole] = useState("public");
   const [pillar, setPillar] = useState("first_jobs");
-  const [locale, setLocale] = useState("pt");
+  const [locale, setLocaleState] = useState(initialLocale);
+  setMessagesLocale(locale);
+  function setLocale(next) {
+    setMessagesLocale(next);
+    rememberLocale(next);
+    setLocaleState(next);
+  }
+  useEffect(() => { document.documentElement.lang = locale; }, [locale]);
   const [translations, setTranslations] = useState([]); // {entityId, field, locale, value}
 
   const [candidates, setCandidates] = useState([]);
@@ -343,7 +323,7 @@ export default function ZJobsDemo() {
       }
       return [...prev, { entityId, field, locale: targetLocale, value }];
     });
-    notify("Tradução guardada.", "success");
+    notify(t("toast_translation_saved"), "success");
   }
 
   /* ---- Candidato ---- */
@@ -355,9 +335,9 @@ export default function ZJobsDemo() {
       const c = { id: result.id, name, title, visibility: "visible_to_verified_employers" };
       setCandidates((prev) => [...prev, c]);
       setCurrentCandidateId(c.id);
-      notify(`Conta de candidato criada para ${name}.`, "success");
+      notify(t("toast_candidate_created", { name }), "success");
     } catch (err) {
-      notify(`Não foi possível criar a conta: ${err.message}`, "warn");
+      notify(t("toast_account_failed", { error: err.message }), "warn");
     } finally {
       setApiBusy(false);
     }
@@ -365,11 +345,11 @@ export default function ZJobsDemo() {
 
   function addExperience(candidateId, exp) {
     setExperiences((prev) => [...prev, { id: nextId("exp"), candidateId, ...exp }]);
-    notify("Experiência adicionada.", "success");
+    notify(t("toast_experience_added"), "success");
   }
   function addEducation(candidateId, edu) {
     setEducation((prev) => [...prev, { id: nextId("edu"), candidateId, ...edu }]);
-    notify("Formação adicionada.", "success");
+    notify(t("toast_education_added"), "success");
   }
   function addSkill(candidateId, skillName) {
     if (!skillName?.trim()) return;
@@ -389,7 +369,7 @@ export default function ZJobsDemo() {
       ...prev,
       [candidateId]: [...(prev[candidateId] || []), { id: nextId("doc"), ...doc }],
     }));
-    notify(`Documento "${doc.fileName}" carregado.`, "success");
+    notify(t("toast_document_added", { file: doc.fileName }), "success");
   }
 
   function setCandidateSummary(candidateId, summary) {
@@ -410,11 +390,11 @@ export default function ZJobsDemo() {
   }
 
   async function applyToOffer(offerId) {
-    if (!currentCandidate) return notify("Cria primeiro uma conta de candidato.", "warn");
+    if (!currentCandidate) return notify(t("toast_create_candidate_first"), "warn");
     const offer = offers.find((o) => o.id === offerId);
-    if (!offer || offer.status !== "published") return notify("Só é possível candidatar-se a ofertas publicadas.", "warn");
+    if (!offer || offer.status !== "published") return notify(t("toast_only_published"), "warn");
     if (applications.some((a) => a.offerId === offerId && a.candidateId === currentCandidate.id)) {
-      return notify("Já te candidataste a esta oferta.", "warn");
+      return notify(t("toast_already_applied"), "warn");
     }
     setApiBusy(true);
     try {
@@ -425,9 +405,9 @@ export default function ZJobsDemo() {
         history: [{ to: result.status, at: new Date().toLocaleTimeString() }],
       };
       setApplications((prev) => [...prev, app]);
-      notify("Candidatura submetida.", "success");
+      notify(t("toast_applied"), "success");
     } catch (err) {
-      notify(`Não foi possível candidatar-te: ${err.message}`, "warn");
+      notify(t("toast_apply_failed", { error: err.message }), "warn");
     } finally {
       setApiBusy(false);
     }
@@ -445,20 +425,20 @@ export default function ZJobsDemo() {
       const retained = plan.actions.filter((a) => a.action === "retain");
       notify(
         retained.length === 0
-          ? "Conta e dados pessoais apagados por completo."
-          : `Dados de perfil apagados. ${retained.length} registo(s) retido(s) por obrigação legal — ver detalhe no plano devolvido.`,
+          ? t("toast_account_deleted")
+          : t("toast_account_partly_deleted", { count: retained.length }),
         "info",
       );
       return plan;
     } catch (err) {
-      notify(`Não foi possível apagar a conta: ${err.message}`, "warn");
+      notify(t("toast_delete_failed", { error: err.message }), "warn");
     } finally {
       setApiBusy(false);
     }
   }
 
   async function toggleSavedOffer(offerId, isSaved) {
-    if (!currentCandidate) return notify("Cria primeiro uma conta de candidato.", "warn");
+    if (!currentCandidate) return notify(t("toast_create_candidate_first"), "warn");
     setApiBusy(true);
     try {
       api.setAuthToken(sessionToken);
@@ -470,7 +450,7 @@ export default function ZJobsDemo() {
         setSavedOfferIds((prev) => [...prev, offerId]);
       }
     } catch (err) {
-      notify(`Não foi possível guardar/remover: ${err.message}`, "warn");
+      notify(t("toast_save_failed", { error: err.message }), "warn");
     } finally {
       setApiBusy(false);
     }
@@ -512,11 +492,11 @@ export default function ZJobsDemo() {
       prev.map((a) => {
         if (a.id !== appId) return a;
         if (actor === "candidate" && to !== "withdrawn") {
-          notify("O candidato só pode retirar a candidatura.", "warn");
+          notify(t("toast_candidate_withdraw_only"), "warn");
           return a;
         }
         if (!APPLICATION_TRANSITIONS[a.status]?.includes(to)) {
-          notify(`Transição ${a.status} → ${to} não permitida.`, "warn");
+          notify(t("toast_transition_refused", { from: statusLabel(a.status), to: statusLabel(to) }), "warn");
           return a;
         }
         return { ...a, status: to, history: [...a.history, { to, at: new Date().toLocaleTimeString() }] };
@@ -526,7 +506,7 @@ export default function ZJobsDemo() {
 
   /* ---- Empresa ---- */
   async function createOrg(legalName) {
-    if (!currentCandidateId) return notify("Cria primeiro uma conta pessoal — uma organização precisa de um dono.", "warn");
+    if (!currentCandidateId) return notify(t("toast_need_personal_account"), "warn");
     setApiBusy(true);
     try {
       api.setAuthToken(sessionToken);
@@ -534,9 +514,9 @@ export default function ZJobsDemo() {
       const o = { id: result.id, legalName, verificationStatus: result.verificationStatus || "unverified" };
       setOrgs((prev) => [...prev, o]);
       setCurrentOrgId(o.id);
-      notify(`Organização "${legalName}" criada — por verificar.`, "info");
+      notify(t("toast_org_created", { name: legalName }), "info");
     } catch (err) {
-      notify(`Não foi possível criar a organização: ${err.message}`, "warn");
+      notify(t("toast_org_failed", { error: err.message }), "warn");
     } finally {
       setApiBusy(false);
     }
@@ -548,9 +528,9 @@ export default function ZJobsDemo() {
       api.setAuthToken(sessionToken);
       await api.requestOrganizationVerification(orgId);
       setOrgs((prev) => prev.map((o) => (o.id === orgId ? { ...o, verificationStatus: "pending" } : o)));
-      notify("Verificação solicitada. Aguarda aprovação do administrador.", "info");
+      notify(t("toast_verification_requested"), "info");
     } catch (err) {
-      notify(`Não foi possível pedir verificação: ${err.message}`, "warn");
+      notify(t("toast_verification_request_failed", { error: err.message }), "warn");
     } finally {
       setApiBusy(false);
     }
@@ -563,9 +543,9 @@ export default function ZJobsDemo() {
       const result = await api.createJobOffer({ organizationId: orgId, ...draft });
       const o = { ...draft, id: result.id, organizationId: orgId, status: result.status || "draft" };
       setOffers((prev) => [...prev, o]);
-      notify("Oferta guardada como rascunho.", "info");
+      notify(t("toast_offer_saved"), "info");
     } catch (err) {
-      notify(`Não foi possível guardar a oferta: ${err.message}`, "warn");
+      notify(t("toast_offer_save_failed", { error: err.message }), "warn");
     } finally {
       setApiBusy(false);
     }
@@ -577,9 +557,9 @@ export default function ZJobsDemo() {
       api.setAuthToken(sessionToken);
       await api.submitOfferForReview(offerId);
       setOffers((prev) => prev.map((o) => (o.id === offerId ? { ...o, status: "pending_review" } : o)));
-      notify("Oferta submetida para revisão.", "info");
+      notify(t("toast_offer_submitted"), "info");
     } catch (err) {
-      notify(`Não foi possível submeter a oferta: ${err.message}`, "warn");
+      notify(t("toast_offer_submit_failed", { error: err.message }), "warn");
     } finally {
       setApiBusy(false);
     }
@@ -592,9 +572,9 @@ export default function ZJobsDemo() {
       api.setAuthToken(sessionToken);
       await api.bootstrapAdmin();
       setStaffToken(sessionToken);
-      notify("Tornaste-te staff da plataforma — só funciona uma vez, para a primeira pessoa.", "success");
+      notify(t("toast_staff_granted"), "success");
     } catch (err) {
-      notify(`Não foi possível tornar-te staff: ${err.message}`, "warn");
+      notify(t("toast_staff_failed", { error: err.message }), "warn");
     } finally {
       setApiBusy(false);
     }
@@ -606,10 +586,10 @@ export default function ZJobsDemo() {
       api.setAuthToken(staffToken);
       await api.approveOrganizationVerification(orgId);
       setOrgs((prev) => prev.map((o) => (o.id === orgId ? { ...o, verificationStatus: "verified" } : o)));
-      notify("Empresa verificada.", "success");
+      notify(t("toast_org_verified"), "success");
       addAudit("admin", "organization", orgId, "verify");
     } catch (err) {
-      notify(`Não foi possível verificar a empresa: ${err.message}`, "warn");
+      notify(t("toast_org_verify_failed", { error: err.message }), "warn");
     } finally {
       setApiBusy(false);
     }
@@ -624,15 +604,15 @@ export default function ZJobsDemo() {
       // 150+ vezes) — deixámos de replicar validateOffer() aqui à mão.
       if (result.status === "needs_changes") {
         setOffers((prev) => prev.map((o) => (o.id === offerId ? { ...o, status: "needs_changes", issues: result.issues || [] } : o)));
-        notify("Oferta enviada de volta — precisa de correções.", "warn");
+        notify(t("toast_offer_needs_changes"), "warn");
         addAudit("admin", "job_offer", offerId, "reject");
       } else {
         setOffers((prev) => prev.map((o) => (o.id === offerId ? { ...o, status: "approved", issues: [] } : o)));
-        notify("Oferta aprovada.", "success");
+        notify(t("toast_offer_approved"), "success");
         addAudit("admin", "job_offer", offerId, "approve");
       }
     } catch (err) {
-      notify(`Não foi possível rever a oferta: ${err.message}`, "warn");
+      notify(t("toast_offer_review_failed", { error: err.message }), "warn");
     } finally {
       setApiBusy(false);
     }
@@ -644,10 +624,10 @@ export default function ZJobsDemo() {
       api.setAuthToken(staffToken);
       await api.publishOffer(offerId);
       setOffers((prev) => prev.map((o) => (o.id === offerId ? { ...o, status: "published" } : o)));
-      notify("Oferta publicada — já visível no portal público.", "success");
+      notify(t("toast_offer_published"), "success");
       addAudit("admin", "job_offer", offerId, "publish");
     } catch (err) {
-      notify(`Não foi possível publicar a oferta: ${err.message}`, "warn");
+      notify(t("toast_offer_publish_failed", { error: err.message }), "warn");
     } finally {
       setApiBusy(false);
     }
@@ -664,16 +644,16 @@ export default function ZJobsDemo() {
   async function reportTarget(targetType, targetId, reason) {
     if (!reason?.trim()) return;
     if (!currentCandidateId) {
-      return notify("É preciso ter sessão iniciada para denunciar — entra como candidato primeiro.", "warn");
+      return notify(t("toast_login_to_report"), "warn");
     }
     setApiBusy(true);
     try {
       api.setAuthToken(sessionToken);
       const result = await api.createReport({ targetType, targetId, reason, reportedBy: currentCandidateId });
       setReports((prev) => [...prev, { id: result.id, targetType, targetId, reason, reportedBy: currentCandidateId, status: "open", resolution: undefined }]);
-      notify("Denúncia registada — será revista por um administrador.", "info");
+      notify(t("toast_report_saved"), "info");
     } catch (err) {
-      notify(`Não foi possível registar a denúncia: ${err.message}`, "warn");
+      notify(t("toast_report_failed", { error: err.message }), "warn");
     } finally {
       setApiBusy(false);
     }
@@ -682,7 +662,7 @@ export default function ZJobsDemo() {
   async function resolveReportAction(reportId, resolution) {
     const report = reports.find((r) => r.id === reportId);
     if (!report || report.status === "resolved" || report.status === "dismissed") {
-      return notify("Esta denúncia já foi resolvida.", "warn");
+      return notify(t("toast_report_already_closed"), "warn");
     }
     setApiBusy(true);
     try {
@@ -694,12 +674,12 @@ export default function ZJobsDemo() {
       setReports((prev) => prev.map((r) => (r.id === reportId ? { ...r, status: result.status, resolution: result.resolution } : r)));
       if (resolution === "confirmed" && report.targetType === "job_offer") {
         setOffers((prev) => prev.map((o) => (o.id === report.targetId ? { ...o, status: "suspended" } : o)));
-        notify("Denúncia confirmada — oferta suspensa.", "warn");
+        notify(t("toast_report_confirmed"), "warn");
       } else {
-        notify("Denúncia marcada como infundada.", "success");
+        notify(t("toast_report_unfounded"), "success");
       }
     } catch (err) {
-      notify(`Não foi possível resolver a denúncia: ${err.message}`, "warn");
+      notify(t("toast_report_resolve_failed", { error: err.message }), "warn");
     } finally {
       setApiBusy(false);
     }
@@ -726,10 +706,10 @@ export default function ZJobsDemo() {
           </div>
           <nav className="zj-role-switch">
             {[
-              { key: "public", label: "Portal Público", icon: <Search size={14} /> },
-              { key: "candidate", label: "Candidato", icon: <User size={14} /> },
-              { key: "company", label: "Empresa", icon: <Building2 size={14} /> },
-              { key: "admin", label: "Admin", icon: <Landmark size={14} /> },
+              { key: "public", label: t("role_public"), icon: <Search size={14} /> },
+              { key: "candidate", label: t("role_candidate"), icon: <User size={14} /> },
+              { key: "company", label: t("role_company"), icon: <Building2 size={14} /> },
+              { key: "admin", label: t("role_admin"), icon: <Landmark size={14} /> },
             ].map((r) => (
               <button key={r.key} className={`zj-tab ${role === r.key ? "is-active" : ""}`} onClick={() => setRole(r.key)}>
                 {r.icon}
@@ -852,16 +832,13 @@ function PublicView({ pillar, setPillar, offers, onSelect, locale, orgs }) {
   return (
     <section className="zj-public">
       <div className="zj-hero">
-        <p className="zj-eyebrow">Manifesto · {locale.toUpperCase()}</p>
+        <p className="zj-eyebrow">{t("hero_eyebrow")}</p>
         <h1 className="zj-hero-line">
-          Quem trabalha merece,
+          {t("hero_line_1")}
           <br />
-          pelo menos, um salário garantido.
+          {t("hero_line_2")}
         </h1>
-        <p className="zj-hero-sub">
-          Cada oferta no Z Jobs declara remuneração fixa, vínculo real e empregador identificável —
-          antes de chegar até ti.
-        </p>
+        <p className="zj-hero-sub">{t("hero_sub")}</p>
       </div>
 
       <div className="zj-pillars">
@@ -874,7 +851,7 @@ function PublicView({ pillar, setPillar, offers, onSelect, locale, orgs }) {
 
       <div className="zj-grid">
         {offers.length === 0 && (
-          <p className="zj-empty">Ainda não há ofertas publicadas neste pilar. Cria uma como empresa e aprova-a como admin para a veres aqui.</p>
+          <p className="zj-empty">{t("public_empty")}</p>
         )}
         {offers.map((o) => (
           <button key={o.id} className="zj-card" onClick={() => onSelect(o.id)}>
@@ -882,8 +859,8 @@ function PublicView({ pillar, setPillar, offers, onSelect, locale, orgs }) {
               <h3>{o.title}</h3>
               <VerificationBadge status={orgs?.find((org) => org.id === o.organizationId)?.verificationStatus} />
             </div>
-            {o.isTranslationFallback && locale !== "pt" && (
-              <span className="zj-fallback-note">Sem tradução em {locale.toUpperCase()} — a mostrar melhor alternativa disponível</span>
+            {o.isTranslationFallback && locale !== "fr" && (
+              <span className="zj-fallback-note">{t("fallback_note", { locale: locale.toUpperCase() })}</span>
             )}
             <p className="zj-card-desc">{o.description.slice(0, 110)}{o.description.length > 110 ? "…" : ""}</p>
             <SalaryLedger min={o.salaryMin} max={o.salaryMax} currencyCode={o.salaryCurrency} period={o.salaryPeriod} fixed={o.hasFixedSalary} />
@@ -913,7 +890,7 @@ function CandidateView({
   async function handleShowScore(applicationId) {
     try {
       const app = await onFetchMyScore(applicationId);
-      setScoreByApplicationId((prev) => ({ ...prev, [applicationId]: app.myScoreForThisOffer || { error: "Ainda sem pontuação para esta candidatura." } }));
+      setScoreByApplicationId((prev) => ({ ...prev, [applicationId]: app.myScoreForThisOffer || { error: t("no_score_yet") } }));
     } catch (err) {
       setScoreByApplicationId((prev) => ({ ...prev, [applicationId]: { error: err.message } }));
     }
@@ -922,27 +899,27 @@ function CandidateView({
   if (!candidate) {
     return (
       <section className="zj-panel">
-        <h2>Criar conta de candidato</h2>
-        <p className="zj-panel-hint">Gratuito, sempre — nunca há subscrição para candidatos (secção 3.1).</p>
+        <h2>{t("signup_title")}</h2>
+        <p className="zj-panel-hint">{t("signup_hint")}</p>
         <div className="zj-form">
-          <Field label="Nome completo">
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ana Ferreira" />
+          <Field label={t("field_full_name")}>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("ph_full_name")} />
           </Field>
-          <Field label="Email">
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ana@exemplo.pt" />
+          <Field label={t("field_email")}>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("ph_email")} />
           </Field>
-          <Field label="Palavra-passe">
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="mínimo 12 carateres" />
+          <Field label={t("field_password")}>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t("ph_password")} />
           </Field>
-          <Field label="Título profissional">
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Engenheira de Software" />
+          <Field label={t("field_job_title")}>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("ph_job_title")} />
           </Field>
           <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px" }}>
             <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />
-            Li e aceito os Termos de Serviço e a Política de Privacidade.
+            {t("accept_terms")}
           </label>
           <button className="zj-btn is-primary" disabled={!name || !email || password.length < 12 || !termsAccepted} onClick={() => onCreate(name, title, email, password, termsAccepted)}>
-            Criar conta <ArrowRight size={14} />
+            {t("create_account")} <ArrowRight size={14} />
           </button>
         </div>
       </section>
@@ -951,31 +928,31 @@ function CandidateView({
 
   return (
     <section className="zj-panel">
-      <h2>Olá, {candidate.name}</h2>
-      <p className="zj-panel-hint">{candidate.title || "Sem título profissional definido."}</p>
+      <h2>{t("hello", { name: candidate.name })}</h2>
+      <p className="zj-panel-hint">{candidate.title || t("no_job_title")}</p>
 
       {completeness && (
         <div className="zj-completeness">
           <div className="zj-completeness-track">
             <div className="zj-completeness-fill" style={{ width: `${completeness.score}%` }} />
           </div>
-          <span className="zj-completeness-label">{completeness.score}% do perfil completo</span>
+          <span className="zj-completeness-label">{t("profile_complete", { score: completeness.score })}</span>
           {completeness.missing.length > 0 && (
-            <span className="zj-completeness-hint">Falta: {completeness.missing.join(", ")}</span>
+            <span className="zj-completeness-hint">{t("profile_missing", { items: completeness.missing.join(", ") })}</span>
           )}
         </div>
       )}
 
-      <h3 className="zj-subhead"><User size={14} /> Apresentação</h3>
+      <h3 className="zj-subhead"><User size={14} /> {t("section_summary")}</h3>
       <textarea
         className="zj-summary"
         rows={2}
         defaultValue={candidate.summary || ""}
-        placeholder="Recém-licenciada em Engenharia Informática, à procura do primeiro emprego..."
+        placeholder={t("ph_summary")}
         onBlur={(e) => onSetSummary(e.target.value)}
       />
 
-      <h3 className="zj-subhead"><Briefcase size={14} /> Experiência</h3>
+      <h3 className="zj-subhead"><Briefcase size={14} /> {t("section_experience")}</h3>
       <ExperienceForm onAdd={onAddExperience} />
       <div className="zj-list nested">
         {experiences.map((e) => (
@@ -984,31 +961,31 @@ function CandidateView({
               <strong>{e.title}</strong> — {e.companyName}
               {e.description && <p className="zj-hint-inline zj-exp-desc">{e.description}</p>}
             </div>
-            <span className="zj-hint-inline">{e.startDate}{e.isCurrent ? " → atual" : ""}</span>
+            <span className="zj-hint-inline">{e.startDate}{e.isCurrent ? t("experience_current") : ""}</span>
           </div>
         ))}
-        {experiences.length === 0 && <p className="zj-empty">Ainda sem experiência registada.</p>}
+        {experiences.length === 0 && <p className="zj-empty">{t("experience_empty")}</p>}
       </div>
 
-      <h3 className="zj-subhead"><GraduationCap size={14} /> Educação</h3>
+      <h3 className="zj-subhead"><GraduationCap size={14} /> {t("section_education")}</h3>
       <EducationForm onAdd={onAddEducation} />
       <div className="zj-list nested">
         {education.map((e) => (
           <div key={e.id} className="zj-list-row">
-            <div><strong>{e.degree}</strong> em {e.fieldOfStudy}</div>
+            <div><strong>{e.degree}</strong> {t("education_in")} {e.fieldOfStudy}</div>
             <span className="zj-hint-inline">{e.institutionName}</span>
           </div>
         ))}
-        {education.length === 0 && <p className="zj-empty">Ainda sem formação registada.</p>}
+        {education.length === 0 && <p className="zj-empty">{t("education_empty")}</p>}
       </div>
 
-      <h3 className="zj-subhead"><Award size={14} /> Competências</h3>
-      <TagInput items={skills} onAdd={onAddSkill} placeholder="ex: TypeScript" />
+      <h3 className="zj-subhead"><Award size={14} /> {t("section_skills")}</h3>
+      <TagInput items={skills} onAdd={onAddSkill} placeholder={t("ph_skill")} />
 
-      <h3 className="zj-subhead"><Languages size={14} /> Idiomas</h3>
-      <TagInput items={languages} onAdd={onAddLanguage} placeholder="ex: pt, en, fr" />
+      <h3 className="zj-subhead"><Languages size={14} /> {t("section_languages")}</h3>
+      <TagInput items={languages} onAdd={onAddLanguage} placeholder={t("ph_language")} />
 
-      <h3 className="zj-subhead"><FileText size={14} /> Documentos</h3>
+      <h3 className="zj-subhead"><FileText size={14} /> {t("section_documents")}</h3>
       <DocumentForm onAdd={onAddDocument} />
       <div className="zj-list nested">
         {documents.map((d) => (
@@ -1017,7 +994,7 @@ function CandidateView({
             <span className="zj-hint-inline">{d.docType}</span>
           </div>
         ))}
-        {documents.length === 0 && <p className="zj-empty">Ainda sem documentos carregados.</p>}
+        {documents.length === 0 && <p className="zj-empty">{t("documents_empty")}</p>}
       </div>
 
       <CVStudioPanel
@@ -1032,10 +1009,8 @@ function CandidateView({
         onCheckCoverLetter={onCheckCoverLetter}
       />
 
-      <h3 className="zj-subhead">Ofertas para ti — ordenadas por relevância</h3>
-      <p className="zj-panel-hint">
-        Ordenação com base nas competências e experiência do teu perfil — nunca esconde ofertas, só as ordena. Adiciona mais competências para melhorar a precisão.
-      </p>
+      <h3 className="zj-subhead">{t("offers_for_you")}</h3>
+      <p className="zj-panel-hint">{t("offers_for_you_hint")}</p>
       <div className="zj-list">
         {offers.filter((o) => o.status === "published")
           .map((o) => ({ offer: o, relevance: computeOfferRelevance(o, { skills, experiences }) }))
@@ -1052,18 +1027,18 @@ function CandidateView({
               </div>
               <div style={{ display: "flex", gap: "8px" }}>
                 <button className="zj-btn is-ghost" onClick={() => onToggleSaved(o.id, (savedOfferIds || []).includes(o.id))}>
-                  {(savedOfferIds || []).includes(o.id) ? "Guardada ✓" : "Guardar"}
+                  {(savedOfferIds || []).includes(o.id) ? t("saved") : t("save")}
                 </button>
-                <button className="zj-btn is-ghost" onClick={() => onApply(o.id)}>Candidatar-me</button>
+                <button className="zj-btn is-ghost" onClick={() => onApply(o.id)}>{t("apply")}</button>
               </div>
             </div>
           ))}
         {offers.filter((o) => o.status === "published").length === 0 && (
-          <p className="zj-empty">Sem ofertas publicadas de momento.</p>
+          <p className="zj-empty">{t("no_published_offers")}</p>
         )}
       </div>
 
-      <h3 className="zj-subhead">As minhas candidaturas</h3>
+      <h3 className="zj-subhead">{t("my_applications")}</h3>
       <div className="zj-list">
         {applications.map((a) => {
           const offer = offers.find((o) => o.id === a.offerId);
@@ -1073,18 +1048,18 @@ function CandidateView({
               <div style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
                 <div>
                   <strong>{offer?.title}</strong>
-                  <span className={`zj-status status-${a.status}`}>{STATUS_LABEL[a.status]}</span>
+                  <span className={`zj-status status-${a.status}`}>{statusLabel(a.status)}</span>
                 </div>
                 <div style={{ display: "flex", gap: "8px" }}>
-                  <button className="zj-btn is-ghost" onClick={() => handleShowScore(a.id)}>Ver a minha pontuação</button>
+                  <button className="zj-btn is-ghost" onClick={() => handleShowScore(a.id)}>{t("show_my_score")}</button>
                   {APPLICATION_TRANSITIONS[a.status]?.includes("withdrawn") && (
-                    <button className="zj-btn is-ghost" onClick={() => onTransition(a.id, "withdrawn")}>Retirar</button>
+                    <button className="zj-btn is-ghost" onClick={() => onTransition(a.id, "withdrawn")}>{t("withdraw")}</button>
                   )}
                 </div>
               </div>
               {score && !score.error && (
                 <div style={{ marginTop: "8px", fontSize: "12px", color: "var(--zj-muted, #666)" }}>
-                  <strong>Pontuação: {score.score}/100</strong> — nunca decide sozinha, só orienta (secção 9 dos Termos de Serviço).
+                  <strong>{t("score_line", { score: score.score })}</strong>{t("score_note")}
                   <ul style={{ margin: "4px 0 0", paddingLeft: "18px" }}>
                     {(score.factors || []).map((f, i) => <li key={i}>{f.explanation || f.messageKey}</li>)}
                   </ul>
@@ -1094,22 +1069,18 @@ function CandidateView({
             </div>
           );
         })}
-        {applications.length === 0 && <p className="zj-empty">Ainda sem candidaturas.</p>}
+        {applications.length === 0 && <p className="zj-empty">{t("applications_empty")}</p>}
       </div>
 
-      <h3 className="zj-subhead">Definições da conta</h3>
+      <h3 className="zj-subhead">{t("account_settings")}</h3>
       <div className="zj-panel-hint">
         {!showDeleteConfirm ? (
-          <button className="zj-btn is-ghost" onClick={() => setShowDeleteConfirm(true)}>Apagar a minha conta e dados pessoais</button>
+          <button className="zj-btn is-ghost" onClick={() => setShowDeleteConfirm(true)}>{t("delete_account")}</button>
         ) : (
           <div>
-            <p>
-              Isto apaga imediatamente o teu perfil, experiência, formação e documentos. Alguns registos podem ser
-              retidos por obrigação legal (faturação, processos de denúncia em aberto, auditoria de pontuação
-              recente) — ver a Política de Privacidade, secção 8, para o detalhe exato.
-            </p>
-            <button className="zj-btn is-primary" onClick={onDeleteAccount}>Confirmar apagamento definitivo</button>
-            <button className="zj-btn is-ghost" onClick={() => setShowDeleteConfirm(false)}>Cancelar</button>
+            <p>{t("delete_account_warning")}</p>
+            <button className="zj-btn is-primary" onClick={onDeleteAccount}>{t("delete_account_confirm")}</button>
+            <button className="zj-btn is-ghost" onClick={() => setShowDeleteConfirm(false)}>{t("cancel")}</button>
           </div>
         )}
       </div>
@@ -1120,6 +1091,7 @@ function CandidateView({
 const STOPWORDS = new Set([
   "para", "com", "uma", "que", "dos", "das", "the", "and", "for", "with", "our", "you",
   "your", "will", "have", "this", "from", "are", "not", "una", "per", "che", "les", "des",
+  "notre", "votre", "cette", "entre", "comme", "aussi", "leurs", "nous", "vous", "pour", "avec", "dans",
 ]);
 
 function extractKeywords(text) {
@@ -1144,15 +1116,15 @@ function computeOfferRelevance(offer, { skills, experiences }) {
   const cvText = [...(experiences || []).map((e) => e.description || ""), ...(skills || [])].join(" ");
   const offerKeywords = extractKeywords(`${offer.title} ${offer.description}`);
   if (skills.length === 0 && experiences.length === 0) {
-    return { score: 50, level: "unknown", label: "Sem dados suficientes no perfil" };
+    return { score: 50, level: "unknown", label: t("relevance_no_profile") };
   }
   if (offerKeywords.length === 0) {
-    return { score: 50, level: "unknown", label: "Oferta sem descrição suficiente para comparar" };
+    return { score: 50, level: "unknown", label: t("relevance_no_description") };
   }
   const match = matchCVAgainstOffer(cvText, offerKeywords);
-  if (match.matchRate >= 0.3) return { score: Math.round(match.matchRate * 100), level: "match", label: `${match.matchedKeywords.length} termo(s) do teu perfil aparecem nesta oferta` };
-  if (match.matchedKeywords.length > 0) return { score: Math.round(match.matchRate * 100), level: "partial", label: `${match.matchedKeywords.length} termo(s) em comum, correspondência parcial` };
-  return { score: 10, level: "mismatch", label: "Sem correspondência aparente com o teu perfil" };
+  if (match.matchRate >= 0.3) return { score: Math.round(match.matchRate * 100), level: "match", label: t("relevance_match", { count: match.matchedKeywords.length }) };
+  if (match.matchedKeywords.length > 0) return { score: Math.round(match.matchRate * 100), level: "partial", label: t("relevance_partial", { count: match.matchedKeywords.length }) };
+  return { score: 10, level: "mismatch", label: t("relevance_mismatch") };
 }
 
 function CVStudioPanel({ experiences, skills, documents, locale, publishedOffers, orgs, candidateId, onCheckCVQuality, onCheckCoverLetter }) {
@@ -1173,15 +1145,15 @@ function CVStudioPanel({ experiences, skills, documents, locale, publishedOffers
     setQualityBusy(true);
     try {
       const result = await onCheckCVQuality(candidateId, {
-        locale: locale || "pt",
+        locale: locale || "fr",
         experiences,
         skills,
-        certifications: certifications.map((c) => c.fileName || "certificação"),
+        certifications: certifications.map((c) => c.fileName || t("default_certification")),
         hasPortfolioLink,
       });
       setQuality(result);
     } catch (err) {
-      setQuality({ score: null, signals: [{ code: "ERROR", message: `Não foi possível verificar: ${err.message}` }] });
+      setQuality({ score: null, signals: [{ code: "ERROR", message: t("check_failed", { error: err.message }) }] });
     } finally {
       setQualityBusy(false);
     }
@@ -1207,7 +1179,7 @@ function CVStudioPanel({ experiences, skills, documents, locale, publishedOffers
       });
       setLetterCheck(result);
     } catch (err) {
-      setLetterCheck({ personalized: false, checks: [{ code: "ERROR", message: `Não foi possível verificar: ${err.message}` }] });
+      setLetterCheck({ personalized: false, checks: [{ code: "ERROR", message: t("check_failed", { error: err.message }) }] });
     } finally {
       setLetterBusy(false);
     }
@@ -1215,14 +1187,11 @@ function CVStudioPanel({ experiences, skills, documents, locale, publishedOffers
 
   return (
     <>
-      <h3 className="zj-subhead"><FileText size={14} /> Estúdio de CV & Carta de Motivação</h3>
-      <p className="zj-panel-hint">
-        Orientação, nunca bloqueio — estes sinais ajudam-te a fortalecer o CV, mas nunca impedem uma candidatura.
-        Verificação real, contra o servidor — clica para analisar.
-      </p>
+      <h3 className="zj-subhead"><FileText size={14} /> {t("cv_studio_title")}</h3>
+      <p className="zj-panel-hint">{t("cv_studio_hint")}</p>
 
       <button className="zj-btn is-ghost" onClick={handleCheckQuality} disabled={qualityBusy}>
-        {qualityBusy ? "A verificar…" : "Analisar o meu CV"}
+        {qualityBusy ? t("checking") : t("analyse_cv")}
       </button>
 
       {quality && (
@@ -1233,23 +1202,23 @@ function CVStudioPanel({ experiences, skills, documents, locale, publishedOffers
               style={{ width: `${quality.score ?? 0}%`, background: (quality.score ?? 0) >= 70 ? "var(--trust)" : "var(--danger)" }}
             />
           </div>
-          <span className="zj-completeness-label">{quality.score ?? "—"}/100 — força do CV</span>
+          <span className="zj-completeness-label">{t("cv_strength", { score: quality.score ?? "—" })}</span>
         </div>
       )}
       {quality && quality.signals.length > 0 ? (
         <ul className="zj-cv-signals">
           {quality.signals.map((s) => (
-            <li key={s.code} className="zj-cv-signal">{s.message}</li>
+            <li key={s.code} className="zj-cv-signal">{s.code === "ERROR" ? s.message : t(`cv_${s.code}`)}</li>
           ))}
         </ul>
       ) : quality ? (
-        <p className="zj-empty">Sem sinais de melhoria pendentes — bom trabalho.</p>
+        <p className="zj-empty">{t("cv_no_signals")}</p>
       ) : null}
 
       <div className="zj-cv-target">
-        <Field label="Testar contra uma oferta específica">
+        <Field label={t("test_against_offer")}>
           <select value={selectedOfferId} onChange={(e) => setSelectedOfferId(e.target.value)}>
-            <option value="">Escolher oferta…</option>
+            <option value="">{t("choose_offer")}</option>
             {publishedOffers.map((o) => (
               <option key={o.id} value={o.id}>{o.title}</option>
             ))}
@@ -1259,7 +1228,7 @@ function CVStudioPanel({ experiences, skills, documents, locale, publishedOffers
         {selectedOffer && keywordMatch && (
           <div className="zj-cv-match">
             <span className="zj-completeness-label">
-              {Math.round(keywordMatch.matchRate * 100)}% de correspondência com a oferta
+              {t("keyword_match", { rate: Math.round(keywordMatch.matchRate * 100) })}
             </span>
             {keywordMatch.missingKeywords.length > 0 && (
               <div className="zj-tags">
@@ -1273,25 +1242,25 @@ function CVStudioPanel({ experiences, skills, documents, locale, publishedOffers
 
         {selectedOffer && (
           <>
-            <Field label={`Carta de motivação para "${selectedOffer.title}"`}>
+            <Field label={t("cover_letter_for", { title: selectedOffer.title })}>
               <textarea
                 className="zj-summary"
                 rows={4}
                 value={coverLetterText}
                 onChange={(e) => setCoverLetterText(e.target.value)}
-                placeholder="Escreve a tua carta de motivação para esta oferta específica..."
+                placeholder={t("ph_cover_letter")}
               />
             </Field>
             <button className="zj-btn is-ghost" onClick={handleCheckLetter} disabled={letterBusy || !coverLetterText.trim()}>
-              {letterBusy ? "A verificar…" : "Verificar carta"}
+              {letterBusy ? t("checking") : t("check_letter")}
             </button>
             {letterCheck && (
               letterCheck.personalized ? (
-                <p className="zj-empty">Carta personalizada — sem sinais de texto genérico.</p>
+                <p className="zj-empty">{t("letter_ok")}</p>
               ) : (
                 <ul className="zj-cv-signals">
                   {letterCheck.checks.map((c) => (
-                    <li key={c.code} className="zj-cv-signal">{c.message}</li>
+                    <li key={c.code} className="zj-cv-signal">{c.code === "ERROR" ? c.message : t(`letter_${c.code}`, { employer: employerName, title: selectedOffer.title })}</li>
                   ))}
                 </ul>
               )
@@ -1316,10 +1285,10 @@ function ExperienceForm({ onAdd }) {
   }
   return (
     <div className="zj-inline-form zj-inline-form-wrap">
-      <input placeholder="Função" value={title} onChange={(e) => setTitle(e.target.value)} />
-      <input placeholder="Empresa" value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
+      <input placeholder={t("ph_role")} value={title} onChange={(e) => setTitle(e.target.value)} />
+      <input placeholder={t("ph_company")} value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
       <input type="month" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-      <input placeholder="O que fizeste? (ex: liderei uma equipa de 6 pessoas e reduzi custos em 12%)" value={description} onChange={(e) => setDescription(e.target.value)} className="zj-inline-form-full" />
+      <input placeholder={t("ph_experience_description")} value={description} onChange={(e) => setDescription(e.target.value)} className="zj-inline-form-full" />
       <button className="zj-btn is-ghost is-icon" onClick={submit}><Plus size={14} /></button>
     </div>
   );
@@ -1336,9 +1305,9 @@ function EducationForm({ onAdd }) {
   }
   return (
     <div className="zj-inline-form">
-      <input placeholder="Grau (ex: Licenciatura)" value={degree} onChange={(e) => setDegree(e.target.value)} />
-      <input placeholder="Área de estudo" value={fieldOfStudy} onChange={(e) => setFieldOfStudy(e.target.value)} />
-      <input placeholder="Instituição" value={institutionName} onChange={(e) => setInstitutionName(e.target.value)} />
+      <input placeholder={t("ph_degree")} value={degree} onChange={(e) => setDegree(e.target.value)} />
+      <input placeholder={t("ph_field_of_study")} value={fieldOfStudy} onChange={(e) => setFieldOfStudy(e.target.value)} />
+      <input placeholder={t("ph_institution")} value={institutionName} onChange={(e) => setInstitutionName(e.target.value)} />
       <button className="zj-btn is-ghost is-icon" onClick={submit}><Plus size={14} /></button>
     </div>
   );
@@ -1355,12 +1324,12 @@ function DocumentForm({ onAdd }) {
   return (
     <div className="zj-inline-form">
       <select value={docType} onChange={(e) => setDocType(e.target.value)}>
-        <option value="cv">CV</option>
-        <option value="certificate">Certificado</option>
-        <option value="portfolio">Portefólio</option>
-        <option value="cover_letter">Carta de apresentação</option>
+        <option value="cv">{t("doc_cv")}</option>
+        <option value="certificate">{t("doc_certificate")}</option>
+        <option value="portfolio">{t("doc_portfolio")}</option>
+        <option value="cover_letter">{t("doc_cover_letter")}</option>
       </select>
-      <input placeholder="nome-do-ficheiro.pdf" value={fileName} onChange={(e) => setFileName(e.target.value)} />
+      <input placeholder={t("ph_file_name")} value={fileName} onChange={(e) => setFileName(e.target.value)} />
       <button className="zj-btn is-ghost is-icon" onClick={submit}><Plus size={14} /></button>
     </div>
   );
@@ -1386,7 +1355,7 @@ function TagInput({ items, onAdd, placeholder }) {
       </div>
       <div className="zj-tags">
         {items.map((it) => <span key={it} className="zj-tag">{it}</span>)}
-        {items.length === 0 && <p className="zj-empty">Nenhuma ainda.</p>}
+        {items.length === 0 && <p className="zj-empty">{t("tags_empty")}</p>}
       </div>
     </div>
   );
@@ -1412,23 +1381,23 @@ function CompanyView({
   if (!org) {
     return (
       <section className="zj-panel">
-        <h2>Criar organização</h2>
+        <h2>{t("create_org_title")}</h2>
         <div className="zj-form">
-          <Field label="Nome legal da empresa">
-            <input value={legalName} onChange={(e) => setLegalName(e.target.value)} placeholder="Zeta Tech Lda" />
+          <Field label={t("field_legal_name")}>
+            <input value={legalName} onChange={(e) => setLegalName(e.target.value)} placeholder={t("ph_legal_name")} />
           </Field>
           <button className="zj-btn is-primary" disabled={!legalName} onClick={() => onCreateOrg(legalName)}>
-            Criar organização <ArrowRight size={14} />
+            {t("create_org")} <ArrowRight size={14} />
           </button>
         </div>
         {orgs.length > 0 && (
           <>
-            <h3 className="zj-subhead">Ou muda para uma organização existente</h3>
+            <h3 className="zj-subhead">{t("switch_org")}</h3>
             <div className="zj-list">
               {orgs.map((o) => (
                 <div key={o.id} className="zj-list-row">
                   <strong>{o.legalName}</strong>
-                  <button className="zj-btn is-ghost" onClick={() => onSelectOrg(o.id)}>Selecionar</button>
+                  <button className="zj-btn is-ghost" onClick={() => onSelectOrg(o.id)}>{t("select")}</button>
                 </div>
               ))}
             </div>
@@ -1446,42 +1415,42 @@ function CompanyView({
       </div>
 
       {org.verificationStatus === "unverified" && (
-        <button className="zj-btn is-primary" onClick={() => onRequestVerification(org.id)}>Solicitar verificação</button>
+        <button className="zj-btn is-primary" onClick={() => onRequestVerification(org.id)}>{t("request_verification")}</button>
       )}
-      {org.verificationStatus === "pending" && <p className="zj-panel-hint">Verificação pendente — aguarda um administrador.</p>}
+      {org.verificationStatus === "pending" && <p className="zj-panel-hint">{t("verification_pending_hint")}</p>}
       {(org.verificationStatus === "verified" || org.verificationStatus === "enhanced_verified") && (
         <button className="zj-btn is-ghost" onClick={onViewResponsibility}>
-          <Award size={14} /> Ver o meu Employment Responsibility Index
+          <Award size={14} /> {t("view_my_eri")}
         </button>
       )}
 
-      <h3 className="zj-subhead">Criar oferta</h3>
+      <h3 className="zj-subhead">{t("create_offer")}</h3>
       <OfferForm onCreate={(draft) => onCreateOffer(org.id, draft)} />
 
-      <h3 className="zj-subhead">As minhas ofertas</h3>
+      <h3 className="zj-subhead">{t("my_offers")}</h3>
       <div className="zj-list">
         {offers.map((o) => (
           <div key={o.id} className="zj-list-row is-column">
             <div className="zj-list-row-top">
               <strong>{o.title}</strong>
-              <span className={`zj-status status-${o.status}`}>{o.status}</span>
+              <span className={`zj-status status-${o.status}`}>{offerStatusLabel(o.status)}</span>
             </div>
             <SalaryLedger min={o.salaryMin} max={o.salaryMax} currencyCode={o.salaryCurrency} period={o.salaryPeriod} fixed={o.hasFixedSalary} />
             {o.issues?.length > 0 && (
               <ul className="zj-issues">
-                {o.issues.map((i) => <li key={i.code}><AlertTriangle size={12} /> {i.message}</li>)}
+                {o.issues.map((i) => <li key={i.code}><AlertTriangle size={12} /> {t(`issue_${i.code}`) === `issue_${i.code}` ? i.message : t(`issue_${i.code}`)}</li>)}
               </ul>
             )}
             {o.status === "draft" && (
-              <button className="zj-btn is-ghost" onClick={() => onSubmitForReview(o.id)}>Submeter para revisão</button>
+              <button className="zj-btn is-ghost" onClick={() => onSubmitForReview(o.id)}>{t("submit_for_review")}</button>
             )}
             {o.status === "published" && (
               <>
                 <TranslationEditor offerId={o.id} translations={translations} onAdd={onAddTranslation} />
-                <button className="zj-btn is-ghost" onClick={() => handleShowPoolInsight(o.id)}>Ver panorama do banco de candidatos</button>
+                <button className="zj-btn is-ghost" onClick={() => handleShowPoolInsight(o.id)}>{t("view_pool")}</button>
                 {poolInsightByOffer[o.id] && !poolInsightByOffer[o.id].error && (
                   <p className="zj-hint-inline">
-                    Candidatos compatíveis no banco: <strong>{poolInsightByOffer[o.id].matchingCandidatesEstimate}</strong> de {poolInsightByOffer[o.id].totalOpenCandidatesOnPlatform} em aberto —
+                    {t("pool_line", { matching: poolInsightByOffer[o.id].matchingCandidatesEstimate, total: poolInsightByOffer[o.id].totalOpenCandidatesOnPlatform })}
                     {" "}{poolInsightByOffer[o.id].scopeNote}
                   </p>
                 )}
@@ -1496,7 +1465,7 @@ function CompanyView({
             )}
           </div>
         ))}
-        {offers.length === 0 && <p className="zj-empty">Ainda sem ofertas criadas.</p>}
+        {offers.length === 0 && <p className="zj-empty">{t("offers_empty")}</p>}
       </div>
     </section>
   );
@@ -1509,18 +1478,18 @@ function TranslationEditor({ offerId, translations, onAdd }) {
 
   return (
     <div className="zj-translation-editor">
-      <span className="zj-hint-inline">Traduções do título:</span>
+      <span className="zj-hint-inline">{t("title_translations")}</span>
       <div className="zj-tags">
         {existing.map((t) => (
           <span key={t.locale} className="zj-tag">{t.locale.toUpperCase()}: {t.value}</span>
         ))}
-        {existing.length === 0 && <span className="zj-empty">Nenhuma ainda — só o título original em PT.</span>}
+        {existing.length === 0 && <span className="zj-empty">{t("title_translations_empty")}</span>}
       </div>
       <div className="zj-inline-form">
         <select value={targetLocale} onChange={(e) => setTargetLocale(e.target.value)}>
-          {SUPPORTED_LOCALES.filter((l) => l.code !== "pt").map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
+          {SUPPORTED_LOCALES.filter((l) => l.code !== "fr").map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
         </select>
-        <input placeholder="Título traduzido" value={value} onChange={(e) => setValue(e.target.value)} />
+        <input placeholder={t("ph_translated_title")} value={value} onChange={(e) => setValue(e.target.value)} />
         <button
           className="zj-btn is-ghost is-icon"
           onClick={() => { onAdd(offerId, "title", targetLocale, value); setValue(""); }}
@@ -1533,7 +1502,7 @@ function TranslationEditor({ offerId, translations, onAdd }) {
 }
 
 function ApplicationsForOffer({ offerId, applications, candidates, onTransition }) {
-  if (applications.length === 0) return <p className="zj-empty">Sem candidaturas ainda.</p>;
+  if (applications.length === 0) return <p className="zj-empty">{t("applications_none")}</p>;
   return (
     <div className="zj-list nested">
       {applications.map((a) => {
@@ -1543,7 +1512,7 @@ function ApplicationsForOffer({ offerId, applications, candidates, onTransition 
           <div key={a.id} className="zj-list-row">
             <div>
               <strong>{cand?.name}</strong>
-              <span className={`zj-status status-${a.status}`}>{STATUS_LABEL[a.status]}</span>
+              <span className={`zj-status status-${a.status}`}>{statusLabel(a.status)}</span>
             </div>
             <select
               defaultValue=""
@@ -1552,8 +1521,8 @@ function ApplicationsForOffer({ offerId, applications, candidates, onTransition 
                 e.target.value = "";
               }}
             >
-              <option value="" disabled>Avançar para…</option>
-              {nextOptions.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
+              <option value="" disabled>{t("advance_to")}</option>
+              {nextOptions.map((s) => <option key={s} value={s}>{statusLabel(s)}</option>)}
             </select>
           </div>
         );
@@ -1604,68 +1573,66 @@ function OfferForm({ onCreate }) {
 
   return (
     <div className="zj-form">
-      <Field label="Título da oferta">
-        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Engenheiro/a de Software Júnior" />
+      <Field label={t("field_offer_title")}>
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("ph_offer_title")} />
       </Field>
-      <Field label="Descrição" hint="Mínimo 40 caracteres — usado na validação de qualidade.">
+      <Field label={t("field_description")} hint={t("hint_description")}>
         <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
       </Field>
       <div className="zj-form-row">
-        <Field label="Salário mínimo (€/mês)">
+        <Field label={t("field_salary_min")}>
           <input type="number" value={salaryMin} onChange={(e) => setSalaryMin(e.target.value)} />
         </Field>
-        <Field label="Salário máximo (opcional)">
+        <Field label={t("field_salary_max")}>
           <input type="number" value={salaryMax} onChange={(e) => setSalaryMax(e.target.value)} />
         </Field>
       </div>
       <div className="zj-form-row">
-        <Field label="Pilar">
+        <Field label={t("field_pillar")}>
           <select value={pillar} onChange={(e) => setPillarLocal(e.target.value)}>
             {PILLARS.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
           </select>
         </Field>
-        <Field label="Regime">
+        <Field label={t("field_regime")}>
           <select value={regime} onChange={(e) => setRegime(e.target.value)}>
-            <option value="on_site">Presencial</option>
-            <option value="hybrid">Híbrido</option>
-            <option value="remote">Remoto</option>
+            <option value="on_site">{t("regime_on_site")}</option>
+            <option value="hybrid">{t("regime_hybrid")}</option>
+            <option value="remote">{t("regime_remote")}</option>
           </select>
         </Field>
       </div>
-      <Field label="Tipo de contrato">
+      <Field label={t("field_contract_type")}>
         <select value={contractType} onChange={(e) => setContractType(e.target.value)}>
-          {Object.entries(CONTRACT_TYPE_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>{label}</option>
+          {CONTRACT_TYPES.map((value) => (
+            <option key={value} value={value}>{t(`contract_${value}`)}</option>
           ))}
         </select>
       </Field>
       {isTempAgency && (
         <div className="zj-temp-agency-block">
-          <p className="zj-panel-hint">
-            Trabalho temporário/interim — Diretiva 2008/104/CE. A organização que publica esta oferta é sempre a ETT/agência (o empregador legal); a empresa utilizadora é onde o trabalho é efetivamente prestado.
-          </p>
-          <Field label="Empresa utilizadora" hint="Onde o trabalho é efetivamente prestado — nunca a própria ETT.">
-            <input value={userCompanyName} onChange={(e) => setUserCompanyName(e.target.value)} placeholder="Fábrica Alfa, S.A." />
+          <p className="zj-panel-hint">{t("temp_agency_hint")}</p>
+          <Field label={t("field_user_company")} hint={t("hint_user_company")}>
+            <input value={userCompanyName} onChange={(e) => setUserCompanyName(e.target.value)} placeholder={t("ph_user_company")} />
           </Field>
           <label className="zj-checkbox">
             <input type="checkbox" checked={equalTreatmentConfirmed} onChange={(e) => setEqualTreatmentConfirmed(e.target.checked)} />
-            Confirmo que a remuneração corresponde à de um trabalhador equivalente contratado diretamente pela empresa utilizadora (Art. 5.º)
+            {t("equal_treatment")}
           </label>
-          <Field label="Convenção coletiva com derrogação (opcional)" hint="Só necessário se não confirmares a igualdade de tratamento acima.">
-            <input value={derogationReference} onChange={(e) => setDerogationReference(e.target.value)} placeholder="ex: CCT Setor Têxtil 2025, cláusula 14.ª" />
+          <Field label={t("field_derogation")} hint={t("hint_derogation")}>
+            <input value={derogationReference} onChange={(e) => setDerogationReference(e.target.value)} placeholder={t("ph_derogation")} />
           </Field>
           <label className="zj-checkbox">
             <input type="checkbox" checked={informedOfPermanentVacancies} onChange={(e) => setInformedOfPermanentVacancies(e.target.checked)} />
-            O trabalhador será mantido informado de vagas permanentes na empresa utilizadora (Art. 6.º)
+            {t("permanent_vacancies")}
           </label>
         </div>
       )}
       <label className="zj-checkbox">
         <input type="checkbox" checked={hasFixedSalary} onChange={(e) => setHasFixedSalary(e.target.checked)} />
-        Garante remuneração base fixa (obrigatório para publicação)
+        {t("fixed_salary_check")}
       </label>
       <button className="zj-btn is-primary" disabled={!title || !description} onClick={submit}>
-        Guardar rascunho <ArrowRight size={14} />
+        {t("save_draft")} <ArrowRight size={14} />
       </button>
     </div>
   );
@@ -1682,14 +1649,10 @@ function AdminView({ orgs, offers, onApproveVerification, onReviewOffer, onPubli
   if (!staffToken) {
     return (
       <section className="zj-panel">
-        <h2>Privilégio de staff necessário</h2>
-        <p className="zj-panel-hint">
-          As ações de administrador (verificar empresas, rever e publicar ofertas) exigem staff real da
-          plataforma — não é um separador que qualquer pessoa possa simplesmente abrir. Só funciona uma vez,
-          para a primeira pessoa autenticada; depois disso, fica bloqueado (secção 10 do domínio).
-        </p>
+        <h2>{t("staff_needed_title")}</h2>
+        <p className="zj-panel-hint">{t("staff_needed_hint")}</p>
         <button className="zj-btn is-primary" disabled={!sessionToken} onClick={onBootstrapStaff}>
-          {sessionToken ? "Tornar-me staff (só a primeira vez)" : "Cria primeiro uma conta de candidato"}
+          {sessionToken ? t("become_staff") : t("toast_create_candidate_first")}
         </button>
       </section>
     );
@@ -1697,81 +1660,81 @@ function AdminView({ orgs, offers, onApproveVerification, onReviewOffer, onPubli
 
   return (
     <section className="zj-panel">
-      <h2>Fila de verificação de empresas</h2>
+      <h2>{t("verification_queue")}</h2>
       <div className="zj-list">
         {pendingOrgs.map((o) => (
           <div key={o.id} className="zj-list-row">
             <strong>{o.legalName}</strong>
-            <button className="zj-btn is-primary" onClick={() => onApproveVerification(o.id)}>Verificar</button>
+            <button className="zj-btn is-primary" onClick={() => onApproveVerification(o.id)}>{t("verify")}</button>
           </div>
         ))}
-        {pendingOrgs.length === 0 && <p className="zj-empty">Sem pedidos de verificação pendentes.</p>}
+        {pendingOrgs.length === 0 && <p className="zj-empty">{t("no_pending_verifications")}</p>}
       </div>
 
-      <h2 className="zj-subhead">Empresas verificadas — Employment Responsibility Index</h2>
+      <h2 className="zj-subhead">{t("verified_companies")}</h2>
       <div className="zj-list">
         {verifiedOrgs.map((o) => (
           <div key={o.id} className="zj-list-row">
             <div><strong>{o.legalName}</strong> <VerificationBadge status={o.verificationStatus} /></div>
-            <button className="zj-btn is-ghost" onClick={() => onViewResponsibility(o.id)}><Award size={14} /> Ver ERI</button>
+            <button className="zj-btn is-ghost" onClick={() => onViewResponsibility(o.id)}><Award size={14} /> {t("view_eri")}</button>
           </div>
         ))}
-        {verifiedOrgs.length === 0 && <p className="zj-empty">Ainda sem empresas verificadas.</p>}
+        {verifiedOrgs.length === 0 && <p className="zj-empty">{t("no_verified_companies")}</p>}
       </div>
 
-      <h2 className="zj-subhead">Fila de moderação de ofertas</h2>
+      <h2 className="zj-subhead">{t("moderation_queue")}</h2>
       <div className="zj-list">
         {pendingOffers.map((o) => (
           <div key={o.id} className="zj-list-row is-column">
             <div className="zj-list-row-top">
               <strong>{o.title}</strong>
-              <span className="zj-status status-pending_review">pending_review</span>
+              <span className="zj-status status-pending_review">{offerStatusLabel("pending_review")}</span>
             </div>
             <SalaryLedger min={o.salaryMin} max={o.salaryMax} currencyCode={o.salaryCurrency} period={o.salaryPeriod} fixed={o.hasFixedSalary} />
-            <button className="zj-btn is-primary" onClick={() => onReviewOffer(o.id)}>Validar</button>
+            <button className="zj-btn is-primary" onClick={() => onReviewOffer(o.id)}>{t("validate")}</button>
           </div>
         ))}
-        {pendingOffers.length === 0 && <p className="zj-empty">Sem ofertas por rever.</p>}
+        {pendingOffers.length === 0 && <p className="zj-empty">{t("no_offers_to_review")}</p>}
       </div>
 
-      <h2 className="zj-subhead">Aprovadas — prontas a publicar</h2>
+      <h2 className="zj-subhead">{t("approved_ready")}</h2>
       <div className="zj-list">
         {approvedOffers.map((o) => (
           <div key={o.id} className="zj-list-row">
             <strong>{o.title}</strong>
-            <button className="zj-btn is-primary" onClick={() => onPublishOffer(o.id)}>Publicar</button>
+            <button className="zj-btn is-primary" onClick={() => onPublishOffer(o.id)}>{t("publish")}</button>
           </div>
         ))}
-        {approvedOffers.length === 0 && <p className="zj-empty">Nada à espera de publicação.</p>}
+        {approvedOffers.length === 0 && <p className="zj-empty">{t("nothing_to_publish")}</p>}
       </div>
 
-      <h2 className="zj-subhead"><AlertTriangle size={15} /> Denúncias por resolver</h2>
+      <h2 className="zj-subhead"><AlertTriangle size={15} /> {t("open_reports")}</h2>
       <div className="zj-list">
         {openReports.map((r) => (
           <div key={r.id} className="zj-list-row is-column">
             <div className="zj-list-row-top">
-              <strong>{r.targetType === "job_offer" ? "Oferta" : "Empresa"} #{r.targetId}</strong>
+              <strong>{r.targetType === "job_offer" ? t("report_target_offer") : t("report_target_company")} #{r.targetId}</strong>
               <span className="zj-status status-pending_review">{r.status}</span>
             </div>
             <p className="zj-report-reason">{r.reason}</p>
             <div className="zj-drawer-actions is-row">
-              <button className="zj-btn is-primary" onClick={() => onResolveReport(r.id, "confirmed")}>Confirmar (penaliza empresa)</button>
-              <button className="zj-btn is-ghost" onClick={() => onResolveReport(r.id, "unfounded")}>Marcar infundada</button>
+              <button className="zj-btn is-primary" onClick={() => onResolveReport(r.id, "confirmed")}>{t("confirm_report")}</button>
+              <button className="zj-btn is-ghost" onClick={() => onResolveReport(r.id, "unfounded")}>{t("mark_unfounded")}</button>
             </div>
           </div>
         ))}
-        {openReports.length === 0 && <p className="zj-empty">Sem denúncias pendentes.</p>}
+        {openReports.length === 0 && <p className="zj-empty">{t("no_open_reports")}</p>}
       </div>
 
       {resolvedReports.length > 0 && (
         <>
-          <h3 className="zj-subhead">Denúncias resolvidas</h3>
+          <h3 className="zj-subhead">{t("resolved_reports")}</h3>
           <div className="zj-list">
             {resolvedReports.map((r) => (
               <div key={r.id} className="zj-list-row">
                 <span>{r.reason}</span>
                 <span className={`zj-status ${r.resolution === "confirmed" ? "status-rejected" : "status-approved"}`}>
-                  {r.resolution === "confirmed" ? "confirmada" : "infundada"}
+                  {r.resolution === "confirmed" ? t("report_confirmed") : t("report_unfounded")}
                 </span>
               </div>
             ))}
@@ -1779,17 +1742,17 @@ function AdminView({ orgs, offers, onApproveVerification, onReviewOffer, onPubli
         </>
       )}
 
-      <h2 className="zj-subhead">Registo de auditoria</h2>
+      <h2 className="zj-subhead">{t("audit_log")}</h2>
       <div className="zj-audit-list">
         {[...auditLog].reverse().slice(0, 15).map((a) => (
           <div key={a.id} className="zj-audit-row">
             <span className="zj-audit-time">{a.createdAt}</span>
             <span className="zj-audit-action">{a.action}</span>
             <span className="zj-audit-entity">{a.entityType}:{a.entityId}</span>
-            <span className="zj-audit-actor">por {a.actorId}</span>
+            <span className="zj-audit-actor">{t("audit_by", { actor: a.actorId })}</span>
           </div>
         ))}
-        {auditLog.length === 0 && <p className="zj-empty">Ainda sem eventos registados.</p>}
+        {auditLog.length === 0 && <p className="zj-empty">{t("audit_empty")}</p>}
       </div>
     </section>
   );
@@ -1802,29 +1765,29 @@ function OfferDetail({ offer, org, onClose, onApply, canApply, onViewCompanyProf
   return (
     <div className="zj-drawer-backdrop" onClick={onClose}>
       <div className="zj-drawer" onClick={(e) => e.stopPropagation()}>
-        <button className="zj-drawer-close" onClick={onClose}>Fechar</button>
+        <button className="zj-drawer-close" onClick={onClose}>{t("close")}</button>
         <p className="zj-eyebrow">{org?.legalName}</p>
         <h2>{offer.title}</h2>
         <SalaryLedger min={offer.salaryMin} max={offer.salaryMax} currencyCode={offer.salaryCurrency} period={offer.salaryPeriod} fixed={offer.hasFixedSalary} />
         <p className="zj-drawer-desc">{offer.description}</p>
         <div className="zj-drawer-actions">
-          {canApply && <button className="zj-btn is-primary" onClick={() => { onApply(); onClose(); }}>Candidatar-me <ArrowRight size={14} /></button>}
-          <button className="zj-btn is-ghost" onClick={onViewCompanyProfile}><Building2 size={14} /> Ver perfil da empresa</button>
+          {canApply && <button className="zj-btn is-primary" onClick={() => { onApply(); onClose(); }}>{t("apply")} <ArrowRight size={14} /></button>}
+          <button className="zj-btn is-ghost" onClick={onViewCompanyProfile}><Building2 size={14} /> {t("view_company_profile")}</button>
           {!reporting && (
-            <button className="zj-btn is-ghost is-danger" onClick={() => setReporting(true)}><AlertTriangle size={14} /> Denunciar esta oferta</button>
+            <button className="zj-btn is-ghost is-danger" onClick={() => setReporting(true)}><AlertTriangle size={14} /> {t("report_offer")}</button>
           )}
         </div>
         {reporting && (
           <div className="zj-report-box">
-            <Field label="Descreve o problema">
-              <textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="ex: as condições reais divergem do anunciado" />
+            <Field label={t("describe_problem")}>
+              <textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t("ph_report")} />
             </Field>
             <button
               className="zj-btn is-primary"
               disabled={!reason.trim()}
               onClick={() => { onReport(reason); setReporting(false); setReason(""); }}
             >
-              Submeter denúncia
+              {t("submit_report")}
             </button>
           </div>
         )}
@@ -1853,40 +1816,38 @@ function CompanyProfileDrawer({ org, onClose, onFetchProfile }) {
   return (
     <div className="zj-drawer-backdrop" onClick={onClose}>
       <div className="zj-drawer" onClick={(e) => e.stopPropagation()}>
-        <button className="zj-drawer-close" onClick={onClose}>Fechar</button>
-        <p className="zj-eyebrow">Employment Responsibility Index</p>
-        {error && <p className="zj-empty">Não foi possível carregar o perfil: {error}</p>}
-        {!profile && !error && <p className="zj-empty">A carregar…</p>}
+        <button className="zj-drawer-close" onClick={onClose}>{t("close")}</button>
+        <p className="zj-eyebrow">{t("eri_title")}</p>
+        {error && <p className="zj-empty">{t("profile_load_failed", { error })}</p>}
+        {!profile && !error && <p className="zj-empty">{t("loading")}</p>}
         {profile && (
           <>
             <h2>{profile.legalName}</h2>
             <VerificationBadge status={profile.verificationStatus} />
 
             <div className="zj-badges-row">
-              {profile.badges.length === 0 && <p className="zj-empty">Ainda sem selos atribuídos.</p>}
+              {profile.badges.length === 0 && <p className="zj-empty">{t("no_badges")}</p>}
               {profile.badges.map((b) => (
-                <span key={b} className="zj-eri-badge"><Award size={13} /> {BADGE_LABELS[b]}</span>
+                <span key={b} className="zj-eri-badge"><Award size={13} /> {badgeLabel(b)}</span>
               ))}
             </div>
 
-            <h3 className="zj-subhead">Componentes (secção 8 — auditáveis, não compráveis)</h3>
+            <h3 className="zj-subhead">{t("eri_components")}</h3>
             <div className="zj-eri-grid">
-              <EriMeter label="Transparência salarial" value={profile.components.salaryTransparencyScore} />
-              <EriMeter label="Completude das ofertas" value={profile.components.offerCompletenessScore} />
-              <EriMeter label="Resposta a candidatos" value={profile.components.responseScore} />
-              <EriMeter label="Integridade (sem reclamações)" value={profile.components.integrityScore} />
+              <EriMeter label={t("eri_salary_transparency")} value={profile.components.salaryTransparencyScore} />
+              <EriMeter label={t("eri_offer_completeness")} value={profile.components.offerCompletenessScore} />
+              <EriMeter label={t("eri_response")} value={profile.components.responseScore} />
+              <EriMeter label={t("eri_integrity")} value={profile.components.integrityScore} />
             </div>
 
-            <h3 className="zj-subhead">Dados brutos</h3>
+            <h3 className="zj-subhead">{t("raw_data")}</h3>
             <ul className="zj-raw-metrics">
-              <li>Ofertas publicadas: <strong>{profile.metrics.publishedOffersCount}</strong></li>
-              <li>Contratações em First Jobs: <strong>{profile.metrics.firstJobHiresCount}</strong></li>
-              <li>Contratações em Senior Careers: <strong>{profile.metrics.seniorHiresCount}</strong></li>
-              <li>Reclamações resolvidas: <strong>{profile.metrics.confirmedComplaintsCount}</strong></li>
+              <li>{t("raw_published_offers")}<strong>{profile.metrics.publishedOffersCount}</strong></li>
+              <li>{t("raw_first_job_hires")}<strong>{profile.metrics.firstJobHiresCount}</strong></li>
+              <li>{t("raw_senior_hires")}<strong>{profile.metrics.seniorHiresCount}</strong></li>
+              <li>{t("raw_complaints")}<strong>{profile.metrics.confirmedComplaintsCount}</strong></li>
             </ul>
-            <p className="zj-panel-hint">
-              Calculado no servidor a partir de dados reais desta organização — não do que este browser já tinha carregado.
-            </p>
+            <p className="zj-panel-hint">{t("eri_server_note")}</p>
           </>
         )}
       </div>
