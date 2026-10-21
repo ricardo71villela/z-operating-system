@@ -12,4 +12,5 @@ export const supabaseAdmin = createClient(url, serviceRole, {
 });
 
 export const deskAdmin = supabaseAdmin.schema('desk');
-export const zosAdmin = supabaseAdmin.schema('zos');
+// Schema zos is closed to the Data API (ZOS Core boundary): read identity
+// through the zdesk_identity_for_auth_user / zdesk_member_names RPCs.

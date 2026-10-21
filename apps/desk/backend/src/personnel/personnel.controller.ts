@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Param, Post, Query, Req } from '@nestjs/
 import type { Request } from 'express';
 import { RequireDeskAuth, RequireDeskRoles } from '../auth/desk-auth.decorators';
 import type { DeskAuthContext } from '../auth/desk-auth-context';
-import { deskAdmin, supabaseAdmin, zosAdmin } from '../supabase/supabase-admin';
+import { deskAdmin, supabaseAdmin } from '../supabase/supabase-admin';
 
 type DeskRequest = Request & { deskContext?: DeskAuthContext };
 
@@ -67,18 +67,9 @@ export class PersonnelController {
     const membershipIds = memberRows.map((member) => member.membership_id);
     const names = new Map<string, string>();
     if (membershipIds.length > 0) {
-      const { data: memberships, error: membershipError } = await zosAdmin
-        .from('memberships')
-        .select('id,person_id')
-        .in('id', membershipIds);
-      if (membershipError) throw membershipError;
-      const personIds = (memberships ?? []).map((membership) => membership.person_id);
-      if (personIds.length > 0) {
-        const { data: people, error: peopleError } = await zosAdmin.from('persons').select('id,display_name').in('id', personIds);
-        if (peopleError) throw peopleError;
-        const personNames = new Map((people ?? []).map((person) => [person.id, person.display_name || 'Z Desk member']));
-        for (const membership of memberships ?? []) names.set(membership.id, personNames.get(membership.person_id) || 'Z Desk member');
-      }
+      const { data: rows, error: namesError } = await supabaseAdmin.rpc('zdesk_member_names', { p_membership_ids: membershipIds });
+      if (namesError) throw namesError;
+      for (const row of (rows ?? []) as { membership_id: string; display_name: string | null }[]) names.set(row.membership_id, row.display_name || 'Z Desk member');
     }
 
     return {
