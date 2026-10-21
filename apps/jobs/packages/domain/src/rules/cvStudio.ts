@@ -47,11 +47,28 @@ export interface CVQualityResult {
 // conquista quantificada em vez de descrição vaga de responsabilidades.
 const QUANTIFICATION_PATTERN = /\d+([.,]\d+)?\s*%?/;
 
+/** Lower case, accents and typographic apostrophes folded ("Géré" = "gere"). */
+function fold(text: string): string {
+  return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[’‘]/g, "'").replace(/œ/g, 'oe');
+}
+
+/** Whole-word (or whole-phrase) match on folded text: "lancé" does not match "balance". */
+function containsTerm(foldedText: string, term: string): boolean {
+  const escaped = fold(term).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(^|[^\\p{L}])${escaped}($|[^\\p{L}])`, 'u').test(foldedText);
+}
+
 const ACTION_VERBS: Record<SupportedLocale, string[]> = {
   pt: ['liderei', 'aumentei', 'reduzi', 'implementei', 'criei', 'geri', 'lancei', 'otimizei'],
   it: ['ho guidato', 'ho aumentato', 'ho ridotto', 'ho implementato', 'ho creato', 'ho gestito', 'ho lanciato'],
   es: ['lideré', 'aumenté', 'reduje', 'implementé', 'creé', 'gestioné', 'lancé', 'optimicé'],
-  fr: ['j\'ai dirigé', 'j\'ai augmenté', 'j\'ai réduit', 'j\'ai mis en œuvre', 'j\'ai créé', 'j\'ai géré', 'j\'ai lancé'],
+  // French CVs usually drop "j'ai": "Dirigé une équipe…", "Mise en place de…".
+  // Matching is accent-insensitive and on whole words (see containsTerm).
+  fr: [
+    'dirigé', 'piloté', 'encadré', 'géré', 'augmenté', 'réduit', 'créé', 'conçu', 'développé',
+    'lancé', 'mis en place', 'mis en œuvre', 'mise en place', 'mise en œuvre', 'optimisé',
+    'négocié', 'coordonné', 'organisé', 'déployé', 'amélioré', 'recruté',
+  ],
   de: ['leitete', 'steigerte', 'reduzierte', 'implementierte', 'erstellte', 'verwaltete', 'startete'],
   en: ['led', 'increased', 'reduced', 'implemented', 'created', 'managed', 'launched', 'optimized'],
 };
@@ -60,7 +77,7 @@ export function computeCVQuality(input: CVContentInput): CVQualityResult {
   const signals: CVQualitySignal[] = [];
   let score = 100;
 
-  const allDescriptions = input.experiences.map((e) => e.description.toLowerCase()).join(' ');
+  const allDescriptions = fold(input.experiences.map((e) => e.description).join(' \n '));
 
   const hasQuantification = input.experiences.some((e) =>
     QUANTIFICATION_PATTERN.test(e.description),
@@ -77,7 +94,7 @@ export function computeCVQuality(input: CVContentInput): CVQualityResult {
   }
 
   const verbs = ACTION_VERBS[input.locale] ?? ACTION_VERBS.en;
-  const hasActionVerb = verbs.some((v) => allDescriptions.includes(v));
+  const hasActionVerb = verbs.some((v) => containsTerm(allDescriptions, v));
   if (!hasActionVerb && input.experiences.length > 0) {
     signals.push({
       code: 'WEAK_ACTION_VERBS',
@@ -192,6 +209,9 @@ const GENERIC_OPENING_PHRASES = [
   'venho por este meio candidatar-me a uma vaga',
   'to whom it may concern',
   'i am writing to apply for a position',
+  'je me permets de vous adresser ma candidature',
+  'veuillez trouver ci-joint mon cv',
+  'suite a votre annonce parue',
 ];
 
 /**
@@ -227,7 +247,7 @@ export function validateCoverLetterPersonalization(
     });
   }
 
-  if (GENERIC_OPENING_PHRASES.some((p) => lower.includes(p))) {
+  if (GENERIC_OPENING_PHRASES.some((p) => fold(lower).includes(fold(p)))) {
     checks.push({
       code: 'GENERIC_OPENING_PHRASE',
       message: 'A carta começa com uma fórmula genérica associada a cartas não personalizadas.',
