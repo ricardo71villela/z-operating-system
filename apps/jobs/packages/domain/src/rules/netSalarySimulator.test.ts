@@ -2,7 +2,7 @@
 // Corre com: npx tsx packages/domain/src/rules/netSalarySimulator.test.ts
 
 import assert from 'node:assert/strict';
-import { calculateNetSalary, calculateGermanIncomeTax2026, calculateGermanSocialContributions, calculateGermanNetSalary } from './netSalarySimulator';
+import { calculateNetSalary, calculateGermanIncomeTax2026, calculateGermanSocialContributions, calculateGermanNetSalary, calculateLuxembourgNetSalary, luxembourgCIS2026, luxembourgCICO2_2026, LU_TAX_BRACKETS_2026 } from './netSalarySimulator';
 import type { TaxBracket } from './netSalarySimulator';
 
 let passed = 0;
@@ -139,6 +139,57 @@ test('rendimento zero -> tudo zero, sem erro', () => {
   const r = calculateGermanNetSalary(0);
   assert.equal(r.incomeTax, 0);
   assert.equal(r.netAnnual, 0);
+});
+
+// --- Luxemburgo: classe 1, 2026 ---
+
+console.log('\nLuxemburgo (classe 1, 2026)');
+
+test('tarifa LU: escalões contíguos e taxas crescentes até 42 %', () => {
+  for (let i = 1; i < LU_TAX_BRACKETS_2026.length; i++) {
+    assert.equal(LU_TAX_BRACKETS_2026[i].incomeFrom, LU_TAX_BRACKETS_2026[i - 1].incomeTo);
+    assert.ok(LU_TAX_BRACKETS_2026[i].marginalRate > LU_TAX_BRACKETS_2026[i - 1].marginalRate);
+  }
+  assert.equal(LU_TAX_BRACKETS_2026.at(-1)!.marginalRate, 0.42);
+});
+
+test('CIS contínuo nas fronteiras (≈600 € a 11 265 €, 0 € a 80 000 €)', () => {
+  assert.ok(Math.abs(luxembourgCIS2026(11265) - 600) < 1);
+  assert.equal(luxembourgCIS2026(20000), 600);
+  assert.ok(Math.abs(luxembourgCIS2026(79999)) < 0.02);
+  assert.equal(luxembourgCIS2026(80000), 0);
+});
+
+test('CI-CO2 contínuo: 216 € até 40 000 €, ~0 € a 80 000 €', () => {
+  assert.equal(luxembourgCICO2_2026(40000), 216);
+  assert.ok(Math.abs(luxembourgCICO2_2026(79999)) < 0.01);
+});
+
+test('50 000 € brutos -> cálculo à mão (cotisations 6 358,64 €, net ≈ 38 760 €)', () => {
+  const r = calculateLuxembourgNetSalary(50000);
+  const dep = 0.014 * (50000 - 12 * 692.83);
+  assert.ok(Math.abs(r.socialContributions - (50000 * 0.1155 + dep)) < 0.01);
+  assert.equal(r.taxableIncome, 50000 - 5775 - 1020);
+  assert.equal(r.taxCredits, 450 + 162);
+  assert.ok(r.netAnnual > 38500 && r.netAnnual < 39000, `net ${r.netAnnual}`);
+});
+
+test('salário baixo: créditos superiores ao imposto -> imposto negativo (reembolsado)', () => {
+  const r = calculateLuxembourgNetSalary(15000);
+  assert.ok(r.incomeTax < 0);
+  assert.ok(r.netAnnual > 15000 - r.socialContributions);
+});
+
+test('teto de cotisação pensão/saúde aplicado acima de 12 × 13 856,63 €', () => {
+  const a = calculateLuxembourgNetSalary(200000);
+  const b = calculateLuxembourgNetSalary(210000);
+  assert.ok(Math.abs((b.socialContributions - a.socialContributions) - 10000 * 0.014) < 0.01);
+});
+
+test('rendimento zero -> tudo zero', () => {
+  const r = calculateLuxembourgNetSalary(0);
+  assert.equal(r.netAnnual, 0);
+  assert.equal(r.incomeTax, 0);
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);
