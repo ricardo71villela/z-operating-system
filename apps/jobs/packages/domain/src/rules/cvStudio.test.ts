@@ -114,6 +114,25 @@ const goodLetter = validateCoverLetterPersonalization({
 assert(goodLetter.personalized, 'carta personalizada e completa deve passar em todas as verificações');
 assert(goodLetter.checks.length === 0, 'carta válida não deve ter checks pendentes');
 
+// --- Francês: verbos sem "j'ai", acentos e palavras inteiras ---
+const frCV = (description: string) =>
+  computeCVQuality({ locale: 'fr', experiences: [{ title: 'Responsable', description }], skills: [], certifications: ['x'], hasPortfolioLink: true });
+const weakVerbs = (description: string) => frCV(description).signals.some((s) => s.code === 'WEAK_ACTION_VERBS');
+assert(!weakVerbs("Dirigé une équipe de 5 personnes, chiffre d'affaires +18 %."), 'fr: "Dirigé…" (sem j\'ai) conta como verbo de ação');
+assert(!weakVerbs('Mise en place du nouveau CRM pour 40 commerciaux.'), 'fr: "Mise en place…" conta como verbo de ação');
+assert(!weakVerbs("J'ai géré 40 comptes clients en 2025."), "fr: \"J'ai géré\" continua a contar");
+assert(!weakVerbs('GERE le budget de 2 M€ sans accents.'), 'fr: sem acentos e em maiúsculas também conta');
+assert(!weakVerbs('Piloté le projet ’Atlas’ livré en 6 mois.'), 'fr: apóstrofos tipográficos não atrapalham');
+assert(weakVerbs('Responsable de la balance comptable et du freelance, 3 dossiers.'), 'fr: "lancé" não é encontrado dentro de "balance" nem "freelance"');
+assert(weakVerbs('Chargé des tâches administratives quotidiennes, 10 dossiers.'), 'fr: descrição só de tarefas continua fraca');
+
+const frGeneric = validateCoverLetterPersonalization({
+  bodyText: "Madame, Monsieur, je me permets de vous adresser ma candidature pour le poste de Chef de rang chez Brasserie Léman, où j'aimerais mettre à profit mes cinq années d'expérience en salle et ma connaissance des vins de Savoie pour accueillir votre clientèle.",
+  employerName: 'Brasserie Léman',
+  jobOfferTitle: 'Chef de rang',
+});
+assert(frGeneric.checks.some((c) => c.code === 'GENERIC_OPENING_PHRASE'), 'fr: fórmula genérica francesa é detetada');
+
 console.log(`\n${passed} testes passaram, ${failed} falharam.`);
 if (failed > 0) {
   process.exit(1);

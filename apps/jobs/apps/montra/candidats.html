@@ -178,7 +178,7 @@ var ACTION_VERBS = {
   pt: ['liderei','aumentei','reduzi','implementei','criei','geri','lancei','otimizei'],
   it: ['ho guidato','ho aumentato','ho ridotto','ho implementato','ho creato','ho gestito','ho lanciato'],
   es: ['lideré','aumenté','reduje','implementé','creé','gestioné','lancé','optimicé'],
-  fr: ["j'ai dirigé","j'ai augmenté","j'ai réduit","j'ai mis en œuvre","j'ai créé","j'ai géré","j'ai lancé"],
+  fr: ['dirigé','piloté','encadré','géré','augmenté','réduit','créé','conçu','développé','lancé','mis en place','mis en œuvre','mise en place','mise en œuvre','optimisé','négocié','coordonné','organisé','déployé','amélioré','recruté'],
   de: ['leitete','steigerte','reduzierte','implementierte','erstellte','verwaltete','startete'],
   en: ['led','increased','reduced','implemented','created','managed','launched','optimized'],
 };
@@ -186,7 +186,20 @@ var GENERIC_OPENING_PHRASES = [
   'venho por este meio candidatar-me a uma vaga',
   'to whom it may concern',
   'i am writing to apply for a position',
+  'je me permets de vous adresser ma candidature',
+  'veuillez trouver ci-joint mon cv',
+  'suite a votre annonce parue',
 ];
+
+// Same matching as packages/domain/src/rules/cvStudio.ts: accents folded,
+// whole words only ("lancé" does not match "balance").
+function fold(text) {
+  return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[’‘]/g, "'").replace(/œ/g, 'oe');
+}
+function containsTerm(foldedText, term) {
+  var escaped = fold(term).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp('(^|[^\\p{L}])' + escaped + '($|[^\\p{L}])', 'u').test(foldedText);
+}
 
 function computeCVQuality(text, locale, hasCert, hasPortfolio) {
   var signals = [];
@@ -202,7 +215,8 @@ function computeCVQuality(text, locale, hasCert, hasPortfolio) {
   }
 
   var verbs = ACTION_VERBS[locale] || ACTION_VERBS.en;
-  var hasVerb = verbs.some(function (v) { return lower.indexOf(v) !== -1; });
+  var folded = fold(text);
+  var hasVerb = verbs.some(function (v) { return containsTerm(folded, v); });
   if (hasText && !hasVerb) {
     signals.push({ ok:false, key:'sig_weak_verbs' });
     score -= 15;
@@ -241,7 +255,7 @@ function validateCoverLetter(body, employer, title) {
   if (employer && lower.indexOf(employer.toLowerCase()) === -1) checks.push('cl_missing_employer');
   if (title && lower.indexOf(title.toLowerCase()) === -1) checks.push('cl_missing_title');
   if (body.trim().length < 200) checks.push('cl_too_short');
-  if (GENERIC_OPENING_PHRASES.some(function (p) { return lower.indexOf(p) !== -1; })) checks.push('cl_generic_opening');
+  if (GENERIC_OPENING_PHRASES.some(function (p) { return fold(lower).indexOf(fold(p)) !== -1; })) checks.push('cl_generic_opening');
   return checks;
 }
 
