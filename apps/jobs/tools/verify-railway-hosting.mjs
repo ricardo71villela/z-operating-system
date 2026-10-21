@@ -27,9 +27,13 @@ assert.equal(montraRailway.deploy?.healthcheckPath, '/health');
 const montraDocker = read('apps/jobs/apps/montra/Dockerfile');
 assert.match(montraDocker, /FROM caddy:2\.8\.4-alpine/);
 const montraCaddy = read('apps/jobs/apps/montra/Caddyfile');
-for (const route of ['candidatos', 'empregadores', 'ferramentas']) {
-  assert.match(montraCaddy, new RegExp(`/${route}\\b`));
-  assert.match(montraCaddy, new RegExp(`/${route}\\.html`));
+for (const route of ['candidats', 'employeurs', 'outils']) {
+  assert.match(montraCaddy, new RegExp(`@${route} path /${route}\\b`));
+  assert.match(montraCaddy, new RegExp(`rewrite @${route} /${route}\\.html`));
+}
+// Former Portuguese addresses keep working (301 to the French pages).
+for (const [from, to] of [['candidatos', 'candidats'], ['empregadores', 'employeurs'], ['ferramentas', 'outils']]) {
+  assert.match(montraCaddy, new RegExp(`redir /${from} /${to} 301`));
 }
 
 console.log('Z Jobs Railway hosting contract: PASS');

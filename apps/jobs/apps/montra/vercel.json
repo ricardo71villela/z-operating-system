@@ -3,18 +3,68 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
-    { "source": "/candidatos", "destination": "/candidatos.html" },
-    { "source": "/empregadores", "destination": "/empregadores.html" },
-    { "source": "/ferramentas", "destination": "/ferramentas.html" }
+    {
+      "source": "/candidats",
+      "destination": "/candidats.html"
+    },
+    {
+      "source": "/employeurs",
+      "destination": "/employeurs.html"
+    },
+    {
+      "source": "/outils",
+      "destination": "/outils.html"
+    }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
       ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/candidatos",
+      "destination": "/candidats",
+      "permanent": true
+    },
+    {
+      "source": "/candidatos.html",
+      "destination": "/candidats",
+      "permanent": true
+    },
+    {
+      "source": "/empregadores",
+      "destination": "/employeurs",
+      "permanent": true
+    },
+    {
+      "source": "/empregadores.html",
+      "destination": "/employeurs",
+      "permanent": true
+    },
+    {
+      "source": "/ferramentas",
+      "destination": "/outils",
+      "permanent": true
+    },
+    {
+      "source": "/ferramentas.html",
+      "destination": "/outils",
+      "permanent": true
     }
   ]
 }

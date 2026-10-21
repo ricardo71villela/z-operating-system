@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="fr">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Z Jobs — O salário faz parte da oferta.</title>
+<title data-i18n="page_title">Z Jobs — Le salaire fait partie de l'offre.</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
@@ -272,59 +272,57 @@
       <span>Z Jobs</span>
     </div>
     <div class="locales">
-      <span class="is-active" data-locale="pt">PT</span><span data-locale="it">IT</span><span data-locale="es">ES</span><span data-locale="fr">FR</span><span data-locale="de">DE</span>
+      <span class="is-active" data-locale="fr">FR</span><span data-locale="en">EN</span>
     </div>
-    <a class="nav-cta" href="#stage" data-i18n="nav_cta">Ver uma oferta verificada</a>
+    <a class="nav-cta" href="#stage" data-i18n="nav_cta">Voir une offre vérifiée</a>
   </div>
   <div class="wrap navlinks">
-    <a href="#stage">Ofertas</a>
-    <a href="candidatos.html">Para candidatos</a>
-    <a href="empregadores.html">Para empregadores</a>
-    <a href="ferramentas.html">Legislação e ferramentas</a>
+    <a href="#stage" data-i18n="nav_offers">Offres</a>
+    <a href="/candidats" data-i18n="nav_candidates">Pour les candidats</a>
+    <a href="/employeurs" data-i18n="nav_employers">Pour les employeurs</a>
+    <a href="/outils" data-i18n="nav_tools">Législation et outils</a>
   </div>
 </nav>
 
 <header class="hero">
   <div class="wrap hero-grid">
     <div class="hero-text">
-      <div class="eyebrow" data-i18n="eyebrow">Portal de emprego · à escala europeia</div>
-      <h1 class="headline" data-i18n-html="headline">O salário faz parte<br>da oferta.</h1>
-      <p class="sub" data-i18n="sub">Recomendamos remuneração e empregador sempre visíveis em cada oferta — mais confiança, mais candidaturas. A escolha final é sempre do empregador.</p>
+      <div class="eyebrow" data-i18n="eyebrow">Portail d'emploi · France, Belgique, Luxembourg</div>
+      <h1 class="headline" data-i18n-html="headline">Le salaire fait partie<br>de l'offre.</h1>
+      <p class="sub" data-i18n="sub">Nous recommandons que chaque offre affiche toujours la rémunération et l'employeur — plus de confiance, plus de candidatures. La décision finale appartient toujours à l'employeur.</p>
       <ul class="hero-points">
-        <li data-i18n="point1">Empregador identificado e verificado, nunca anónimo.</li>
-        <li data-i18n="point2">Salário comparado com tabelas oficiais de convenções coletivas.</li>
-        <li data-i18n="point3">Sempre gratuito para quem procura emprego.</li>
+        <li data-i18n="point1">Employeur identifié et vérifié, jamais anonyme.</li>
+        <li data-i18n="point2">Salaire comparé aux grilles officielles des conventions collectives.</li>
+        <li data-i18n="point3">Toujours gratuit pour les chercheurs d'emploi.</li>
       </ul>
     </div>
 
     <div class="stage" id="stage">
       <div class="reveal-card" id="revealCard">
-        <div class="kicker" data-i18n="kicker">Oferta publicada · Zeta Tech</div>
-        <h3 data-i18n="job_title">Engenheiro/a de Software Backend</h3>
+        <div class="kicker" data-i18n="kicker">Exemple d'offre · Zeta Tech</div>
+        <h3 data-i18n="job_title">Ingénieur·e Logiciel Backend</h3>
 
         <div class="field">
-          <span class="label" data-i18n="label_company">EMPRESA</span>
+          <span class="label" data-i18n="label_company">ENTREPRISE</span>
           <div class="redact-bar" style="max-width:180px"></div>
-          <span class="reveal-value" data-i18n="val_company">Zeta Tech Lda — verificada</span>
+          <span class="reveal-value" data-i18n="val_company">Zeta Tech SAS — vérifiée</span>
         </div>
         <div class="field">
-          <span class="label" data-i18n="label_location">LOCAL</span>
+          <span class="label" data-i18n="label_location">LIEU</span>
           <div class="redact-bar" style="max-width:140px"></div>
-          <span class="reveal-value" data-i18n="val_location">Lisboa · remoto</span>
+          <span class="reveal-value" data-i18n="val_location">Lyon · hybride</span>
         </div>
         <div class="field">
-          <span class="label" data-i18n="label_salary">SALÁRIO</span>
+          <span class="label" data-i18n="label_salary">SALAIRE</span>
           <div class="redact-bar" style="max-width:220px"></div>
-          <span class="reveal-value" data-i18n="val_salary">€2.200 – €2.600 / mês · efetivo</span>
+          <span class="reveal-value" data-i18n="val_salary">3 400 € – 3 900 € / mois · CDI</span>
         </div>
 
-        <button class="verify-btn" id="verifyBtn" data-i18n="verify_btn">
-          Verificar oferta
-        </button>
+        <button class="verify-btn" id="verifyBtn" data-i18n="verify_btn">Vérifier l'offre</button>
 
-        <p class="source-note" data-i18n="source_note">Confirmado com a organização verificada e com a tabela salarial oficial da profissão — Boletim do Trabalho e Emprego n.º 2, 15 jan. 2025.</p>
+        <p class="source-note" data-i18n="source_note">Exemple : l'offre est confirmée auprès de l'organisation vérifiée, et le salaire comparé au minimum légal et à la grille de la convention collective applicable.</p>
 
-        <div class="stamp" data-i18n-html="stamp">VERIFI<br>CADO</div>
+        <div class="stamp" data-i18n-html="stamp">VÉRI<br>FIÉE</div>
       </div>
     </div>
   </div>
@@ -334,31 +332,29 @@
   <div class="wrap">
     <div class="search-card">
       <div class="search-field">
-        <label for="searchKeyword" data-i18n="search_label_keyword">Palavra-chave</label>
-        <input type="text" id="searchKeyword" placeholder="ex: engenheiro, vendas, marketing" data-i18n-placeholder="search_placeholder" />
+        <label for="searchKeyword" data-i18n="search_label_keyword">Mot-clé</label>
+        <input type="text" id="searchKeyword" placeholder="ex : ingénieur, vente, marketing" data-i18n-placeholder="ex : ingénieur, vente, marketing" />
       </div>
       <div class="search-field">
-        <label for="searchCountry" data-i18n="search_label_country">País</label>
+        <label for="searchCountry" data-i18n="search_label_country">Pays</label>
         <select id="searchCountry">
-          <option data-i18n="flag_pt">Portugal</option>
-          <option data-i18n="flag_it">Itália</option>
-          <option data-i18n="flag_es">Espanha</option>
-          <option data-i18n="flag_fr">França</option>
-          <option data-i18n="flag_de">Alemanha</option>
+          <option data-i18n="flag_fr">France</option>
+          <option data-i18n="flag_be">Belgique</option>
+          <option data-i18n="flag_lu">Luxembourg</option>
         </select>
       </div>
       <div class="search-field">
-        <label for="searchSector" data-i18n="search_label_sector">Setor</label>
+        <label for="searchSector" data-i18n="search_label_sector">Secteur</label>
         <select id="searchSector">
-          <option data-i18n="sector_all">Todos os setores</option>
-          <option data-i18n="sector_tech">Informação e comunicação</option>
-          <option data-i18n="sector_hospitality">Alojamento e restauração</option>
+          <option data-i18n="sector_all">Tous les secteurs</option>
+          <option data-i18n="sector_tech">Information et communication</option>
+          <option data-i18n="sector_hospitality">Hébergement et restauration</option>
         </select>
       </div>
-      <button id="searchBtn" data-i18n="search_btn">Procurar</button>
+      <button id="searchBtn" data-i18n="search_btn">Rechercher</button>
     </div>
-    <p class="search-note" data-i18n="search_note">O catálogo de ofertas ainda não está aberto ao público — a pesquisa mostra-te já a experiência com a oferta de exemplo acima.</p>
-    <span class="legal-cite" data-i18n="sector_cite">Setores classificados por NACE Rev. 2 (Eurostat) — a mesma norma oficial usada para classificar empresas na plataforma.</span>
+    <p class="search-note" data-i18n="search_note">Le catalogue d'offres n'est pas encore ouvert au public — la recherche vous montre déjà l'expérience avec l'offre d'exemple ci-dessus.</p>
+    <span class="legal-cite" data-i18n="sector_cite">Secteurs classés selon la NACE Rév. 2 (Eurostat) — la même norme officielle utilisée pour classer les entreprises sur la plateforme.</span>
   </div>
 </section>
 
@@ -367,20 +363,20 @@
     <div class="proof-grid">
       <div class="proof-cell">
         <div class="seal">€</div>
-        <h3 data-i18n="proof1_title">Salário oficial, não estimado</h3>
-        <p data-i18n="proof1_body">Comparamos cada oferta com tabelas de convenções coletivas reais, publicadas em boletins oficiais — nunca um algoritmo a adivinhar.</p>
-        <span class="cite">BTE N.º 2 · 15.01.2025</span>
+        <h3 data-i18n="proof1_title">Salaire officiel, non estimé</h3>
+        <p data-i18n="proof1_body">Nous comparons chaque offre au salaire minimum légal et aux grilles des conventions collectives publiées officiellement — jamais un algorithme qui devine.</p>
+        <span class="cite" data-i18n="proof1_cite">Conventions collectives · sources officielles</span>
       </div>
       <div class="proof-cell">
         <div class="seal">✓</div>
-        <h3 data-i18n="proof2_title">Empregador verificado</h3>
-        <p data-i18n="proof2_body">O selo de verificação nunca é comprável. É calculado a partir de dados observáveis — taxa de resposta, denúncias confirmadas, histórico real.</p>
-        <span class="cite">Índice de Responsabilidade</span>
+        <h3 data-i18n="proof2_title">Employeur vérifié</h3>
+        <p data-i18n="proof2_body">Le label de vérification ne s'achète jamais. Il est calculé à partir de données observables — taux de réponse, plaintes confirmées, historique réel.</p>
+        <span class="cite" data-i18n="proof2_cite">Indice de responsabilité</span>
       </div>
       <div class="proof-cell">
         <div class="seal">0€</div>
-        <h3 data-i18n="proof3_title">Sempre gratuito para candidatos</h3>
-        <p data-i18n="proof3_body">Nunca há subscrição, nem taxa, nem funcionalidade paga do lado de quem procura emprego. Quem paga é o empregador.</p>
+        <h3 data-i18n="proof3_title">Toujours gratuit pour les candidats</h3>
+        <p data-i18n="proof3_body">Jamais d'abonnement, de frais, ni de fonctionnalité payante côté candidat. C'est l'employeur qui paie.</p>
       </div>
     </div>
   </div>
@@ -388,10 +384,10 @@
 
 <section class="compare">
   <div class="wrap">
-    <h2 data-i18n="compare_h2">Uma oferta completa — não um resumo vago.</h2>
+    <h2 data-i18n="compare_h2">Une offre complète — pas un résumé vague.</h2>
     <div class="compare-grid">
       <div class="compare-card dim">
-        <span class="compare-tag" data-i18n="tag_common">Portal comum</span>
+        <span class="compare-tag" data-i18n="tag_common">Portail courant</span>
         <div class="mock-line" style="width:80%"></div>
         <div class="mock-line short"></div>
         <div class="mock-line" style="width:35%"></div>
@@ -399,88 +395,83 @@
       </div>
       <div class="compare-card bright">
         <span class="compare-tag">Z Jobs</span>
-        <div class="mock-title" data-i18n="job_title">Engenheiro/a de Software Backend</div>
-        <div class="mock-row"><span data-i18n="row_company">Empresa</span><b>Zeta Tech Lda</b></div>
-        <div class="mock-row"><span data-i18n="row_salary">Salário</span><b>€2.200–€2.600</b></div>
-        <div class="mock-row"><span data-i18n="row_contract">Contrato</span><b data-i18n="row_contract_val">Efetivo</b></div>
-        <div class="mock-row"><span data-i18n="row_verification">Verificação</span><b data-i18n="row_verification_val">Confirmada</b></div>
+        <div class="mock-title" data-i18n="job_title">Ingénieur·e Logiciel Backend</div>
+        <div class="mock-row"><span data-i18n="row_company">Entreprise</span><b>Zeta Tech SAS</b></div>
+        <div class="mock-row"><span data-i18n="row_salary">Salaire</span><b data-i18n="row_salary_val">3 400 € – 3 900 €</b></div>
+        <div class="mock-row"><span data-i18n="row_contract">Contrat</span><b data-i18n="row_contract_val">CDI</b></div>
+        <div class="mock-row"><span data-i18n="row_verification">Vérification</span><b data-i18n="row_verification_val">Confirmée</b></div>
       </div>
     </div>
   </div>
 </section>
 
-<section class="legal section-light" id="legislacao">
+<section class="legal section-light" id="legislation">
   <div class="wrap">
-    <span class="section-kicker" data-i18n="legal_kicker">Legislação laboral</span>
-    <h2 data-i18n="legal_title">Cinco países, dados oficiais — nenhum em destaque sobre os outros.</h2>
-    <p class="section-sub" data-i18n="legal_sub">Salário mínimo nacional, fonte Eurostat, em vigor a partir de 1 de janeiro de 2026. A Itália não tem salário mínimo estatutário — é definido por convenção coletiva, não por lei, o que também mostramos, em vez de esconder.</p>
+    <span class="section-kicker" data-i18n="legal_kicker">Législation du travail</span>
+    <h2 data-i18n="legal_title">Trois pays, des données officielles — aucun mis en avant.</h2>
+    <p class="section-sub" data-i18n="legal_sub">Salaire minimum national, mensuel brut, source Eurostat, en vigueur au 1er juillet 2026.</p>
     <div class="legal-grid">
-      <div class="legal-row"><span class="legal-country">🇩🇪 <span data-i18n="flag_de">Alemanha</span></span><span class="legal-value">2.343 €/mês</span></div>
-      <div class="legal-row"><span class="legal-country">🇫🇷 <span data-i18n="flag_fr">França</span></span><span class="legal-value">1.823 €/mês</span></div>
-      <div class="legal-row"><span class="legal-country">🇪🇸 <span data-i18n="flag_es">Espanha</span></span><span class="legal-value">1.381 €/mês</span></div>
-      <div class="legal-row"><span class="legal-country">🇵🇹 <span data-i18n="flag_pt">Portugal</span></span><span class="legal-value">1.073 €/mês</span></div>
-      <div class="legal-row"><span class="legal-country">🇮🇹 <span data-i18n="flag_it">Itália</span></span><span class="legal-value muted" data-i18n="legal_it_note">sem mínimo nacional — só por convenção</span></div>
+      <div class="legal-row"><span class="legal-country">🇫🇷 <span data-i18n="flag_fr">France</span></span><span class="legal-value">1 867 <span data-i18n="legal_value_month">€/mois</span></span></div>
+      <div class="legal-row"><span class="legal-country">🇧🇪 <span data-i18n="flag_be">Belgique</span></span><span class="legal-value">2 234 <span data-i18n="legal_value_month">€/mois</span></span></div>
+      <div class="legal-row"><span class="legal-country">🇱🇺 <span data-i18n="flag_lu">Luxembourg</span></span><span class="legal-value">2 771 <span data-i18n="legal_value_month">€/mois</span></span></div>
     </div>
-    <span class="cite" data-i18n="legal_cite" style="display:block;margin:16px 0 36px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--trust);">Eurostat, Minimum wage statistics · dados a 1 jan. 2026</span>
+    <span class="cite" data-i18n="legal_cite" style="display:block;margin:16px 0 36px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--trust);">Eurostat, salaires minimums (earn_mw_cur) · valeurs au 1er juillet 2026, mise à jour du 31 juillet 2026</span>
 
-    <h3 data-i18n="holidays_heading" style="font-size:17px;margin-bottom:14px;">Feriados nacionais (2026)</h3>
+    <h3 data-i18n="holidays_heading" style="font-size:17px;margin-bottom:14px;">Jours fériés légaux (2026)</h3>
     <div class="legal-grid">
-      <div class="legal-row"><span class="legal-country">🇫🇷 <span data-i18n="flag_fr">França</span></span><span class="legal-value">11</span></div>
-      <div class="legal-row"><span class="legal-country">🇮🇹 <span data-i18n="flag_it">Itália</span></span><span class="legal-value">11</span></div>
-      <div class="legal-row"><span class="legal-country">🇵🇹 <span data-i18n="flag_pt">Portugal</span></span><span class="legal-value">13</span></div>
-      <div class="legal-row"><span class="legal-country">🇩🇪 <span data-i18n="flag_de">Alemanha</span></span><span class="legal-value muted" data-i18n="holidays_de_note">9 federais + 4-6 por Land</span></div>
-      <div class="legal-row"><span class="legal-country">🇪🇸 <span data-i18n="flag_es">Espanha</span></span><span class="legal-value muted" data-i18n="holidays_es_note">14 no total — nacionais+regionais, teto legal</span></div>
+      <div class="legal-row"><span class="legal-country">🇫🇷 <span data-i18n="flag_fr">France</span></span><span class="legal-value" data-i18n="holidays_fr_note">11 (+ 2 en Alsace-Moselle)</span></div>
+      <div class="legal-row"><span class="legal-country">🇧🇪 <span data-i18n="flag_be">Belgique</span></span><span class="legal-value">10</span></div>
+      <div class="legal-row"><span class="legal-country">🇱🇺 <span data-i18n="flag_lu">Luxembourg</span></span><span class="legal-value">11</span></div>
     </div>
-    <span class="cite" data-i18n="holidays_cite" style="display:block;margin-top:16px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--trust);">Agência Europeia de Medicamentos (EMA), lista oficial de feriados na UE, EMA/240605/2025</span>
+    <span class="cite" data-i18n="holidays_cite" style="display:block;margin-top:16px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--trust);">Code du travail (FR) art. L3133-1 · Arrêté royal du 18 avril 1974 (BE) · Code du travail (LU) art. L.232-2</span>
   </div>
 </section>
 
-<section class="econ section-light" id="economia">
+<section class="econ section-light" id="economie">
   <div class="wrap">
-    <span class="section-kicker" data-i18n="econ_kicker">Indicadores económicos</span>
-    <h2 data-i18n="econ_h2">Inflação, desemprego e crescimento salarial — os cinco países, lado a lado.</h2>
-    <p class="section-sub" data-i18n="econ_sub">Valores mais recentes disponíveis à data da consulta, não uma série uniforme — cada barra tem a sua própria data, indicada na legenda. O teu país (conforme o idioma escolhido) fica sempre destacado.</p>
+    <span class="section-kicker" data-i18n="econ_kicker">Indicateurs économiques</span>
+    <h2 data-i18n="econ_h2">Inflation, chômage et salaire minimum — les trois pays, côte à côte.</h2>
+    <p class="section-sub" data-i18n="econ_sub">Dernières valeurs publiées par Eurostat à la date de consultation — chaque graphique indique sa date.</p>
     <div class="econ-grid">
       <div class="econ-card">
-        <h3 data-i18n="econ_inflation_title">Inflação (variação anual)</h3>
+        <h3 data-i18n="econ_inflation_title">Inflation (IPCH, sur un an)</h3>
         <canvas id="chartInflation" height="220"></canvas>
-        <span class="legal-cite" data-i18n="econ_inflation_cite">Trading Economics / Eurostat · junho de 2026</span>
+        <span class="legal-cite" data-i18n="econ_inflation_cite">Eurostat, communiqué du 16 octobre 2026 · septembre 2026</span>
       </div>
       <div class="econ-card">
-        <h3 data-i18n="econ_unemployment_title">Taxa de desemprego</h3>
+        <h3 data-i18n="econ_unemployment_title">Taux de chômage</h3>
         <canvas id="chartUnemployment" height="220"></canvas>
-        <span class="legal-cite" data-i18n="econ_unemployment_cite">Eurostat · Alemanha/França/Itália/Espanha jun. 2026, Portugal mar. 2026 (INE)</span>
+        <span class="legal-cite" data-i18n="econ_unemployment_cite">Eurostat (une_rt_m), corrigé des variations saisonnières · août 2026</span>
       </div>
       <div class="econ-card">
-        <h3 data-i18n="econ_wages_title">Crescimento salarial nominal (anual)</h3>
+        <h3 data-i18n="econ_wages_title">Hausse du salaire minimum sur un an</h3>
         <canvas id="chartWages" height="220"></canvas>
-        <span class="legal-cite" data-i18n="econ_wages_cite">Eurostat, negotiated/compensation wages, T4 2025 · Portugal: projeção OCDE 2026</span>
+        <span class="legal-cite" data-i18n="econ_wages_cite">Eurostat (earn_mw_cur) · juillet 2025 → juillet 2026</span>
       </div>
     </div>
   </div>
 </section>
 
-<section class="simulator" id="simulador">
+<section class="simulator" id="simulateur">
   <div class="wrap">
-    <span class="section-kicker" data-i18n="sim_kicker">Simulador de salário líquido</span>
-    <h2 data-i18n="sim_title">Bruto para líquido, com o escalão fiscal real — não uma média.</h2>
-    <p class="section-sub" data-i18n="sim_sub_multi">Cinco países, cada fórmula verificada individualmente contra fonte oficial. Uma estimativa simplificada — pessoa solteira, sem dependentes — nunca substitui o simulador oficial nem aconselhamento fiscal.</p>
+    <span class="section-kicker" data-i18n="sim_kicker">Simulateur de salaire net</span>
+    <h2 data-i18n="sim_title">Du brut au net, avec le vrai barème fiscal — pas une moyenne.</h2>
+    <p class="section-sub" data-i18n="sim_sub_multi">France pour l'instant — Belgique et Luxembourg en préparation. Estimation simplifiée (personne seule, sans enfant) : elle ne remplace ni le simulateur officiel ni un conseil fiscal.</p>
     <div class="sim-card">
       <div class="sim-input-row">
-        <div><label for="simCountry" data-i18n="sim_label_country">País</label>
+        <div><label for="simCountry" data-i18n="sim_label_country">Pays</label>
           <select id="simCountry" style="background:var(--ink); border:1px solid var(--line); border-radius:8px; padding:11px 14px; color:var(--paper); font-family:'IBM Plex Mono',monospace; font-size:15px;">
-            <option value="fr" data-i18n="flag_fr">França</option><option value="de" data-i18n="flag_de">Alemanha</option><option value="it" data-i18n="flag_it">Itália</option>
-            <option value="es" data-i18n="flag_es">Espanha</option><option value="pt" data-i18n="flag_pt">Portugal</option>
+            <option value="fr" data-i18n="flag_fr">France</option><option value="be" data-i18n="flag_be">Belgique</option><option value="lu" data-i18n="flag_lu">Luxembourg</option>
           </select>
         </div>
-        <div><label for="simGross" data-i18n="sim_label">Salário bruto anual (€)</label>
+        <div><label for="simGross" data-i18n="sim_label">Salaire brut annuel (€)</label>
         <input type="number" id="simGross" value="35000" min="0" step="500" /></div>
-        <button id="simBtn" data-i18n="sim_btn">Calcular</button>
+        <button id="simBtn" data-i18n="sim_btn">Calculer</button>
       </div>
       <div class="sim-result" id="simResult">
-        <div class="sim-line"><span data-i18n="sim_social">Contribuições sociais</span><b id="simSocial">—</b></div>
-        <div class="sim-line"><span data-i18n="sim_tax">Imposto sobre o rendimento</span><b id="simTax">—</b></div>
-        <div class="sim-line is-total"><span data-i18n="sim_net">Líquido mensal estimado</span><b id="simNet">—</b></div>
+        <div class="sim-line"><span data-i18n="sim_social">Cotisations sociales</span><b id="simSocial">—</b></div>
+        <div class="sim-line"><span data-i18n="sim_tax">Impôt sur le revenu</span><b id="simTax">—</b></div>
+        <div class="sim-line is-total"><span data-i18n="sim_net">Net mensuel estimé</span><b id="simNet">—</b></div>
       </div>
       <p id="simScopeNote" style="margin-top:16px; font-size:12.5px; color:var(--ash); line-height:1.6;"></p>
 
@@ -488,21 +479,19 @@
   </div>
 </section>
 
-<section class="employers section-light" id="empregadores">
+<section class="employers section-light" id="employeurs">
   <div class="wrap">
-    <span class="section-kicker">Para empregadores</span>
-    <h2>Verificação real tem custo zero até à primeira contratação.</h2>
-    <p class="section-sub">O primeiro anúncio é sempre gratuito para uma organização verificada. Sem selo comprável, sem impulsionamento pago a esconder ofertas fracas — a visibilidade vem de dados observáveis, não de orçamento de marketing.</p>
-    <a class="employer-cta" href="#stage">Saber como funciona a verificação</a>
+    <span class="section-kicker" data-i18n="emp_kicker">Pour les employeurs</span>
+    <h2 data-i18n="emp_title">La vérification réelle ne coûte rien jusqu'à votre première embauche.</h2>
+    <p class="section-sub" data-i18n="emp_sub">La première offre est toujours gratuite pour une organisation vérifiée. Aucun label achetable, aucun boost payant pour masquer des offres faibles — la visibilité vient de données observables, pas d'un budget marketing.</p>
+    <a class="employer-cta" href="/employeurs" data-i18n="emp_cta">Voir comment fonctionne la vérification</a>
   </div>
 </section>
 
 <footer>
   <div class="wrap">
-    <div class="flags">
-      <span data-i18n="flag_pt">Portugal</span><span data-i18n="flag_it">Itália</span><span data-i18n="flag_es">Espanha</span><span data-i18n="flag_fr">França</span><span data-i18n="flag_de">Alemanha</span>
-    </div>
-    <div class="fine" data-i18n="footer_fine">Z Jobs — candidatos, sempre gratuito. Esta montra e o portal funcional partilham a mesma identidade — dourado real, amostrado do próprio logótipo.</div>
+    <div class="flags"><span data-i18n="flag_fr">France</span><span data-i18n="flag_be">Belgique</span><span data-i18n="flag_lu">Luxembourg</span></div>
+    <div class="fine" data-i18n="footer_fine">Z Jobs — toujours gratuit pour les candidats.</div>
   </div>
 </footer>
 
@@ -550,75 +539,28 @@
     return { social: social, tax: tax, net: gross - social - tax };
   }
 
-  function deIncomeTax(zve) {
-    zve = Math.floor(zve);
-    if (zve <= 12348) return 0;
-    if (zve <= 17799) { var y = (zve - 12348) / 10000; return (914.51 * y + 1400) * y; }
-    if (zve <= 69878) { var z = (zve - 17799) / 10000; return (173.10 * z + 2397) * z + 1034.87; }
-    if (zve <= 277825) return 0.42 * zve - 11135.63;
-    return 0.45 * zve - 19470.38;
-  }
-  function deCalc(gross) {
-    var rvCap = 101400, kvCap = 69750;
-    var social = 0.093 * Math.min(gross, rvCap) + 0.013 * Math.min(gross, rvCap)
-               + 0.0875 * Math.min(gross, kvCap) + 0.024 * Math.min(gross, kvCap);
-    var zve = Math.max(0, gross - social);
-    var tax = deIncomeTax(zve);
-    return { social: social, tax: tax, net: gross - social - tax };
-  }
-
-  function itCalc(gross) {
-    var social = 0.0919 * gross;
-    var taxable = Math.max(0, gross - social);
-    var tax = computeProgressiveTax(taxable, [
-      { from: 0, to: 28000, rate: 0.23 }, { from: 28000, to: 50000, rate: 0.33 }, { from: 50000, to: null, rate: 0.43 },
-    ]);
-    return { social: social, tax: tax, net: gross - social - tax };
-  }
-
-  function esCalc(gross) {
-    var social = 0.0648 * gross;
-    var minimoPersonal = 5550;
-    var taxable = Math.max(0, gross - social - minimoPersonal);
-    var tax = computeProgressiveTax(taxable, [
-      { from: 0, to: 12450, rate: 0.19 }, { from: 12450, to: 20200, rate: 0.24 }, { from: 20200, to: 35200, rate: 0.30 },
-      { from: 35200, to: 60000, rate: 0.37 }, { from: 60000, to: 300000, rate: 0.45 }, { from: 300000, to: null, rate: 0.47 },
-    ]);
-    return { social: social, tax: tax, net: gross - social - tax };
-  }
-
-  var PT_BRACKETS = [
-    [0,8342,0.125,0],[8342,12587,0.157,266.94],[12587,17838,0.212,959.23],
-    [17838,23089,0.241,1474.53],[23089,29397,0.311,3090.76],[29397,43090,0.349,4207.85],
-    [43090,46566,0.431,7741.23],[46566,86634,0.446,8441.72],[86634,Infinity,0.48,11387.28],
-  ];
-  function ptCalc(gross) {
-    var social = 0.11 * gross;
-    var taxable = Math.max(0, gross - social);
-    var rate = 0.125, abater = 0;
-    for (var i = 0; i < PT_BRACKETS.length; i++) {
-      if (taxable > PT_BRACKETS[i][0]) { rate = PT_BRACKETS[i][2]; abater = PT_BRACKETS[i][3]; }
-    }
-    var tax = Math.max(0, taxable * rate - abater);
-    return { social: social, tax: tax, net: gross - social - tax };
-  }
-
-  var SIM_CALCULATORS = { fr: frCalc, de: deCalc, it: itCalc, es: esCalc, pt: ptCalc };
+  var SIM_CALCULATORS = { fr: frCalc }; // Belgique, Luxembourg : en préparation
 
   function formatEUR(n) {
-    return n.toLocaleString('pt-PT', { maximumFractionDigits: 0 }) + ' €';
+    if (window.CURRENT_LOCALE === 'en') return '€' + n.toLocaleString('en-GB', { maximumFractionDigits: 0 });
+    return n.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' €';
   }
 
   function runSimulation() {
     var gross = Number(document.getElementById('simGross').value) || 0;
     var country = document.getElementById('simCountry').value;
-    var calc = SIM_CALCULATORS[country] || frCalc;
+    var dict = TRANSLATIONS[window.CURRENT_LOCALE || 'fr'] || TRANSLATIONS.fr;
+    var calc = SIM_CALCULATORS[country];
+    var noteEl = document.getElementById('simScopeNote');
+    if (noteEl) noteEl.textContent = dict['sim_scope_' + country] || '';
+    if (!calc) {
+      ['simSocial', 'simTax', 'simNet'].forEach(function (id) { document.getElementById(id).textContent = '—'; });
+      return;
+    }
     var r = calc(gross);
     document.getElementById('simSocial').textContent = '-' + formatEUR(r.social);
     document.getElementById('simTax').textContent = '-' + formatEUR(r.tax);
-    document.getElementById('simNet').textContent = formatEUR(r.net / 12) + ' / mês';
-    var dict = TRANSLATIONS[window.CURRENT_LOCALE || 'pt'] || TRANSLATIONS.pt;
-    document.getElementById('simScopeNote').textContent = dict['sim_scope_' + country] || '';
+    document.getElementById('simNet').textContent = formatEUR(r.net / 12) + (dict.sim_per_month || '');
   }
   document.getElementById('simBtn').addEventListener('click', runSimulation);
   document.getElementById('simCountry').addEventListener('change', runSimulation);
@@ -626,430 +568,230 @@
   // e renderEconCharts estarem definidas — ver runSimulation() mais abaixo.
 
   var TRANSLATIONS = {
-    pt: {
-      legal_kicker: "Legislação laboral",
-      legal_title: "Cinco países, dados oficiais — nenhum em destaque sobre os outros.",
-      legal_sub: "Salário mínimo nacional, fonte Eurostat, em vigor a partir de 1 de janeiro de 2026. A Itália não tem salário mínimo estatutário — é definido por convenção coletiva, não por lei, o que também mostramos, em vez de esconder.",
-      legal_it_note: "sem mínimo nacional — só por convenção",
-      legal_cite: "Eurostat, Minimum wage statistics · dados a 1 jan. 2026",
-      holidays_heading: "Feriados nacionais (2026)",
-      holidays_de_note: "9 federais + 4-6 por Land",
-      holidays_es_note: "14 no total — nacionais+regionais, teto legal",
-      holidays_cite: "Agência Europeia de Medicamentos (EMA), lista oficial de feriados na UE, EMA/240605/2025",
-      sim_kicker: "Simulador de salário líquido",
-      sim_title: "Bruto para líquido, com o escalão fiscal real — não uma média.",
-      sim_sub_multi: "Cinco países, cada fórmula verificada individualmente contra fonte oficial. Uma estimativa simplificada — pessoa solteira, sem dependentes — nunca substitui o simulador oficial nem aconselhamento fiscal.",
-      sim_label_country: "País",
-      sim_label: "Salário bruto anual (€)",
-      sim_btn: "Calcular",
-      sim_social: "Contribuições sociais",
-      sim_tax: "Imposto sobre o rendimento",
-      sim_net: "Líquido mensal estimado",
-      sim_scope_fr: "França — Loi de finances pour 2026, barème progressif. Contribuições sociais agregadas a 22% (não-quadro). Sem abatimento de 10% para despesas profissionais.",
-      sim_scope_de: "Alemanha — §32a EStG, tarifário oficial em vigor desde 1 jan. 2026. Segurança social inclui Rentenversicherung, Krankenversicherung, Pflegeversicherung (sem filhos) e Arbeitslosenversicherung, cada uma com o seu teto de contribuição de 2026. Sem o Arbeitnehmer-Pauschbetrag nem outras deduções.",
-      sim_scope_it: "Itália — Legge di Bilancio 2026 (L. 199/2025), confirmada pelo Ministério das Finanças (MEF). INPS a 9,19% fixo, sem teto modelado. Sem adicional regional/municipal (varia por residência) nem detrazioni.",
-      sim_scope_es: "Espanha — escala estatal + autonómica supletória (inalterada desde 2021), com o mínimo pessoal de 5.550€ (solteiro, sem dependentes). O valor real varia por comunidade autónoma.",
-      sim_scope_pt: "Portugal (Continente) — artigo 68.º do CIRS, tabela 2026. Segurança Social a 11%. Sem dedução específica adicional nem mínimo de existência.",
-      econ_kicker: "Indicadores económicos",
-      econ_h2: "Inflação, desemprego e crescimento salarial — os cinco países, lado a lado.",
-      econ_sub: "Valores mais recentes disponíveis à data da consulta, não uma série uniforme — cada barra tem a sua própria data, indicada na legenda. O teu país (conforme o idioma escolhido) fica sempre destacado.",
-      econ_inflation_title: "Inflação (variação anual)",
-      econ_inflation_cite: "Trading Economics / Eurostat · junho de 2026",
-      econ_unemployment_title: "Taxa de desemprego",
-      econ_unemployment_cite: "Eurostat · Alemanha/França/Itália/Espanha jun. 2026, Portugal mar. 2026 (INE)",
-      econ_wages_title: "Crescimento salarial nominal (anual)",
-      econ_wages_cite: "Eurostat, negotiated/compensation wages, T4 2025 · Portugal: projeção OCDE 2026",
-      search_label_sector: "Setor",
-      sector_all: "Todos os setores",
-      sector_tech: "Informação e comunicação",
-      sector_hospitality: "Alojamento e restauração",
-      sector_cite: "Setores classificados por NACE Rev. 2 (Eurostat) — a mesma norma oficial usada para classificar empresas na plataforma.",
-      search_label_keyword: "Palavra-chave",
-      search_placeholder: "ex: engenheiro, vendas, marketing",
-      search_label_country: "País",
-      search_btn: "Procurar",
-      search_note: "O catálogo de ofertas ainda não está aberto ao público — a pesquisa mostra-te já a experiência com a oferta de exemplo acima.",
-      point1: "Empregador identificado e verificado, nunca anónimo.",
-      point2: "Salário comparado com tabelas oficiais de convenções coletivas.",
-      point3: "Sempre gratuito para quem procura emprego.",
-      nav_cta: "Ver uma oferta verificada",
-      eyebrow: "Portal de emprego · à escala europeia",
-      headline: "O salário faz parte<br>da oferta.",
-      sub: "Recomendamos remuneração e empregador sempre visíveis em cada oferta — mais confiança, mais candidaturas. A escolha final é sempre do empregador.",
-      kicker: "Oferta publicada · Zeta Tech",
-      job_title: "Engenheiro/a de Software Backend",
-      label_company: "EMPRESA", label_location: "LOCAL", label_salary: "SALÁRIO",
-      val_company: "Zeta Tech Lda — verificada", val_location: "Lisboa · remoto", val_salary: "€2.200 – €2.600 / mês · efetivo",
-      verify_btn: "Verificar oferta",
-      source_note: "Confirmado com a organização verificada e com a tabela salarial oficial da profissão — Boletim do Trabalho e Emprego n.º 2, 15 jan. 2025.",
-      stamp: "VERIFI<br>CADO",
-      proof1_title: "Salário oficial, não estimado",
-      proof1_body: "Comparamos cada oferta com tabelas de convenções coletivas reais, publicadas em boletins oficiais — nunca um algoritmo a adivinhar.",
-      proof2_title: "Empregador verificado",
-      proof2_body: "O selo de verificação nunca é comprável. É calculado a partir de dados observáveis — taxa de resposta, denúncias confirmadas, histórico real.",
-      proof3_title: "Sempre gratuito para candidatos",
-      proof3_body: "Nunca há subscrição, nem taxa, nem funcionalidade paga do lado de quem procura emprego. Quem paga é o empregador.",
-      compare_h2: "Uma oferta completa — não um resumo vago.",
-      tag_common: "Portal comum",
-      row_company: "Empresa", row_salary: "Salário", row_contract: "Contrato", row_contract_val: "Efetivo",
-      row_verification: "Verificação", row_verification_val: "Confirmada",
-      flag_pt: "Portugal", flag_it: "Itália", flag_es: "Espanha", flag_fr: "França", flag_de: "Alemanha",
-      footer_fine: "Z Jobs — candidatos, sempre gratuito. Esta montra e o portal funcional partilham a mesma identidade — dourado real, amostrado do próprio logótipo.",
+    "fr": {
+      "legal_kicker": "Législation du travail",
+      "legal_title": "Trois pays, des données officielles — aucun mis en avant.",
+      "legal_sub": "Salaire minimum national, mensuel brut, source Eurostat, en vigueur au 1er juillet 2026.",
+      "legal_cite": "Eurostat, salaires minimums (earn_mw_cur) · valeurs au 1er juillet 2026, mise à jour du 31 juillet 2026",
+      "holidays_heading": "Jours fériés légaux (2026)",
+      "holidays_cite": "Code du travail (FR) art. L3133-1 · Arrêté royal du 18 avril 1974 (BE) · Code du travail (LU) art. L.232-2",
+      "sim_kicker": "Simulateur de salaire net",
+      "sim_title": "Du brut au net, avec le vrai barème fiscal — pas une moyenne.",
+      "sim_sub_multi": "France pour l'instant — Belgique et Luxembourg en préparation. Estimation simplifiée (personne seule, sans enfant) : elle ne remplace ni le simulateur officiel ni un conseil fiscal.",
+      "sim_label_country": "Pays",
+      "sim_label": "Salaire brut annuel (€)",
+      "sim_btn": "Calculer",
+      "sim_social": "Cotisations sociales",
+      "sim_tax": "Impôt sur le revenu",
+      "sim_net": "Net mensuel estimé",
+      "sim_scope_fr": "France — Loi de finances pour 2026, barème progressif. Cotisations sociales agrégées à 22 % (non-cadre). Sans l'abattement forfaitaire de 10 % pour frais professionnels.",
+      "econ_kicker": "Indicateurs économiques",
+      "econ_h2": "Inflation, chômage et salaire minimum — les trois pays, côte à côte.",
+      "econ_sub": "Dernières valeurs publiées par Eurostat à la date de consultation — chaque graphique indique sa date.",
+      "econ_inflation_title": "Inflation (IPCH, sur un an)",
+      "econ_inflation_cite": "Eurostat, communiqué du 16 octobre 2026 · septembre 2026",
+      "econ_unemployment_title": "Taux de chômage",
+      "econ_unemployment_cite": "Eurostat (une_rt_m), corrigé des variations saisonnières · août 2026",
+      "econ_wages_title": "Hausse du salaire minimum sur un an",
+      "econ_wages_cite": "Eurostat (earn_mw_cur) · juillet 2025 → juillet 2026",
+      "search_label_sector": "Secteur",
+      "sector_all": "Tous les secteurs",
+      "sector_tech": "Information et communication",
+      "sector_hospitality": "Hébergement et restauration",
+      "sector_cite": "Secteurs classés selon la NACE Rév. 2 (Eurostat) — la même norme officielle utilisée pour classer les entreprises sur la plateforme.",
+      "search_label_keyword": "Mot-clé",
+      "search_placeholder": "ex : ingénieur, vente, marketing",
+      "search_label_country": "Pays",
+      "search_btn": "Rechercher",
+      "search_note": "Le catalogue d'offres n'est pas encore ouvert au public — la recherche vous montre déjà l'expérience avec l'offre d'exemple ci-dessus.",
+      "point1": "Employeur identifié et vérifié, jamais anonyme.",
+      "point2": "Salaire comparé aux grilles officielles des conventions collectives.",
+      "point3": "Toujours gratuit pour les chercheurs d'emploi.",
+      "nav_cta": "Voir une offre vérifiée",
+      "eyebrow": "Portail d'emploi · France, Belgique, Luxembourg",
+      "headline": "Le salaire fait partie<br>de l'offre.",
+      "sub": "Nous recommandons que chaque offre affiche toujours la rémunération et l'employeur — plus de confiance, plus de candidatures. La décision finale appartient toujours à l'employeur.",
+      "kicker": "Exemple d'offre · Zeta Tech",
+      "job_title": "Ingénieur·e Logiciel Backend",
+      "label_company": "ENTREPRISE",
+      "label_location": "LIEU",
+      "label_salary": "SALAIRE",
+      "val_company": "Zeta Tech SAS — vérifiée",
+      "val_location": "Lyon · hybride",
+      "val_salary": "3 400 € – 3 900 € / mois · CDI",
+      "verify_btn": "Vérifier l'offre",
+      "source_note": "Exemple : l'offre est confirmée auprès de l'organisation vérifiée, et le salaire comparé au minimum légal et à la grille de la convention collective applicable.",
+      "stamp": "VÉRI<br>FIÉE",
+      "proof1_title": "Salaire officiel, non estimé",
+      "proof1_body": "Nous comparons chaque offre au salaire minimum légal et aux grilles des conventions collectives publiées officiellement — jamais un algorithme qui devine.",
+      "proof2_title": "Employeur vérifié",
+      "proof2_body": "Le label de vérification ne s'achète jamais. Il est calculé à partir de données observables — taux de réponse, plaintes confirmées, historique réel.",
+      "proof3_title": "Toujours gratuit pour les candidats",
+      "proof3_body": "Jamais d'abonnement, de frais, ni de fonctionnalité payante côté candidat. C'est l'employeur qui paie.",
+      "compare_h2": "Une offre complète — pas un résumé vague.",
+      "tag_common": "Portail courant",
+      "row_company": "Entreprise",
+      "row_salary": "Salaire",
+      "row_contract": "Contrat",
+      "row_contract_val": "CDI",
+      "row_verification": "Vérification",
+      "row_verification_val": "Confirmée",
+      "flag_fr": "France",
+      "footer_fine": "Z Jobs — toujours gratuit pour les candidats.",
+      "flag_be": "Belgique",
+      "flag_lu": "Luxembourg",
+      "nav_home": "Accueil",
+      "nav_offers": "Offres",
+      "nav_candidates": "Pour les candidats",
+      "nav_employers": "Pour les employeurs",
+      "nav_tools": "Législation et outils",
+      "legal_value_month": "€/mois",
+      "holidays_fr_note": "11 (+ 2 en Alsace-Moselle)",
+      "notice_heading": "Période d'essai et préavis",
+      "notice_sub": "Pas de chiffre unique inventé : là où la loi renvoie à la convention collective ou à l'ancienneté, nous le disons.",
+      "notice_th_country": "Pays",
+      "notice_th_probation": "Période d'essai",
+      "notice_th_notice": "Préavis (licenciement par l'employeur)",
+      "notice_fr_probation": "2 à 4 mois selon la catégorie (CDI)",
+      "notice_fr_notice": "1 mois de 6 mois à 2 ans d'ancienneté, 2 mois au-delà — davantage si la convention collective le prévoit",
+      "notice_be_probation": "Pas de période d'essai ; depuis le 1er août 2026, préavis d'1 semaine pendant les 6 premiers mois",
+      "notice_be_notice": "Barème légal en semaines, croissant avec l'ancienneté",
+      "notice_lu_probation": "2 semaines à 6 mois (jusqu'à 12 mois au-delà d'un certain salaire)",
+      "notice_lu_notice": "2 mois (moins de 5 ans d'ancienneté), 4 mois (5 à 10 ans), 6 mois (10 ans et plus)",
+      "notice_cite": "Code du travail (FR) art. L1221-19 et L1234-1 · Loi du 3 juillet 1978 (BE) art. 37/2, modifiée au 1er août 2026 · Code du travail (LU) art. L.121-5 et L.124-4",
+      "econ_title": "Inflation, chômage et salaire minimum.",
+      "econ_c1": "Inflation (IPCH, sur un an)",
+      "econ_c1_cite": "Eurostat, communiqué du 16 octobre 2026 · septembre 2026",
+      "econ_c2": "Taux de chômage",
+      "econ_c2_cite": "Eurostat (une_rt_m), corrigé des variations saisonnières · août 2026",
+      "econ_c3": "Hausse du salaire minimum sur un an",
+      "econ_c3_cite": "Eurostat (earn_mw_cur) · juillet 2025 → juillet 2026",
+      "sim_scope_be": "Belgique — simulateur en préparation. En attendant : Tax-Calc, SPF Finances (finances.belgium.be).",
+      "sim_scope_lu": "Luxembourg — simulateur en préparation. En attendant : Administration des contributions directes (impotsdirects.public.lu).",
+      "sim_per_month": " / mois",
+      "page_title": "Z Jobs — Le salaire fait partie de l'offre.",
+      "row_salary_val": "3 400 € – 3 900 €",
+      "proof1_cite": "Conventions collectives · sources officielles",
+      "proof2_cite": "Indice de responsabilité",
+      "emp_kicker": "Pour les employeurs",
+      "emp_title": "La vérification réelle ne coûte rien jusqu'à votre première embauche.",
+      "emp_sub": "La première offre est toujours gratuite pour une organisation vérifiée. Aucun label achetable, aucun boost payant pour masquer des offres faibles — la visibilité vient de données observables, pas d'un budget marketing.",
+      "emp_cta": "Voir comment fonctionne la vérification"
     },
-    en: {
-      legal_kicker: "Labour legislation",
-      legal_title: "Five countries, official data — none highlighted over the others.",
-      legal_sub: "National minimum wage, Eurostat source, in force from 1 January 2026.",
-      legal_it_note: "no national minimum — only via collective agreement",
-      legal_cite: "Eurostat, Minimum wage statistics · data as of 1 Jan 2026",
-      holidays_heading: "National holidays (2026)",
-      holidays_de_note: "9 federal + 4-6 per Land",
-      holidays_es_note: "14 in total — national+regional, legal cap",
-      holidays_cite: "European Medicines Agency (EMA), official EU holiday list, EMA/240605/2025",
-      sim_kicker: "Net salary simulator",
-      sim_title: "Gross to net, with the real tax bracket — not an average.",
-      sim_sub_multi: "Five countries, each formula individually verified against an official source. Simplified estimate — single person, no dependants — never a substitute for the official simulator or tax advice.",
-      sim_label_country: "Country",
-      sim_label: "Gross annual salary (€)",
-      sim_btn: "Calculate",
-      sim_social: "Social contributions",
-      sim_tax: "Income tax",
-      sim_net: "Estimated monthly net",
-      sim_scope_fr: "France — Loi de finances pour 2026, progressive scale. Social contributions aggregated at 22% (non-executive). Excludes the 10% standard professional-expense deduction.",
-      sim_scope_de: "Germany — §32a EStG, official tariff in force since 1 Jan 2026. Social insurance includes pension, health, long-term care (childless) and unemployment insurance, each with its own 2026 contribution ceiling. Excludes the standard employee allowance and other deductions.",
-      sim_scope_it: "Italy — 2026 Budget Law (L. 199/2025), confirmed by the Ministry of Finance (MEF). Flat 9.19% INPS rate, no ceiling modelled. Excludes regional/municipal surcharges (vary by residence) and tax credits.",
-      sim_scope_es: "Spain — state scale + default regional scale (unchanged since 2021), with the €5,550 personal allowance (single, no dependants). Actual figures vary by autonomous community.",
-      sim_scope_pt: "Portugal (mainland) — Article 68 of the CIRS, 2026 table. 11% social security. Excludes additional specific deductions and the minimum-subsistence protection.",
-      econ_kicker: "Economic indicators",
-      econ_h2: "Inflation, unemployment and wage growth — the five countries, side by side.",
-      econ_sub: "Latest available values at the time of research, not a uniform series — each bar has its own date, shown in the caption. Your country (based on the selected language) is always highlighted.",
-      econ_inflation_title: "Inflation (annual change)",
-      econ_inflation_cite: "Trading Economics / Eurostat · June 2026",
-      econ_unemployment_title: "Unemployment rate",
-      econ_unemployment_cite: "Eurostat · Germany/France/Italy/Spain Jun 2026, Portugal Mar 2026 (INE)",
-      econ_wages_title: "Nominal wage growth (annual)",
-      econ_wages_cite: "Eurostat, negotiated/compensation wages, Q4 2025 · Portugal: OECD 2026 projection",
-      search_label_sector: "Sector",
-      sector_all: "All sectors",
-      sector_tech: "Information and communication",
-      sector_hospitality: "Accommodation and food service",
-      sector_cite: "Sectors classified under NACE Rev. 2 (Eurostat) — the same official standard used to classify companies on the platform.",
-      search_label_keyword: "Keyword",
-      search_placeholder: "e.g. engineer, sales, marketing",
-      search_label_country: "Country",
-      search_btn: "Search",
-      search_note: "The listing catalogue isn't open to the public yet — search already shows you the experience with the example listing above.",
-      point1: "Employer identified and verified, never anonymous.",
-      point2: "Salary compared against official collective agreement tables.",
-      point3: "Always free for job seekers.",
-      nav_cta: "See a verified listing",
-      eyebrow: "Job platform · across Europe",
-      headline: "Salary is part<br>of the listing.",
-      sub: "We recommend visible salary and employer details on every listing — more trust, more applications. The final choice always belongs to the employer.",
-      kicker: "Published listing · Zeta Tech",
-      job_title: "Backend Software Engineer",
-      label_company: "COMPANY", label_location: "LOCATION", label_salary: "SALARY",
-      val_company: "Zeta Tech Lda — verified", val_location: "Lisbon · remote", val_salary: "€2,200 – €2,600 / month · permanent",
-      verify_btn: "Verify listing",
-      source_note: "Confirmed against the verified organization and the official salary table for the occupation — Labour Bulletin No. 2, 15 Jan. 2025.",
-      stamp: "VERI<br>FIED",
-      proof1_title: "Official salary, not estimated",
-      proof1_body: "We compare every listing with real collective agreement tables, published in official bulletins — never an algorithm guessing.",
-      proof2_title: "Verified employer",
-      proof2_body: "The verification seal can never be bought. It's calculated from observable data — response rate, confirmed complaints, real track record.",
-      proof3_title: "Always free for candidates",
-      proof3_body: "No subscription, no fee, no paid feature ever, on the job-seeker side. The employer pays.",
-      compare_h2: "A complete listing — not a vague summary.",
-      tag_common: "Typical platform",
-      row_company: "Company", row_salary: "Salary", row_contract: "Contract", row_contract_val: "Permanent",
-      row_verification: "Verification", row_verification_val: "Confirmed",
-      flag_pt: "Portugal", flag_it: "Italy", flag_es: "Spain", flag_fr: "France", flag_de: "Germany",
-      footer_fine: "Z Jobs — always free for candidates. This showcase and the working platform share the same identity — real gold, sampled from the logo itself.",
-    },
-    es: {
-      legal_kicker: "Legislación laboral",
-      legal_title: "Cinco países, datos oficiales — ninguno destacado sobre los demás.",
-      legal_sub: "Salario mínimo nacional, fuente Eurostat, vigente desde el 1 de enero de 2026.",
-      legal_it_note: "sin mínimo nacional — solo por convenio",
-      legal_cite: "Eurostat, Minimum wage statistics · datos a 1 ene. 2026",
-      holidays_heading: "Festivos nacionales (2026)",
-      holidays_de_note: "9 federales + 4-6 por Land",
-      holidays_es_note: "14 en total — nacionales+autonómicos, tope legal",
-      holidays_cite: "Agencia Europea de Medicamentos (EMA), lista oficial de festivos de la UE, EMA/240605/2025",
-      sim_kicker: "Simulador de salario neto",
-      sim_title: "De bruto a neto, con el tramo fiscal real — no una media.",
-      sim_sub_multi: "Cinco países, cada fórmula verificada individualmente contra fuente oficial. Estimación simplificada — persona soltera, sin dependientes — nunca sustituye al simulador oficial ni al asesoramiento fiscal.",
-      sim_label_country: "País",
-      sim_label: "Salario bruto anual (€)",
-      sim_btn: "Calcular",
-      sim_social: "Cotizaciones sociales",
-      sim_tax: "Impuesto sobre la renta",
-      sim_net: "Neto mensual estimado",
-      sim_scope_fr: "Francia — Loi de finances pour 2026, escala progresiva. Cotizaciones sociales agregadas al 22% (no ejecutivo). Sin la deducción forfetaria del 10% por gastos profesionales.",
-      sim_scope_de: "Alemania — §32a EStG, tarifa oficial vigente desde el 1 ene. 2026. La seguridad social incluye pensión, salud, cuidados de larga duración (sin hijos) y desempleo, cada una con su propio techo de cotización de 2026. Sin la deducción estándar del trabajador ni otras deducciones.",
-      sim_scope_it: "Italia — Ley de Presupuestos 2026 (L. 199/2025), confirmada por el Ministerio de Economía (MEF). INPS al 9,19% fijo, sin techo modelado. Sin recargo regional/municipal (varía según residencia) ni detrazioni.",
-      sim_scope_es: "España — escala estatal + autonómica supletoria (sin cambios desde 2021), con el mínimo personal de 5.550€ (soltero, sin dependientes). El valor real varía según la comunidad autónoma.",
-      sim_scope_pt: "Portugal (Continente) — artículo 68 del CIRS, tabla 2026. Seguridad Social al 11%. Sin deducción específica adicional ni mínimo de subsistencia.",
-      econ_kicker: "Indicadores económicos",
-      econ_h2: "Inflación, desempleo y crecimiento salarial — los cinco países, lado a lado.",
-      econ_sub: "Valores más recientes disponibles en el momento de la consulta, no una serie uniforme — cada barra tiene su propia fecha, indicada en la leyenda. Tu país (según el idioma elegido) siempre queda destacado.",
-      econ_inflation_title: "Inflación (variación anual)",
-      econ_inflation_cite: "Trading Economics / Eurostat · junio de 2026",
-      econ_unemployment_title: "Tasa de desempleo",
-      econ_unemployment_cite: "Eurostat · Alemania/Francia/Italia/España jun. 2026, Portugal mar. 2026 (INE)",
-      econ_wages_title: "Crecimiento salarial nominal (anual)",
-      econ_wages_cite: "Eurostat, negotiated/compensation wages, T4 2025 · Portugal: proyección OCDE 2026",
-      search_label_sector: "Sector",
-      sector_all: "Todos los sectores",
-      sector_tech: "Información y comunicación",
-      sector_hospitality: "Hostelería y restauración",
-      sector_cite: "Sectores clasificados según NACE Rev. 2 (Eurostat) — la misma norma oficial usada para clasificar empresas en la plataforma.",
-      search_label_keyword: "Palabra clave",
-      search_placeholder: "ej: ingeniero, ventas, marketing",
-      search_label_country: "País",
-      search_btn: "Buscar",
-      search_note: "El catálogo de ofertas aún no está abierto al público — la búsqueda ya te muestra la experiencia con la oferta de ejemplo de arriba.",
-      point1: "Empleador identificado y verificado, nunca anónimo.",
-      point2: "Salario comparado con tablas oficiales de convenios colectivos.",
-      point3: "Siempre gratuito para quien busca empleo.",
-      nav_cta: "Ver una oferta verificada",
-      eyebrow: "Portal de empleo · a escala europea",
-      headline: "El salario forma parte<br>de la oferta.",
-      sub: "Recomendamos que cada oferta muestre siempre la remuneración y el empleador — más confianza, más candidaturas. La decisión final es siempre del empleador.",
-      kicker: "Oferta publicada · Zeta Tech",
-      job_title: "Ingeniero/a de Software Backend",
-      label_company: "EMPRESA", label_location: "UBICACIÓN", label_salary: "SALARIO",
-      val_company: "Zeta Tech Lda — verificada", val_location: "Lisboa · remoto", val_salary: "2.200 € – 2.600 € / mes · indefinido",
-      verify_btn: "Verificar oferta",
-      source_note: "Confirmado con la organización verificada y con la tabla salarial oficial de la profesión — Boletín de Trabajo n.º 2, 15 ene. 2025.",
-      stamp: "VERIFI<br>CADA",
-      proof1_title: "Salario oficial, no estimado",
-      proof1_body: "Comparamos cada oferta con tablas de convenios colectivos reales, publicadas en boletines oficiales — nunca un algoritmo adivinando.",
-      proof2_title: "Empleador verificado",
-      proof2_body: "El sello de verificación nunca se compra. Se calcula a partir de datos observables — tasa de respuesta, denuncias confirmadas, historial real.",
-      proof3_title: "Siempre gratuito para candidatos",
-      proof3_body: "Nunca hay suscripción, ni tarifa, ni función de pago del lado de quien busca empleo. Paga el empleador.",
-      compare_h2: "Una oferta completa — no un resumen vago.",
-      tag_common: "Portal habitual",
-      row_company: "Empresa", row_salary: "Salario", row_contract: "Contrato", row_contract_val: "Indefinido",
-      row_verification: "Verificación", row_verification_val: "Confirmada",
-      flag_pt: "Portugal", flag_it: "Italia", flag_es: "España", flag_fr: "Francia", flag_de: "Alemania",
-      footer_fine: "Z Jobs — siempre gratuito para candidatos. Esta muestra y la plataforma funcional comparten la misma identidad — oro real, tomado del propio logotipo.",
-    },
-    fr: {
-      legal_kicker: "Législation du travail",
-      legal_title: "Cinq pays, données officielles — aucun mis en avant par rapport aux autres.",
-      legal_sub: "Salaire minimum national, source Eurostat, en vigueur depuis le 1er janvier 2026.",
-      legal_it_note: "pas de minimum national — seulement par convention",
-      legal_cite: "Eurostat, Minimum wage statistics · données au 1er janv. 2026",
-      holidays_heading: "Jours fériés nationaux (2026)",
-      holidays_de_note: "9 fédéraux + 4-6 selon le Land",
-      holidays_es_note: "14 au total — nationaux+régionaux, plafond légal",
-      holidays_cite: "Agence européenne des médicaments (EMA), liste officielle des jours fériés de l'UE, EMA/240605/2025",
-      sim_kicker: "Simulateur de salaire net",
-      sim_title: "Du brut au net, avec le vrai barème fiscal — pas une moyenne.",
-      sim_sub_multi: "Cinq pays, chaque formule vérifiée individuellement auprès d'une source officielle. Estimation simplifiée — personne célibataire, sans personne à charge — ne remplace jamais le simulateur officiel ni un conseil fiscal.",
-      sim_label_country: "Pays",
-      sim_label: "Salaire brut annuel (€)",
-      sim_btn: "Calculer",
-      sim_social: "Cotisations sociales",
-      sim_tax: "Impôt sur le revenu",
-      sim_net: "Net mensuel estimé",
-      sim_scope_fr: "France — Loi de finances pour 2026, barème progressif. Cotisations sociales agrégées à 22 % (non-cadre). Sans l'abattement forfaitaire de 10 % pour frais professionnels.",
-      sim_scope_de: "Allemagne — §32a EStG, barème officiel en vigueur depuis le 1er janv. 2026. La sécurité sociale comprend l'assurance retraite, maladie, dépendance (sans enfant) et chômage, chacune avec son propre plafond de cotisation 2026. Sans l'abattement forfaitaire salarié ni autres déductions.",
-      sim_scope_it: "Italie — Loi de finances 2026 (L. 199/2025), confirmée par le ministère des Finances (MEF). Taux INPS fixe de 9,19 %, sans plafond modélisé. Sans majoration régionale/municipale (variable selon la résidence) ni crédits d'impôt.",
-      sim_scope_es: "Espagne — barème national + barème régional par défaut (inchangé depuis 2021), avec l'abattement personnel de 5 550 € (célibataire, sans personne à charge). Le montant réel varie selon la communauté autonome.",
-      sim_scope_pt: "Portugal (continental) — article 68 du CIRS, barème 2026. Sécurité sociale à 11 %. Sans déduction spécifique supplémentaire ni protection du minimum de subsistance.",
-      econ_kicker: "Indicateurs économiques",
-      econ_h2: "Inflation, chômage et croissance salariale — les cinq pays, côte à côte.",
-      econ_sub: "Dernières valeurs disponibles au moment de la consultation, pas une série uniforme — chaque barre a sa propre date, indiquée dans la légende. Votre pays (selon la langue choisie) est toujours mis en évidence.",
-      econ_inflation_title: "Inflation (variation annuelle)",
-      econ_inflation_cite: "Trading Economics / Eurostat · juin 2026",
-      econ_unemployment_title: "Taux de chômage",
-      econ_unemployment_cite: "Eurostat · Allemagne/France/Italie/Espagne juin 2026, Portugal mars 2026 (INE)",
-      econ_wages_title: "Croissance salariale nominale (annuelle)",
-      econ_wages_cite: "Eurostat, negotiated/compensation wages, T4 2025 · Portugal : projection OCDE 2026",
-      search_label_sector: "Secteur",
-      sector_all: "Tous les secteurs",
-      sector_tech: "Information et communication",
-      sector_hospitality: "Hébergement et restauration",
-      sector_cite: "Secteurs classés selon la NACE Rév. 2 (Eurostat) — la même norme officielle utilisée pour classer les entreprises sur la plateforme.",
-      search_label_keyword: "Mot-clé",
-      search_placeholder: "ex : ingénieur, vente, marketing",
-      search_label_country: "Pays",
-      search_btn: "Rechercher",
-      search_note: "Le catalogue d'offres n'est pas encore ouvert au public — la recherche vous montre déjà l'expérience avec l'offre d'exemple ci-dessus.",
-      point1: "Employeur identifié et vérifié, jamais anonyme.",
-      point2: "Salaire comparé aux grilles officielles des conventions collectives.",
-      point3: "Toujours gratuit pour les chercheurs d'emploi.",
-      nav_cta: "Voir une offre vérifiée",
-      eyebrow: "Portail d'emploi · à l'échelle européenne",
-      headline: "Le salaire fait partie<br>de l'offre.",
-      sub: "Nous recommandons que chaque offre affiche toujours la rémunération et l'employeur — plus de confiance, plus de candidatures. La décision finale appartient toujours à l'employeur.",
-      kicker: "Offre publiée · Zeta Tech",
-      job_title: "Ingénieur·e Logiciel Backend",
-      label_company: "ENTREPRISE", label_location: "LIEU", label_salary: "SALAIRE",
-      val_company: "Zeta Tech Lda — vérifiée", val_location: "Lisbonne · télétravail", val_salary: "2 200 € – 2 600 € / mois · CDI",
-      verify_btn: "Vérifier l'offre",
-      source_note: "Confirmé auprès de l'organisation vérifiée et de la grille salariale officielle de la profession — Bulletin du Travail n° 2, 15 janv. 2025.",
-      stamp: "VÉRI<br>FIÉE",
-      proof1_title: "Salaire officiel, non estimé",
-      proof1_body: "Nous comparons chaque offre à de vraies grilles de conventions collectives, publiées dans des bulletins officiels — jamais un algorithme qui devine.",
-      proof2_title: "Employeur vérifié",
-      proof2_body: "Le label de vérification ne s'achète jamais. Il est calculé à partir de données observables — taux de réponse, plaintes confirmées, historique réel.",
-      proof3_title: "Toujours gratuit pour les candidats",
-      proof3_body: "Jamais d'abonnement, de frais, ni de fonctionnalité payante côté candidat. C'est l'employeur qui paie.",
-      compare_h2: "Une offre complète — pas un résumé vague.",
-      tag_common: "Portail courant",
-      row_company: "Entreprise", row_salary: "Salaire", row_contract: "Contrat", row_contract_val: "CDI",
-      row_verification: "Vérification", row_verification_val: "Confirmée",
-      flag_pt: "Portugal", flag_it: "Italie", flag_es: "Espagne", flag_fr: "France", flag_de: "Allemagne",
-      footer_fine: "Z Jobs — toujours gratuit pour les candidats. Cette vitrine et la plateforme fonctionnelle partagent la même identité — l'or réel, échantillonné à partir du logo lui-même.",
-    },
-    de: {
-      legal_kicker: "Arbeitsrecht",
-      legal_title: "Fünf Länder, offizielle Daten — keines gegenüber den anderen hervorgehoben.",
-      legal_sub: "Gesetzlicher Mindestlohn, Quelle Eurostat, gültig ab 1. Januar 2026.",
-      legal_it_note: "kein nationaler Mindestlohn — nur per Tarifvertrag",
-      legal_cite: "Eurostat, Minimum wage statistics · Stand 1. Jan. 2026",
-      holidays_heading: "Gesetzliche Feiertage (2026)",
-      holidays_de_note: "9 bundesweit + 4-6 je nach Land",
-      holidays_es_note: "14 insgesamt — national+regional, gesetzliche Obergrenze",
-      holidays_cite: "Europäische Arzneimittel-Agentur (EMA), offizielle EU-Feiertagsliste, EMA/240605/2025",
-      sim_kicker: "Nettolohn-Simulator",
-      sim_title: "Brutto zu netto, mit der echten Steuerstufe — kein Durchschnitt.",
-      sim_sub_multi: "Fünf Länder, jede Formel einzeln anhand einer offiziellen Quelle geprüft. Vereinfachte Schätzung — Alleinstehend, ohne unterhaltsberechtigte Personen — ersetzt nie den offiziellen Simulator oder eine Steuerberatung.",
-      sim_label_country: "Land",
-      sim_label: "Bruttojahresgehalt (€)",
-      sim_btn: "Berechnen",
-      sim_social: "Sozialabgaben",
-      sim_tax: "Einkommensteuer",
-      sim_net: "Geschätztes monatliches Netto",
-      sim_scope_fr: "Frankreich — Loi de finances pour 2026, progressiver Tarif. Sozialabgaben pauschal 22 % (Nicht-Führungskraft). Ohne die pauschale 10-%-Werbungskostenpauschale.",
-      sim_scope_de: "Deutschland — §32a EStG, offizieller Tarif seit 1. Jan. 2026. Die Sozialversicherung umfasst Renten-, Kranken-, Pflege- (kinderlos) und Arbeitslosenversicherung, jeweils mit eigener Beitragsbemessungsgrenze 2026. Ohne Arbeitnehmer-Pauschbetrag und sonstige Abzüge.",
-      sim_scope_it: "Italien — Haushaltsgesetz 2026 (L. 199/2025), bestätigt vom Wirtschafts- und Finanzministerium (MEF). Pauschaler INPS-Satz von 9,19 %, keine Obergrenze modelliert. Ohne regionalen/kommunalen Zuschlag (abhängig vom Wohnsitz) und Steuergutschriften.",
-      sim_scope_es: "Spanien — staatlicher Tarif + regionaler Standardtarif (unverändert seit 2021), mit persönlichem Freibetrag von 5.550 € (alleinstehend, ohne Angehörige). Der tatsächliche Betrag variiert je nach autonomer Region.",
-      sim_scope_pt: "Portugal (Festland) — Artikel 68 des CIRS, Tarif 2026. Sozialversicherung 11 %. Ohne zusätzlichen spezifischen Abzug und ohne Existenzminimum-Schutz.",
-      econ_kicker: "Wirtschaftsindikatoren",
-      econ_h2: "Inflation, Arbeitslosigkeit und Lohnwachstum — die fünf Länder im Vergleich.",
-      econ_sub: "Aktuellste verfügbare Werte zum Zeitpunkt der Recherche, keine einheitliche Reihe — jeder Balken hat sein eigenes Datum, siehe Bildunterschrift. Dein Land (je nach gewählter Sprache) wird immer hervorgehoben.",
-      econ_inflation_title: "Inflation (jährliche Veränderung)",
-      econ_inflation_cite: "Trading Economics / Eurostat · Juni 2026",
-      econ_unemployment_title: "Arbeitslosenquote",
-      econ_unemployment_cite: "Eurostat · Deutschland/Frankreich/Italien/Spanien Jun. 2026, Portugal Mär. 2026 (INE)",
-      econ_wages_title: "Nominales Lohnwachstum (jährlich)",
-      econ_wages_cite: "Eurostat, negotiated/compensation wages, Q4 2025 · Portugal: OECD-Prognose 2026",
-      search_label_sector: "Branche",
-      sector_all: "Alle Branchen",
-      sector_tech: "Information und Kommunikation",
-      sector_hospitality: "Beherbergung und Gastronomie",
-      sector_cite: "Branchen klassifiziert nach NACE Rev. 2 (Eurostat) — derselbe offizielle Standard, der zur Klassifizierung von Unternehmen auf der Plattform verwendet wird.",
-      search_label_keyword: "Stichwort",
-      search_placeholder: "z. B. Ingenieur, Vertrieb, Marketing",
-      search_label_country: "Land",
-      search_btn: "Suchen",
-      search_note: "Der Angebotskatalog ist noch nicht öffentlich zugänglich — die Suche zeigt dir schon jetzt das Erlebnis mit dem Beispielangebot oben.",
-      point1: "Arbeitgeber identifiziert und verifiziert, nie anonym.",
-      point2: "Gehalt mit offiziellen Tarifvertragstabellen verglichen.",
-      point3: "Für Arbeitsuchende immer kostenlos.",
-      nav_cta: "Verifiziertes Angebot ansehen",
-      eyebrow: "Stellenportal · europaweit",
-      headline: "Das Gehalt gehört<br>zum Angebot.",
-      sub: "Wir empfehlen, Gehalt und Arbeitgeber in jedem Angebot sichtbar zu zeigen — mehr Vertrauen, mehr Bewerbungen. Die endgültige Entscheidung liegt immer beim Arbeitgeber.",
-      kicker: "Veröffentlichtes Angebot · Zeta Tech",
-      job_title: "Backend-Softwareingenieur/in",
-      label_company: "UNTERNEHMEN", label_location: "ORT", label_salary: "GEHALT",
-      val_company: "Zeta Tech Lda — verifiziert", val_location: "Lissabon · remote", val_salary: "2.200 € – 2.600 € / Monat · unbefristet",
-      verify_btn: "Angebot verifizieren",
-      source_note: "Bestätigt anhand der verifizierten Organisation und der offiziellen Gehaltstabelle des Berufs — Arbeitsblatt Nr. 2, 15. Jan. 2025.",
-      stamp: "VERIFI<br>ZIERT",
-      proof1_title: "Offizielles Gehalt, nicht geschätzt",
-      proof1_body: "Wir vergleichen jedes Angebot mit echten Tarifvertragstabellen, veröffentlicht in offiziellen Amtsblättern — nie ein ratender Algorithmus.",
-      proof2_title: "Verifizierter Arbeitgeber",
-      proof2_body: "Das Verifizierungssiegel ist niemals käuflich. Es wird aus beobachtbaren Daten berechnet — Antwortquote, bestätigte Beschwerden, echte Erfolgsbilanz.",
-      proof3_title: "Immer kostenlos für Bewerbende",
-      proof3_body: "Nie ein Abonnement, keine Gebühr, keine kostenpflichtige Funktion auf Bewerberseite. Der Arbeitgeber zahlt.",
-      compare_h2: "Ein vollständiges Angebot — keine vage Zusammenfassung.",
-      tag_common: "Übliches Portal",
-      row_company: "Unternehmen", row_salary: "Gehalt", row_contract: "Vertrag", row_contract_val: "Unbefristet",
-      row_verification: "Verifizierung", row_verification_val: "Bestätigt",
-      flag_pt: "Portugal", flag_it: "Italien", flag_es: "Spanien", flag_fr: "Frankreich", flag_de: "Deutschland",
-      footer_fine: "Z Jobs — für Bewerbende immer kostenlos. Diese Vitrine und die funktionierende Plattform teilen dieselbe Identität — echtes Gold, direkt aus dem Logo entnommen.",
-    },
-    it: {
-      legal_kicker: "Legislazione del lavoro",
-      legal_title: "Cinque paesi, dati ufficiali — nessuno in risalto rispetto agli altri.",
-      legal_sub: "Salario minimo nazionale, fonte Eurostat, in vigore dal 1° gennaio 2026.",
-      legal_it_note: "nessun minimo nazionale — solo tramite contratto collettivo",
-      legal_cite: "Eurostat, Minimum wage statistics · dati al 1° gen. 2026",
-      holidays_heading: "Festività nazionali (2026)",
-      holidays_de_note: "9 federali + 4-6 per Land",
-      holidays_es_note: "14 in totale — nazionali+regionali, tetto legale",
-      holidays_cite: "Agenzia Europea per i Medicinali (EMA), elenco ufficiale delle festività UE, EMA/240605/2025",
-      sim_kicker: "Simulatore di stipendio netto",
-      sim_title: "Da lordo a netto, con lo scaglione fiscale reale — non una media.",
-      sim_sub_multi: "Cinque paesi, ogni formula verificata singolarmente rispetto a una fonte ufficiale. Stima semplificata — persona single, senza persone a carico — non sostituisce mai il simulatore ufficiale né una consulenza fiscale.",
-      sim_label_country: "Paese",
-      sim_label: "Stipendio lordo annuo (€)",
-      sim_btn: "Calcola",
-      sim_social: "Contributi sociali",
-      sim_tax: "Imposta sul reddito",
-      sim_net: "Netto mensile stimato",
-      sim_scope_fr: "Francia — Loi de finances pour 2026, scala progressiva. Contributi sociali aggregati al 22% (non dirigente). Senza la deduzione forfettaria del 10% per spese professionali.",
-      sim_scope_de: "Germania — §32a EStG, tariffa ufficiale in vigore dal 1° gen. 2026. La previdenza sociale comprende pensione, salute, assistenza a lungo termine (senza figli) e disoccupazione, ciascuna con il proprio massimale contributivo 2026. Senza la detrazione forfettaria del dipendente né altre deduzioni.",
-      sim_scope_it: "Italia — Legge di Bilancio 2026 (L. 199/2025), confermata dal Ministero dell'Economia e delle Finanze (MEF). Aliquota INPS fissa al 9,19%, senza massimale modellato. Senza addizionale regionale/comunale (varia in base alla residenza) né detrazioni.",
-      sim_scope_es: "Spagna — scala statale + scala regionale supplettiva (invariata dal 2021), con il minimo personale di 5.550€ (single, senza persone a carico). Il valore reale varia in base alla comunità autonoma.",
-      sim_scope_pt: "Portogallo (Continente) — articolo 68 del CIRS, tabella 2026. Previdenza sociale all'11%. Senza detrazione specifica aggiuntiva né protezione del minimo di sussistenza.",
-      econ_kicker: "Indicatori economici",
-      econ_h2: "Inflazione, disoccupazione e crescita salariale — i cinque paesi, a confronto.",
-      econ_sub: "Valori più recenti disponibili al momento della consultazione, non una serie uniforme — ogni barra ha la propria data, indicata nella didascalia. Il tuo paese (in base alla lingua scelta) è sempre evidenziato.",
-      econ_inflation_title: "Inflazione (variazione annua)",
-      econ_inflation_cite: "Trading Economics / Eurostat · giugno 2026",
-      econ_unemployment_title: "Tasso di disoccupazione",
-      econ_unemployment_cite: "Eurostat · Germania/Francia/Italia/Spagna giu. 2026, Portogallo mar. 2026 (INE)",
-      econ_wages_title: "Crescita salariale nominale (annua)",
-      econ_wages_cite: "Eurostat, negotiated/compensation wages, T4 2025 · Portogallo: proiezione OCSE 2026",
-      search_label_sector: "Settore",
-      sector_all: "Tutti i settori",
-      sector_tech: "Informazione e comunicazione",
-      sector_hospitality: "Alloggio e ristorazione",
-      sector_cite: "Settori classificati secondo la NACE Rev. 2 (Eurostat) — lo stesso standard ufficiale usato per classificare le aziende sulla piattaforma.",
-      search_label_keyword: "Parola chiave",
-      search_placeholder: "es: ingegnere, vendite, marketing",
-      search_label_country: "Paese",
-      search_btn: "Cerca",
-      search_note: "Il catalogo delle offerte non è ancora aperto al pubblico — la ricerca mostra già l'esperienza con l'offerta di esempio qui sopra.",
-      point1: "Datore di lavoro identificato e verificato, mai anonimo.",
-      point2: "Stipendio confrontato con tabelle ufficiali dei contratti collettivi.",
-      point3: "Sempre gratuito per chi cerca lavoro.",
-      nav_cta: "Vedi un'offerta verificata",
-      eyebrow: "Portale del lavoro · su scala europea",
-      headline: "Lo stipendio fa parte<br>dell'offerta.",
-      sub: "Raccomandiamo che ogni offerta mostri sempre retribuzione e datore di lavoro — più fiducia, più candidature. La decisione finale spetta sempre al datore di lavoro.",
-      kicker: "Offerta pubblicata · Zeta Tech",
-      job_title: "Ingegnere/a Software Backend",
-      label_company: "AZIENDA", label_location: "SEDE", label_salary: "STIPENDIO",
-      val_company: "Zeta Tech Lda — verificata", val_location: "Lisbona · remoto", val_salary: "2.200 € – 2.600 € / mese · tempo indeterminato",
-      verify_btn: "Verifica offerta",
-      source_note: "Confermato con l'organizzazione verificata e con la tabella salariale ufficiale della professione — Bollettino del Lavoro n. 2, 15 gen. 2025.",
-      stamp: "VERIFI<br>CATA",
-      proof1_title: "Stipendio ufficiale, non stimato",
-      proof1_body: "Confrontiamo ogni offerta con tabelle reali dei contratti collettivi, pubblicate in bollettini ufficiali — mai un algoritmo che indovina.",
-      proof2_title: "Datore di lavoro verificato",
-      proof2_body: "Il sigillo di verifica non è mai acquistabile. È calcolato a partire da dati osservabili — tasso di risposta, reclami confermati, storico reale.",
-      proof3_title: "Sempre gratuito per i candidati",
-      proof3_body: "Mai un abbonamento, una tariffa o una funzione a pagamento per chi cerca lavoro. Paga il datore di lavoro.",
-      compare_h2: "Un'offerta completa — non un riassunto vago.",
-      tag_common: "Portale comune",
-      row_company: "Azienda", row_salary: "Stipendio", row_contract: "Contratto", row_contract_val: "Tempo indeterminato",
-      row_verification: "Verifica", row_verification_val: "Confermata",
-      flag_pt: "Portogallo", flag_it: "Italia", flag_es: "Spagna", flag_fr: "Francia", flag_de: "Germania",
-      footer_fine: "Z Jobs — sempre gratuito per i candidati. Questa vetrina e la piattaforma funzionante condividono la stessa identità — oro reale, campionato dal logo stesso.",
-    },
+    "en": {
+      "legal_kicker": "Labour legislation",
+      "legal_title": "Three countries, official data — none highlighted over the others.",
+      "legal_sub": "National minimum wage, gross per month, Eurostat source, in force on 1 July 2026.",
+      "legal_cite": "Eurostat, minimum wages (earn_mw_cur) · values at 1 July 2026, updated 31 July 2026",
+      "holidays_heading": "Statutory public holidays (2026)",
+      "holidays_cite": "Code du travail (FR) art. L3133-1 · Royal Decree of 18 April 1974 (BE) · Code du travail (LU) art. L.232-2",
+      "sim_kicker": "Net salary simulator",
+      "sim_title": "Gross to net, with the real tax bracket — not an average.",
+      "sim_sub_multi": "France for now — Belgium and Luxembourg in preparation. Simplified estimate (single person, no children): never a substitute for the official simulator or tax advice.",
+      "sim_label_country": "Country",
+      "sim_label": "Gross annual salary (€)",
+      "sim_btn": "Calculate",
+      "sim_social": "Social contributions",
+      "sim_tax": "Income tax",
+      "sim_net": "Estimated monthly net",
+      "sim_scope_fr": "France — Loi de finances pour 2026, progressive scale. Social contributions aggregated at 22% (non-executive). Excludes the 10% standard professional-expense deduction.",
+      "econ_kicker": "Economic indicators",
+      "econ_h2": "Inflation, unemployment and minimum wage — the three countries, side by side.",
+      "econ_sub": "Latest values published by Eurostat at the time of research — each chart shows its date.",
+      "econ_inflation_title": "Inflation (HICP, year on year)",
+      "econ_inflation_cite": "Eurostat, release of 16 October 2026 · September 2026",
+      "econ_unemployment_title": "Unemployment rate",
+      "econ_unemployment_cite": "Eurostat (une_rt_m), seasonally adjusted · August 2026",
+      "econ_wages_title": "Minimum wage increase over one year",
+      "econ_wages_cite": "Eurostat (earn_mw_cur) · July 2025 → July 2026",
+      "search_label_sector": "Sector",
+      "sector_all": "All sectors",
+      "sector_tech": "Information and communication",
+      "sector_hospitality": "Accommodation and food service",
+      "sector_cite": "Sectors classified under NACE Rev. 2 (Eurostat) — the same official standard used to classify companies on the platform.",
+      "search_label_keyword": "Keyword",
+      "search_placeholder": "e.g. engineer, sales, marketing",
+      "search_label_country": "Country",
+      "search_btn": "Search",
+      "search_note": "The listing catalogue isn't open to the public yet — search already shows you the experience with the example listing above.",
+      "point1": "Employer identified and verified, never anonymous.",
+      "point2": "Salary compared against official collective agreement tables.",
+      "point3": "Always free for job seekers.",
+      "nav_cta": "See a verified listing",
+      "eyebrow": "Job platform · France, Belgium, Luxembourg",
+      "headline": "Salary is part<br>of the listing.",
+      "sub": "We recommend visible salary and employer details on every listing — more trust, more applications. The final choice always belongs to the employer.",
+      "kicker": "Example listing · Zeta Tech",
+      "job_title": "Backend Software Engineer",
+      "label_company": "COMPANY",
+      "label_location": "LOCATION",
+      "label_salary": "SALARY",
+      "val_company": "Zeta Tech SAS — verified",
+      "val_location": "Lyon · hybrid",
+      "val_salary": "€3,400 – €3,900 / month · permanent",
+      "verify_btn": "Verify listing",
+      "source_note": "Example: the listing is confirmed with the verified organisation, and the salary compared with the statutory minimum and the applicable collective-agreement grid.",
+      "stamp": "VERI<br>FIED",
+      "proof1_title": "Official salary, not estimated",
+      "proof1_body": "We compare every listing with the statutory minimum wage and officially published collective-agreement grids — never an algorithm guessing.",
+      "proof2_title": "Verified employer",
+      "proof2_body": "The verification seal can never be bought. It's calculated from observable data — response rate, confirmed complaints, real track record.",
+      "proof3_title": "Always free for candidates",
+      "proof3_body": "No subscription, no fee, no paid feature ever, on the job-seeker side. The employer pays.",
+      "compare_h2": "A complete listing — not a vague summary.",
+      "tag_common": "Typical platform",
+      "row_company": "Company",
+      "row_salary": "Salary",
+      "row_contract": "Contract",
+      "row_contract_val": "Permanent",
+      "row_verification": "Verification",
+      "row_verification_val": "Confirmed",
+      "flag_fr": "France",
+      "footer_fine": "Z Jobs — always free for candidates.",
+      "flag_be": "Belgium",
+      "flag_lu": "Luxembourg",
+      "nav_home": "Home",
+      "nav_offers": "Listings",
+      "nav_candidates": "For candidates",
+      "nav_employers": "For employers",
+      "nav_tools": "Legislation & tools",
+      "legal_value_month": "€/month",
+      "holidays_fr_note": "11 (+ 2 in Alsace-Moselle)",
+      "notice_heading": "Probation period and notice period",
+      "notice_sub": "No single invented figure: where the law defers to the collective agreement or to seniority, we say so.",
+      "notice_th_country": "Country",
+      "notice_th_probation": "Probation period",
+      "notice_th_notice": "Notice (dismissal by the employer)",
+      "notice_fr_probation": "2 to 4 months depending on category (permanent contract)",
+      "notice_fr_notice": "1 month from 6 months to 2 years of service, 2 months beyond — more if the collective agreement says so",
+      "notice_be_probation": "No probation period; since 1 August 2026, 1 week of notice during the first 6 months",
+      "notice_be_notice": "Statutory scale in weeks, increasing with seniority",
+      "notice_lu_probation": "2 weeks to 6 months (up to 12 months above a salary threshold)",
+      "notice_lu_notice": "2 months (under 5 years of service), 4 months (5 to 10 years), 6 months (10 years or more)",
+      "notice_cite": "Code du travail (FR) art. L1221-19 and L1234-1 · Law of 3 July 1978 (BE) art. 37/2, amended from 1 August 2026 · Code du travail (LU) art. L.121-5 and L.124-4",
+      "econ_title": "Inflation, unemployment and minimum wage.",
+      "econ_c1": "Inflation (HICP, year on year)",
+      "econ_c1_cite": "Eurostat, release of 16 October 2026 · September 2026",
+      "econ_c2": "Unemployment rate",
+      "econ_c2_cite": "Eurostat (une_rt_m), seasonally adjusted · August 2026",
+      "econ_c3": "Minimum wage increase over one year",
+      "econ_c3_cite": "Eurostat (earn_mw_cur) · July 2025 → July 2026",
+      "sim_scope_be": "Belgium — simulator in preparation. Meanwhile: Tax-Calc, FPS Finance (finances.belgium.be).",
+      "sim_scope_lu": "Luxembourg — simulator in preparation. Meanwhile: Administration des contributions directes (impotsdirects.public.lu).",
+      "sim_per_month": " / month",
+      "page_title": "Z Jobs — Salary is part of the listing.",
+      "row_salary_val": "€3,400 – €3,900",
+      "proof1_cite": "Collective agreements · official sources",
+      "proof2_cite": "Responsibility index",
+      "emp_kicker": "For employers",
+      "emp_title": "Real verification costs nothing until your first hire.",
+      "emp_sub": "The first listing is always free for a verified organisation. No purchasable seal, no paid boost hiding weak listings — visibility comes from observable data, not marketing budget.",
+      "emp_cta": "See how verification works"
+    }
   };
 
   function setLocale(locale) {
-    var dict = TRANSLATIONS[locale] || TRANSLATIONS.pt;
+    var dict = TRANSLATIONS[locale] || TRANSLATIONS.fr;
     document.querySelectorAll('[data-i18n]').forEach(function (el) {
       var key = el.getAttribute('data-i18n');
       if (dict[key]) el.textContent = dict[key];
@@ -1063,6 +805,7 @@
       if (dict[key]) el.setAttribute('placeholder', dict[key]);
     });
     document.documentElement.lang = locale;
+    try { window.localStorage.setItem('zjobs_locale', locale); } catch (e) { /* sans stockage */ }
     document.querySelectorAll('.locales span').forEach(function (el) {
       el.classList.toggle('is-active', el.getAttribute('data-locale') === locale);
     });
@@ -1073,7 +816,7 @@
     renderEconCharts(locale);
     if (typeof runSimulation === 'function') runSimulation();
   }
-  window.CURRENT_LOCALE = 'pt';
+  window.CURRENT_LOCALE = 'fr';
 
   document.querySelectorAll('.locales span').forEach(function (el) {
     el.addEventListener('click', function () { setLocale(el.getAttribute('data-locale')); });
@@ -1083,11 +826,15 @@
   // próprios cartões. Não é uma série uniforme fingida; são os valores
   // mais recentes verificados para cada indicador, à data da consulta.
   var ECON_DATA = {
-    countryKeys: ['flag_de', 'flag_fr', 'flag_it', 'flag_es', 'flag_pt'],
-    localeToCountryKey: { pt: 'flag_pt', it: 'flag_it', es: 'flag_es', fr: 'flag_fr', de: 'flag_de', en: null },
-    inflation:    [2.4, 2.0, 3.1, 3.6, 3.1],
-    unemployment: [3.9, 8.2, 5.7, 10.1, 5.8],
-    wages:        [2.7, 1.1, 2.3, 3.8, 3.7],
+    // FR, BE, LU. Inflation: Eurostat release 16 Oct 2026 (Sept 2026).
+    // Unemployment: Eurostat une_rt_m, SA, Aug 2026. Minimum wage:
+    // Eurostat earn_mw_cur, 2025-S2 -> 2026-S2 (FR 1802 -> 1867,
+    // BE 2112 -> 2234, LU 2704 -> 2771).
+    countryKeys: ['flag_fr', 'flag_be', 'flag_lu'],
+    localeToCountryKey: { fr: null, en: null },
+    inflation:    [3.4, 4.5, 5.2],
+    unemployment: [8.2, 5.9, 7.3],
+    wages:        [3.6, 5.8, 2.5],
   };
   var econCharts = {};
 
@@ -1114,9 +861,9 @@
 
   function renderEconCharts(locale) {
     if (typeof Chart === 'undefined') return; // rede indisponível — a página continua a funcionar sem o gráfico
-    var dict = TRANSLATIONS[locale] || TRANSLATIONS.pt;
+    var dict = TRANSLATIONS[locale] || TRANSLATIONS.fr;
     var labels = ECON_DATA.countryKeys.map(function (k) { return dict[k]; });
-    var highlightKey = ECON_DATA.localeToCountryKey[locale] || null;
+    var highlightKey = ECON_DATA.localeToCountryKey[locale] || null; // aucun pays mis en avant
     var highlightIndex = ECON_DATA.countryKeys.indexOf(highlightKey);
     var specs = [
       { id: 'chartInflation', values: ECON_DATA.inflation },
@@ -1127,12 +874,26 @@
       var canvas = document.getElementById(spec.id);
       if (!canvas) return;
       if (econCharts[spec.id]) econCharts[spec.id].destroy();
-      econCharts[spec.id] = new Chart(canvas.getContext('2d'), buildBarConfig(spec.values, labels, highlightIndex));
+      var config = buildBarConfig(spec.values, labels, highlightIndex);
+      // Country names take the text colour of the card (dark or light section).
+      config.options.scales.x.ticks.color = getComputedStyle(canvas.parentElement).color;
+      econCharts[spec.id] = new Chart(canvas.getContext('2d'), config);
     });
   }
 
-  renderEconCharts('pt');
-  document.getElementById('simBtn').click();
+
+  // Langue : ?lang=, puis le dernier choix, puis la langue du navigateur ; français par défaut.
+  (function () {
+    var locale = 'fr';
+    try {
+      var asked = new URLSearchParams(window.location.search).get('lang');
+      var saved = window.localStorage.getItem('zjobs_locale');
+      var browser = (navigator.language || '').slice(0, 2).toLowerCase();
+      locale = asked || saved || (browser === 'en' ? 'en' : 'fr');
+    } catch (e) { /* stockage indisponible : français */ }
+    if (!TRANSLATIONS[locale]) locale = 'fr';
+    setLocale(locale);
+  })();
 </script>
 
 </body>

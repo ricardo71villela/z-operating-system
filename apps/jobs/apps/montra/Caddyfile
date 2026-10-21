@@ -26,14 +26,23 @@
   @health path /health
   respond @health "ok" 200
 
-  @candidatos path /candidatos
-  rewrite @candidatos /candidatos.html
+  # Pages (FR/EN on the same page, French by default).
+  @candidats path /candidats
+  rewrite @candidats /candidats.html
 
-  @empregadores path /empregadores
-  rewrite @empregadores /empregadores.html
+  @employeurs path /employeurs
+  rewrite @employeurs /employeurs.html
 
-  @ferramentas path /ferramentas
-  rewrite @ferramentas /ferramentas.html
+  @outils path /outils
+  rewrite @outils /outils.html
+
+  # Former Portuguese addresses.
+  redir /candidatos /candidats 301
+  redir /candidatos.html /candidats 301
+  redir /empregadores /employeurs 301
+  redir /empregadores.html /employeurs 301
+  redir /ferramentas /outils 301
+  redir /ferramentas.html /outils 301
 
   root * /srv
   file_server
