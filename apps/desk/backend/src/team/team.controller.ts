@@ -3,7 +3,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import type { Request } from 'express';
 import { RequireDeskAuth, RequireDeskRoles } from '../auth/desk-auth.decorators';
 import type { DeskAuthContext, DeskRole } from '../auth/desk-auth-context';
-import { deskAdmin, supabaseAdmin, zosAdmin } from '../supabase/supabase-admin';
+import { deskAdmin, supabaseAdmin } from '../supabase/supabase-admin';
 
 type DeskRequest = Request & { deskContext?: DeskAuthContext };
 type InviteRole = Exclude<DeskRole, 'owner'>;
@@ -63,15 +63,11 @@ export class TeamController {
     const membershipIds = members.map((member) => member.membership_id);
     if (membershipIds.length === 0) return [];
 
-    const { data: memberships, error: membershipsError } = await zosAdmin.from('memberships').select('id,person_id').in('id', membershipIds);
-    if (membershipsError) throw membershipsError;
-    const membershipRows = (memberships ?? []) as MembershipRow[];
-    const personIds = membershipRows.map((membership) => membership.person_id);
-    const { data: persons, error: personsError } = await zosAdmin.from('persons').select('id,display_name').in('id', personIds);
-    if (personsError) throw personsError;
-
-    const membershipById = new Map(membershipRows.map((membership) => [membership.id, membership]));
-    const personById = new Map(((persons ?? []) as PersonRow[]).map((person) => [person.id, person]));
+    const { data: names, error: namesError } = await supabaseAdmin.rpc('zdesk_member_names', { p_membership_ids: membershipIds });
+    if (namesError) throw namesError;
+    const nameRows = (names ?? []) as { membership_id: string; person_id: string; display_name: string | null }[];
+    const membershipById = new Map<string, MembershipRow>(nameRows.map((row) => [row.membership_id, { id: row.membership_id, person_id: row.person_id }]));
+    const personById = new Map<string, PersonRow>(nameRows.map((row) => [row.person_id, { id: row.person_id, display_name: row.display_name }]));
     return members.map((member) => {
       const membership = membershipById.get(member.membership_id);
       const person = membership ? personById.get(membership.person_id) : undefined;

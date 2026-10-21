@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
-import { deskAdmin, supabaseAdmin, zosAdmin } from '../supabase/supabase-admin';
+import { deskAdmin, supabaseAdmin } from '../supabase/supabase-admin';
 import type { DeskAuthContext, DeskRole } from './desk-auth-context';
 
 interface MembershipRow {
@@ -19,6 +19,8 @@ interface WorkspaceMemberRow {
   role: DeskRole;
 }
 
+type IdentityRow = { person_id: string; membership_id: string | null; organisation_id: string | null };
+
 @Injectable()
 export class DeskAuthContextService {
   async requireContext(authHeader?: string, requestedOrganisationId?: string): Promise<DeskAuthContext> {
@@ -29,24 +31,20 @@ export class DeskAuthContextService {
     const authUser = authResult?.user;
     if (authError || !authUser) throw new UnauthorizedException('Invalid session.');
 
-    const { data: person, error: personError } = await zosAdmin
-      .from('persons')
-      .select('id')
-      .eq('auth_user_id', authUser.id)
-      .maybeSingle();
-    if (personError) throw personError;
-    if (!person) throw new ForbiddenException('No canonical ZOS Person is linked to this account.');
+    // Schema zos is closed to the Data API: identity comes from a
+    // service-role-only SECURITY DEFINER function.
+    const { data: identityRows, error: identityError } = await supabaseAdmin.rpc('zdesk_identity_for_auth_user', {
+      p_auth_user_id: authUser.id,
+      p_organisation_id: requestedOrganisationId ?? null,
+    });
+    if (identityError) throw identityError;
+    const identity = (identityRows ?? []) as IdentityRow[];
+    if (identity.length === 0) throw new ForbiddenException('No canonical ZOS Person is linked to this account.');
+    const person = { id: identity[0].person_id };
 
-    let membershipQuery = zosAdmin
-      .from('memberships')
-      .select('id, organisation_id')
-      .eq('person_id', person.id)
-      .eq('status', 'active');
-    if (requestedOrganisationId) membershipQuery = membershipQuery.eq('organisation_id', requestedOrganisationId);
-
-    const { data: memberships, error: membershipsError } = await membershipQuery;
-    if (membershipsError) throw membershipsError;
-    const activeMemberships = (memberships ?? []) as MembershipRow[];
+    const activeMemberships: MembershipRow[] = identity
+      .filter((row) => row.membership_id !== null && row.organisation_id !== null)
+      .map((row) => ({ id: row.membership_id as string, organisation_id: row.organisation_id as string }));
     if (activeMemberships.length === 0) throw new ForbiddenException('No active ZOS organisation membership.');
 
     const organisationIds = [...new Set(activeMemberships.map((membership) => membership.organisation_id))];
