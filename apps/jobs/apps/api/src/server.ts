@@ -37,7 +37,7 @@ import { canTransitionReport } from '../../../packages/domain/src/rules/moderati
 import { canReserveOfferForInstitution } from '../../../packages/domain/src/rules/institution';
 import { resolveTranslation } from '../../../packages/domain/src/rules/i18n';
 import { compareSalaryToReference } from '../../../packages/domain/src/rules/salaryReference';
-import { calculateNetSalary, calculateGermanNetSalary } from '../../../packages/domain/src/rules/netSalarySimulator';
+import { calculateNetSalary, calculateGermanNetSalary, calculateLuxembourgNetSalary, LU_TAX_PROFILE_2026 } from '../../../packages/domain/src/rules/netSalarySimulator';
 import { TERMINATION_TERMS_BY_COUNTRY, getTerminationTerms } from '../../../packages/domain/src/rules/terminationTerms';
 import { isLaunchCountry, isLaunchLocale, launchLocaleOrDefault } from '../../../packages/domain/src/rules/launchScope';
 import { canPublishGivenBilling, productByCode } from '../../../packages/domain/src/rules/billing';
@@ -878,9 +878,19 @@ export function createServer() {
       // nunca cálculo fiscal definitivo (ver netSalarySimulator.ts).
       if (method === 'GET' && path.match(/^\/tax-simulator\/[A-Za-z]{2}$/)) {
         if (!isLaunchCountry(path.split('/')[2])) return outOfScope();
-        if (!usingPostgres) return json(res, 404, { error: 'não encontrado' });
         const countryCode = path.split('/')[2].toUpperCase();
         const grossAnnualParam = url.searchParams.get('grossAnnual');
+
+        // Luxemburgo: motor próprio com fontes oficiais 2026 embutidas no
+        // domínio (tetos, dependência, fundo para o emprego, CIS/CI-CO2) —
+        // não depende de um perfil semeado na base de dados.
+        if (countryCode === 'LU') {
+          if (!grossAnnualParam) return json(res, 200, { taxProfile: LU_TAX_PROFILE_2026 });
+          const result = calculateLuxembourgNetSalary(Number(grossAnnualParam));
+          return json(res, 200, { taxProfile: LU_TAX_PROFILE_2026, result, calculationMethod: 'luxembourg_class1_2026' });
+        }
+
+        if (!usingPostgres) return json(res, 404, { error: 'não encontrado' });
 
         // Alemanha: fórmula contínua (§32a EStG), motor à parte — o
         // modelo genérico de escalões abaixo não a consegue representar
