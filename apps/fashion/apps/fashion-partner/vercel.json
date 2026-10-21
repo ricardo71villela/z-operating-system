@@ -8,7 +8,7 @@
   "rewrites": [
     {
       "source": "/",
-      "destination": "/dashboard.html"
+      "destination": "/dashboard"
     }
   ],
   "headers": [
