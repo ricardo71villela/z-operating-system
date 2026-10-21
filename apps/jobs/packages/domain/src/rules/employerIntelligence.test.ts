@@ -54,6 +54,13 @@ assert.equal(weakBehavior.evidenceLevel, 'developing');
 assert.ok(weakBehavior.limitations.includes('limited_offer_history'));
 assert.ok(weakBehavior.attentionAreas.includes('salary_transparency'));
 assert.ok(weakBehavior.attentionAreas.includes('response'));
-assert.ok(weakBehavior.attentionAreas.includes('integrity'));
+// Decided 2026-10-22: two confirmed complaints (integrity score 60) stay
+// "neutral"; integrity becomes an attention area from the third one.
+assert.equal(weakBehavior.signals.find((signal) => signal.code === 'integrity')?.level, 'neutral');
+assert.ok(!weakBehavior.attentionAreas.includes('integrity'));
+
+const threeComplaints = buildEmployerIntelligence({ ...strongMetrics, confirmedComplaintsCount: 3 });
+assert.equal(threeComplaints.signals.find((signal) => signal.code === 'integrity')?.level, 'attention');
+assert.ok(threeComplaints.attentionAreas.includes('integrity'));
 
 console.log('EMPLOYER INTELLIGENCE: PASS');

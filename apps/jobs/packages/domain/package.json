@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "for f in src/rules/*.test.ts src/i18n/*.test.ts src/zos/*.test.ts; do tsx \"$f\"; done",
+    "test": "set -e; for f in src/rules/*.test.ts src/i18n/*.test.ts src/zos/*.test.ts; do tsx \"$f\"; done",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
