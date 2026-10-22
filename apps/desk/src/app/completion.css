@@ -183,3 +183,18 @@
 .link-button { background: none; border: 0; padding: 0; min-height: 0; color: var(--gray-500); text-decoration: underline; font-size: 12px; cursor: pointer; box-shadow: none; }
 .link-button:hover { color: var(--gold); }
 .desk-sidebar-footer .sign-out { margin-top: 8px; }
+
+/* Visits (Z Find visit requests) */
+.visit-card { display: grid; gap: 8px; }
+.visit-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.visit-head .list-meta { margin-top: 0; }
+.visit-buyer { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; font-size: 13px; }
+.visit-buyer a { color: var(--gray-900); }
+.visit-message { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--gray-50); font-size: 13px; white-space: pre-wrap; }
+.visit-label { margin: 4px 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--gray-500); }
+.visit-slots { display: flex; gap: 8px; flex-wrap: wrap; }
+.visit-slots button { font-size: 13px; }
+.visit-card > .link-button { justify-self: start; }
+.visit-decline { margin-top: 4px; }
+.visit-decline input { min-width: min(320px, 100%); }
+.visit-history-title { display: block; margin-top: 6px; }

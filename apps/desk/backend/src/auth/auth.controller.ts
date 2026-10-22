@@ -24,4 +24,27 @@ export class AuthController {
     if (error) throw error;
     return data;
   }
+
+  /**
+   * Z Desk Lite: a Z Find agency user who signs in to Z Desk with the
+   * same ZOS account gets the agency workspace (created on first use;
+   * the first agency user is owner). Returns { linked: false } for
+   * accounts that are not active Z Find agency users.
+   */
+  @Post('link-zfind')
+  async linkZfind(@Headers('authorization') authHeader: string) {
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    if (!token) throw new UnauthorizedException('Missing bearer session.');
+
+    const { data: authResult, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const user = authResult?.user;
+    if (authError || !user) throw new UnauthorizedException('Invalid session.');
+
+    const { data, error } = await supabaseAdmin.rpc('zdesk_link_zfind_partner', {
+      p_auth_user_id: user.id,
+      p_email: user.email ?? '',
+    });
+    if (error) throw error;
+    return data ? { linked: true, ...(data as Record<string, unknown>) } : { linked: false };
+  }
 }
