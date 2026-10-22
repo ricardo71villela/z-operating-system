@@ -345,6 +345,35 @@ async function main() {
       Array.isArray(orgOffers) && orgOffers.every((o: any) => typeof o.overdueApplications === 'number'),
       orgOffers,
     );
+    // --- Mensagens entre candidato e empresa (uma conversa por candidatura) ---
+    const thread = `${BASE}/applications/${application.id}/messages`;
+    const sentByCandidate = await fetch(thread, { method: 'POST', headers: authHeaders, body: JSON.stringify({ body: 'Bonjour, le poste est-il ouvert au télétravail ?' }) });
+    check('(mensagens) candidato escreve à empresa', sentByCandidate.status === 201, await sentByCandidate.clone().json());
+    const unreadForEmployer = await (await fetch(`${BASE}/job-offers/${offer.id}/applications`, { headers: recruiterHeaders })).json();
+    check('(mensagens) empresa vê 1 mensagem por ler na candidatura', unreadForEmployer.find((a: any) => a.id === application.id)?.unreadMessages === 1, unreadForEmployer);
+    const employerView = await (await fetch(thread, { headers: recruiterHeaders })).json();
+    check('(mensagens) empresa lê a conversa do lado employer', employerView.mySide === 'employer' && employerView.messages?.length === 1 && employerView.canWrite === true, employerView);
+    const reply = await fetch(thread, { method: 'POST', headers: recruiterHeaders, body: JSON.stringify({ body: 'Oui, deux jours par semaine.' }) });
+    check('(mensagens) empresa responde', reply.status === 201);
+    const candidateApps = await (await fetch(`${BASE}/candidates/${candidate.id}/applications`, { headers: authHeaders })).json();
+    check('(mensagens) candidato vê 1 resposta por ler', candidateApps.find((a: any) => a.id === application.id)?.unreadMessages === 1, candidateApps);
+    const candidateThread = await (await fetch(thread, { headers: authHeaders })).json();
+    const afterRead = await (await fetch(`${BASE}/candidates/${candidate.id}/applications`, { headers: authHeaders })).json();
+    check(
+      '(mensagens) candidato lê a conversa por ordem e fica tudo lido',
+      candidateThread.messages?.map((m: any) => m.authorSide).join(',') === 'candidate,employer' && afterRead.find((a: any) => a.id === application.id)?.unreadMessages === 0,
+      candidateThread,
+    );
+    const stranger = await (await fetch(`${BASE}/candidates`, { method: 'POST', body: JSON.stringify({ fullName: 'Curieux', email: 'curieux@example.com', password: 'curieux-senha-123', termsAccepted: true }) })).json();
+    const strangerHeaders = { Authorization: `Bearer ${stranger.token}` };
+    const strangerRead = await fetch(thread, { headers: strangerHeaders });
+    const strangerWrite = await fetch(thread, { method: 'POST', headers: strangerHeaders, body: JSON.stringify({ body: 'intrusion' }) });
+    check('(mensagens, negativo) terceiro não lê nem escreve (403)', strangerRead.status === 403 && strangerWrite.status === 403);
+    const emptyMessage = await fetch(thread, { method: 'POST', headers: authHeaders, body: JSON.stringify({ body: '   ' }) });
+    check('(mensagens, negativo) mensagem vazia recusada (400)', emptyMessage.status === 400);
+    const anonymousRead = await fetch(thread);
+    check('(mensagens, negativo) sem sessão (401)', anonymousRead.status === 401);
+
     const othersApplications = await fetch(`${BASE}/candidates/${candidate.id}/applications`, { headers: recruiterHeaders });
     check('(painel, negativo) ninguém vê as candidaturas de outra pessoa', othersApplications.status === 403);
 

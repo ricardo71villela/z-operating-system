@@ -282,3 +282,94 @@ export function ResponseDeadlineNote({ response, audience }) {
   if (!text) return null;
   return <span className={`zj-deadline ${tone}`}><Clock size={12} aria-hidden="true" /> {text}</span>;
 }
+
+/**
+ * Messages between the candidate and the employer about one application.
+ * A toggle button (with the unread count) opens the thread inline; opening
+ * it marks the other side's messages as read on the server.
+ */
+export function MessageThread({ applicationId, title, unread = 0, audience, onLoad, onSend }) {
+  const [open, setOpen] = React.useState(false);
+  const [thread, setThread] = React.useState(null);
+  const [error, setError] = React.useState(null);
+  const [draft, setDraft] = React.useState("");
+  const [sending, setSending] = React.useState(false);
+  const [status, setStatus] = React.useState("");
+  const [unreadLeft, setUnreadLeft] = React.useState(unread);
+  const panelId = `thread-${applicationId}`;
+  React.useEffect(() => { setUnreadLeft(unread); }, [unread]);
+
+  async function load() {
+    setError(null);
+    try {
+      const data = await onLoad(applicationId);
+      setThread(data);
+      setUnreadLeft(0);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+  function toggle() {
+    const next = !open;
+    setOpen(next);
+    if (next) load();
+  }
+  async function send(e) {
+    e.preventDefault();
+    const body = draft.trim();
+    if (!body) return;
+    setSending(true);
+    setStatus("");
+    try {
+      const created = await onSend(applicationId, body);
+      setThread((prev) => ({ ...prev, messages: [...((prev && prev.messages) || []), created] }));
+      setDraft("");
+      setStatus(t("messages_sent"));
+    } catch (err) {
+      setStatus(err.message);
+    } finally {
+      setSending(false);
+    }
+  }
+  const authorLabel = (m) => (thread && m.authorSide === thread.mySide ? t("messages_you") : m.authorSide === "employer" ? t("messages_employer") : t("messages_candidate"));
+
+  return (
+    <div className="zj-thread">
+      <button type="button" className="zj-btn is-ghost is-small" aria-expanded={open} aria-controls={panelId} onClick={toggle}>
+        {open ? t("messages_hide") : t("messages_open")}
+        {!open && unreadLeft > 0 && <span className="zj-section-count">{t("messages_unread", { count: unreadLeft })}</span>}
+        <span className="zj-visually-hidden"> — {title}</span>
+      </button>
+      {open && (
+        <section id={panelId} className="zj-thread-panel" aria-label={t("messages_title", { title })}>
+          <p className="zj-field-hint">{t(audience === "employer" ? "messages_hint_employer" : "messages_hint_candidate")}</p>
+          {error && <p className="zj-field-error" role="alert">{t("messages_load_failed", { error })}</p>}
+          {!thread && !error && <p className="zj-empty" role="status">{t("loading")}</p>}
+          {thread && (
+            <>
+              {thread.messages.length === 0 ? <p className="zj-empty">{t("messages_empty")}</p> : (
+                <ol className="zj-thread-list" tabIndex={0} aria-label={t("messages_title", { title })}>
+                  {thread.messages.map((m) => (
+                    <li key={m.id} className={`zj-message ${m.authorSide === thread.mySide ? "is-mine" : ""}`}>
+                      <span className="zj-message-meta"><strong>{authorLabel(m)}</strong> · {formatDate(m.createdAt)} {new Date(m.createdAt).toLocaleTimeString(messagesLocale() === "fr" ? "fr-FR" : "en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
+                      <p className="zj-message-body">{m.body}</p>
+                    </li>
+                  ))}
+                </ol>
+              )}
+              {thread.canWrite ? (
+                <form className="zj-thread-form" onSubmit={send}>
+                  <Field label={t("messages_field")} hint={t("messages_count", { count: draft.length })}>
+                    <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={3} maxLength={4000} />
+                  </Field>
+                  <button type="submit" className="zj-btn is-primary is-small" disabled={sending || !draft.trim()}>{t("messages_send")}</button>
+                </form>
+              ) : <p className="zj-notice">{t("messages_closed")}</p>}
+              <p className="zj-visually-hidden" role="status" aria-live="polite">{status}</p>
+            </>
+          )}
+        </section>
+      )}
+    </div>
+  );
+}

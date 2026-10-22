@@ -83,6 +83,8 @@ const api = {
   savePublicCompanyProfile: (orgId, fields) => apiFetch(`/organizations/${orgId}/public-profile`, { method: "PUT", body: JSON.stringify(fields) }),
   saveCompanyClassification: (orgId, fields) => apiFetch(`/organizations/${orgId}/classification`, { method: "PUT", body: JSON.stringify(fields) }),
   listNaceCodes: () => apiFetch("/nace-codes"),
+  getMessages: (applicationId) => apiFetch(`/applications/${applicationId}/messages`),
+  sendMessage: (applicationId, body) => post(`/applications/${applicationId}/messages`, { body }),
   // offers
   listPublishedOffers: () => apiFetch("/job-offers"),
   searchLocations: (q, country) => apiFetch(`/locations?q=${encodeURIComponent(q)}${country ? `&country=${country}` : ""}`),
@@ -537,6 +539,8 @@ export default function ZJobsDemo() {
             applications={applications}
             onWithdraw={withdraw}
             onFetchMyScore={(id) => api.getApplication(id)}
+            onLoadMessages={(id) => api.getMessages(id)}
+            onSendMessage={(id, body) => api.sendMessage(id, body)}
             alerts={alerts}
             onCreateAlert={createAlert}
             onDeleteAlert={deleteAlert}
@@ -571,6 +575,8 @@ export default function ZJobsDemo() {
             onTransition={transitionForPartner}
             onSearchLocations={(q) => api.searchLocations(q)}
             onLoadPublicProfile={(id) => api.getPublicCompanyProfile(id)}
+            onLoadMessages={(id) => api.getMessages(id)}
+            onSendMessage={(id, body) => api.sendMessage(id, body)}
             onSavePublicProfile={savePublicProfile}
             onListNaceCodes={() => api.listNaceCodes()}
             busy={busy}
@@ -1224,6 +1230,16 @@ function FontsAndStyles() {
       .zj-kpi.is-good { border-left: 4px solid var(--trust); }
       .zj-kpi.is-warn { border-left: 4px solid var(--amber); }
       .zj-kpi.is-bad { border-left: 4px solid var(--danger); }
+      .zj-thread { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+      .zj-thread > .zj-btn { align-self: flex-start; }
+      .zj-thread-panel { border: 1px solid var(--line); background: var(--paper-raised); padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+      .zj-thread-list:focus-visible { outline: 2px solid var(--trust); outline-offset: 2px; }
+      .zj-thread-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; }
+      .zj-message { border-left: 3px solid var(--line); padding: 6px 10px; background: #fff; }
+      .zj-message.is-mine { border-left-color: var(--trust); background: var(--trust-soft); }
+      .zj-message-meta { font-size: 12px; color: #3D4A46; }
+      .zj-message-body { margin: 4px 0 0; white-space: pre-line; overflow-wrap: anywhere; }
+      .zj-thread-form { display: flex; flex-direction: column; gap: 8px; }
       .zj-deadline { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #3D4A46; width: fit-content; }
       .zj-deadline.is-warn { color: var(--amber-text); background: var(--amber-soft); padding: 2px 6px; font-weight: 600; }
       .zj-deadline.is-late { color: var(--danger); background: var(--danger-soft); padding: 2px 6px; font-weight: 600; }

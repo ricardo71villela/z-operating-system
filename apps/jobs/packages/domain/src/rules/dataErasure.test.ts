@@ -45,6 +45,7 @@ test('dados candidate-only são apagados', () => {
     'saved_job_offers',
     'institution_affiliations',
     'application_notes',
+    'application_messages',
   ];
 
   for (const table of expected) {
