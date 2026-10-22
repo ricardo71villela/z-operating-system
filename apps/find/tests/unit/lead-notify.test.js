@@ -49,6 +49,13 @@ const row = o => Object.assign({ lead_id: 'l1', created_at: '2026-10-04T10:00:00
   check('each sent enquiry marked delivered', marks.length === 3 && marks.every(m => m.body.p_delivered === true));
   check('server key in the apikey header only (new sb_secret key)', calls.every(c => c.headers.apikey === 'sb_secret_test' && !c.headers.Authorization));
 
+  mails.length = 0; calls.length = 0; pending = [row({ lead_id: 'v1', contact_type: 'visit', message: '[Demande de visite — 24/10/2026 10:00]' })];
+  await api._internals.processPending(10);
+  const visitMail = mails.find(m => m.to.includes('agent@lac-immo.fr'));
+  check('visit request: its own subject and a link to confirm a slot in Z Desk (not the partner panel)',
+    visitMail && visitMail.subject === 'Demande de visite : T3 vue lac' && visitMail.html.includes('Demande de visite (créneaux proposés)')
+    && visitMail.html.includes('https://z-desk.vercel.app/fr/visits') && !visitMail.html.includes('Voir mes demandes') && visitMail.text.includes('Z Desk'));
+
   mails.length = 0; calls.length = 0; failMailTo = 'agent@lac-immo.fr'; pending = [row()];
   const report = await api._internals.processPending(10);
   const failedMark = calls.find(c => /zfind_mark_leads_notified/.test(c.url));
