@@ -259,12 +259,38 @@ async function main() {
     })).json();
     check('13b. empresa avança candidatura para "received"', advanced.status === 'received');
 
+    // --- Localidades de referência FR/BE/LU ---
+    const evian = await (await fetch(`${BASE}/locations?q=evian`)).json();
+    check('(localidades) "evian" encontra Évian-les-Bains (sem acentos)', evian[0]?.city === 'Évian-les-Bains', evian);
+    const brussel = await (await fetch(`${BASE}/locations?q=Brussel&country=BE`)).json();
+    check('(localidades) nome neerlandês encontra Bruxelles', brussel[0]?.city === 'Bruxelles', brussel);
+    const byPostal = await (await fetch(`${BASE}/locations?q=74500`)).json();
+    check('(localidades) pesquisa por código postal', byPostal.some((l: any) => l.city === 'Évian-les-Bains'), byPostal);
+    const outOfScopeLoc = await fetch(`${BASE}/locations?q=berlin&country=DE`);
+    check('(localidades) país fora do lançamento recusado (404)', outOfScopeLoc.status === 404);
+    const lyon = (await (await fetch(`${BASE}/locations?q=lyon&country=FR`)).json())[0];
+    const locatedDraft = await (await fetch(`${BASE}/job-offers`, {
+      method: 'POST', headers: recruiterHeaders,
+      body: JSON.stringify({
+        organizationId: org.id, title: 'Comptable (H/F)', description: 'Poste basé à Lyon, salaire fixe mensuel.',
+        contractType: 'permanent', salaryMin: 2400, salaryMax: 2800, salaryCurrency: 'EUR', salaryPeriod: 'monthly',
+        hasFixedSalary: true, workRegime: 'on_site', employerIdentified: true, pillar: 'professional_careers', locationId: lyon?.id,
+      }),
+    })).json();
+    const badLocation = await fetch(`${BASE}/job-offers`, {
+      method: 'POST', headers: recruiterHeaders,
+      body: JSON.stringify({ organizationId: org.id, title: 'x', description: 'x', contractType: 'permanent', salaryMin: 1, salaryCurrency: 'EUR', salaryPeriod: 'monthly', hasFixedSalary: true, workRegime: 'on_site', employerIdentified: true, pillar: 'first_jobs', locationId: '00000000-0000-0000-0000-000000000000' }),
+    });
+    check('(localidades) localidade inexistente recusada (400)', badLocation.status === 400);
+
     // --- Painéis: leituras de que o portal precisa depois de recarregar ---
     const myOrgs = await (await fetch(`${BASE}/me/organizations`, { headers: recruiterHeaders })).json();
     check('(painel) empresa vê as suas organizações', Array.isArray(myOrgs) && myOrgs.some((o: any) => o.id === org.id && o.role === 'owner'), myOrgs);
     const orgOffers = await (await fetch(`${BASE}/organizations/${org.id}/job-offers`, { headers: recruiterHeaders })).json();
     const listedOffer = Array.isArray(orgOffers) ? orgOffers.find((o: any) => o.id === offer.id) : null;
     check('(painel) empresa vê as suas ofertas com contagem de candidaturas', listedOffer?.applicationsByStatus?.received === 1, orgOffers);
+    const listedLocated = Array.isArray(orgOffers) ? orgOffers.find((o: any) => o.id === locatedDraft.id) : null;
+    check('(localidades) oferta mostra a cidade escolhida', listedLocated?.location?.city === 'Lyon' && listedLocated?.location?.countryCode === 'FR', listedLocated);
     const strangerOrgOffers = await fetch(`${BASE}/organizations/${org.id}/job-offers`, { headers: authHeaders });
     check('(painel, negativo) quem não é membro não vê as ofertas da organização', strangerOrgOffers.status === 403);
     const myApplications = await (await fetch(`${BASE}/candidates/${candidate.id}/applications`, { headers: authHeaders })).json();

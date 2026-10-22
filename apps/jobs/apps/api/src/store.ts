@@ -28,10 +28,20 @@ export interface OrganizationRecord {
   verificationRequestedAt?: string;
 }
 
+export interface JobOfferLocation {
+  id: string;
+  countryCode: string;
+  city: string | null;
+  postalCode: string | null;
+  adminArea: string | null;
+}
+
 export interface JobOfferRecord extends JobOfferDraft {
   id: string;
   createdAt: string;
   updatedAt: string;
+  /** Resolved from locationId when the store can join the locations table. */
+  location?: JobOfferLocation | null;
 }
 
 export interface ApplicationRecord {

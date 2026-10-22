@@ -1,7 +1,7 @@
 // Shared building blocks for the Z Jobs portal views (ZJobsDemo.jsx and
 // the two dashboards). Kept free of app state so any view can import them.
 import React from "react";
-import { ShieldCheck, Clock, CheckCircle2, XCircle, AlertTriangle, BadgeCheck } from "lucide-react";
+import { ShieldCheck, Clock, CheckCircle2, XCircle, AlertTriangle, BadgeCheck, MapPin } from "lucide-react";
 import { t, messagesLocale, formatAmount } from "./messages.js";
 
 export const PILLAR_KEYS = ["first_jobs", "professional_careers", "senior_careers"];
@@ -134,5 +134,91 @@ export function Stepper({ steps, currentIndex, label, ended }) {
         );
       })}
     </ol>
+  );
+}
+
+/** Accent-insensitive comparison key (same rule as the API's location search). */
+export function normalizeText(text) {
+  return String(text || "").normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+/** "Lyon (69001) · Rhône (69)" style label for an offer or a search result. */
+export function locationLabel(loc) {
+  if (!loc) return "";
+  const country = { FR: "France", BE: "Belgique", LU: "Luxembourg" }[loc.countryCode] || loc.countryCode;
+  const city = loc.postalCode ? `${loc.city} (${loc.postalCode})` : loc.city;
+  return [city, loc.adminArea, country].filter(Boolean).join(" · ");
+}
+
+export function OfferPlace({ location, workRegime }) {
+  if (!location && workRegime !== "remote") return null;
+  return (
+    <span className="zj-place">
+      <MapPin size={12} aria-hidden="true" />
+      {location ? locationLabel(location) : t("regime_remote")}
+      {location && workRegime === "remote" ? ` · ${t("regime_remote")}` : ""}
+    </span>
+  );
+}
+
+/**
+ * Pick a reference town (France, Belgium, Luxembourg). Typing searches the API;
+ * results are plain buttons, so the picker works with a keyboard and a screen
+ * reader without a custom combobox.
+ */
+export function LocationPicker({ value, onChange, search, label, hint, required }) {
+  const [query, setQuery] = React.useState("");
+  const [results, setResults] = React.useState([]);
+  const [status, setStatus] = React.useState("idle");
+  React.useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) { setResults([]); setStatus("idle"); return undefined; }
+    let cancelled = false;
+    setStatus("loading");
+    const timer = setTimeout(async () => {
+      try {
+        const found = await search(q);
+        if (!cancelled) { setResults(found || []); setStatus("done"); }
+      } catch {
+        if (!cancelled) { setResults([]); setStatus("error"); }
+      }
+    }, 250);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [query]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (value) {
+    return (
+      <div className="zj-field">
+        <span className="zj-field-label">{label}{required && <span aria-hidden="true"> *</span>}</span>
+        <div className="zj-place-chosen">
+          <MapPin size={14} aria-hidden="true" /> <strong>{locationLabel(value)}</strong>
+          <button type="button" className="zj-btn is-ghost is-small" onClick={() => { onChange(null); setQuery(""); }}>{t("change")}</button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="zj-location-picker">
+      <Field label={label} hint={hint} required={required}>
+        <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("ph_location")} autoComplete="off" />
+      </Field>
+      <div aria-live="polite" className="zj-hint-inline">
+        {status === "loading" && t("searching")}
+        {status === "done" && results.length === 0 && t("no_location_found")}
+        {status === "error" && t("location_search_failed")}
+      </div>
+      {results.length > 0 && (
+        <ul className="zj-plain-list zj-location-results" aria-label={t("location_results")}>
+          {results.map((r) => (
+            <li key={r.id}>
+              <button type="button" className="zj-location-option" onClick={() => onChange(r)}>
+                <strong>{r.city}</strong>{r.altName ? ` / ${r.altName}` : ""}
+                <span className="zj-hint-inline"> {[r.postalCode, r.adminArea, r.countryCode].filter(Boolean).join(" · ")}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

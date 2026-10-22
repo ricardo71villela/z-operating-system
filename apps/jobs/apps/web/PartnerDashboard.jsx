@@ -7,6 +7,7 @@ import { LOCALES } from "./messages.js";
 import {
   APPLICATION_TRANSITIONS, CONTRACT_TYPES, Field, Kpi, PILLAR_KEYS, SalaryLedger, SectionNav, Stepper,
   TEMP_AGENCY_CONTRACT_TYPES, VerificationBadge, formatDate, offerStatusLabel, pillarLabel, statusLabel,
+  LocationPicker, OfferPlace,
 } from "./shared.jsx";
 
 const PIPELINE_COLUMNS = [
@@ -96,7 +97,7 @@ export function PartnerDashboard(props) {
           {org.verificationStatus !== "verified" && org.verificationStatus !== "enhanced_verified" && (
             <p className="zj-notice">{t("offer_needs_verification")}</p>
           )}
-          <OfferForm onCreate={async (draft) => { const ok = await props.onCreateOffer(org.id, draft); if (ok) setSection("offers"); }} />
+          <OfferForm onSearchLocations={props.onSearchLocations} onCreate={async (draft) => { const ok = await props.onCreateOffer(org.id, draft); if (ok) setSection("offers"); }} />
         </div>
       )}
     </section>
@@ -195,6 +196,7 @@ function OffersList({ offers, onSubmitForReview, openCandidates, translations, o
                 <span className={`zj-status status-${o.status}`}>{offerStatusLabel(o.status)}</span>
               </div>
               <span className="zj-hint-inline">{pillarLabel(o.pillar)} · {t(`contract_${o.contractType}`)} · {t("created_on", { date: formatDate(o.createdAt) })}</span>
+              <OfferPlace location={o.location} workRegime={o.workRegime} />
               <SalaryLedger min={o.salaryMin} max={o.salaryMax} currencyCode={o.salaryCurrency} period={o.salaryPeriod} fixed={o.hasFixedSalary} />
               <p className="zj-hint-inline">{t(`offer_status_help_${o.status}`)}</p>
               {o.issues?.length > 0 && (
@@ -352,8 +354,9 @@ function PipelineCard({ application: a, score, onMove }) {
   );
 }
 
-function OfferForm({ onCreate }) {
+function OfferForm({ onCreate, onSearchLocations }) {
   const [title, setTitle] = useState("");
+  const [location, setLocation] = useState(null);
   const [description, setDescription] = useState("");
   const [salaryMin, setSalaryMin] = useState("");
   const [salaryMax, setSalaryMax] = useState("");
@@ -368,6 +371,7 @@ function OfferForm({ onCreate }) {
   const [informedOfPermanentVacancies, setInformedOfPermanentVacancies] = useState(false);
   const isTempAgency = TEMP_AGENCY_CONTRACT_TYPES.includes(contractType);
   const salaryOk = Number(salaryMin) > 0 && (!salaryMax || Number(salaryMax) >= Number(salaryMin));
+  const placeOk = !!location || regime === "remote";
 
   function submit(e) {
     e.preventDefault();
@@ -377,6 +381,7 @@ function OfferForm({ onCreate }) {
       salaryMax: salaryMax ? Number(salaryMax) : null,
       salaryCurrency: "EUR", salaryPeriod, hasFixedSalary,
       workRegime: regime, pillar, contractType,
+      locationId: location?.id || null,
       ...(isTempAgency ? {
         userCompanyName, equalTreatmentConfirmed,
         collectiveAgreementDerogationReference: derogationReference || null,
@@ -412,6 +417,14 @@ function OfferForm({ onCreate }) {
         </label>
         <p className="zj-field-hint">{t("salary_transparency_hint")}</p>
       </fieldset>
+      <LocationPicker
+        label={t("field_location")}
+        hint={t("hint_location")}
+        required={regime !== "remote"}
+        value={location}
+        onChange={setLocation}
+        search={onSearchLocations}
+      />
       <div className="zj-form-row">
         <Field label={t("field_pillar")}>
           <select value={pillar} onChange={(e) => setPillar(e.target.value)}>
@@ -445,7 +458,7 @@ function OfferForm({ onCreate }) {
           <label className="zj-checkbox"><input type="checkbox" checked={informedOfPermanentVacancies} onChange={(e) => setInformedOfPermanentVacancies(e.target.checked)} /> {t("permanent_vacancies")}</label>
         </fieldset>
       )}
-      <button type="submit" className="zj-btn is-primary" disabled={!title || !description || !salaryOk}>
+      <button type="submit" className="zj-btn is-primary" disabled={!title || !description || !salaryOk || !placeOk}>
         {t("save_draft")} <ArrowRight size={14} aria-hidden="true" />
       </button>
       <p className="zj-field-hint"><Building2 size={12} aria-hidden="true" /> {t("offer_form_next_step")}</p>
