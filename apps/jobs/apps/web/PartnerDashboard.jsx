@@ -7,7 +7,7 @@ import { LOCALES } from "./messages.js";
 import {
   APPLICATION_TRANSITIONS, CONTRACT_TYPES, Field, Kpi, PILLAR_KEYS, SalaryLedger, SectionNav, Stepper,
   TEMP_AGENCY_CONTRACT_TYPES, VerificationBadge, formatDate, offerStatusLabel, pillarLabel, statusLabel,
-  LocationPicker, OfferPlace,
+  LocationPicker, OfferPlace, companyPageUrl, naceSectionLabel,
 } from "./shared.jsx";
 
 const PIPELINE_COLUMNS = [
@@ -61,6 +61,7 @@ export function PartnerDashboard(props) {
     { key: "offers", label: t("org_nav_offers"), count: offers.length },
     { key: "candidates", label: t("org_nav_candidates"), count: toProcess },
     { key: "new", label: t("org_nav_new_offer") },
+    { key: "profile", label: t("org_nav_profile") },
   ];
   function openCandidates(offerId) {
     setFocusOfferId(offerId);
@@ -91,6 +92,7 @@ export function PartnerDashboard(props) {
       {section === "overview" && <OrgOverview {...props} toProcess={toProcess} go={setSection} openCandidates={openCandidates} />}
       {section === "offers" && <OffersList {...props} openCandidates={openCandidates} go={setSection} />}
       {section === "candidates" && <Pipeline {...props} focusOfferId={focusOfferId} setFocusOfferId={setFocusOfferId} />}
+      {section === "profile" && <PublicProfileForm {...props} />}
       {section === "new" && (
         <div className="zj-dash-section" aria-labelledby="org-new-h">
           <h2 id="org-new-h" className="zj-section-title">{t("create_offer")}</h2>
@@ -463,5 +465,96 @@ function OfferForm({ onCreate, onSearchLocations }) {
       </button>
       <p className="zj-field-hint"><Building2 size={12} aria-hidden="true" /> {t("offer_form_next_step")}</p>
     </form>
+  );
+}
+
+/**
+ * What the public company page shows. Text fields go to PUT
+ * /organizations/:id/public-profile; headcount and NACE sector to the
+ * existing PUT /organizations/:id/classification.
+ */
+function PublicProfileForm({ org, onLoadPublicProfile, onSavePublicProfile, onListNaceCodes, onSearchLocations, busy }) {
+  const [loaded, setLoaded] = useState(false);
+  const [form, setForm] = useState({ description: "", cultureNotes: "", remotePolicyNotes: "", inclusionPolicyNotes: "", website: "", employeeCount: "", naceCode: "" });
+  const [headquarters, setHeadquarters] = useState(null);
+  const [sections, setSections] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoaded(false);
+    Promise.all([onLoadPublicProfile(org.id), onListNaceCodes().catch(() => [])]).then(([data, codes]) => {
+      if (cancelled) return;
+      const p = (data && data.profile) || {};
+      setForm({
+        description: p.description || "", cultureNotes: p.cultureNotes || "", remotePolicyNotes: p.remotePolicyNotes || "",
+        inclusionPolicyNotes: p.inclusionPolicyNotes || "", website: p.website || "",
+        employeeCount: p.employeeCount ?? "", naceCode: (p.nace && p.nace.code) || "",
+      });
+      setHeadquarters(p.headquarters || null);
+      setSections((codes || []).filter((c) => c.level === "section"));
+      setLoaded(true);
+    }).catch(() => { if (!cancelled) setLoaded(true); });
+    return () => { cancelled = true; };
+  }, [org.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+  const websiteOk = !form.website || /^https:\/\/[^\s/]+\.[^\s]+$/i.test(form.website.trim());
+  const countOk = form.employeeCount === "" || (Number.isInteger(Number(form.employeeCount)) && Number(form.employeeCount) >= 0);
+
+  function submit(e) {
+    e.preventDefault();
+    onSavePublicProfile(org.id, {
+      description: form.description, cultureNotes: form.cultureNotes, remotePolicyNotes: form.remotePolicyNotes,
+      inclusionPolicyNotes: form.inclusionPolicyNotes, website: form.website.trim(),
+      headquartersLocationId: headquarters ? headquarters.id : null,
+    }, {
+      employeeCount: form.employeeCount === "" ? null : Number(form.employeeCount),
+      naceCode: form.naceCode || null,
+    });
+  }
+
+  return (
+    <div className="zj-dash-section" aria-labelledby="org-profile-h">
+      <div className="zj-panel-head">
+        <h2 id="org-profile-h" className="zj-section-title">{t("profile_h")}</h2>
+        <a className="zj-btn is-ghost is-small" href={companyPageUrl(org.id)} target="_blank" rel="noopener">{t("profile_view_public")}</a>
+      </div>
+      <p className="zj-panel-hint">{t("profile_intro")}</p>
+      {!loaded ? <p className="zj-empty" role="status">{t("loading")}</p> : (
+        <form className="zj-form zj-form-wide" onSubmit={submit}>
+          <Field label={t("field_company_description")} hint={t("hint_company_description")}>
+            <textarea value={form.description} onChange={set("description")} rows={6} maxLength={3000} />
+          </Field>
+          <Field label={t("field_culture")}>
+            <textarea value={form.cultureNotes} onChange={set("cultureNotes")} rows={3} maxLength={1500} />
+          </Field>
+          <Field label={t("field_remote_policy")} hint={t("hint_remote_policy")}>
+            <textarea value={form.remotePolicyNotes} onChange={set("remotePolicyNotes")} rows={2} maxLength={1500} />
+          </Field>
+          <Field label={t("field_inclusion")} hint={t("hint_inclusion")}>
+            <textarea value={form.inclusionPolicyNotes} onChange={set("inclusionPolicyNotes")} rows={2} maxLength={1500} />
+          </Field>
+          <div className="zj-form-row">
+            <Field label={t("field_website")} hint={t("hint_website")}>
+              <input type="url" value={form.website} onChange={set("website")} placeholder="https://" maxLength={200} aria-invalid={!websiteOk} />
+            </Field>
+            <Field label={t("field_employee_count")}>
+              <input type="number" min="0" step="1" inputMode="numeric" value={form.employeeCount} onChange={set("employeeCount")} aria-invalid={!countOk} />
+            </Field>
+          </div>
+          {!websiteOk && <p className="zj-field-error" role="alert">{t("hint_website")}</p>}
+          <LocationPicker label={t("field_headquarters")} value={headquarters} onChange={setHeadquarters} search={onSearchLocations} />
+          {sections.length > 0 ? (
+            <Field label={t("field_sector")}>
+              <select value={form.naceCode} onChange={set("naceCode")}>
+                <option value="">{t("sector_none")}</option>
+                {sections.map((c) => <option key={c.code} value={c.code}>{c.code} — {naceSectionLabel(c.sectionLetter || c.code) || c.labelEn}</option>)}
+              </select>
+            </Field>
+          ) : <p className="zj-field-hint">{t("sector_unavailable")}</p>}
+          <button type="submit" className="zj-btn is-primary" disabled={busy || !websiteOk || !countOk}>{t("profile_save")}</button>
+        </form>
+      )}
+    </div>
   );
 }

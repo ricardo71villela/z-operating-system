@@ -925,6 +925,10 @@ export class PgStore {
       params.push(filters.country);
       where.push(`l.country_code = $${params.length}::text`);
     }
+    if (filters.organizationId) {
+      params.push(filters.organizationId);
+      where.push(`o.organization_id = $${params.length}::uuid`);
+    }
     if (filters.naceSection) {
       params.push(filters.naceSection);
       where.push(`n.section_letter = $${params.length}::text`);
@@ -1321,6 +1325,65 @@ export class PgStore {
     return rows.length > 0;
   }
 
+  /** Owner or admin of the organisation (the roles the company_profiles update policy accepts). */
+  async isOrganizationAdmin(orgId: string, userId: string): Promise<boolean> {
+    const { rows } = await this.query(
+      `select 1 from organization_memberships where organization_id = $1 and user_id = $2 and role in ('owner','admin')`,
+      [orgId, userId],
+    );
+    return rows.length > 0;
+  }
+
+  /**
+   * What anyone may read about an employer: the organisation, and the
+   * company profile once it is verified (RLS hides unverified profiles from
+   * other people; the organisation's own members still see theirs).
+   */
+  async getCompanyPublicDetails(orgId: string) {
+    const { rows } = await this.query(
+      `select g.display_name, g.legal_name, g.country_code, g.website,
+              cp.description, cp.culture_notes, cp.remote_policy_notes, cp.inclusion_policy_notes, cp.logo_url,
+              cp.employee_count, cp.nace_code, n.section_letter as nace_section, n.label_en as nace_label_en,
+              l.id as hq_id, l.country_code as hq_country, l.city as hq_city, l.postal_code as hq_postal, l.admin_area as hq_admin
+       from organizations g
+       left join company_profiles cp on cp.organization_id = g.id
+       left join nace_codes n on n.code = cp.nace_code
+       left join locations l on l.id = cp.headquarters_location_id
+       where g.id = $1`,
+      [orgId],
+    );
+    if (rows.length === 0) throw new NotFoundError(`organization ${orgId} not found`);
+    const r = rows[0];
+    return {
+      displayName: r.display_name,
+      countryCode: r.country_code ? String(r.country_code).trim() : null,
+      website: r.website ?? null,
+      description: r.description ?? null,
+      cultureNotes: r.culture_notes ?? null,
+      remotePolicyNotes: r.remote_policy_notes ?? null,
+      inclusionPolicyNotes: r.inclusion_policy_notes ?? null,
+      logoUrl: r.logo_url ?? null,
+      employeeCount: r.employee_count ?? null,
+      nace: r.nace_code ? { code: r.nace_code, section: r.nace_section ?? null, labelEn: r.nace_label_en ?? null } : null,
+      headquarters: r.hq_id
+        ? { id: r.hq_id, countryCode: String(r.hq_country).trim(), city: r.hq_city, postalCode: r.hq_postal, adminArea: r.hq_admin }
+        : null,
+    };
+  }
+
+  async updateCompanyPublicDetails(orgId: string, fields: {
+    description: string | null; cultureNotes: string | null; remotePolicyNotes: string | null;
+    inclusionPolicyNotes: string | null; website: string | null; headquartersLocationId: string | null;
+  }) {
+    await this.query(
+      `update company_profiles set description = $1, culture_notes = $2, remote_policy_notes = $3,
+              inclusion_policy_notes = $4, headquarters_location_id = $5, updated_at = now()
+       where organization_id = $6`,
+      [fields.description, fields.cultureNotes, fields.remotePolicyNotes, fields.inclusionPolicyNotes, fields.headquartersLocationId, orgId],
+    );
+    await this.query(`update organizations set website = $1, updated_at = now() where id = $2`, [fields.website, orgId]);
+  }
+
   /** Todas as ofertas de uma organização (qualquer estado) com contagem de candidaturas por estado. */
   async listJobOffersForOrganization(orgId: string) {
     const { rows } = await this.query(
@@ -1691,6 +1754,7 @@ export class PgStore {
        where o.id = $1`,
       [organizationId],
     );
+
     const offersRes = await this.query(
       `select
          count(*) filter (where status in ('published','filled','expired')) as published_count,
@@ -1699,6 +1763,29 @@ export class PgStore {
        from job_offers where organization_id = $1`,
       [organizationId],
     );
+    // Applications and reports are hidden by RLS from people outside the
+    // organisation, so the public page reads them through the existing
+    // SECURITY DEFINER aggregate employer_public_metrics (migration 0015):
+    // counts only, never rows.
+    const definer = await this.query(`select to_regprocedure('employer_public_metrics(uuid)') is not null as available`);
+    if (definer.rows[0]?.available) {
+      const m = (await this.query(`select employer_public_metrics($1::uuid) as m`, [organizationId])).rows[0].m;
+      const o = offersRes.rows[0];
+      const total = Number(m.totalApplications);
+      return {
+        verificationStatus: orgRes.rows[0]?.verification_status ?? 'unverified',
+        publishedOffersCount: Number(o.published_count),
+        offersWithFixedSalaryCount: Number(o.fixed_salary_count),
+        offersWithCompleteFieldsCount: Number(o.complete_count),
+        responseRate: total > 0 ? Number(m.respondedApplications) / total : 0,
+        candidatesInformedRate: total > 0 ? Number(m.informedApplications) / total : 0,
+        confirmedComplaintsCount: Number(m.confirmedComplaintsCount),
+        offerVsRealityDivergenceCount: 0, // não medido ainda — sem mecanismo de deteção implementado
+        firstJobHiresCount: Number(m.firstJobHiresCount),
+        seniorHiresCount: Number(m.seniorHiresCount),
+      };
+    }
+
     const appsRes = await this.query(
       `select
          count(*) as total,

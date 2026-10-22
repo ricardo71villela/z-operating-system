@@ -3,6 +3,7 @@ import { LOCALES, t, setMessagesLocale, messagesLocale, initialLocale, rememberL
 import { Search, AlertTriangle, Building2, User, Landmark, ArrowRight, Award } from "lucide-react";
 import {
   PILLAR_KEYS, pillarLabel, offerStatusLabel, SalaryLedger, VerificationBadge, Field, OfferPlace, normalizeText,
+  companyPageUrl, naceSectionLabel, locationLabel,
 } from "./shared.jsx";
 import { AuthPanel, CandidateDashboard } from "./CandidateDashboard.jsx";
 import { OrganizationSetup, PartnerDashboard } from "./PartnerDashboard.jsx";
@@ -79,6 +80,9 @@ const api = {
   approveOrganizationVerification: (orgId) => post(`/organizations/${orgId}/approve-verification`),
   listOrganizationOffers: (orgId) => apiFetch(`/organizations/${orgId}/job-offers`),
   getPublicCompanyProfile: (orgId) => apiFetch(`/organizations/${orgId}/public-profile`),
+  savePublicCompanyProfile: (orgId, fields) => apiFetch(`/organizations/${orgId}/public-profile`, { method: "PUT", body: JSON.stringify(fields) }),
+  saveCompanyClassification: (orgId, fields) => apiFetch(`/organizations/${orgId}/classification`, { method: "PUT", body: JSON.stringify(fields) }),
+  listNaceCodes: () => apiFetch("/nace-codes"),
   // offers
   listPublishedOffers: () => apiFetch("/job-offers"),
   searchLocations: (q, country) => apiFetch(`/locations?q=${encodeURIComponent(q)}${country ? `&country=${country}` : ""}`),
@@ -365,6 +369,15 @@ export default function ZJobsDemo() {
     return !!ok;
   }
 
+  async function savePublicProfile(orgId, fields, classification) {
+    const ok = await run(async () => {
+      await api.savePublicCompanyProfile(orgId, fields);
+      await api.saveCompanyClassification(orgId, classification);
+      return true;
+    }, "toast_action_failed");
+    if (ok) notify(t("toast_public_page_saved"), "success");
+  }
+
   async function submitOfferForReview(offerId) {
     const ok = await run(() => api.submitOfferForReview(offerId), "toast_offer_submit_failed");
     if (ok) { await loadOrgOffers(currentOrgId); notify(t("toast_offer_submitted"), "info"); }
@@ -557,6 +570,9 @@ export default function ZJobsDemo() {
             onLoadScores={(id) => api.getCandidateScores(id)}
             onTransition={transitionForPartner}
             onSearchLocations={(q) => api.searchLocations(q)}
+            onLoadPublicProfile={(id) => api.getPublicCompanyProfile(id)}
+            onSavePublicProfile={savePublicProfile}
+            onListNaceCodes={() => api.listNaceCodes()}
             busy={busy}
           />
         ))}
@@ -597,6 +613,7 @@ export default function ZJobsDemo() {
           orgId={viewingCompanyOrgId}
           onClose={() => setViewingCompanyOrgId(null)}
           onFetchProfile={(id) => api.getPublicCompanyProfile(id)}
+          onOpenOffer={(id) => { setViewingCompanyOrgId(null); setSelectedOfferId(id); }}
         />
       )}
     </div>
@@ -849,7 +866,7 @@ function OfferDetail({ offer, org, onClose, onApply, canApply, alreadyApplied, o
   );
 }
 
-function CompanyProfileDrawer({ orgId, onClose, onFetchProfile }) {
+function CompanyProfileDrawer({ orgId, onClose, onFetchProfile, onOpenOffer }) {
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState(null);
   const ref = useDialog(onClose);
@@ -873,6 +890,7 @@ function CompanyProfileDrawer({ orgId, onClose, onFetchProfile }) {
           {error && <p className="zj-empty">{t("profile_load_failed", { error })}</p>}
           {!profile && !error && <p className="zj-empty">{t("loading")}</p>}
         </div>
+        {profile && <CompanyPresentation profile={profile} onOpenOffer={onOpenOffer} />}
         {profile && (
           <>
             <h2>{t("eri_title")}</h2>
@@ -899,6 +917,55 @@ function CompanyProfileDrawer({ orgId, onClose, onFetchProfile }) {
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+function CompanyPresentation({ profile, onOpenOffer }) {
+  const p = profile.profile || {};
+  const verified = profile.verificationStatus === "verified" || profile.verificationStatus === "enhanced_verified";
+  const texts = [["company_about", p.description], ["company_culture", p.cultureNotes], ["company_remote", p.remotePolicyNotes], ["company_inclusion", p.inclusionPolicyNotes]].filter(([, v]) => v);
+  const facts = [
+    p.headquarters && ["company_hq", locationLabel(p.headquarters)],
+    p.smeCategory && p.smeCategory !== "unknown" && ["company_size", t(`sme_${p.smeCategory}`)],
+    p.nace && ["company_sector", naceSectionLabel(p.nace.section) || p.nace.labelEn],
+  ].filter(Boolean);
+  const offers = profile.offers || [];
+  return (
+    <div className="zj-company">
+      <h2>{profile.displayName}</h2>
+      <p><a className="zj-link" href={companyPageUrl(profile.id)} target="_blank" rel="noopener">{t("profile_view_public")}</a></p>
+      {!verified && <p className="zj-notice">{t("company_not_verified")}</p>}
+      {texts.map(([key, value]) => (
+        <section key={key}>
+          <h3 className="zj-subhead">{t(key)}</h3>
+          <p className="zj-company-text">{value}</p>
+        </section>
+      ))}
+      {(facts.length > 0 || p.website) && (
+        <section>
+          <h3 className="zj-subhead">{t("company_details")}</h3>
+          <dl className="zj-company-facts">
+            {facts.map(([key, value]) => <div key={key}><dt>{t(key)}</dt><dd>{value}</dd></div>)}
+            {p.website && <div><dt>{t("company_website")}</dt><dd><a className="zj-link" href={p.website} target="_blank" rel="noopener noreferrer">{p.website.replace(/^https:\/\//, "")}</a></dd></div>}
+          </dl>
+          {p.smeCategory && p.smeCategory !== "unknown" && <p className="zj-field-hint">{t("sme_note")}</p>}
+        </section>
+      )}
+      <section>
+        <h3 className="zj-subhead">{t("company_open_offers")} ({profile.offersTotal ?? offers.length})</h3>
+        {offers.length === 0 ? <p className="zj-empty">{t("company_no_offers")}</p> : (
+          <ul className="zj-plain-list">
+            {offers.map((o) => (
+              <li key={o.id} className="zj-company-offer">
+                <strong>{o.title}</strong>
+                <OfferPlace location={o.location} workRegime={o.workRegime} />
+                <button type="button" className="zj-btn is-ghost is-small" onClick={() => onOpenOffer(o.id)}>{t("company_open_offer")}</button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }
@@ -943,6 +1010,14 @@ function FontsAndStyles() {
         line-height: 1.4;
       }
       .zj-root * { box-sizing: border-box; }
+      .zj-company { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+      .zj-company-text { white-space: pre-line; margin: 0; }
+      .zj-company-facts { display: grid; gap: 6px; margin: 0; }
+      .zj-company-facts div { display: flex; gap: 8px; flex-wrap: wrap; }
+      .zj-company-facts dt { font-weight: 600; }
+      .zj-company-facts dd { margin: 0; }
+      .zj-company-offer { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 8px 0; border-top: 1px dashed var(--line); }
+      .zj-link { color: var(--trust); text-decoration: underline; text-underline-offset: 2px; }
       .zj-root button, .zj-root input, .zj-root select, .zj-root textarea { font-family: inherit; font-size: 14px; }
 
       .zj-header {
