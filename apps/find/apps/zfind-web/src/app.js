@@ -2213,6 +2213,7 @@ function attachPlaceAutocomplete(input, onPick) {
   input.setAttribute('autocomplete', 'off');
   input.setAttribute('role', 'combobox');
   input.setAttribute('aria-autocomplete', 'list');
+  input.setAttribute('aria-expanded', 'false');
   const list = document.createElement('ul');
   list.className = 'place-suggest';
   list.id = input.id + '-suggest';

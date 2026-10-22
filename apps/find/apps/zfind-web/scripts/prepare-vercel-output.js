@@ -24,6 +24,7 @@
    target, not every local build).
    ============================================================ */
 
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
@@ -41,6 +42,50 @@ function copyRecursive(src, dest) {
   }
 }
 
+
+// Moves the page's one large inline <style> and one large inline <script>
+// into content-hashed files under /assets/. The browser then caches them for
+// a year (see the /assets/ header in vercel.json) instead of downloading
+// ~1 MB again on every visit; a new build gets new file names, so a deploy is
+// never served stale code. The single-file dist/z-find-prototype.html stays
+// as it is for the local browser tests.
+const STYLE_OPEN = '<style>\n';
+const STYLE_CLOSE = '\n</style>\n</head>\n<body>\n';
+const SCRIPT_OPEN = '\n<script>\n';
+const SCRIPT_CLOSE = '\n</script>\n</body>\n</html>\n';
+
+function writeHashedAsset(dir, name, ext, content) {
+  const hash = crypto.createHash('sha256').update(content).digest('hex').slice(0, 12);
+  const file = `${name}.${hash}.${ext}`;
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, file), content);
+  return `/assets/${file}`;
+}
+
+function externalizeShellAssets(html, outDir) {
+  const styleEnd = html.indexOf(STYLE_CLOSE);
+  const styleStart = styleEnd === -1 ? -1 : html.lastIndexOf(STYLE_OPEN, styleEnd);
+  if (styleStart === -1) throw new Error('BUILD FAILED: main <style> block not found in the SPA.');
+  if (!html.endsWith(SCRIPT_CLOSE)) throw new Error('BUILD FAILED: SPA does not end with the main <script> block.');
+  const scriptEnd = html.length - SCRIPT_CLOSE.length;
+  const scriptStart = html.lastIndexOf(SCRIPT_OPEN, scriptEnd);
+  if (scriptStart === -1 || scriptStart < styleEnd) throw new Error('BUILD FAILED: main <script> block not found in the SPA.');
+
+  const css = html.slice(styleStart + STYLE_OPEN.length, styleEnd);
+  const js = html.slice(scriptStart + SCRIPT_OPEN.length, scriptEnd);
+  if (/<\/script/i.test(js)) throw new Error('BUILD FAILED: main script unexpectedly contains a closing script tag.');
+  const assets = path.join(outDir, 'assets');
+  const cssUrl = writeHashedAsset(assets, 'zfind', 'css', css);
+  const jsUrl = writeHashedAsset(assets, 'zfind', 'js', js);
+
+  // A classic (non-deferred) script at the end of <body> runs at the same
+  // moment the inline one did, so inline onclick handlers keep working.
+  return html.slice(0, styleStart)
+    + `<link rel="stylesheet" href="${cssUrl}">\n</head>\n<body>\n`
+    + html.slice(styleEnd + STYLE_CLOSE.length, scriptStart)
+    + `\n<script src="${jsUrl}"></script>\n</body>\n</html>\n`;
+}
+
 function main() {
   const spaFile = path.join(ROOT, 'dist', 'z-find-prototype.html');
   if (!fs.existsSync(spaFile)) {
@@ -50,8 +95,11 @@ function main() {
   fs.rmSync(OUT, { recursive: true, force: true });
   fs.mkdirSync(OUT, { recursive: true });
 
-  // 1. SPA as index.html (served at "/")
-  fs.copyFileSync(spaFile, path.join(OUT, 'index.html'));
+  // 1. SPA as index.html (served at "/"), its CSS and JS as cached files
+  const spa = fs.readFileSync(spaFile, 'utf8');
+  const shell = externalizeShellAssets(spa, OUT);
+  fs.writeFileSync(path.join(OUT, 'index.html'), shell);
+  console.log('SPA shell:', Buffer.byteLength(spa), 'bytes inline ->', Buffer.byteLength(shell), 'bytes + cached /assets/');
 
   // 2. Static assets (public/zones/*, public/brand/*) at root
   copyRecursive(path.join(ROOT, 'public'), OUT);
@@ -93,4 +141,5 @@ function main() {
   console.log('Vercel output assembled at:', OUT);
 }
 
-main();
+if (require.main === module) main();
+module.exports = { externalizeShellAssets };
