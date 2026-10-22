@@ -1026,6 +1026,26 @@ export function createServer() {
         return json(res, 200, references);
       }
 
+      // Public offer search (montra, portal): no sign-in needed, published
+      // offers only. ?q= keyword, ?country=FR|BE|LU, ?sector= NACE section
+      // letter, ?limit= (max 50), ?offset=.
+      if (method === 'GET' && path === '/job-offers/search') {
+        if (!usingPostgres) return json(res, 200, { total: 0, offers: [] });
+        const country = url.searchParams.get('country')?.toUpperCase() || undefined;
+        if (country && !isLaunchCountry(country)) return outOfScope();
+        const sector = url.searchParams.get('sector')?.toUpperCase() || undefined;
+        if (sector && !/^[A-U]$/.test(sector)) return json(res, 400, { error: 'setor NACE inválido (letra de secção A–U)' });
+        const q = (url.searchParams.get('q') ?? '').slice(0, 120);
+        const limit = Number(url.searchParams.get('limit') ?? 20);
+        const offset = Number(url.searchParams.get('offset') ?? 0);
+        const result = await (store as PgStore).searchPublishedJobOffers({
+          q, country, naceSection: sector,
+          limit: Number.isFinite(limit) ? limit : 20,
+          offset: Number.isFinite(offset) ? offset : 0,
+        });
+        return json(res, 200, result);
+      }
+
       if (method === 'GET' && path === '/job-offers') {
         const requestedLocaleParam = url.searchParams.get('locale');
         const offers = await store.listPublishedJobOffers();

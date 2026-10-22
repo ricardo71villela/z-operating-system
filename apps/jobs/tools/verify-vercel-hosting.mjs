@@ -35,4 +35,8 @@ for (const [from, to] of [['candidatos', 'candidats'], ['empregadores', 'employe
   assert.ok(montra.redirects.some((r) => r.source === `/${from}` && r.destination === `/${to}` && r.permanent), from);
 }
 
+// Montra search calls /api/job-offers/search on its own origin: same API as the portal.
+assert.equal(montra.rewrites[0].source, '/api/:path*');
+assert.equal(montra.rewrites[0].destination, web.rewrites[0].destination);
+
 console.log('Z Jobs Vercel hosting contract: PASS');

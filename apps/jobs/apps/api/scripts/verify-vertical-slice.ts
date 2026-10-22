@@ -216,6 +216,16 @@ async function main() {
       { offerId: offer.id, offerStatus: offer.status, publicOffers },
     );
 
+    // Passo 10b: pesquisa pública com palavra-chave (sem acentos nem maiúsculas)
+    const searched = await (await fetch(`${BASE}/job-offers/search?q=ENGENHEIRO%20software%20junior&locale=fr`)).json();
+    check(
+      '10b. pesquisa por palavra-chave encontra a oferta, com o empregador',
+      searched.offers?.some((o: any) => o.id === offer.id && o.employer?.displayName),
+      searched,
+    );
+    const outOfCountry = await fetch(`${BASE}/job-offers/search?country=DE`);
+    check('10c. pesquisa fora dos países de lançamento recusada (404)', outOfCountry.status === 404);
+
     // --- Teste negativo: não se pode candidatar a oferta não publicada ---
     const unpublishedApplyRes = await fetch(`${BASE}/applications`, {
       method: 'POST',
