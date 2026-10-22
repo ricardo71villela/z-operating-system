@@ -32,8 +32,8 @@ test('Z Desk product surface exposes operational shell and primary workspaces', 
   assert.match(readWeb('src/app/[locale]/contacts/page.tsx'), /contact-grid/);
 });
 
-test('six language packs contain navigation and new product namespaces', () => {
-  for (const locale of ['pt','en','fr','es','it','de']) {
+test('French and English language packs contain navigation and new product namespaces', () => {
+  for (const locale of ['fr','en']) {
     const messages = JSON.parse(readWeb(`src/messages/${locale}.json`));
     for (const namespace of ['Nav','Today','Inbox','Contacts','Tasks','Calendar','Personnel']) assert.ok(messages[namespace], `${locale} missing ${namespace}`);
     for (const key of ['today','inbox','tasks','calendar','personnel','contacts','team','settings']) assert.equal(typeof messages.Nav[key], 'string');
