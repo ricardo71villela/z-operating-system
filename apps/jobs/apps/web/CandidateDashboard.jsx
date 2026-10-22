@@ -8,6 +8,7 @@ import { t } from "./messages.js";
 import {
   ACTIVE_APPLICATION_STATUSES, APPLICATION_PATH, APPLICATION_TRANSITIONS, Field, Kpi, PILLAR_KEYS, SalaryLedger,
   SectionNav, Stepper, formatDate, pillarLabel, statusLabel, OfferPlace, normalizeText,
+  ResponseDeadlineNote,
 } from "./shared.jsx";
 
 /* ---------------- Sign in / sign up ---------------- */
@@ -679,6 +680,7 @@ function ApplicationCard({ application: a, onWithdraw, onFetchMyScore }) {
         </div>
         <span className={`zj-status status-${a.status}`}>{statusLabel(a.status)}</span>
       </div>
+      <ResponseDeadlineNote response={a.response} audience="candidate" />
       <Stepper steps={steps} currentIndex={currentIndex} ended={ended} label={t("application_progress", { title: a.offerTitle })} />
       {ended && <p className="zj-hint-inline">{t(`ended_${a.status}`)}</p>}
       <div className="zj-actions">

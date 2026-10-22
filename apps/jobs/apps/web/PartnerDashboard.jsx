@@ -7,7 +7,7 @@ import { LOCALES } from "./messages.js";
 import {
   APPLICATION_TRANSITIONS, CONTRACT_TYPES, Field, Kpi, PILLAR_KEYS, SalaryLedger, SectionNav, Stepper,
   TEMP_AGENCY_CONTRACT_TYPES, VerificationBadge, formatDate, offerStatusLabel, pillarLabel, statusLabel,
-  LocationPicker, OfferPlace, companyPageUrl, naceSectionLabel,
+  LocationPicker, OfferPlace, companyPageUrl, naceSectionLabel, ResponseDeadlineNote,
 } from "./shared.jsx";
 
 const PIPELINE_COLUMNS = [
@@ -114,11 +114,15 @@ function OrgOverview({ org, offers, toProcess, go, openCandidates, onRequestVeri
   const toFix = offers.filter((o) => o.status === "needs_changes");
   const drafts = offers.filter((o) => o.status === "draft");
   const hires = offers.reduce((n, o) => n + (o.applicationsByStatus?.hired || 0), 0);
+  const overdue = offers.reduce((n, o) => n + (o.overdueApplications || 0), 0);
 
   const todos = [];
   if (org.verificationStatus === "unverified") todos.push({ key: "verify", text: t("todo_request_verification"), cta: t("request_verification"), action: () => onRequestVerification(org.id) });
   for (const o of toFix) todos.push({ key: `fix-${o.id}`, text: t("todo_fix_offer", { title: o.title }), cta: t("org_nav_offers"), action: () => go("offers"), tone: "warn" });
   for (const o of drafts) todos.push({ key: `draft-${o.id}`, text: t("todo_submit_draft", { title: o.title }), cta: t("org_nav_offers"), action: () => go("offers") });
+  for (const o of offers) {
+    if (o.overdueApplications > 0) todos.push({ key: `late-${o.id}`, text: t("todo_overdue", { count: o.overdueApplications, title: o.title }), cta: t("org_nav_candidates"), action: () => openCandidates(o.id), tone: "warn" });
+  }
   for (const o of offers) {
     const n = sumStatuses(o, TO_PROCESS);
     if (n > 0) todos.push({ key: `apps-${o.id}`, text: t("todo_new_applications", { count: n, title: o.title }), cta: t("org_nav_candidates"), action: () => openCandidates(o.id) });
@@ -144,8 +148,11 @@ function OrgOverview({ org, offers, toProcess, go, openCandidates, onRequestVeri
         <Kpi label={t("kpi_in_review")} value={inReview.length} />
         <Kpi label={t("kpi_to_fix")} value={toFix.length} tone={toFix.length > 0 ? "warn" : undefined} />
         <Kpi label={t("kpi_to_process")} value={toProcess} tone={toProcess > 0 ? "warn" : undefined} hint={t("kpi_to_process_hint")} />
+        <Kpi label={t("kpi_overdue")} value={overdue} tone={overdue > 0 ? "bad" : "good"} hint={t("kpi_overdue_hint")} />
         <Kpi label={t("kpi_hires")} value={hires} tone={hires > 0 ? "good" : undefined} />
       </div>
+
+      <p className="zj-panel-hint">{t("deadline_rule")}</p>
 
       <h3 className="zj-subhead">{t("todo_title")}</h3>
       {todos.length === 0 ? <p className="zj-empty">{t("todo_none")}</p> : (
@@ -214,7 +221,7 @@ function OffersList({ offers, onSubmitForReview, openCandidates, translations, o
                 )}
                 {(o.status === "published" || total > 0) && (
                   <button type="button" className="zj-btn is-ghost" onClick={() => openCandidates(o.id)}>
-                    <Users size={14} aria-hidden="true" /> {t("view_candidates", { count: total })}{pending > 0 ? ` · ${t("new_count", { count: pending })}` : ""}<span className="zj-visually-hidden"> {o.title}</span>
+                    <Users size={14} aria-hidden="true" /> {t("view_candidates", { count: total })}{pending > 0 ? ` · ${t("new_count", { count: pending })}` : ""}{o.overdueApplications > 0 ? ` · ${t("offer_overdue", { count: o.overdueApplications })}` : ""}<span className="zj-visually-hidden"> {o.title}</span>
                   </button>
                 )}
                 {o.status === "published" && (
@@ -334,6 +341,7 @@ function PipelineCard({ application: a, score, onMove }) {
       <strong>{label}</strong>
       <span className={`zj-status status-${a.status}`}>{statusLabel(a.status)}</span>
       <span className="zj-hint-inline">{t("applied_on", { date: formatDate(a.createdAt) })}</span>
+      <ResponseDeadlineNote response={a.response} audience="employer" />
       {score && (
         <details className="zj-score-details">
           <summary>{t("score_line", { score: score.score })}</summary>

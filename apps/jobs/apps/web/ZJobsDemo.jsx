@@ -1223,6 +1223,10 @@ function FontsAndStyles() {
       .zj-kpi-hint { font-size: 11px; color: #5c5544; }
       .zj-kpi.is-good { border-left: 4px solid var(--trust); }
       .zj-kpi.is-warn { border-left: 4px solid var(--amber); }
+      .zj-kpi.is-bad { border-left: 4px solid var(--danger); }
+      .zj-deadline { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #3D4A46; width: fit-content; }
+      .zj-deadline.is-warn { color: var(--amber-text); background: var(--amber-soft); padding: 2px 6px; font-weight: 600; }
+      .zj-deadline.is-late { color: var(--danger); background: var(--danger-soft); padding: 2px 6px; font-weight: 600; }
       .zj-next-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
       .zj-next-steps li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; background: var(--paper); border: 1px solid var(--line); border-left: 4px solid var(--trust); flex-wrap: wrap; }
       .zj-next-steps li.is-warn { border-left-color: var(--amber); }
