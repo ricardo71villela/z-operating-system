@@ -529,8 +529,18 @@ export function createServer() {
         return;
       }
 
+      // Perfil completo do candidato (experiência, formação, competências,
+      // línguas, documentos). Só o próprio candidato, ou staff da plataforma.
+      // Barreira explícita no router, sem depender apenas do RLS: se a API
+      // ligar como um papel que ignora RLS, isto continua a proteger.
       if (method === 'GET' && path.match(/^\/candidates\/[^/]+\/profile-bundle$/)) {
         const userId = path.split('/')[2];
+        if (usingPostgres) {
+          if (!currentUserId) return json(res, 401, { error: 'não autenticado' });
+          if (currentUserId !== userId && !(await store.isPlatformStaff(currentUserId))) {
+            return json(res, 403, { error: 'só o próprio candidato, ou staff, pode ver este perfil completo' });
+          }
+        }
         const bundle = await store.getCandidateProfileBundle(userId);
         const completeness = computeProfileCompleteness({
           hasProfessionalTitle: !!bundle.profile?.professionalTitle,
