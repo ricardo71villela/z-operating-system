@@ -51,9 +51,9 @@
   .brand img{ width:46px; height:46px; }
   .brand span{ font-family:'Fraunces',serif; font-weight:600; font-size:20px; letter-spacing:0.01em; }
   .locales{ display:flex; gap:6px; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.06em; }
-  .locales span{ padding:5px 9px; border:1px solid var(--line); border-radius:999px; color:var(--ash); cursor:pointer; user-select:none; }
-  .locales span:hover{ border-color:var(--gold); color:var(--gold-bright); }
-  .locales span.is-active{ color:var(--ink); background:var(--gold); border-color:var(--gold); font-weight:600; }
+  .locales button{ font:inherit; background:none;  padding:5px 9px; border:1px solid var(--line); border-radius:999px; color:var(--ash); cursor:pointer; user-select:none; }
+  .locales button:hover{ border-color:var(--gold); color:var(--gold-bright); }
+  .locales button.is-active{ color:var(--ink); background:var(--gold); border-color:var(--gold); font-weight:600; }
   .nav-cta{ font-family:'Inter',sans-serif; font-size:14px; font-weight:600; color:var(--paper); border:1px solid var(--line); padding:9px 18px; border-radius:999px; white-space:nowrap; }
   .nav-cta:hover{ border-color:var(--gold); color:var(--gold-bright); }
   .navlinks{ display:flex; gap:24px; height:44px; align-items:center; border-top:1px solid rgba(221,168,70,0.12); font-size:13.5px; }
@@ -89,7 +89,7 @@
     width:100%; position:relative; box-shadow:0 40px 80px -40px rgba(0,0,0,0.6);
   }
   .reveal-card .kicker{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ash); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:14px; }
-  .reveal-card h3{ font-size:26px; color:var(--paper); margin-bottom:22px; }
+  .reveal-card h2{ font-size:26px; color:var(--paper); margin-bottom:22px; }
   .field{ display:flex; align-items:center; gap:14px; padding:12px 0; border-top:1px solid rgba(255,255,255,0.06); }
   .field:first-of-type{ border-top:none; }
   .field .label{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ash); width:110px; flex-shrink:0; letter-spacing:0.04em; }
@@ -150,18 +150,18 @@
   .compare h2{ font-size:clamp(26px,4vw,36px); max-width:520px; margin-bottom:44px; }
   .compare-grid{ display:grid; grid-template-columns:1fr 1fr; gap:24px; }
   .compare-card{ border-radius:16px; padding:28px; }
-  .compare-card.dim{ background:var(--surface-2); border:1px solid var(--line); opacity:0.72; }
+  .compare-card.dim{ background:var(--surface-2); border:1px solid var(--line); }
   .compare-card.bright{ background:var(--paper); color:var(--ink); border:1px solid var(--gold); }
   .compare-tag{ font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:16px; display:inline-block; }
   .compare-card.dim .compare-tag{ color:var(--ash); }
-  .compare-card.bright .compare-tag{ color:var(--trust); }
+  .compare-card.bright .compare-tag{ color:var(--trust-on-light); }
   .mock-line{ height:13px; border-radius:3px; margin-bottom:10px; }
   .compare-card.dim .mock-line{ background:var(--redact); }
   .compare-card.dim .mock-line.short{ width:55%; }
   .compare-card.bright .mock-title{ font-family:'Fraunces',serif; font-weight:600; font-size:19px; margin-bottom:12px; }
   .compare-card.bright .mock-row{ display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:13px; padding:8px 0; border-top:1px solid rgba(16,14,10,0.1); }
   .compare-card.bright .mock-row:first-of-type{ border-top:none; }
-  .compare-card.bright .mock-row b{ color:var(--trust); }
+  .compare-card.bright .mock-row b{ color:var(--trust-on-light); }
 
   @media (max-width:720px){ .compare-grid{ grid-template-columns:1fr; } }
 
@@ -261,9 +261,12 @@
     --line: var(--line-on-light);
   }
   .section-light :focus-visible{ outline-color:var(--gold-on-light); }
+  .skip-link{ position:absolute; left:16px; top:-60px; z-index:100; background:var(--gold-bright); color:var(--ink); padding:10px 16px; border-radius:8px; font-weight:600; text-decoration:none; }
+  .skip-link:focus{ top:12px; }
 </style>
 </head>
 <body>
+<a class="skip-link" href="#contenu" data-i18n="skip_link">Aller au contenu</a>
 
 <nav>
   <div class="wrap nav-top">
@@ -272,7 +275,7 @@
       <span>Z Jobs</span>
     </div>
     <div class="locales">
-      <span class="is-active" data-locale="fr">FR</span><span data-locale="en">EN</span>
+      <button type="button" class="is-active" data-locale="fr" lang="fr" aria-label="Français" aria-pressed="true">FR</button><button type="button" data-locale="en" lang="en" aria-label="English" aria-pressed="false">EN</button>
     </div>
     <a class="nav-cta" href="#stage" data-i18n="nav_cta">Voir une offre vérifiée</a>
   </div>
@@ -284,6 +287,7 @@
   </div>
 </nav>
 
+<main id="contenu">
 <header class="hero">
   <div class="wrap hero-grid">
     <div class="hero-text">
@@ -300,7 +304,7 @@
     <div class="stage" id="stage">
       <div class="reveal-card" id="revealCard">
         <div class="kicker" data-i18n="kicker">Exemple d'offre · Zeta Tech</div>
-        <h3 data-i18n="job_title">Ingénieur·e Logiciel Backend</h3>
+        <h2 data-i18n="job_title">Ingénieur·e Logiciel Backend</h2>
 
         <div class="field">
           <span class="label" data-i18n="label_company">ENTREPRISE</span>
@@ -468,7 +472,7 @@
         <input type="number" id="simGross" value="35000" min="0" step="500" /></div>
         <button id="simBtn" data-i18n="sim_btn">Calculer</button>
       </div>
-      <div class="sim-result" id="simResult">
+      <div class="sim-result" id="simResult" aria-live="polite">
         <div class="sim-line"><span data-i18n="sim_social">Cotisations sociales</span><b id="simSocial">—</b></div>
         <div class="sim-line"><span data-i18n="sim_tax">Impôt sur le revenu</span><b id="simTax">—</b></div>
         <div class="sim-line is-total"><span data-i18n="sim_net">Net mensuel estimé</span><b id="simNet">—</b></div>
@@ -488,6 +492,7 @@
   </div>
 </section>
 
+</main>
 <footer>
   <div class="wrap">
     <div class="flags"><span data-i18n="flag_fr">France</span><span data-i18n="flag_be">Belgique</span><span data-i18n="flag_lu">Luxembourg</span></div>
@@ -569,6 +574,7 @@
 
   var TRANSLATIONS = {
     "fr": {
+      "skip_link": "Aller au contenu",
       "legal_kicker": "Législation du travail",
       "legal_title": "Trois pays, des données officielles — aucun mis en avant.",
       "legal_sub": "Salaire minimum national, mensuel brut, source Eurostat, en vigueur au 1er juillet 2026.",
@@ -679,6 +685,7 @@
       "emp_cta": "Voir comment fonctionne la vérification"
     },
     "en": {
+      "skip_link": "Skip to content",
       "legal_kicker": "Labour legislation",
       "legal_title": "Three countries, official data — none highlighted over the others.",
       "legal_sub": "National minimum wage, gross per month, Eurostat source, in force on 1 July 2026.",
@@ -806,8 +813,9 @@
     });
     document.documentElement.lang = locale;
     try { window.localStorage.setItem('zjobs_locale', locale); } catch (e) { /* sans stockage */ }
-    document.querySelectorAll('.locales span').forEach(function (el) {
+    document.querySelectorAll('.locales button').forEach(function (el) {
       el.classList.toggle('is-active', el.getAttribute('data-locale') === locale);
+      el.setAttribute('aria-pressed', String(el.getAttribute('data-locale') === locale));
     });
     // A revelação (redigido -> revelado) fica sempre por clicar de novo após trocar de idioma,
     // para nunca mostrar um estado inconsistente entre idiomas.
@@ -818,7 +826,7 @@
   }
   window.CURRENT_LOCALE = 'fr';
 
-  document.querySelectorAll('.locales span').forEach(function (el) {
+  document.querySelectorAll('.locales button').forEach(function (el) {
     el.addEventListener('click', function () { setLocale(el.getAttribute('data-locale')); });
   });
 
