@@ -16,7 +16,7 @@ The browser never supplies authoritative workspace/actor identity. Web calls use
 
 ## Preserved product foundations
 
-Next.js/React web, FR/EN/ES/PT/IT/DE, NestJS backend, unified email + WhatsApp model, Today workflow, calendar suggestions with human confirmation, tasks/missions, personnel schedules/absence/overtime models, Gmail/Microsoft/Google Calendar/Outlook/WhatsApp adapters, BullMQ foundations and human-in-loop AI design are preserved from the historical source.
+Next.js/React web, FR/EN (launch scope: France, Belgium, Luxembourg), NestJS backend, unified email + WhatsApp model, Today workflow, calendar suggestions with human confirmation, tasks/missions, personnel schedules/absence/overtime models, Gmail/Microsoft/Google Calendar/Outlook/WhatsApp adapters, BullMQ foundations and human-in-loop AI design are preserved from the historical source.
 
 ## Runtime boundary
 

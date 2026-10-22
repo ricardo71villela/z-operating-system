@@ -44,8 +44,8 @@ test('release QA: same-origin proxy strips legacy authority ids', () => {
   assert.match(source, /delete parsed\[key\]/);
 });
 
-test('release QA: six locales have exact translation-key parity', () => {
-  const locales = ['pt','en','fr','es','it','de'];
+test('release QA: French and English have exact translation-key parity', () => {
+  const locales = ['fr','en'];
   const packs = Object.fromEntries(locales.map((locale) => [locale, JSON.parse(read(path.join(web, `src/messages/${locale}.json`)))]));
   const reference = keyPaths(packs.en);
   for (const locale of locales) assert.deepEqual(keyPaths(packs[locale]), reference, `${locale} key parity`);

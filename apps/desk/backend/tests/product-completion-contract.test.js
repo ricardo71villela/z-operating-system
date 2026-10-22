@@ -66,8 +66,8 @@ test('onboarding reuses canonical authenticated ZOS workspace bootstrap', () => 
   assert.match(auth, /supabaseAdmin\.auth\.getUser/);
 });
 
-test('all six language packs have identical product key coverage', () => {
-  const locales = ['pt','en','fr','es','it','de'];
+test('the French and English language packs have identical product key coverage', () => {
+  const locales = ['fr','en'];
   const packs = Object.fromEntries(locales.map((locale) => [locale, JSON.parse(readWeb(`src/messages/${locale}.json`))]));
   const reference = keyPaths(packs.en);
   for (const locale of locales) {

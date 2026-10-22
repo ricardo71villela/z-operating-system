@@ -20,23 +20,11 @@ export interface FrancePublicHoliday {
 }
 
 const names = {
-  pt: {
-    new_year: 'Ano Novo', easter_monday: 'Segunda-feira de Páscoa', labour_day: 'Dia do Trabalhador', victory_1945: 'Vitória de 1945', ascension: 'Ascensão', whit_monday: 'Segunda-feira de Pentecostes', national_day: 'Festa Nacional de França', assumption: 'Assunção', all_saints: 'Todos os Santos', armistice: 'Armistício de 1918', christmas: 'Natal', good_friday: 'Sexta-feira Santa', saint_stephen: 'São Estêvão',
-  },
   en: {
     new_year: "New Year's Day", easter_monday: 'Easter Monday', labour_day: 'Labour Day', victory_1945: 'Victory in Europe Day', ascension: 'Ascension Day', whit_monday: 'Whit Monday', national_day: 'French National Day', assumption: 'Assumption Day', all_saints: "All Saints' Day", armistice: 'Armistice Day', christmas: 'Christmas Day', good_friday: 'Good Friday', saint_stephen: "St Stephen's Day",
   },
   fr: {
     new_year: "Jour de l'An", easter_monday: 'Lundi de Pâques', labour_day: 'Fête du Travail', victory_1945: 'Victoire 1945', ascension: 'Ascension', whit_monday: 'Lundi de Pentecôte', national_day: 'Fête nationale', assumption: 'Assomption', all_saints: 'Toussaint', armistice: 'Armistice 1918', christmas: 'Noël', good_friday: 'Vendredi saint', saint_stephen: 'Saint-Étienne',
-  },
-  es: {
-    new_year: 'Año Nuevo', easter_monday: 'Lunes de Pascua', labour_day: 'Día del Trabajo', victory_1945: 'Victoria de 1945', ascension: 'Ascensión', whit_monday: 'Lunes de Pentecostés', national_day: 'Fiesta Nacional de Francia', assumption: 'Asunción', all_saints: 'Todos los Santos', armistice: 'Armisticio de 1918', christmas: 'Navidad', good_friday: 'Viernes Santo', saint_stephen: 'San Esteban',
-  },
-  it: {
-    new_year: 'Capodanno', easter_monday: "Lunedì dell'Angelo", labour_day: 'Festa del Lavoro', victory_1945: 'Vittoria del 1945', ascension: 'Ascensione', whit_monday: 'Lunedì di Pentecoste', national_day: 'Festa nazionale francese', assumption: 'Assunzione', all_saints: 'Ognissanti', armistice: 'Armistizio del 1918', christmas: 'Natale', good_friday: 'Venerdì Santo', saint_stephen: 'Santo Stefano',
-  },
-  de: {
-    new_year: 'Neujahr', easter_monday: 'Ostermontag', labour_day: 'Tag der Arbeit', victory_1945: 'Sieg 1945', ascension: 'Christi Himmelfahrt', whit_monday: 'Pfingstmontag', national_day: 'Französischer Nationalfeiertag', assumption: 'Mariä Himmelfahrt', all_saints: 'Allerheiligen', armistice: 'Waffenstillstand 1918', christmas: 'Weihnachten', good_friday: 'Karfreitag', saint_stephen: 'Stephanstag',
   },
 } as const;
 

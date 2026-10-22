@@ -29,7 +29,7 @@ test('lead mutations remain server-authorised and browser authority ids are not 
   assert.match(migration, /grant execute on function public\.zdesk_create_lead[\s\S]*service_role/);
 });
 
-test('lead UX exposes capture, pipeline and all six ZOS destinations in six languages', () => {
+test('lead UX exposes capture, pipeline and all six ZOS destinations in French and English', () => {
   const shell = read('apps/desk/src/components/desk-shell.tsx');
   const page = read('apps/desk/src/app/[locale]/leads/page.tsx');
   const board = read('apps/desk/src/components/leads-board.tsx');
@@ -42,7 +42,7 @@ test('lead UX exposes capture, pipeline and all six ZOS destinations in six lang
   assert.match(board, /z_fashion/);
   assert.match(board, /z_studio/);
   assert.match(board, /z_desk/);
-  for (const locale of ['pt', 'en', 'fr', 'es', 'it', 'de']) assert.match(copy, new RegExp(`\\b${locale}: \\{`));
+  for (const locale of ['fr', 'en']) assert.match(copy, new RegExp(`\\b${locale}: \\{`));
 });
 
 test('official ZOS mark variants are integrated into the operational and premium surfaces', () => {
