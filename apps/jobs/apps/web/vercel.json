@@ -1,13 +1,13 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "installCommand": "npm install --no-save --package-lock=false --no-audit --no-fund react@18.3.1 react-dom@18.3.1 lucide-react@0.468.0 esbuild@0.24.2",
-  "buildCommand": "rm -rf dist && mkdir -p dist && npx esbuild entry.jsx --bundle --minify --format=esm --target=es2020 --outfile=dist/app.js && cp index.html dist/index.html",
+  "installCommand": "npm install --prefix .deps --no-save --package-lock=false --no-audit --no-fund react@18.3.1 react-dom@18.3.1 lucide-react@0.468.0 esbuild@0.24.2",
+  "buildCommand": "rm -rf dist && mkdir -p dist && NODE_PATH=.deps/node_modules .deps/node_modules/.bin/esbuild entry.jsx --bundle --minify --format=esm --target=es2020 --outfile=dist/app.js && cp index.html dist/index.html",
   "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://z-jobs-api.vercel.app/:path*"
+      "destination": "https://z-jobs-api-zoperatingsystem.vercel.app/:path*"
     },
     {
       "source": "/(.*)",

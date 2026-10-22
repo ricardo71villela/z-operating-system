@@ -28,7 +28,7 @@ Environment variables (Production). Secrets are entered in the Vercel dashboard 
 
 - Root Directory: `apps/jobs/apps/web`. Framework preset: Other.
 - Build: esbuild bundles `entry.jsx` → `dist/app.js`, and `index.html` is copied to `dist/`.
-- The browser calls `/api/*` on the same origin. Vercel forwards these calls to `https://z-jobs-api.vercel.app/*` (an external rewrite), so there is no CORS. If the API gets another domain, update the first rewrite in `apps/jobs/apps/web/vercel.json`.
+- The browser calls `/api/*` on the same origin. Vercel forwards these calls to `https://z-jobs-api-zoperatingsystem.vercel.app/*` (the project's stable team alias) (an external rewrite), so there is no CORS. If the API gets another domain, update the first rewrite in `apps/jobs/apps/web/vercel.json`.
 - Any other path serves `index.html` (single-page app).
 
 ## 3. `z-jobs` — public site (montra)
