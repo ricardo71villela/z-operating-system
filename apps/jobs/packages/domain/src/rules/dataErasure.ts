@@ -32,7 +32,8 @@ export type CandidateErasureTable =
   | 'institution_affiliations'
   | 'applications'
   | 'application_status_history'
-  | 'application_notes';
+  | 'application_notes'
+  | 'application_messages';
 
 export type ErasureAction =
   | {
@@ -85,6 +86,13 @@ export function planCandidateErasure(ctx: ErasureContext): ErasurePlan {
     action: 'delete',
     reason:
       'Notas associadas às candidaturas podem conter informação pessoal livre sobre o candidato.',
+  });
+
+  actions.push({
+    table: 'application_messages',
+    action: 'delete',
+    reason:
+      'Mensagens trocadas sobre as candidaturas (dos dois lados) são texto livre pessoal.',
   });
 
   actions.push({

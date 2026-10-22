@@ -8,7 +8,7 @@ import { t } from "./messages.js";
 import {
   ACTIVE_APPLICATION_STATUSES, APPLICATION_PATH, APPLICATION_TRANSITIONS, Field, Kpi, PILLAR_KEYS, SalaryLedger,
   SectionNav, Stepper, formatDate, pillarLabel, statusLabel, OfferPlace, normalizeText,
-  ResponseDeadlineNote,
+  ResponseDeadlineNote, MessageThread,
 } from "./shared.jsx";
 
 /* ---------------- Sign in / sign up ---------------- */
@@ -640,19 +640,19 @@ function AlertForm({ onCreate, defaultQuery, defaultPillar }) {
 
 /* ---------------- Applications ---------------- */
 
-function ApplicationsSection({ applications, onWithdraw, onFetchMyScore }) {
+function ApplicationsSection({ applications, onWithdraw, onFetchMyScore, onLoadMessages, onSendMessage }) {
   return (
     <div className="zj-dash-section" aria-labelledby="cand-apps-h">
       <h2 id="cand-apps-h" className="zj-section-title">{t("my_applications")}</h2>
       {applications.length === 0 && <p className="zj-empty">{t("applications_empty")}</p>}
       <ul className="zj-list zj-plain-list">
-        {applications.map((a) => <ApplicationCard key={a.id} application={a} onWithdraw={onWithdraw} onFetchMyScore={onFetchMyScore} />)}
+        {applications.map((a) => <ApplicationCard key={a.id} application={a} onWithdraw={onWithdraw} onFetchMyScore={onFetchMyScore} onLoadMessages={onLoadMessages} onSendMessage={onSendMessage} />)}
       </ul>
     </div>
   );
 }
 
-function ApplicationCard({ application: a, onWithdraw, onFetchMyScore }) {
+function ApplicationCard({ application: a, onWithdraw, onFetchMyScore, onLoadMessages, onSendMessage }) {
   const [score, setScore] = useState(null);
   const [confirming, setConfirming] = useState(false);
   const ended = ["rejected", "withdrawn", "closed"].includes(a.status);
@@ -681,6 +681,7 @@ function ApplicationCard({ application: a, onWithdraw, onFetchMyScore }) {
         <span className={`zj-status status-${a.status}`}>{statusLabel(a.status)}</span>
       </div>
       <ResponseDeadlineNote response={a.response} audience="candidate" />
+      <MessageThread applicationId={a.id} title={a.offerTitle} unread={a.unreadMessages || 0} audience="candidate" onLoad={onLoadMessages} onSend={onSendMessage} />
       <Stepper steps={steps} currentIndex={currentIndex} ended={ended} label={t("application_progress", { title: a.offerTitle })} />
       {ended && <p className="zj-hint-inline">{t(`ended_${a.status}`)}</p>}
       <div className="zj-actions">

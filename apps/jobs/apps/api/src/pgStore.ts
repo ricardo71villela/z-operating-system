@@ -1327,6 +1327,67 @@ export class PgStore {
     return rows.length > 0;
   }
 
+  /* ---------------- Messages between candidate and employer (migration 0032) ---------------- */
+
+  /** Who takes part in an application's thread. RLS still decides what each person can read. */
+  async getApplicationParties(applicationId: string) {
+    const { rows } = await this.query(
+      `select a.id, a.status, a.candidate_id, o.organization_id, o.title as offer_title
+       from applications a join job_offers o on o.id = a.job_offer_id where a.id = $1`,
+      [applicationId],
+    );
+    if (rows.length === 0) throw new NotFoundError(`application ${applicationId} not found`);
+    const r = rows[0];
+    return { id: r.id as string, status: r.status as string, candidateId: r.candidate_id as string | null, organizationId: r.organization_id as string, offerTitle: r.offer_title as string };
+  }
+
+  async listApplicationMessages(applicationId: string) {
+    const { rows } = await this.query(
+      `select id, author_side, author_id, body, created_at, read_at from application_messages
+       where application_id = $1 order by created_at asc, id asc`,
+      [applicationId],
+    );
+    return rows.map((r) => ({
+      id: r.id as string,
+      authorSide: r.author_side as 'candidate' | 'employer',
+      authorId: (r.author_id as string | null) ?? null,
+      body: r.body as string,
+      createdAt: r.created_at.toISOString(),
+      readAt: r.read_at ? r.read_at.toISOString() : null,
+    }));
+  }
+
+  async addApplicationMessage(applicationId: string, authorSide: 'candidate' | 'employer', authorId: string, body: string) {
+    const { rows } = await this.query(
+      `insert into application_messages (application_id, author_side, author_id, body) values ($1, $2, $3, $4)
+       returning id, author_side, author_id, body, created_at, read_at`,
+      [applicationId, authorSide, authorId, body],
+    );
+    const r = rows[0];
+    return { id: r.id, authorSide: r.author_side, authorId: r.author_id, body: r.body, createdAt: r.created_at.toISOString(), readAt: null };
+  }
+
+  /** The reader has seen the other side's messages. */
+  async markApplicationMessagesRead(applicationId: string, readerSide: 'candidate' | 'employer') {
+    await this.query(
+      `update application_messages set read_at = now()
+       where application_id = $1 and author_side <> $2 and read_at is null`,
+      [applicationId, readerSide],
+    );
+  }
+
+  /** Unread messages from the other side, per application. */
+  async countUnreadMessages(applicationIds: string[], readerSide: 'candidate' | 'employer'): Promise<Record<string, number>> {
+    if (applicationIds.length === 0) return {};
+    const { rows } = await this.query(
+      `select application_id, count(*)::int as n from application_messages
+       where application_id = any($1::uuid[]) and author_side <> $2 and read_at is null
+       group by application_id`,
+      [applicationIds, readerSide],
+    );
+    return Object.fromEntries(rows.map((r) => [r.application_id, r.n]));
+  }
+
   /** Owner or admin of the organisation (the roles the company_profiles update policy accepts). */
   async isOrganizationAdmin(orgId: string, userId: string): Promise<boolean> {
     const { rows } = await this.query(
@@ -1602,6 +1663,17 @@ export class PgStore {
 
     for (const action of plan.actions) {
       if (action.action === 'delete') {
+        if (action.table === 'application_messages') {
+          await this.query(
+            `delete from application_messages
+             where application_id in (
+               select id from applications where candidate_id = $1
+             )`,
+            [candidateId],
+          );
+          continue;
+        }
+
         if (action.table === 'application_notes') {
           await this.query(
             `delete from application_notes

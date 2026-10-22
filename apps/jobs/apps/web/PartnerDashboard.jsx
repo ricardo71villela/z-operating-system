@@ -7,7 +7,7 @@ import { LOCALES } from "./messages.js";
 import {
   APPLICATION_TRANSITIONS, CONTRACT_TYPES, Field, Kpi, PILLAR_KEYS, SalaryLedger, SectionNav, Stepper,
   TEMP_AGENCY_CONTRACT_TYPES, VerificationBadge, formatDate, offerStatusLabel, pillarLabel, statusLabel,
-  LocationPicker, OfferPlace, companyPageUrl, naceSectionLabel, ResponseDeadlineNote,
+  LocationPicker, OfferPlace, companyPageUrl, naceSectionLabel, ResponseDeadlineNote, MessageThread,
 } from "./shared.jsx";
 
 const PIPELINE_COLUMNS = [
@@ -267,7 +267,7 @@ function TranslationEditor({ offerId, translations, onAdd }) {
   );
 }
 
-function Pipeline({ offers, focusOfferId, setFocusOfferId, onLoadApplications, onLoadScores, onTransition }) {
+function Pipeline({ offers, focusOfferId, setFocusOfferId, onLoadApplications, onLoadScores, onTransition, onLoadMessages, onSendMessage }) {
   const candidates = offers.filter((o) => o.status === "published" || Object.keys(o.applicationsByStatus || {}).length > 0);
   const offerId = focusOfferId && candidates.some((o) => o.id === focusOfferId) ? focusOfferId : candidates[0]?.id;
   const offer = candidates.find((o) => o.id === offerId);
@@ -319,7 +319,7 @@ function Pipeline({ offers, focusOfferId, setFocusOfferId, onLoadApplications, o
                   <section key={col.key} className="zj-board-col" aria-labelledby={`col-${col.key}`}>
                     <h3 id={`col-${col.key}`} className="zj-board-title">{t(`pipeline_col_${col.key}`)} <span className="zj-section-count">{inCol.length}</span></h3>
                     <ul className="zj-plain-list zj-board-list">
-                      {inCol.map((a) => <PipelineCard key={a.id} application={a} score={scores[a.id]} offerTitle={offer?.title} onMove={move} />)}
+                      {inCol.map((a) => <PipelineCard key={a.id} application={a} score={scores[a.id]} offerTitle={offer?.title} onMove={move} onLoadMessages={onLoadMessages} onSendMessage={onSendMessage} />)}
                     </ul>
                   </section>
                 );
@@ -332,7 +332,7 @@ function Pipeline({ offers, focusOfferId, setFocusOfferId, onLoadApplications, o
   );
 }
 
-function PipelineCard({ application: a, score, onMove }) {
+function PipelineCard({ application: a, score, onMove, onLoadMessages, onSendMessage }) {
   const label = t("application_ref", { ref: a.id.slice(0, 6).toUpperCase() });
   const next = (APPLICATION_TRANSITIONS[a.status] || []).filter((s) => s !== "withdrawn" && s !== "closed");
   const forward = next.filter((s) => s !== "rejected");
@@ -342,6 +342,7 @@ function PipelineCard({ application: a, score, onMove }) {
       <span className={`zj-status status-${a.status}`}>{statusLabel(a.status)}</span>
       <span className="zj-hint-inline">{t("applied_on", { date: formatDate(a.createdAt) })}</span>
       <ResponseDeadlineNote response={a.response} audience="employer" />
+      <MessageThread applicationId={a.id} title={label} unread={a.unreadMessages || 0} audience="employer" onLoad={onLoadMessages} onSend={onSendMessage} />
       {score && (
         <details className="zj-score-details">
           <summary>{t("score_line", { score: score.score })}</summary>

@@ -1017,6 +1017,13 @@ jobs:
 
           echo "OK: candidate erasure boundary validated"
 
+      - name: Verify application messages boundary
+        env:
+          PGPASSWORD: zos_jobs_test_pw
+        run: |
+          psql -h localhost -U postgres -d zos_jobs_test -v ON_ERROR_STOP=1 \
+            -f infrastructure/supabase/tests/z_jobs_application_messages_v1.sql
+
       - name: Setup Node.js for shared Jobs runtime
         uses: actions/setup-node@v4
         with:

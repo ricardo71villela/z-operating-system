@@ -230,7 +230,8 @@ export function createServer() {
         const userId = path.split('/')[2];
         if (currentUserId !== userId) return json(res, 403, { error: 'só o próprio candidato pode ver as suas candidaturas' });
         const mine = await (store as PgStore).listApplicationsForCandidate(userId);
-        return json(res, 200, mine.map((app) => ({ ...app, response: applicationResponseDeadline(app) })));
+        const unread = await (store as PgStore).countUnreadMessages(mine.map((a) => a.id), 'candidate');
+        return json(res, 200, mine.map((app) => ({ ...app, response: applicationResponseDeadline(app), unreadMessages: unread[app.id] ?? 0 })));
       }
 
       if (method === 'GET' && path === '/auth/me') {
@@ -1148,7 +1149,8 @@ export function createServer() {
       if (method === 'GET' && path.match(/^\/job-offers\/[^/]+\/applications$/)) {
         const jobOfferId = path.split('/')[2];
         const apps = await store.listApplicationsForOffer(jobOfferId);
-        return json(res, 200, apps.map((app) => ({ ...app, response: applicationResponseDeadline(app) })));
+        const unread = usingPostgres ? await (store as PgStore).countUnreadMessages(apps.map((a) => a.id), 'employer') : {};
+        return json(res, 200, apps.map((app) => ({ ...app, response: applicationResponseDeadline(app), unreadMessages: unread[app.id] ?? 0 })));
       }
 
       // 13. Ambas as partes veem o estado da candidatura + empresa avança pipeline
@@ -1165,6 +1167,30 @@ export function createServer() {
           return json(res, 200, { ...app, myScoreForThisOffer: explainCandidateScore(score, requestedMessageLocale) });
         }
         return json(res, 200, app);
+      }
+
+      // Messages between the candidate and the employer, one thread per application.
+      if (path.match(/^\/applications\/[^/]+\/messages$/) && (method === 'GET' || method === 'POST')) {
+        if (!usingPostgres) return json(res, 501, { error: 'só disponível com Postgres real ligado' });
+        if (!currentUserId) return json(res, 401, { error: 'não autenticado' });
+        const pg = store as PgStore;
+        const parties = await pg.getApplicationParties(path.split('/')[2]);
+        const side: 'candidate' | 'employer' | null = parties.candidateId === currentUserId
+          ? 'candidate'
+          : (await pg.isOrganizationMember(parties.organizationId, currentUserId)) ? 'employer' : null;
+        if (method === 'GET') {
+          if (!side && !(await pg.isPlatformStaff(currentUserId))) return json(res, 403, { error: 'só o candidato e a empresa podem ver esta conversa' });
+          const messages = await pg.listApplicationMessages(parties.id);
+          if (side) await pg.markApplicationMessagesRead(parties.id, side);
+          return json(res, 200, { applicationId: parties.id, status: parties.status, offerTitle: parties.offerTitle, mySide: side, canWrite: !!side && parties.status !== 'closed', messages });
+        }
+        if (!side) return json(res, 403, { error: 'só o candidato e a empresa podem escrever nesta conversa' });
+        if (parties.status === 'closed') return json(res, 409, { error: 'candidatura encerrada: a conversa já não aceita mensagens' });
+        const { body } = await readBody(req);
+        const text = typeof body === 'string' ? body.trim() : '';
+        if (text.length < 1 || text.length > 4000) return json(res, 400, { error: 'mensagem vazia ou demasiado longa (máximo 4000 caracteres)' });
+        const created = await pg.addApplicationMessage(parties.id, side, currentUserId, text);
+        return json(res, 201, created);
       }
 
       if (method === 'POST' && path.match(/^\/applications\/[^/]+\/transition$/)) {
