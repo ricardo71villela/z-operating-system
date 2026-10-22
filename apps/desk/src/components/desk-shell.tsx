@@ -6,7 +6,7 @@ import { getLeadsCopy } from '@/lib/leads-copy';
 import { ZosMark } from '@/components/zos-mark';
 import { createClient } from '@/lib/supabase/client';
 
-type Labels = { today: string; inbox: string; tasks: string; calendar: string; personnel: string; contacts: string; team: string; settings: string; workspace: string; skipToContent: string; signOut: string };
+type Labels = { today: string; visits: string; inbox: string; tasks: string; calendar: string; personnel: string; contacts: string; team: string; settings: string; workspace: string; skipToContent: string; signOut: string };
 
 export function DeskShell({ locale, labels, children }: { locale: string; labels: Labels; children: ReactNode }) {
   const pathname = usePathname();
@@ -15,6 +15,7 @@ export function DeskShell({ locale, labels, children }: { locale: string; labels
   const leadCopy = getLeadsCopy(locale);
   const items = [
     ['today', labels.today],
+    ['visits', labels.visits],
     ['inbox', labels.inbox],
     ['tasks', labels.tasks],
     ['calendar', labels.calendar],

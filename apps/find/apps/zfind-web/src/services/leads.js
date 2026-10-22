@@ -192,6 +192,53 @@ async function submitLead({ listingId, contactType, name, email, phone, userMess
   );
 }
 
-return { submitLead, validateLead, classifyContact, isValidPhone, validateEmailValue, validatePhoneValue, buildContextBlock, buildQualificationBlock };
+/* Visit requests (Z Desk Lite): the buyer proposes 1-3 one-hour slots
+   offered by zfind_visit_slots; the agency confirms one in Z Desk. Both
+   calls are SECURITY DEFINER functions open to anon — no table access. */
+async function getVisitSlots(listingId) {
+  if (!listingId) return { data: [], error: { type: 'validation_failure' } };
+  const client = getSupabaseClient();
+  return safeQuery(
+    () => client.rpc('zfind_visit_slots', { p_listing_id: listingId, p_days: 14 }),
+    'leads.getVisitSlots'
+  );
+}
+
+function validateVisit({ listingId, name, email, phone, slots }) {
+  const errors = [];
+  if (!listingId) errors.push('missing_listing_id');
+  if (!(name || '').trim()) errors.push('missing_name');
+  if (!EMAIL_RE.test((email || '').trim())) errors.push('invalid_email');
+  if (!isValidPhone(phone)) errors.push('invalid_phone');
+  if (!Array.isArray(slots) || slots.length < 1 || slots.length > 3) errors.push('invalid_slots');
+  return { valid: errors.length === 0, errors };
+}
+
+async function requestVisit({ listingId, name, email, phone, slots, message, language }) {
+  const validation = validateVisit({ listingId, name, email, phone, slots });
+  if (!validation.valid) {
+    return { data: null, error: { type: 'validation_failure', fields: validation.errors } };
+  }
+  const client = getSupabaseClient();
+  const result = await safeQuery(
+    () => client.rpc('zfind_request_visit', {
+      p_listing_id: listingId,
+      p_name: name.trim(),
+      p_email: email.trim(),
+      p_phone: phone.trim(),
+      p_slots: slots,
+      p_message: (message || '').trim() || null,
+      p_language: language === 'en' ? 'en' : 'fr',
+    }),
+    'leads.requestVisit'
+  );
+  if (result.error) return result;
+  if (!result.data || result.data.ok !== true) {
+    return { data: null, error: { type: 'rejected', code: (result.data && result.data.error) || 'unknown' } };
+  }
+  return result;
+}
+
+return { submitLead, validateLead, getVisitSlots, requestVisit, validateVisit, classifyContact, isValidPhone, validateEmailValue, validatePhoneValue, buildContextBlock, buildQualificationBlock };
 
 });

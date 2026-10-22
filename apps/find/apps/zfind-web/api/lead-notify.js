@@ -23,9 +23,11 @@
 
 const S = require('./_lib/server');
 
-const KIND = { direct: 'Demande de contact', qualified: 'Demande qualifiée (projet, budget, délai)', assisted: 'Demande d’accompagnement' };
+const KIND = { direct: 'Demande de contact', qualified: 'Demande qualifiée (projet, budget, délai)', assisted: 'Demande d’accompagnement', visit: 'Demande de visite (créneaux proposés)' };
 
 function partnerUrl() { return S.env('PARTNER_BASE_URL', 'https://partner.zfind.online').replace(/\/+$/, ''); }
+/* Visit requests are confirmed in Z Desk (Z Desk Lite, same ZOS account). */
+function deskVisitsUrl() { return S.env('DESK_BASE_URL', 'https://z-desk.vercel.app').replace(/\/+$/, '') + '/fr/visits'; }
 
 function price(row) {
   const n = Number(row.price);
@@ -37,6 +39,7 @@ function price(row) {
 
 function leadEmail(row, to, bcc, withoutAgency) {
   const title = S.oneLine(row.listing_title || 'votre annonce', 120);
+  const isVisit = row.contact_type === 'visit';
   const rows = [
     ['Annonce', [title, price(row)].filter(Boolean).join(' · ')],
     ['Nom', row.name || '—'],
@@ -52,11 +55,13 @@ function leadEmail(row, to, bcc, withoutAgency) {
   const html = S.mailHtml('fr', heading,
     `<p style="line-height:1.6">${S.esc(intro)}</p><table style="border-collapse:collapse;margin-top:8px">${rows.map(([k, v]) =>
       `<tr><td style="padding:6px 18px 6px 0;color:#7a7266;vertical-align:top">${S.esc(k)}</td><td style="padding:6px 0;font-weight:600">${S.esc(v)}</td></tr>`).join('')}</table>${message}` +
-    (withoutAgency ? '' : S.button(partnerUrl(), 'Voir mes demandes') + '<p style="line-height:1.6;color:#4a453d">Pour répondre, utilisez simplement « Répondre » : votre réponse part directement à cette personne.</p>'),
+    (withoutAgency ? '' : (isVisit
+      ? S.button(deskVisitsUrl(), 'Confirmer un créneau dans Z Desk') + '<p style="line-height:1.6;color:#4a453d">Connectez-vous à Z Desk avec le même e-mail que votre compte Z Find : confirmez un des créneaux proposés et la personne est prévenue automatiquement.</p>'
+      : S.button(partnerUrl(), 'Voir mes demandes') + '<p style="line-height:1.6;color:#4a453d">Pour répondre, utilisez simplement « Répondre » : votre réponse part directement à cette personne.</p>')),
     'Vous recevez cet e-mail parce que votre agence est partenaire de Z Find. Les coordonnées de ce contact ne servent qu’à répondre à sa demande. Z Find · hello@zfind.online');
   const text = [heading, '', intro, '', ...rows.map(([k, v]) => `${k} : ${v}`), row.message ? `\nMessage :\n${row.message}` : '',
-    withoutAgency ? '' : `\nVos demandes : ${partnerUrl()}`].join('\n');
-  const msg = { to, subject: S.oneLine(`${withoutAgency ? '[À transmettre] ' : ''}Nouvelle demande : ${title}`, 150), html, text };
+    withoutAgency ? '' : (isVisit ? `\nConfirmer un créneau dans Z Desk : ${deskVisitsUrl()}` : `\nVos demandes : ${partnerUrl()}`)].join('\n');
+  const msg = { to, subject: S.oneLine(`${withoutAgency ? '[À transmettre] ' : ''}${isVisit ? 'Demande de visite' : 'Nouvelle demande'} : ${title}`, 150), html, text };
   if (bcc && bcc.length) msg.bcc = bcc;
   if (row.email && S.EMAIL_RE.test(row.email)) msg.reply_to = row.email;
   return msg;
