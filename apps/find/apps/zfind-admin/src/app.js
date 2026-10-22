@@ -2018,7 +2018,7 @@ async function toggleDoNotContact(id, value) {
    without an answer it gets ONE reminder e-mail and the enquiry is
    flagged here (migration 20261004200000). */
 const LEAD_STATUS_FR = { new: 'À répondre', contacted: 'Répondue', closed: 'Clôturée' };
-const LEAD_TYPE_FR = { direct: 'Contact', qualified: 'Qualifiée', assisted: 'Accompagnement' };
+const LEAD_TYPE_FR = { direct: 'Contact', qualified: 'Qualifiée', assisted: 'Accompagnement', visit: 'Visite' };
 const LEAD_FILTERS = [['', 'Toutes'], ['overdue', 'Sans réponse depuis 24 h'], ['new', 'À répondre'], ['contacted', 'Répondues'], ['closed', 'Clôturées']];
 let leadRowsCache = [];
 
