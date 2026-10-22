@@ -15,7 +15,7 @@ Environment variables (Production). Secrets are entered in the Vercel dashboard 
 
 | Variable | Value |
 |---|---|
-| `DATABASE_URL` | Supabase **session pooler** URL (Connect → Session pooler), without `sslmode` — the API sets `search_path` at connection start, which needs a session connection |
+| `DATABASE_URL` | Supabase **session pooler** URL (Connect → Session pooler) for the **`zjobs_app`** login (`zjobs_app.<project-ref>` as user), without `sslmode`. Never `postgres` or `service_role`: they bypass row-level security, which is what keeps each employer and candidate to their own data. `zjobs_app` gets its rights through `jobs_runtime` (no BYPASSRLS). Its password must not be the development one from `migrations/0013_app_role.sql`. The API sets `search_path` at connection start, which needs a session connection. |
 | `PG_POOL_MAX` | `1` (one connection per function instance) |
 | `JOBS_DB_SCHEMA` | `jobs` (shared ZOS database) |
 | `JOBS_DB_SSL_MODE` | `verify-full` (certificate checked against the bundled Supabase CA) |
