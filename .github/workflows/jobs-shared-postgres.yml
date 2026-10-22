@@ -448,8 +448,10 @@ jobs:
             ('$CANDIDATE_A'::uuid, 'Candidate A'),
             ('$CANDIDATE_B'::uuid, 'Candidate B');
 
+          -- EUR may already exist: the locations migration seeds it.
           insert into jobs.currencies(code, name)
-          values ('EUR', 'Euro');
+          values ('EUR', 'Euro')
+          on conflict (code) do nothing;
 
           insert into jobs.locales(code, name)
           values ('en-US', 'English');
