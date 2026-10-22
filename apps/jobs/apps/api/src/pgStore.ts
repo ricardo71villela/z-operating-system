@@ -1169,6 +1169,85 @@ export class PgStore {
     };
   }
 
+  /* ---------------- Painéis (empresa e candidato) ---------------- */
+
+  /** Organizações de que a pessoa é membro (não inclui papéis de staff da plataforma). */
+  async listOrganizationsForUser(userId: string) {
+    const { rows } = await this.query(
+      `select o.id, o.legal_name, o.display_name, cp.verification_status, m.role
+       from organization_memberships m
+       join organizations o on o.id = m.organization_id
+       left join company_profiles cp on cp.organization_id = o.id
+       where m.user_id = $1
+         and m.role not in ('platform_moderator','platform_auditor','platform_superadmin')
+       order by o.created_at asc`,
+      [userId],
+    );
+    return rows.map((r) => ({
+      id: r.id as string,
+      legalName: r.legal_name as string,
+      displayName: r.display_name as string,
+      verificationStatus: (r.verification_status ?? 'unverified') as VerificationStatus,
+      role: r.role as string,
+    }));
+  }
+
+  async isOrganizationMember(orgId: string, userId: string): Promise<boolean> {
+    const { rows } = await this.query(
+      `select 1 from organization_memberships where organization_id = $1 and user_id = $2`,
+      [orgId, userId],
+    );
+    return rows.length > 0;
+  }
+
+  /** Todas as ofertas de uma organização (qualquer estado) com contagem de candidaturas por estado. */
+  async listJobOffersForOrganization(orgId: string) {
+    const { rows } = await this.query(
+      `select * from job_offers where organization_id = $1 order by created_at desc`,
+      [orgId],
+    );
+    const counts = await this.query(
+      `select a.job_offer_id, a.status, count(*)::int as n
+       from applications a join job_offers o on o.id = a.job_offer_id
+       where o.organization_id = $1
+       group by a.job_offer_id, a.status`,
+      [orgId],
+    );
+    return rows.map((r) => {
+      const applicationsByStatus: Record<string, number> = {};
+      for (const c of counts.rows) if (c.job_offer_id === r.id) applicationsByStatus[c.status] = c.n;
+      return { ...this.rowToJobOffer(r), applicationsByStatus };
+    });
+  }
+
+  /** Candidaturas da própria pessoa, com o título da oferta e o nome da empresa. */
+  async listApplicationsForCandidate(userId: string) {
+    const { rows } = await this.query(
+      `select a.*, o.title as offer_title, o.status as offer_status, org.display_name as organization_name
+       from applications a
+       join job_offers o on o.id = a.job_offer_id
+       join organizations org on org.id = o.organization_id
+       where a.candidate_id = $1
+       order by a.created_at desc`,
+      [userId],
+    );
+    // Sequencial, não Promise.all — ver nota em getCandidateProfileBundle.
+    const result = [];
+    for (const r of rows) {
+      const h = await this.query(
+        `select * from application_status_history where application_id = $1 order by created_at asc`,
+        [r.id],
+      );
+      result.push({
+        ...this.rowToApplication(r, h.rows),
+        offerTitle: r.offer_title as string,
+        offerStatus: r.offer_status as string,
+        organizationName: r.organization_name as string,
+      });
+    }
+    return result;
+  }
+
   async mustGetJobOffer(id: string): Promise<JobOfferRecord> {
     const { rows } = await this.query(`select * from job_offers where id = $1`, [id]);
     if (rows.length === 0) throw new NotFoundError(`job offer ${id} not found`);
