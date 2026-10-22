@@ -12,7 +12,12 @@
 
 begin;
 
--- 1. Launch countries (locations.country_code references countries.code).
+-- 1. Launch countries (locations.country_code references countries.code,
+--    countries.default_currency references currencies.code).
+insert into jobs.currencies (code, name) values ('EUR', 'Euro')
+on conflict (code) do nothing;
+insert into jobs.locales (code, name) values ('fr', 'Français'), ('en', 'English')
+on conflict (code) do nothing;
 insert into jobs.countries (code, name, default_locale, default_currency) values
   ('FR', 'France', 'fr-FR', 'EUR'),
   ('BE', 'Belgique', 'fr-BE', 'EUR'),
