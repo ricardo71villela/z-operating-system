@@ -368,7 +368,8 @@ async function main() {
     const strangerHeaders = { Authorization: `Bearer ${stranger.token}` };
     const strangerRead = await fetch(thread, { headers: strangerHeaders });
     const strangerWrite = await fetch(thread, { method: 'POST', headers: strangerHeaders, body: JSON.stringify({ body: 'intrusion' }) });
-    check('(mensagens, negativo) terceiro não lê nem escreve (403)', strangerRead.status === 403 && strangerWrite.status === 403);
+    // 403, or 404 when RLS already hides the application from that person (it does not even exist for them).
+    check('(mensagens, negativo) terceiro não lê nem escreve (403/404)', [403, 404].includes(strangerRead.status) && [403, 404].includes(strangerWrite.status), { read: strangerRead.status, write: strangerWrite.status });
     const emptyMessage = await fetch(thread, { method: 'POST', headers: authHeaders, body: JSON.stringify({ body: '   ' }) });
     check('(mensagens, negativo) mensagem vazia recusada (400)', emptyMessage.status === 400);
     const anonymousRead = await fetch(thread);
