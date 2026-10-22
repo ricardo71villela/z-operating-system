@@ -330,6 +330,20 @@ async function main() {
     const othersApplications = await fetch(`${BASE}/candidates/${candidate.id}/applications`, { headers: recruiterHeaders });
     check('(painel, negativo) ninguém vê as candidaturas de outra pessoa', othersApplications.status === 403);
 
+    // --- Perfil completo do candidato (profile-bundle): só o próprio ou staff ---
+    if (candidate.token) {
+      const ownBundle = await fetch(`${BASE}/candidates/${candidate.id}/profile-bundle`, { headers: authHeaders });
+      check('(profile-bundle) o próprio candidato vê o seu perfil completo', ownBundle.status === 200);
+      const anonBundle = await fetch(`${BASE}/candidates/${candidate.id}/profile-bundle`);
+      check('(profile-bundle, negativo) sem sessão é bloqueado (401)', anonBundle.status === 401);
+      const otherBundle = await fetch(`${BASE}/candidates/${candidate.id}/profile-bundle`, { headers: recruiterHeaders });
+      check('(profile-bundle, negativo) outro utilizador autenticado é bloqueado (403)', otherBundle.status === 403);
+      if (adminSignup.token) {
+        const staffBundle = await fetch(`${BASE}/candidates/${candidate.id}/profile-bundle`, { headers: adminHeaders });
+        check('(profile-bundle) staff da plataforma vê o perfil completo', staffBundle.status === 200);
+      }
+    }
+
     // --- Teste negativo: candidato não pode marcar-se como "hired" ---
     const candidateSelfHireRes = await fetch(`${BASE}/applications/${application.id}/transition`, {
       method: 'POST',
