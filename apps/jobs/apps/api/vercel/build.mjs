@@ -5,12 +5,18 @@
 // único ficheiro; o certificado da Supabase vai ao lado, no mesmo
 // caminho relativo que pgStore.ts espera (../certs a partir de src/).
 // Saída: .vercel/output (https://vercel.com/docs/build-output-api).
-import { build } from 'esbuild';
-import { cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const apiRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
+
+// Na Vercel as dependências ficam isoladas em .deps (vercel.json): um
+// `npm install` normal aqui dentro cairia no workspace da raiz do monorepo.
+// Localmente, usa-se o node_modules do monorepo.
+const depsDir = join(apiRoot, '.deps', 'node_modules');
+const useDeps = existsSync(depsDir);
+const { build } = await import(useDeps ? pathToFileURL(join(depsDir, 'esbuild', 'lib', 'main.js')).href : 'esbuild');
 const out = join(apiRoot, '.vercel', 'output');
 const fn = join(out, 'functions', 'index.func');
 
@@ -25,6 +31,7 @@ await build({
   format: 'esm',
   target: 'node22',
   external: ['pg-native'],
+  nodePaths: useDeps ? [depsDir] : [],
   // Dependências CommonJS (pg) dentro de um bundle ESM precisam de require.
   banner: { js: "import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);" },
   logLevel: 'warning',
