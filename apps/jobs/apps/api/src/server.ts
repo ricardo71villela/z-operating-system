@@ -40,6 +40,7 @@ import { compareSalaryToReference } from '../../../packages/domain/src/rules/sal
 import { calculateNetSalary, calculateGermanNetSalary, calculateLuxembourgNetSalary, LU_TAX_PROFILE_2026, calculateBelgianNetSalary, BE_TAX_PROFILE_2026 } from '../../../packages/domain/src/rules/netSalarySimulator';
 import { TERMINATION_TERMS_BY_COUNTRY, getTerminationTerms } from '../../../packages/domain/src/rules/terminationTerms';
 import { isLaunchCountry, isLaunchLocale, launchLocaleOrDefault } from '../../../packages/domain/src/rules/launchScope';
+import { translateError, type ErrorLocale } from './errorMessages';
 import { canPublishGivenBilling, productByCode } from '../../../packages/domain/src/rules/billing';
 import type { BillingProductCode } from '../../../packages/domain/src/rules/billing';
 import { computeCVQuality, validateCoverLetterPersonalization } from '../../../packages/domain/src/rules/cvStudio';
@@ -75,6 +76,11 @@ function json(res: http.ServerResponse, status: number, body: unknown) {
 function flushPendingResponse(res: http.ServerResponse) {
   const pending = (res as any).__pendingResponse;
   if (!pending || res.writableEnded) return;
+  // Erros: mensagem na língua do pedido + código estável (errorMessages.ts).
+  if (pending.status >= 400 && pending.body && typeof pending.body.error === 'string') {
+    const locale: ErrorLocale = (res as any).__locale === 'en' ? 'en' : 'fr';
+    pending.body = { ...pending.body, ...translateError(pending.body.error, locale) };
+  }
   const payload = JSON.stringify(pending.body, null, 2);
   res.writeHead(pending.status, { 'Content-Type': 'application/json' });
   res.end(payload);
@@ -110,6 +116,7 @@ export function createServer() {
   return http.createServer(async (req, res) => {
     try {
       const url = new URL(req.url ?? '/', 'http://localhost');
+      (res as any).__locale = launchLocaleOrDefault(url.searchParams.get('locale'));
       const path = url.pathname;
       const method = req.method ?? 'GET';
 

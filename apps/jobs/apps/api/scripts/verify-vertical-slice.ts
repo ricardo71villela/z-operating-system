@@ -404,7 +404,7 @@ async function main() {
     check('(âmbito) /termination-terms/FR disponível', (await fetch(`${BASE}/termination-terms/FR`)).status === 200);
     for (const country of ['PT', 'DE']) {
       const out = await fetch(`${BASE}/termination-terms/${country}`);
-      check(`(âmbito) /termination-terms/${country} fora do lançamento (404)`, out.status === 404 && (await out.json()).error === 'country_not_in_launch_scope');
+      check(`(âmbito) /termination-terms/${country} fora do lançamento (404)`, out.status === 404 && (await out.json()).code === 'country_not_in_launch_scope');
     }
     check('(âmbito) /tax-simulator/DE fora do lançamento (404)', (await fetch(`${BASE}/tax-simulator/DE`)).status === 404);
   } finally {
