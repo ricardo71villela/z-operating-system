@@ -264,3 +264,105 @@ export const LU_TAX_PROFILE_2026 = {
     'sans frais de déplacement. Ne remplace pas le calcul de l’Administration des contributions directes.',
   brackets: LU_TAX_BRACKETS_2026,
 };
+
+// ============================================================================
+// BÉLGICA — motor à parte (empregado do setor privado, pessoa isolada,
+// sem filhos, rendimentos de 2026 = exercice d'imposition 2027).
+//
+// Fontes (verificadas a 2026-10-22):
+// - Quotité exemptée: lei de 10.7.2026 "portant réforme de l'impôt des
+//   personnes physiques", art. 2, 1° — montante de base do art. 131 CIR 92
+//   passa de 4 785 € para 4 945 € a partir do exercício 2027 (texto
+//   adotado, Câmara DOC 56 1243/009). Indexado com o mesmo coeficiente
+//   que o aviso SPF dá para o art. 131 (4 785 € -> 11 180 €, 2,3356):
+//   4 945 × 2,3356 = 11 550 € (arredondado à dezena).
+// - Escalões indexados do art. 130 (16 720 / 29 510 / 51 070 €) e teto
+//   das despesas profissionais forfetárias do art. 51 (6 070 €): aviso
+//   SPF Finances "Avis relatif à l'indexation automatique en matière
+//   d'impôts sur les revenus – Exercice d'imposition 2027". O site do SPF
+//   esteve fora de serviço; o texto foi lido numa cópia do aviso.
+// - Taxas do art. 130 (25/40/45/50 %) e forfait de 30 % do art. 51 CIR 92.
+// - Contribuição pessoal ONSS 13,07 % (pensões 7,50, cuidados de saúde
+//   3,55, indemnizações 1,15, desemprego 0,87): instruções ONSS 2026/3.
+// - Bónus ao emprego (volet A/B) existe até 3 336,98 €/mês (employé,
+//   ONSS, a partir de 1.7.2026) e muda várias vezes por ano: abaixo
+//   desse salário o simulador NÃO calcula (devolve null).
+//
+// Aproximações declaradas (não há fonte única): taxa adicional
+// municipal média de 7 % (varia entre comunas, 0 % a 9 %); a cotisation
+// spéciale de sécurité sociale não está incluída (até ~30 €/mês).
+// ============================================================================
+
+export const BE_TAX_BRACKETS_2026_INCOME: TaxBracket[] = [
+  { bracketOrder: 1, incomeFrom: 0, incomeTo: 16720, marginalRate: 0.25 },
+  { bracketOrder: 2, incomeFrom: 16720, incomeTo: 29510, marginalRate: 0.40 },
+  { bracketOrder: 3, incomeFrom: 29510, incomeTo: 51070, marginalRate: 0.45 },
+  { bracketOrder: 4, incomeFrom: 51070, incomeTo: null, marginalRate: 0.50 },
+];
+export const BE_TAX_FREE_ALLOWANCE_2026_INCOME = 11550;
+export const BE_EMPLOYEE_SOCIAL_RATE = 0.1307;
+export const BE_PROFESSIONAL_EXPENSES_RATE = 0.30;
+export const BE_PROFESSIONAL_EXPENSES_MAX_2026_INCOME = 6070;
+export const BE_MUNICIPAL_SURCHARGE_AVERAGE = 0.07;
+/** Acima deste bruto anual (12 × 3 336,98 €) não há bónus ao emprego. */
+export const BE_WORK_BONUS_CEILING_ANNUAL = 12 * 3336.98;
+
+export interface BelgianNetSalaryResult {
+  grossAnnual: number;
+  socialContributions: number;
+  professionalExpenses: number;
+  taxableIncome: number;
+  federalTax: number;
+  municipalSurcharge: number;
+  incomeTax: number;
+  netAnnual: number;
+  netMonthly: number;
+  simplifiedEstimateOnly: true;
+}
+
+/** null quando o salário dá direito ao bónus ao emprego (não modelado). */
+export function calculateBelgianNetSalary(grossAnnual: number): BelgianNetSalaryResult | null {
+  const gross = Math.max(0, grossAnnual);
+  if (gross <= BE_WORK_BONUS_CEILING_ANNUAL) return null;
+  const socialContributions = gross * BE_EMPLOYEE_SOCIAL_RATE;
+  const grossTaxable = gross - socialContributions;
+  const professionalExpenses = Math.min(grossTaxable * BE_PROFESSIONAL_EXPENSES_RATE, BE_PROFESSIONAL_EXPENSES_MAX_2026_INCOME);
+  const taxableIncome = grossTaxable - professionalExpenses;
+  const federalTax = Math.max(
+    0,
+    computeProgressiveTax(taxableIncome, BE_TAX_BRACKETS_2026_INCOME) -
+      computeProgressiveTax(BE_TAX_FREE_ALLOWANCE_2026_INCOME, BE_TAX_BRACKETS_2026_INCOME),
+  );
+  const municipalSurcharge = federalTax * BE_MUNICIPAL_SURCHARGE_AVERAGE;
+  const incomeTax = federalTax + municipalSurcharge;
+  const netAnnual = gross - socialContributions - incomeTax;
+  return {
+    grossAnnual: gross,
+    socialContributions,
+    professionalExpenses,
+    taxableIncome,
+    federalTax,
+    municipalSurcharge,
+    incomeTax,
+    netAnnual,
+    netMonthly: netAnnual / 12,
+    simplifiedEstimateOnly: true,
+  };
+}
+
+export const BE_TAX_PROFILE_2026 = {
+  countryCode: 'BE',
+  currency: 'EUR',
+  applicableTaxYear: 2026,
+  taxBracketSource:
+    "Art. 130 et 131 CIR 92 — avis SPF Finances d'indexation automatique, exercice d'imposition 2027; " +
+    'loi du 10 juillet 2026 portant réforme de l’impôt des personnes physiques (quotité exemptée)',
+  taxBracketSourceUrl: 'https://www.lachambre.be/FLWB/PDF/56/1243/56K1243009.pdf',
+  socialContributionSource: 'ONSS — cotisation personnelle 13,07 % (instructions administratives 2026/3)',
+  socialContributionSourceUrl: 'https://www.socialsecurity.be/employer/instructions/dmfa/fr/latest/instructions/socialsecuritycontributions/contributions.html',
+  scopeNotes:
+    'Estimation simplifiée : employé du secteur privé, personne isolée sans enfant, revenus 2026. ' +
+    'Taxe communale moyenne de 7 % ; cotisation spéciale de sécurité sociale non incluse. ' +
+    'Pas de calcul sous 3 336,98 € bruts par mois (bonus à l’emploi). Ne remplace pas Tax-Calc du SPF Finances.',
+  brackets: BE_TAX_BRACKETS_2026_INCOME,
+};

@@ -2,7 +2,7 @@
 // Corre com: npx tsx packages/domain/src/rules/netSalarySimulator.test.ts
 
 import assert from 'node:assert/strict';
-import { calculateNetSalary, calculateGermanIncomeTax2026, calculateGermanSocialContributions, calculateGermanNetSalary, calculateLuxembourgNetSalary, luxembourgCIS2026, luxembourgCICO2_2026, LU_TAX_BRACKETS_2026 } from './netSalarySimulator';
+import { calculateNetSalary, calculateGermanIncomeTax2026, calculateGermanSocialContributions, calculateGermanNetSalary, calculateLuxembourgNetSalary, luxembourgCIS2026, luxembourgCICO2_2026, LU_TAX_BRACKETS_2026, calculateBelgianNetSalary, BE_WORK_BONUS_CEILING_ANNUAL } from './netSalarySimulator';
 import type { TaxBracket } from './netSalarySimulator';
 
 let passed = 0;
@@ -190,6 +190,33 @@ test('rendimento zero -> tudo zero', () => {
   const r = calculateLuxembourgNetSalary(0);
   assert.equal(r.netAnnual, 0);
   assert.equal(r.incomeTax, 0);
+});
+
+// --- Bélgica: empregado, isolado, rendimentos 2026 ---
+
+console.log('\nBélgica (empregado, rendimentos 2026)');
+
+test('50 000 € brutos -> cálculo à mão (ONSS 6 535 €, forfait 6 070 €, net ≈ 2 734 €/mês)', () => {
+  const r = calculateBelgianNetSalary(50000)!;
+  assert.ok(Math.abs(r.socialContributions - 6535) < 0.01);
+  assert.equal(r.professionalExpenses, 6070);
+  assert.ok(Math.abs(r.taxableIncome - 37395) < 0.01);
+  // 4 180 + 5 116 + 3 548,25 - 2 887,50 = 9 956,75 ; × 1,07
+  assert.ok(Math.abs(r.incomeTax - 9956.75 * 1.07) < 0.01);
+  assert.ok(Math.abs(r.netMonthly - 2734.36) < 0.5, `net ${r.netMonthly}`);
+});
+
+test('salário com bónus ao emprego -> sem cálculo (null)', () => {
+  assert.equal(calculateBelgianNetSalary(30000), null);
+  assert.equal(calculateBelgianNetSalary(BE_WORK_BONUS_CEILING_ANNUAL), null);
+  assert.ok(calculateBelgianNetSalary(BE_WORK_BONUS_CEILING_ANNUAL + 1) !== null);
+});
+
+test('escalão de 50 % aplicado no topo', () => {
+  const a = calculateBelgianNetSalary(150000)!;
+  const b = calculateBelgianNetSalary(160000)!;
+  const marginal = (b.incomeTax - a.incomeTax) / (10000 * (1 - 0.1307));
+  assert.ok(Math.abs(marginal - 0.5 * 1.07) < 0.001, `marginal ${marginal}`);
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

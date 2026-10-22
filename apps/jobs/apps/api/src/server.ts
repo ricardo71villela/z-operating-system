@@ -37,7 +37,7 @@ import { canTransitionReport } from '../../../packages/domain/src/rules/moderati
 import { canReserveOfferForInstitution } from '../../../packages/domain/src/rules/institution';
 import { resolveTranslation } from '../../../packages/domain/src/rules/i18n';
 import { compareSalaryToReference } from '../../../packages/domain/src/rules/salaryReference';
-import { calculateNetSalary, calculateGermanNetSalary, calculateLuxembourgNetSalary, LU_TAX_PROFILE_2026 } from '../../../packages/domain/src/rules/netSalarySimulator';
+import { calculateNetSalary, calculateGermanNetSalary, calculateLuxembourgNetSalary, LU_TAX_PROFILE_2026, calculateBelgianNetSalary, BE_TAX_PROFILE_2026 } from '../../../packages/domain/src/rules/netSalarySimulator';
 import { TERMINATION_TERMS_BY_COUNTRY, getTerminationTerms } from '../../../packages/domain/src/rules/terminationTerms';
 import { isLaunchCountry, isLaunchLocale, launchLocaleOrDefault } from '../../../packages/domain/src/rules/launchScope';
 import { canPublishGivenBilling, productByCode } from '../../../packages/domain/src/rules/billing';
@@ -888,6 +888,14 @@ export function createServer() {
           if (!grossAnnualParam) return json(res, 200, { taxProfile: LU_TAX_PROFILE_2026 });
           const result = calculateLuxembourgNetSalary(Number(grossAnnualParam));
           return json(res, 200, { taxProfile: LU_TAX_PROFILE_2026, result, calculationMethod: 'luxembourg_class1_2026' });
+        }
+
+        // Bélgica: motor próprio (rendimentos 2026), sem perfil na base de
+        // dados. Abaixo do teto do bónus ao emprego devolve result: null.
+        if (countryCode === 'BE') {
+          if (!grossAnnualParam) return json(res, 200, { taxProfile: BE_TAX_PROFILE_2026 });
+          const result = calculateBelgianNetSalary(Number(grossAnnualParam));
+          return json(res, 200, { taxProfile: BE_TAX_PROFILE_2026, result, calculationMethod: 'belgium_employee_2026' });
         }
 
         if (!usingPostgres) return json(res, 404, { error: 'não encontrado' });
