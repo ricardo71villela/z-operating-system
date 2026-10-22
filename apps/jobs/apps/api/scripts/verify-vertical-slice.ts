@@ -303,6 +303,24 @@ async function main() {
     check('(localidades) oferta mostra a cidade escolhida', listedLocated?.location?.city === 'Lyon' && listedLocated?.location?.countryCode === 'FR', listedLocated);
     const strangerOrgOffers = await fetch(`${BASE}/organizations/${org.id}/job-offers`, { headers: authHeaders });
     check('(painel, negativo) quem não é membro não vê as ofertas da organização', strangerOrgOffers.status === 403);
+
+    // --- Página pública da empresa ---
+    const savedProfile = await fetch(`${BASE}/organizations/${org.id}/public-profile`, {
+      method: 'PUT', headers: recruiterHeaders,
+      body: JSON.stringify({ description: 'Éditeur de logiciels à Lyon.', remotePolicyNotes: '2 jours par semaine', website: 'https://zeta.example', headquartersLocationId: lyon?.id }),
+    });
+    check('(página pública) responsável guarda a apresentação', savedProfile.status === 200, await savedProfile.clone().json());
+    const strangerProfileEdit = await fetch(`${BASE}/organizations/${org.id}/public-profile`, { method: 'PUT', headers: authHeaders, body: JSON.stringify({ description: 'x' }) });
+    check('(página pública, negativo) quem não é responsável não edita (403)', strangerProfileEdit.status === 403);
+    const badWebsite = await fetch(`${BASE}/organizations/${org.id}/public-profile`, { method: 'PUT', headers: recruiterHeaders, body: JSON.stringify({ website: 'javascript:alert(1)' }) });
+    check('(página pública, negativo) site que não começa por https:// recusado (400)', badWebsite.status === 400);
+    const publicPage = await (await fetch(`${BASE}/organizations/${org.id}/public-profile`)).json();
+    check(
+      '(página pública) qualquer pessoa vê apresentação, sede e ofertas publicadas',
+      publicPage.profile?.description === 'Éditeur de logiciels à Lyon.' && publicPage.profile?.headquarters?.city === 'Lyon'
+        && Array.isArray(publicPage.offers) && publicPage.offers.length === publicPage.offersTotal && publicPage.offers.every((o: any) => o.status === 'published'),
+      publicPage,
+    );
     const myApplications = await (await fetch(`${BASE}/candidates/${candidate.id}/applications`, { headers: authHeaders })).json();
     check(
       '(painel) candidato vê as suas candidaturas com título e empresa',

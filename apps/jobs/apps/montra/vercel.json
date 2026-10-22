@@ -18,6 +18,10 @@
     {
       "source": "/outils",
       "destination": "/outils.html"
+    },
+    {
+      "source": "/entreprise",
+      "destination": "/entreprise.html"
     }
   ],
   "headers": [

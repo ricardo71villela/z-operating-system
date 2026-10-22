@@ -50,6 +50,7 @@ export interface PublicOfferSearch {
   country?: string;
   /** NACE Rev. 2 section letter of the employer, e.g. 'J'. */
   naceSection?: string;
+  organizationId?: string;
   limit?: number;
   offset?: number;
 }

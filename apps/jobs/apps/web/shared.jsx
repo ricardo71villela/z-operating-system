@@ -222,3 +222,39 @@ export function LocationPicker({ value, onChange, search, label, hint, required 
     </div>
   );
 }
+
+/** Public site (montra): the company page lives at /entreprise?id=<organisation id>. */
+export const MONTRA_URL = "https://z-jobs-two.vercel.app";
+export const companyPageUrl = (orgId) => `${MONTRA_URL}/entreprise?id=${encodeURIComponent(orgId)}&lang=${messagesLocale()}`;
+
+/**
+ * NACE Rev. 2 sections (Regulation (EC) No 1893/2006). French names as in
+ * the INSEE NAF rév. 2, English names as published by Eurostat.
+ */
+export const NACE_SECTIONS = {
+  A: { fr: "Agriculture, sylviculture et pêche", en: "Agriculture, forestry and fishing" },
+  B: { fr: "Industries extractives", en: "Mining and quarrying" },
+  C: { fr: "Industrie manufacturière", en: "Manufacturing" },
+  D: { fr: "Production et distribution d'électricité, de gaz, de vapeur et d'air conditionné", en: "Electricity, gas, steam and air conditioning supply" },
+  E: { fr: "Production et distribution d'eau ; assainissement, gestion des déchets et dépollution", en: "Water supply; sewerage, waste management and remediation activities" },
+  F: { fr: "Construction", en: "Construction" },
+  G: { fr: "Commerce ; réparation d'automobiles et de motocycles", en: "Wholesale and retail trade; repair of motor vehicles and motorcycles" },
+  H: { fr: "Transports et entreposage", en: "Transportation and storage" },
+  I: { fr: "Hébergement et restauration", en: "Accommodation and food service activities" },
+  J: { fr: "Information et communication", en: "Information and communication" },
+  K: { fr: "Activités financières et d'assurance", en: "Financial and insurance activities" },
+  L: { fr: "Activités immobilières", en: "Real estate activities" },
+  M: { fr: "Activités spécialisées, scientifiques et techniques", en: "Professional, scientific and technical activities" },
+  N: { fr: "Activités de services administratifs et de soutien", en: "Administrative and support service activities" },
+  O: { fr: "Administration publique", en: "Public administration and defence; compulsory social security" },
+  P: { fr: "Enseignement", en: "Education" },
+  Q: { fr: "Santé humaine et action sociale", en: "Human health and social work activities" },
+  R: { fr: "Arts, spectacles et activités récréatives", en: "Arts, entertainment and recreation" },
+  S: { fr: "Autres activités de services", en: "Other service activities" },
+  T: { fr: "Activités des ménages en tant qu'employeurs", en: "Activities of households as employers" },
+  U: { fr: "Activités extra-territoriales", en: "Activities of extraterritorial organisations and bodies" },
+};
+export function naceSectionLabel(letter) {
+  const entry = NACE_SECTIONS[letter];
+  return entry ? entry[messagesLocale() === "en" ? "en" : "fr"] : "";
+}

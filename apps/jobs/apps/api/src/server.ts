@@ -41,6 +41,7 @@ import { calculateNetSalary, calculateGermanNetSalary, calculateLuxembourgNetSal
 import { TERMINATION_TERMS_BY_COUNTRY, getTerminationTerms } from '../../../packages/domain/src/rules/terminationTerms';
 import { isLaunchCountry, isLaunchLocale, launchLocaleOrDefault } from '../../../packages/domain/src/rules/launchScope';
 import { translateError, type ErrorLocale } from './errorMessages';
+import { estimateSmeCategoryByEmployeeCount } from '../../../packages/domain/src/rules/companyClassification';
 import { canPublishGivenBilling, productByCode } from '../../../packages/domain/src/rules/billing';
 import type { BillingProductCode } from '../../../packages/domain/src/rules/billing';
 import { computeCVQuality, validateCoverLetterPersonalization } from '../../../packages/domain/src/rules/cvStudio';
@@ -765,7 +766,10 @@ export function createServer() {
         const metrics = await (store as PgStore).getEmployerMetrics(orgId);
         const components = computeResponsibilityComponents(metrics);
         const badges = computeEligibleBadges(metrics);
+        const details = await (store as PgStore).getCompanyPublicDetails(orgId);
+        const openOffers = await (store as PgStore).searchPublishedJobOffers({ organizationId: orgId, limit: 50 });
         return json(res, 200, {
+          id: orgId,
           legalName: org.legalName,
           displayName: org.displayName,
           verificationStatus: metrics.verificationStatus,
@@ -777,7 +781,45 @@ export function createServer() {
             seniorHiresCount: metrics.seniorHiresCount,
             confirmedComplaintsCount: metrics.confirmedComplaintsCount,
           },
+          profile: {
+            ...details,
+            smeCategory: estimateSmeCategoryByEmployeeCount(details.employeeCount).category,
+          },
+          offers: openOffers.offers,
+          offersTotal: openOffers.total,
         });
+      }
+
+      // The organisation's owners and admins edit what the public page shows.
+      if (method === 'PUT' && path.match(/^\/organizations\/[^/]+\/public-profile$/)) {
+        if (!usingPostgres) return json(res, 501, { error: 'só disponível com Postgres real ligado' });
+        if (!currentUserId) return json(res, 401, { error: 'não autenticado' });
+        const orgId = path.split('/')[2];
+        await store.mustGetOrg(orgId);
+        if (!(await (store as PgStore).isOrganizationAdmin(orgId, currentUserId))) {
+          return json(res, 403, { error: 'só os responsáveis da organização podem editar a página pública' });
+        }
+        const body = await readBody(req);
+        const text = (value: unknown, max: number) => {
+          if (value === undefined || value === null) return null;
+          const v = String(value).trim();
+          return v ? v.slice(0, max) : null;
+        };
+        const website = text(body.website, 200);
+        if (website && !/^https:\/\/[^\s/]+\.[^\s]+$/i.test(website)) return json(res, 400, { error: 'site web inválido (https://…)' });
+        const headquartersLocationId = text(body.headquartersLocationId, 36);
+        if (headquartersLocationId && !(await (store as PgStore).locationExists(headquartersLocationId))) {
+          return json(res, 400, { error: 'localidade desconhecida' });
+        }
+        await (store as PgStore).updateCompanyPublicDetails(orgId, {
+          description: text(body.description, 3000),
+          cultureNotes: text(body.cultureNotes, 1500),
+          remotePolicyNotes: text(body.remotePolicyNotes, 1500),
+          inclusionPolicyNotes: text(body.inclusionPolicyNotes, 1500),
+          website,
+          headquartersLocationId,
+        });
+        return json(res, 200, await (store as PgStore).getCompanyPublicDetails(orgId));
       }
 
       // 6. Empresa cria oferta com salário fixo obrigatório
