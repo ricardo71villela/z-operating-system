@@ -16,7 +16,7 @@ This program is intended to move Z Jobs beyond a listings marketplace into an ex
    - authorized platform staff → allowed;
    - prove the boundary in real PostgreSQL/RLS.
 2. **Talent Intelligence / Assessments becomes the next P0 Z Jobs product program.**
-3. Hosting/deployment remains a separate gate; this priority does not require Railway mutation.
+3. Hosting/deployment remains a separate gate; this priority does not require any hosting change.
 
 ## Product objective
 
