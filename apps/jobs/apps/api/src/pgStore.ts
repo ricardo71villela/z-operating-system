@@ -84,6 +84,16 @@ function labelToUuid(label: string): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
 }
 
+/** Same normalisation as build_locations_sql.py: lower case, no accents, punctuation as spaces. */
+export function normalizeLocationQuery(text: string): string {
+  return String(text || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
 export class PgStore {
   pool: pg.Pool;
   private readonly usingSharedZosDatabase: boolean;
@@ -794,7 +804,56 @@ export class PgStore {
       informedOfPermanentVacancies: r.informed_of_permanent_vacancies,
       createdAt: r.created_at.toISOString(),
       updatedAt: r.updated_at.toISOString(),
+      location: r.location_id && r.loc_country
+        ? { id: r.location_id, countryCode: String(r.loc_country).trim(), city: r.loc_city, postalCode: r.loc_postal, adminArea: r.loc_admin }
+        : null,
     };
+  }
+
+  /**
+   * Reference locations of the launch countries (see the
+   * 20261022210000_z_jobs_locations migrations). Matches the start of any
+   * word of the name, accent-insensitive, biggest towns first.
+   */
+  async searchLocations(query: string, countryCode?: string, limit = 10) {
+    const key = normalizeLocationQuery(query);
+    if (key.length < 2) return [];
+    const isPostal = /^\d{4,5}$/.test(key);
+    // $1 = word-start pattern (or postal-code prefix), $2 = name prefix used for ranking.
+    const params: unknown[] = [isPostal ? `${key}%` : `% ${key}%`, `${key}%`];
+    let where = isPostal ? `postal_code like $1::text` : `(' ' || search_key) like $1::text`;
+    if (countryCode) {
+      params.push(countryCode.toUpperCase());
+      where += ` and country_code = $${params.length}`;
+    }
+    params.push(Math.min(Math.max(limit, 1), 25));
+    const limitIndex = params.length;
+    params.push(key);
+    const { rows } = await this.query(
+      `select id, country_code, city, alt_name, admin_area, postal_code
+       from locations
+       where official_code is not null and ${where}
+       -- Exact name first, then names starting with the query, then bigger towns.
+       -- Belgian and Luxembourg communes carry no population in the reference
+       -- data; they rank as a mid-size town (10 000) rather than last.
+       order by (search_key = $${limitIndex + 1}::text) desc, (search_key like $2::text) desc,
+                coalesce(population, 10000) desc, city asc
+       limit $${limitIndex}`,
+      params,
+    );
+    return rows.map((r) => ({
+      id: r.id as string,
+      countryCode: String(r.country_code).trim(),
+      city: r.city as string,
+      altName: (r.alt_name as string | null) ?? null,
+      adminArea: (r.admin_area as string | null) ?? null,
+      postalCode: (r.postal_code as string | null) ?? null,
+    }));
+  }
+
+  async locationExists(id: string): Promise<boolean> {
+    const { rows } = await this.query(`select 1 from locations where id = $1`, [id]);
+    return rows.length > 0;
   }
 
   async createJobOffer(draft: Omit<JobOfferDraft, 'status'>): Promise<JobOfferRecord> {
@@ -834,7 +893,8 @@ export class PgStore {
   }
 
   async listPublishedJobOffers(): Promise<JobOfferRecord[]> {
-    const { rows } = await this.query(`select * from job_offers where status = 'published'`);
+    const { rows } = await this.query(`select o.*, l.country_code as loc_country, l.city as loc_city, l.postal_code as loc_postal, l.admin_area as loc_admin
+       from job_offers o left join locations l on l.id = o.location_id where o.status = 'published'`);
     return rows.map((r) => this.rowToJobOffer(r));
   }
 
@@ -1203,7 +1263,8 @@ export class PgStore {
   /** Todas as ofertas de uma organização (qualquer estado) com contagem de candidaturas por estado. */
   async listJobOffersForOrganization(orgId: string) {
     const { rows } = await this.query(
-      `select * from job_offers where organization_id = $1 order by created_at desc`,
+      `select o.*, l.country_code as loc_country, l.city as loc_city, l.postal_code as loc_postal, l.admin_area as loc_admin
+       from job_offers o left join locations l on l.id = o.location_id where o.organization_id = $1 order by o.created_at desc`,
       [orgId],
     );
     const counts = await this.query(
@@ -1249,7 +1310,8 @@ export class PgStore {
   }
 
   async mustGetJobOffer(id: string): Promise<JobOfferRecord> {
-    const { rows } = await this.query(`select * from job_offers where id = $1`, [id]);
+    const { rows } = await this.query(`select o.*, l.country_code as loc_country, l.city as loc_city, l.postal_code as loc_postal, l.admin_area as loc_admin
+       from job_offers o left join locations l on l.id = o.location_id where o.id = $1`, [id]);
     if (rows.length === 0) throw new NotFoundError(`job offer ${id} not found`);
     return this.rowToJobOffer(rows[0]);
   }

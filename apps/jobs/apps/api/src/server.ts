@@ -783,6 +783,9 @@ export function createServer() {
       // 6. Empresa cria oferta com salário fixo obrigatório
       if (method === 'POST' && path === '/job-offers') {
         const draft = (await readBody(req)) as Omit<JobOfferDraft, 'status'>;
+        if (draft.locationId && usingPostgres && !(await (store as PgStore).locationExists(draft.locationId))) {
+          return json(res, 400, { error: 'localidade desconhecida' });
+        }
         const offer = await store.createJobOffer(draft);
         await store.addAuditLog(draft.organizationId, 'job_offer', offer.id, 'create');
         return json(res, 201, offer);
@@ -962,6 +965,15 @@ export function createServer() {
           brackets: taxProfile.brackets,
         });
         return json(res, 200, { taxProfile, result, calculationMethod: 'progressive_brackets' });
+      }
+
+      // Localidades de referência (FR/BE/LU) para o formulário de oferta e a pesquisa.
+      if (method === 'GET' && path === '/locations') {
+        if (!usingPostgres) return json(res, 200, []);
+        const country = url.searchParams.get('country');
+        if (country && !isLaunchCountry(country)) return outOfScope();
+        const results = await (store as PgStore).searchLocations(url.searchParams.get('q') ?? '', country ?? undefined, Number(url.searchParams.get('limit') ?? 10));
+        return json(res, 200, results);
       }
 
       if (method === 'GET' && path === '/nace-codes') {

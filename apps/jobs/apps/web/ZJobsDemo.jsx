@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import { LOCALES, t, setMessagesLocale, messagesLocale, initialLocale, rememberLocale } from "./messages.js";
 import { Search, AlertTriangle, Building2, User, Landmark, ArrowRight, Award } from "lucide-react";
 import {
-  PILLAR_KEYS, pillarLabel, offerStatusLabel, SalaryLedger, VerificationBadge, Field,
+  PILLAR_KEYS, pillarLabel, offerStatusLabel, SalaryLedger, VerificationBadge, Field, OfferPlace, normalizeText,
 } from "./shared.jsx";
 import { AuthPanel, CandidateDashboard } from "./CandidateDashboard.jsx";
 import { OrganizationSetup, PartnerDashboard } from "./PartnerDashboard.jsx";
@@ -81,6 +81,7 @@ const api = {
   getPublicCompanyProfile: (orgId) => apiFetch(`/organizations/${orgId}/public-profile`),
   // offers
   listPublishedOffers: () => apiFetch("/job-offers"),
+  searchLocations: (q, country) => apiFetch(`/locations?q=${encodeURIComponent(q)}${country ? `&country=${country}` : ""}`),
   createJobOffer: (draft) => post("/job-offers", draft),
   submitOfferForReview: (offerId) => post(`/job-offers/${offerId}/submit-for-review`),
   reviewOffer: (offerId) => post(`/job-offers/${offerId}/review`),
@@ -547,6 +548,7 @@ export default function ZJobsDemo() {
             onLoadApplications={(id) => api.listApplicationsForOffer(id)}
             onLoadScores={(id) => api.getCandidateScores(id)}
             onTransition={transitionForPartner}
+            onSearchLocations={(q) => api.searchLocations(q)}
             busy={busy}
           />
         ))}
@@ -596,6 +598,11 @@ export default function ZJobsDemo() {
 /* ---------------- Views ---------------- */
 
 function PublicView({ pillar, setPillar, offers, onSelect, locale }) {
+  const [place, setPlace] = useState("");
+  const placeKey = normalizeText(place);
+  const shown = placeKey
+    ? offers.filter((o) => o.location && normalizeText(`${o.location.city} ${o.location.postalCode || ""} ${o.location.adminArea || ""}`).includes(placeKey))
+    : offers;
   return (
     <section className="zj-public" aria-labelledby="public-h">
       <div className="zj-hero">
@@ -616,10 +623,15 @@ function PublicView({ pillar, setPillar, offers, onSelect, locale }) {
         ))}
       </div>
 
+      <form className="zj-filters" role="search" onSubmit={(e) => e.preventDefault()}>
+        <Field label={t("filter_place")}>
+          <input type="search" value={place} onChange={(e) => setPlace(e.target.value)} placeholder={t("ph_filter_place")} />
+        </Field>
+      </form>
       <h2 className="zj-visually-hidden">{t("public_list_heading", { pillar: pillarLabel(pillar) })}</h2>
-      <p className="zj-hint-inline" aria-live="polite">{t("results_count", { count: offers.length })}</p>
+      <p className="zj-hint-inline" aria-live="polite">{t("results_count", { count: shown.length })}</p>
       <ul className="zj-grid zj-plain-list">
-        {offers.map((o) => (
+        {shown.map((o) => (
           <li key={o.id}>
             <button type="button" className="zj-card" onClick={() => onSelect(o.id)}>
               <span className="zj-card-top">
@@ -629,13 +641,14 @@ function PublicView({ pillar, setPillar, offers, onSelect, locale }) {
               {o.translation?.isFallback && locale !== "fr" && (
                 <span className="zj-fallback-note">{t("fallback_note", { locale: locale.toUpperCase() })}</span>
               )}
+              <OfferPlace location={o.location} workRegime={o.workRegime} />
               <span className="zj-card-desc">{o.description.slice(0, 110)}{o.description.length > 110 ? "…" : ""}</span>
               <SalaryLedger min={o.salaryMin} max={o.salaryMax} currencyCode={o.salaryCurrency} period={o.salaryPeriod} fixed={o.hasFixedSalary} />
             </button>
           </li>
         ))}
       </ul>
-      {offers.length === 0 && <p className="zj-empty">{t("public_empty")}</p>}
+      {shown.length === 0 && <p className="zj-empty">{offers.length === 0 ? t("public_empty") : t("no_results")}</p>}
     </section>
   );
 }
@@ -796,6 +809,7 @@ function OfferDetail({ offer, org, onClose, onApply, canApply, alreadyApplied, o
         <p className="zj-eyebrow">{org?.legalName || offer.organizationName || ""}</p>
         <h2 id="offer-detail-h">{offer.title}</h2>
         <VerificationBadge status="verified" />
+        <OfferPlace location={offer.location} workRegime={offer.workRegime} />
         <SalaryLedger min={offer.salaryMin} max={offer.salaryMax} currencyCode={offer.salaryCurrency} period={offer.salaryPeriod} fixed={offer.hasFixedSalary} />
         <dl className="zj-facts">
           <div><dt>{t("field_contract_type")}</dt><dd>{t(`contract_${offer.contractType}`)}</dd></div>
@@ -1166,6 +1180,11 @@ function FontsAndStyles() {
       .zj-facts { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 12px 0 0; font-size: 13px; }
       .zj-facts dt { font-size: 11px; color: #5c5544; }
       .zj-facts dd { margin: 0; font-weight: 600; }
+      .zj-place { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #3D4A46; }
+      .zj-place-chosen { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; border: 1px solid var(--line); background: var(--paper); }
+      .zj-location-results { display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow-y: auto; }
+      .zj-location-option { width: 100%; text-align: left; border: 1px solid var(--line); background: var(--paper); padding: 7px 10px; cursor: pointer; color: var(--ink); }
+      .zj-location-option:hover, .zj-location-option:focus-visible { border-color: var(--trust); outline: 2px solid var(--trust); outline-offset: 0; }
       @media (max-width: 900px) { .zj-board { grid-template-columns: repeat(5, 200px); } }
 
       @media (max-width: 640px) {

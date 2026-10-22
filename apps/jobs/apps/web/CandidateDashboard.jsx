@@ -7,7 +7,7 @@ import {
 import { t } from "./messages.js";
 import {
   ACTIVE_APPLICATION_STATUSES, APPLICATION_PATH, APPLICATION_TRANSITIONS, Field, Kpi, PILLAR_KEYS, SalaryLedger,
-  SectionNav, Stepper, formatDate, pillarLabel, statusLabel,
+  SectionNav, Stepper, formatDate, pillarLabel, statusLabel, OfferPlace, normalizeText,
 } from "./shared.jsx";
 
 /* ---------------- Sign in / sign up ---------------- */
@@ -531,15 +531,18 @@ function OffersSection({
   alerts, onCreateAlert, onDeleteAlert,
 }) {
   const [query, setQuery] = useState("");
+  const [place, setPlace] = useState("");
   const [pillar, setPillar] = useState("");
   const [onlySaved, setOnlySaved] = useState(false);
   const appliedIds = new Set(applications.map((a) => a.jobOfferId));
   const q = query.trim().toLowerCase();
+  const placeKey = normalizeText(place);
 
   const rows = offers
     .filter((o) => !pillar || o.pillar === pillar)
     .filter((o) => !onlySaved || savedOfferIds.includes(o.id))
     .filter((o) => !q || `${o.title} ${o.description}`.toLowerCase().includes(q))
+    .filter((o) => !placeKey || (o.location && normalizeText(`${o.location.city} ${o.location.postalCode || ""} ${o.location.adminArea || ""}`).includes(placeKey)))
     .map((o) => ({ offer: o, relevance: computeOfferRelevance(o, { skills, experiences }) }))
     .sort((a, b) => (b.relevance.score ?? -1) - (a.relevance.score ?? -1));
 
@@ -551,6 +554,9 @@ function OffersSection({
       <form className="zj-filters" role="search" onSubmit={(e) => e.preventDefault()}>
         <Field label={t("filter_keywords")}>
           <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("ph_filter_keywords")} />
+        </Field>
+        <Field label={t("filter_place")}>
+          <input type="search" value={place} onChange={(e) => setPlace(e.target.value)} placeholder={t("ph_filter_place")} />
         </Field>
         <Field label={t("field_pillar")}>
           <select value={pillar} onChange={(e) => setPillar(e.target.value)}>
@@ -575,6 +581,7 @@ function OffersSection({
                 </div>
                 <span className="zj-hint-inline">{pillarLabel(o.pillar)}</span>
               </div>
+              <OfferPlace location={o.location} workRegime={o.workRegime} />
               <p className="zj-exp-desc">{relevance.label}</p>
               <SalaryLedger min={o.salaryMin} max={o.salaryMax} currencyCode={o.salaryCurrency} period={o.salaryPeriod} fixed={o.hasFixedSalary} />
               <div className="zj-actions">
