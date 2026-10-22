@@ -44,6 +44,21 @@ export interface JobOfferRecord extends JobOfferDraft {
   location?: JobOfferLocation | null;
 }
 
+/** Filters of the public offer search (GET /job-offers/search). */
+export interface PublicOfferSearch {
+  q?: string;
+  country?: string;
+  /** NACE Rev. 2 section letter of the employer, e.g. 'J'. */
+  naceSection?: string;
+  limit?: number;
+  offset?: number;
+}
+
+/** A published offer with the employer's public identity. */
+export interface PublicOfferRecord extends JobOfferRecord {
+  employer: { displayName: string; verificationStatus: string; naceSection: string | null };
+}
+
 export interface ApplicationRecord {
   id: string;
   jobOfferId: string;

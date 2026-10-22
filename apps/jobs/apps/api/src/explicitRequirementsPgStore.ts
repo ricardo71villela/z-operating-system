@@ -1,6 +1,6 @@
 import type { JobOfferDraft, JobOfferStatus } from '../../../packages/domain/src/types/jobOffer';
 import { PgStore } from './pgStore';
-import type { JobOfferRecord } from './store';
+import type { JobOfferRecord, PublicOfferSearch } from './store';
 
 /**
  * Thin forward-compatible adapter over PgStore for columns that already
@@ -76,6 +76,12 @@ export class ExplicitRequirementsPgStore extends PgStore {
 
   override async listPublishedJobOffers(): Promise<JobOfferRecord[]> {
     return this.enrichOffers(await super.listPublishedJobOffers());
+  }
+
+  override async searchPublishedJobOffers(filters: PublicOfferSearch = {}) {
+    const result = await super.searchPublishedJobOffers(filters);
+    const enriched = await this.enrichOffers(result.offers);
+    return { total: result.total, offers: result.offers.map((offer, i) => ({ ...offer, ...enriched[i] })) };
   }
 
   override async mustGetJobOffer(id: string): Promise<JobOfferRecord> {

@@ -165,7 +165,15 @@ export default function ZJobsDemo() {
   const [reports, setReports] = useState([]);
   const [auditLog, setAuditLog] = useState([]);
 
-  const [selectedOfferId, setSelectedOfferId] = useState(null);
+  // ?offre=<id> (links from the public site's search) opens that offer once the offers are loaded.
+  const [selectedOfferId, setSelectedOfferId] = useState(() => {
+    try {
+      const id = new URLSearchParams(window.location.search).get("offre");
+      return id && /^[0-9a-f-]{36}$/i.test(id) ? id : null;
+    } catch {
+      return null;
+    }
+  });
   const [viewingCompanyOrgId, setViewingCompanyOrgId] = useState(null);
   const [toast, setToast] = useState(null);
   const [busy, setBusy] = useState(false);

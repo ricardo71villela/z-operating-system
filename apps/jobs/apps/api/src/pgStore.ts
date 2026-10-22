@@ -58,6 +58,8 @@ import type {
   CourseRecord,
   ReservationRecord,
   TranslationRecord,
+  PublicOfferSearch,
+  PublicOfferRecord,
 } from './store';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -93,6 +95,11 @@ export function normalizeLocationQuery(text: string): string {
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 }
+
+// Accent folding for the offer search, in SQL (translate keeps one character
+// per character, so ligatures fold to their first letter).
+const ACCENTED = 'àâäáãåéèêëíìîïóòôöõúùûüçñÿœæ';
+const PLAIN = 'aaaaaaeeeeiiiiooooouuuucnyoa';
 
 export class PgStore {
   pool: pg.Pool;
@@ -896,6 +903,60 @@ export class PgStore {
     const { rows } = await this.query(`select o.*, l.country_code as loc_country, l.city as loc_city, l.postal_code as loc_postal, l.admin_area as loc_admin
        from job_offers o left join locations l on l.id = o.location_id where o.status = 'published'`);
     return rows.map((r) => this.rowToJobOffer(r));
+  }
+
+  /**
+   * Public offer search (montra and portal): published offers only, newest
+   * first, with the employer's public identity. Keyword, country and NACE
+   * section filters; the keyword is accent-insensitive and matches the title,
+   * the description, the employer name and the town.
+   */
+  async searchPublishedJobOffers(filters: PublicOfferSearch = {}): Promise<{ total: number; offers: PublicOfferRecord[] }> {
+    const where = [`o.status = 'published'`];
+    const params: unknown[] = [];
+    const fold = (sql: string) => `translate(lower(coalesce(${sql}, '')), '${ACCENTED}', '${PLAIN}')`;
+    const words = normalizeLocationQuery(filters.q ?? '').split(' ').filter((w) => w.length > 0).slice(0, 6);
+    for (const word of words) {
+      params.push(`%${word}%`);
+      const p = `$${params.length}::text`;
+      where.push(`(${fold('o.title')} like ${p} or ${fold('o.description')} like ${p} or ${fold('g.display_name')} like ${p} or ${fold('l.city')} like ${p})`);
+    }
+    if (filters.country) {
+      params.push(filters.country);
+      where.push(`l.country_code = $${params.length}::text`);
+    }
+    if (filters.naceSection) {
+      params.push(filters.naceSection);
+      where.push(`n.section_letter = $${params.length}::text`);
+    }
+    const from = `from job_offers o
+       join organizations g on g.id = o.organization_id
+       left join company_profiles cp on cp.organization_id = o.organization_id
+       left join nace_codes n on n.code = cp.nace_code
+       left join locations l on l.id = o.location_id
+       where ${where.join(' and ')}`;
+    const total = Number((await this.query(`select count(*)::int as n ${from}`, params)).rows[0].n);
+    const limit = Math.min(Math.max(Math.trunc(filters.limit ?? 20), 1), 50);
+    const offset = Math.max(Math.trunc(filters.offset ?? 0), 0);
+    const { rows } = await this.query(
+      `select o.*, l.country_code as loc_country, l.city as loc_city, l.postal_code as loc_postal, l.admin_area as loc_admin,
+              g.display_name as employer_name, cp.verification_status as employer_verification, n.section_letter as employer_nace_section
+       ${from}
+       order by o.updated_at desc, o.id
+       limit ${limit} offset ${offset}`,
+      params,
+    );
+    return {
+      total,
+      offers: rows.map((r) => ({
+        ...this.rowToJobOffer(r),
+        employer: {
+          displayName: r.employer_name,
+          verificationStatus: r.employer_verification ?? 'unverified',
+          naceSection: r.employer_nace_section ?? null,
+        },
+      })),
+    };
   }
 
   private rowToApplication(r: any, history: any[]): ApplicationRecord {
