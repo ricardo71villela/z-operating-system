@@ -202,6 +202,34 @@ export function createServer() {
         return json(res, 200, { userId: found.id, fullName: found.fullName, token: session.token, expiresAt: session.expiresAt });
       }
 
+      // Painel da empresa: organizações da pessoa autenticada.
+      if (method === 'GET' && path === '/me/organizations') {
+        if (!usingPostgres) return json(res, 501, { error: 'disponível só com Postgres' });
+        if (!currentUserId) return json(res, 401, { error: 'não autenticado' });
+        return json(res, 200, await (store as PgStore).listOrganizationsForUser(currentUserId));
+      }
+
+      // Painel da empresa: todas as ofertas da organização (rascunhos incluídos).
+      if (method === 'GET' && path.match(/^\/organizations\/[^/]+\/job-offers$/)) {
+        if (!usingPostgres) return json(res, 501, { error: 'disponível só com Postgres' });
+        if (!currentUserId) return json(res, 401, { error: 'não autenticado' });
+        const orgId = path.split('/')[2];
+        const pg = store as PgStore;
+        if (!(await pg.isOrganizationMember(orgId, currentUserId)) && !(await pg.isPlatformStaff(currentUserId))) {
+          return json(res, 403, { error: 'só a organização dona da oferta ou staff pode ver esta informação' });
+        }
+        return json(res, 200, await pg.listJobOffersForOrganization(orgId));
+      }
+
+      // Painel do candidato: as suas candidaturas.
+      if (method === 'GET' && path.match(/^\/candidates\/[^/]+\/applications$/)) {
+        if (!usingPostgres) return json(res, 501, { error: 'disponível só com Postgres' });
+        if (!currentUserId) return json(res, 401, { error: 'não autenticado' });
+        const userId = path.split('/')[2];
+        if (currentUserId !== userId) return json(res, 403, { error: 'só o próprio candidato pode ver as suas candidaturas' });
+        return json(res, 200, await (store as PgStore).listApplicationsForCandidate(userId));
+      }
+
       if (method === 'GET' && path === '/auth/me') {
         if (!currentUserId) return json(res, 401, { error: 'não autenticado' });
         return json(res, 200, { userId: currentUserId });
@@ -427,6 +455,9 @@ export function createServer() {
         const userId = path.split('/')[2];
         if (usingPostgres && currentUserId !== userId) return json(res, 403, { error: 'só o próprio candidato pode editar este perfil' });
         const body = await readBody(req);
+        if (!body.title || !body.companyName || !body.startDate) {
+          return json(res, 400, { error: 'experiência precisa de cargo, empresa e data de início' });
+        }
         return json(res, 201, await store.addExperience({ userId, ...body }));
       }
       if (method === 'POST' && path.match(/^\/candidates\/[^/]+\/education$/)) {

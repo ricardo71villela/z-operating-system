@@ -259,6 +259,23 @@ async function main() {
     })).json();
     check('13b. empresa avança candidatura para "received"', advanced.status === 'received');
 
+    // --- Painéis: leituras de que o portal precisa depois de recarregar ---
+    const myOrgs = await (await fetch(`${BASE}/me/organizations`, { headers: recruiterHeaders })).json();
+    check('(painel) empresa vê as suas organizações', Array.isArray(myOrgs) && myOrgs.some((o: any) => o.id === org.id && o.role === 'owner'), myOrgs);
+    const orgOffers = await (await fetch(`${BASE}/organizations/${org.id}/job-offers`, { headers: recruiterHeaders })).json();
+    const listedOffer = Array.isArray(orgOffers) ? orgOffers.find((o: any) => o.id === offer.id) : null;
+    check('(painel) empresa vê as suas ofertas com contagem de candidaturas', listedOffer?.applicationsByStatus?.received === 1, orgOffers);
+    const strangerOrgOffers = await fetch(`${BASE}/organizations/${org.id}/job-offers`, { headers: authHeaders });
+    check('(painel, negativo) quem não é membro não vê as ofertas da organização', strangerOrgOffers.status === 403);
+    const myApplications = await (await fetch(`${BASE}/candidates/${candidate.id}/applications`, { headers: authHeaders })).json();
+    check(
+      '(painel) candidato vê as suas candidaturas com título e empresa',
+      Array.isArray(myApplications) && myApplications.some((a: any) => a.id === application.id && a.offerTitle === offer.title && a.organizationName),
+      myApplications,
+    );
+    const othersApplications = await fetch(`${BASE}/candidates/${candidate.id}/applications`, { headers: recruiterHeaders });
+    check('(painel, negativo) ninguém vê as candidaturas de outra pessoa', othersApplications.status === 403);
+
     // --- Teste negativo: candidato não pode marcar-se como "hired" ---
     const candidateSelfHireRes = await fetch(`${BASE}/applications/${application.id}/transition`, {
       method: 'POST',
