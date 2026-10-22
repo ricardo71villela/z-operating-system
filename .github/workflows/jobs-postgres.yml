@@ -46,8 +46,8 @@ jobs:
       - name: Install monorepo dependencies
         run: npm ci
 
-      - name: Verify Railway hosting contract
-        run: node apps/jobs/tools/verify-railway-hosting.mjs
+      - name: Verify Vercel hosting contract
+        run: node apps/jobs/tools/verify-vercel-hosting.mjs
 
       - name: Create database
         env:
