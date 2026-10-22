@@ -4,7 +4,7 @@
    Never caches the database, the estimation API or other sites. */
 'use strict';
 
-const CACHE = 'zfind-shell-v1';
+const CACHE = 'zfind-shell-v2';
 const SHELL = ['/', '/manifest.webmanifest', '/brand/zfind-icon-192.png', '/brand/zfind-icon-512.png'];
 
 self.addEventListener('install', event => {
@@ -24,7 +24,7 @@ self.addEventListener('fetch', event => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
-  const cacheable = request.mode === 'navigate' || /^\/(brand|vendor|geo|market-data)\//.test(url.pathname) || url.pathname === '/manifest.webmanifest';
+  const cacheable = request.mode === 'navigate' || /^\/(assets|brand|vendor|geo|market-data)\//.test(url.pathname) || url.pathname === '/manifest.webmanifest';
   if (!cacheable) return;
   event.respondWith(
     fetch(request)
