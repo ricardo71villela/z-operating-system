@@ -2733,6 +2733,7 @@ async function renderProperty(assetId) {
         </div>
         <div id="listing-reviews-root"></div>
         <button class="btn btn-gold" style="width:100%; margin-top:20px; justify-content:center" onclick="openModal('${vm.listing.id}', ${JSON.stringify(vm.partner.enquiryPolicy).replace(/"/g,'&quot;')}, '${vm.partner.id}')">${t(L,'property.contactBtn')}</button>
+        ${visitRequestsEnabled(vm.partner.enquiryPolicy) ? `<button class="btn btn-outline" style="width:100%; margin-top:10px; justify-content:center" onclick="openVisitModal('${vm.listing.id}')">${visitCopy(L).cta}</button>` : ''}
         <button class="btn btn-outline" style="width:100%; margin-top:10px; justify-content:center">${t(L,'property.saveBtn')}</button>
       </div>
       ${travelCardHTML(vm)}
@@ -3361,6 +3362,7 @@ function openModal(listingId, enquiryConfig, partnerId) {
   currentEnquiryOption = cfg.direct ? 'direct' : (cfg.qualified ? 'qualified' : (cfg.assisted ? 'assisted' : 'direct'));
   currentEnquirySubmitting = false;
   const L = state.lang;
+  setModalHeading(t(L, 'enquiry.title'), t(L, 'enquiry.sub'));
   let body = '<div class="contact-options">';
   if (cfg.direct) {
     body += `<div class="contact-opt ${currentEnquiryOption==='direct'?'selected':''}" data-opt="direct" onclick="selectOpt('direct')">
@@ -3795,6 +3797,179 @@ function requestReviewInvitation(listingId, email) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'optin', listingId, email, lang: state.lang, consent: true })
   }).catch(() => { /* optional: never affects the enquiry */ });
+}
+
+/* ---------------- Visit request modal (Z Desk Lite) ----------------
+   The buyer picks 1 to 3 one-hour slots offered by the database
+   (Mon-Sat 9:00-19:00, Paris time, from tomorrow) and leaves name,
+   e-mail and phone — no account. The agency confirms one slot in
+   Z Desk and the buyer is told by e-mail. Launch scope: FR and EN.
+-------------------------------------------------------------------- */
+const VISIT_COPY = Object.freeze({
+  fr: {
+    cta: 'Demander une visite', title: 'Demander une visite',
+    sub: 'Choisissez jusqu’à 3 créneaux. L’agence en confirme un et vous prévient par e-mail.',
+    loading: 'Chargement des créneaux…', noSlots: 'Aucun créneau disponible en ligne pour ce bien. Contactez l’agence.',
+    slotsLabel: 'Vos créneaux (3 maximum)', picked: n => `${n} sur 3 sélectionné${n > 1 ? 's' : ''}`,
+    name: 'Votre nom', email: 'E-mail', phone: 'Téléphone', message: 'Message (facultatif)',
+    send: 'Envoyer la demande', sending: 'Envoi…',
+    success: 'Demande envoyée. L’agence va confirmer un de vos créneaux par e-mail.',
+    errors: {
+      validation_failure: 'Indiquez votre nom, un e-mail valide, un téléphone valide et au moins un créneau.',
+      slot_unavailable: 'Un des créneaux n’est plus disponible. Choisissez-en un autre.',
+      already_requested: 'Vous avez déjà une demande en cours pour ce bien. L’agence va vous répondre.',
+      too_many_requests: 'Trop de demandes aujourd’hui avec cet e-mail. Réessayez demain.',
+      listing_unavailable: 'Ce bien n’est plus disponible à la visite.',
+      default: 'La demande n’a pas pu être envoyée. Réessayez dans un instant.'
+    },
+    privacy: 'Vos coordonnées sont transmises uniquement à l’agence qui présente ce bien, pour cette visite.'
+  },
+  en: {
+    cta: 'Request a visit', title: 'Request a visit',
+    sub: 'Pick up to 3 times. The agency confirms one and tells you by e-mail.',
+    loading: 'Loading available times…', noSlots: 'No times available online for this property. Please contact the agency.',
+    slotsLabel: 'Your times (3 maximum)', picked: n => `${n} of 3 selected`,
+    name: 'Your name', email: 'E-mail', phone: 'Phone', message: 'Message (optional)',
+    send: 'Send request', sending: 'Sending…',
+    success: 'Request sent. The agency will confirm one of your times by e-mail.',
+    errors: {
+      validation_failure: 'Please give your name, a valid e-mail, a valid phone number and at least one time.',
+      slot_unavailable: 'One of the times is no longer available. Please pick another.',
+      already_requested: 'You already have a pending request for this property. The agency will reply.',
+      too_many_requests: 'Too many requests today with this e-mail. Please try again tomorrow.',
+      listing_unavailable: 'This property is no longer available for visits.',
+      default: 'The request could not be sent. Please try again shortly.'
+    },
+    privacy: 'Your details are shared only with the agency presenting this property, for this visit.'
+  }
+});
+function visitCopy(L) { return VISIT_COPY[L] || VISIT_COPY.en; }
+function visitRequestsEnabled(policy) { return !(policy && policy.visit === false); }
+
+function setModalHeading(title, sub) {
+  const h = document.querySelector('#modal-overlay .modal h3');
+  const p = document.querySelector('#modal-overlay .modal .sub');
+  if (h) h.textContent = title;
+  if (p) p.textContent = sub;
+}
+
+let visitListingId = null;
+let visitSelected = [];
+let visitSubmitting = false;
+
+function visitDayKey(iso, L) {
+  return new Intl.DateTimeFormat(L === 'en' ? 'en-GB' : 'fr-FR', { timeZone: 'Europe/Paris', weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(iso));
+}
+function visitTime(iso, L) {
+  return new Intl.DateTimeFormat(L === 'en' ? 'en-GB' : 'fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
+}
+
+async function openVisitModal(listingId) {
+  const L = state.lang;
+  const c = visitCopy(L);
+  visitListingId = listingId;
+  visitSelected = [];
+  visitSubmitting = false;
+  setModalHeading(c.title, c.sub);
+  const bodyEl = document.getElementById('enquiry-body');
+  bodyEl.innerHTML = `<p class="visit-loading">${c.loading}</p>`;
+  document.getElementById('modal-overlay').classList.add('active');
+
+  const services = window.ZFindServices;
+  const result = services && services.leads ? await services.leads.getVisitSlots(listingId) : { data: [], error: { type: 'unavailable' } };
+  if (visitListingId !== listingId) return; // another modal was opened meanwhile
+  const slots = Array.isArray(result.data) ? result.data : [];
+  if (result.error || !slots.length) {
+    bodyEl.innerHTML = `<p class="visit-empty">${c.noSlots}</p>`;
+    return;
+  }
+
+  const days = [];
+  const byDay = new Map();
+  slots.forEach(row => {
+    const key = visitDayKey(row.slot_start, L);
+    if (!byDay.has(key)) { byDay.set(key, []); days.push(key); }
+    byDay.get(key).push(row.slot_start);
+  });
+
+  const daysHtml = days.map(day => `
+    <div class="visit-day">
+      <div class="visit-day-label">${escapeHtmlSim(day)}</div>
+      <div class="visit-times">${byDay.get(day).map(iso => `<button type="button" class="visit-slot" data-slot="${escapeHtmlSim(iso)}" onclick="toggleVisitSlot(this)">${visitTime(iso, L)}</button>`).join('')}</div>
+    </div>`).join('');
+
+  bodyEl.innerHTML = `
+    <div class="qual-form active visit-form">
+      <label>${c.slotsLabel}</label>
+      <div class="visit-days">${daysHtml}</div>
+      <p class="visit-picked" id="visit-picked">${c.picked(0)}</p>
+      <label for="visit-name">${c.name}</label>
+      <input type="text" id="visit-name" autocomplete="name">
+      <label for="visit-email">${c.email}</label>
+      <input type="email" id="visit-email" autocomplete="email" inputmode="email">
+      <label for="visit-phone">${c.phone}</label>
+      <input type="tel" id="visit-phone" autocomplete="tel" inputmode="tel">
+      <label for="visit-message">${c.message}</label>
+      <textarea id="visit-message" rows="3" maxlength="2000"></textarea>
+    </div>
+    <div id="visit-feedback" class="visit-feedback" role="status" style="display:none"></div>
+    <button class="btn btn-gold" id="visit-send-btn" style="width:100%; justify-content:center; margin-top:26px;" onclick="submitVisitRequest()">${c.send}</button>
+    <p class="disclaimer" style="text-align:center; justify-content:center;">${c.privacy}</p>`;
+}
+
+function toggleVisitSlot(btn) {
+  const iso = btn.getAttribute('data-slot');
+  const i = visitSelected.indexOf(iso);
+  if (i >= 0) visitSelected.splice(i, 1);
+  else if (visitSelected.length < 3) visitSelected.push(iso);
+  document.querySelectorAll('.visit-slot').forEach(el => {
+    const on = visitSelected.includes(el.getAttribute('data-slot'));
+    el.classList.toggle('selected', on);
+    el.setAttribute('aria-pressed', on ? 'true' : 'false');
+    el.disabled = !on && visitSelected.length >= 3;
+  });
+  const picked = document.getElementById('visit-picked');
+  if (picked) picked.textContent = visitCopy(state.lang).picked(visitSelected.length);
+}
+
+function showVisitFeedback(kind, text) {
+  const el = document.getElementById('visit-feedback');
+  if (!el) return;
+  el.className = `visit-feedback ${kind}`;
+  el.style.display = '';
+  el.textContent = text;
+}
+
+async function submitVisitRequest() {
+  if (visitSubmitting) return;
+  const L = state.lang;
+  const c = visitCopy(L);
+  const services = window.ZFindServices;
+  const btn = document.getElementById('visit-send-btn');
+  if (!services || !services.leads) { showVisitFeedback('error', c.errors.default); return; }
+  visitSubmitting = true;
+  if (btn) { btn.disabled = true; btn.textContent = c.sending; }
+  const value = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+  const result = await services.leads.requestVisit({
+    listingId: visitListingId,
+    name: value('visit-name'),
+    email: value('visit-email'),
+    phone: value('visit-phone'),
+    message: value('visit-message'),
+    slots: visitSelected.slice(),
+    language: L
+  });
+  visitSubmitting = false;
+  if (result.error) {
+    if (btn) { btn.disabled = false; btn.textContent = c.send; }
+    const code = result.error.type === 'validation_failure' ? 'validation_failure' : (result.error.code || 'default');
+    if (code === 'slot_unavailable') await openVisitModal(visitListingId); // fresh slots, then explain
+    showVisitFeedback('error', c.errors[code] || c.errors.default);
+    return;
+  }
+  showVisitFeedback('success', c.success);
+  requestLeadNotification();
+  if (btn) btn.style.display = 'none';
 }
 
 /* ---------------- Main render dispatch ---------------- */
