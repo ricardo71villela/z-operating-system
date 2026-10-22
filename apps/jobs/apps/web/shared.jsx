@@ -258,3 +258,27 @@ export function naceSectionLabel(letter) {
   const entry = NACE_SECTIONS[letter];
   return entry ? entry[messagesLocale() === "en" ? "en" : "fr"] : "";
 }
+
+/**
+ * First-answer deadline of an application (packages/domain/src/rules/responseDeadline.ts),
+ * as computed by the API. `audience` is "employer" or "candidate".
+ */
+export function ResponseDeadlineNote({ response, audience }) {
+  if (!response) return null;
+  const date = formatDate(response.dueAt);
+  let text = null;
+  let tone = "";
+  if (audience === "employer") {
+    if (response.state === "waiting") text = t("deadline_waiting", { date });
+    else if (response.state === "due_soon") { text = response.daysLeft <= 0 ? t("deadline_last_day") : t("deadline_due_soon", { days: response.daysLeft, date }); tone = "is-warn"; }
+    else if (response.state === "overdue") { text = t("deadline_overdue", { days: Math.max(1, -response.daysLeft - 1) }); tone = "is-late"; } // daysLeft is floored: -7 means 6 full days late
+    else if (response.state === "answered_late") text = t("deadline_answered_late");
+  } else {
+    if (response.state === "waiting" || response.state === "due_soon") text = t("cand_deadline_waiting", { date });
+    else if (response.state === "overdue") { text = t("cand_deadline_overdue"); tone = "is-late"; }
+    else if (response.state === "answered") text = t("cand_deadline_answered", { date: formatDate(response.answeredAt) });
+    else if (response.state === "answered_late") text = t("cand_deadline_answered_late", { date: formatDate(response.answeredAt) });
+  }
+  if (!text) return null;
+  return <span className={`zj-deadline ${tone}`}><Clock size={12} aria-hidden="true" /> {text}</span>;
+}

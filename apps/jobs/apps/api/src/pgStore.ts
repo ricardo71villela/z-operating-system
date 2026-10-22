@@ -62,6 +62,8 @@ import type {
   PublicOfferRecord,
 } from './store';
 
+import { RESPONSE_DEADLINE_DAYS } from '../../../packages/domain/src/rules/responseDeadline';
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
@@ -1392,16 +1394,23 @@ export class PgStore {
       [orgId],
     );
     const counts = await this.query(
-      `select a.job_offer_id, a.status, count(*)::int as n
+      `select a.job_offer_id, a.status, count(*)::int as n,
+              count(*) filter (where a.created_at < now() - make_interval(days => $2::int))::int as overdue
        from applications a join job_offers o on o.id = a.job_offer_id
        where o.organization_id = $1
        group by a.job_offer_id, a.status`,
-      [orgId],
+      [orgId, RESPONSE_DEADLINE_DAYS],
     );
     return rows.map((r) => {
       const applicationsByStatus: Record<string, number> = {};
-      for (const c of counts.rows) if (c.job_offer_id === r.id) applicationsByStatus[c.status] = c.n;
-      return { ...this.rowToJobOffer(r), applicationsByStatus };
+      // Still waiting for a first answer (submitted/received) past the deadline — see responseDeadline.ts.
+      let overdueApplications = 0;
+      for (const c of counts.rows) {
+        if (c.job_offer_id !== r.id) continue;
+        applicationsByStatus[c.status] = c.n;
+        if (c.status === 'submitted' || c.status === 'received') overdueApplications += c.overdue;
+      }
+      return { ...this.rowToJobOffer(r), applicationsByStatus, overdueApplications };
     });
   }
 

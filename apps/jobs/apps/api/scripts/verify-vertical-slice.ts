@@ -327,6 +327,24 @@ async function main() {
       Array.isArray(myApplications) && myApplications.some((a: any) => a.id === application.id && a.offerTitle === offer.title && a.organizationName),
       myApplications,
     );
+    const mine = Array.isArray(myApplications) ? myApplications.find((a: any) => a.id === application.id) : null;
+    check(
+      '(prazo de resposta) candidatura só recebida: aguarda resposta, prazo de 14 dias',
+      mine?.response?.state === 'waiting' && mine?.response?.daysLeft === 13
+        && Math.round((Date.parse(mine.response.dueAt) - Date.parse(mine.createdAt)) / 86400000) === 14,
+      mine?.response,
+    );
+    const offerApps = await (await fetch(`${BASE}/job-offers/${offer.id}/applications`, { headers: recruiterHeaders })).json();
+    check(
+      '(prazo de resposta) empresa vê o prazo de cada candidatura',
+      Array.isArray(offerApps) && offerApps.every((a: any) => a.response && typeof a.response.daysLeft === 'number'),
+      offerApps,
+    );
+    check(
+      '(prazo de resposta) lista de ofertas da empresa conta as respostas em atraso',
+      Array.isArray(orgOffers) && orgOffers.every((o: any) => typeof o.overdueApplications === 'number'),
+      orgOffers,
+    );
     const othersApplications = await fetch(`${BASE}/candidates/${candidate.id}/applications`, { headers: recruiterHeaders });
     check('(painel, negativo) ninguém vê as candidaturas de outra pessoa', othersApplications.status === 403);
 

@@ -42,6 +42,7 @@ import { TERMINATION_TERMS_BY_COUNTRY, getTerminationTerms } from '../../../pack
 import { isLaunchCountry, isLaunchLocale, launchLocaleOrDefault } from '../../../packages/domain/src/rules/launchScope';
 import { translateError, type ErrorLocale } from './errorMessages';
 import { estimateSmeCategoryByEmployeeCount } from '../../../packages/domain/src/rules/companyClassification';
+import { applicationResponseDeadline } from '../../../packages/domain/src/rules/responseDeadline';
 import { canPublishGivenBilling, productByCode } from '../../../packages/domain/src/rules/billing';
 import type { BillingProductCode } from '../../../packages/domain/src/rules/billing';
 import { computeCVQuality, validateCoverLetterPersonalization } from '../../../packages/domain/src/rules/cvStudio';
@@ -228,7 +229,8 @@ export function createServer() {
         if (!currentUserId) return json(res, 401, { error: 'não autenticado' });
         const userId = path.split('/')[2];
         if (currentUserId !== userId) return json(res, 403, { error: 'só o próprio candidato pode ver as suas candidaturas' });
-        return json(res, 200, await (store as PgStore).listApplicationsForCandidate(userId));
+        const mine = await (store as PgStore).listApplicationsForCandidate(userId);
+        return json(res, 200, mine.map((app) => ({ ...app, response: applicationResponseDeadline(app) })));
       }
 
       if (method === 'GET' && path === '/auth/me') {
@@ -1146,7 +1148,7 @@ export function createServer() {
       if (method === 'GET' && path.match(/^\/job-offers\/[^/]+\/applications$/)) {
         const jobOfferId = path.split('/')[2];
         const apps = await store.listApplicationsForOffer(jobOfferId);
-        return json(res, 200, apps);
+        return json(res, 200, apps.map((app) => ({ ...app, response: applicationResponseDeadline(app) })));
       }
 
       // 13. Ambas as partes veem o estado da candidatura + empresa avança pipeline
