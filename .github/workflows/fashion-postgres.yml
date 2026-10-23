@@ -140,9 +140,24 @@ jobs:
           node --check apps/fashion/apps/fashion-web/customer-interactions.js
           npm test --prefix apps/fashion/apps/fashion-web
 
-      - name: Verify Fashion Partner API against real PostgreSQL
+      - name: Set the zfashion_app login password (CI only)
         env:
-          DATABASE_URL: postgres://postgres:zfashion_dev_pw@localhost:5432/zos_ci
+          PGPASSWORD: zfashion_dev_pw
+        run: |
+          # Production sets its own password in the SQL editor; the role and
+          # its grants come from 20261023040000_z_fashion_app_login_v1.sql.
+          # The tests also create fixtures (auth users) and read the media
+          # bucket, which the API itself never does: CI-only grants.
+          psql -h localhost -U postgres -d zos_ci -v ON_ERROR_STOP=1 <<'SQL'
+          alter role zfashion_app password 'zfashion_app_ci_pw';
+          grant insert on auth.users to zfashion_app;
+          grant usage on schema storage to zfashion_app;
+          grant select on storage.buckets to zfashion_app;
+          SQL
+
+      - name: Verify Fashion Partner API against real PostgreSQL (as zfashion_app)
+        env:
+          DATABASE_URL: postgres://zfashion_app:zfashion_app_ci_pw@localhost:5432/zos_ci
         run: |
           npm ci --prefix apps/fashion/apps/fashion-partner
           node apps/fashion/apps/fashion-partner/tests/db.test.js
