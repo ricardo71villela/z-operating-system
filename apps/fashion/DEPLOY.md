@@ -34,7 +34,7 @@ Comprar `zfashion.online` (se ainda não estiver comprado) e, no registo DNS, cr
 
 | Variável | Valor |
 | --- | --- |
-| `DATABASE_URL` | Supabase → Project Settings → Database → *Connection string*, modo **Transaction pooler** (porta 6543, adequado a funções serverless), sem `?sslmode=` no fim |
+| `DATABASE_URL` | Supabase → Project Settings → Database → *Connection string*, modo **Transaction pooler** (porta 6543, adequado a funções serverless), sem `?sslmode=` no fim, com o utilizador **`zfashion_app.<project-ref>`** (não `postgres`) e a palavra-passe definida com `alter role zfashion_app password '…'` — ver `infrastructure/supabase/migrations/20261023040000_z_fashion_app_login_v1.sql` |
 | `FASHION_DB_SSL_MODE` | `verify-full` |
 | `SUPABASE_URL` | `https://dcdggqyazdddrfuzwavw.supabase.co` |
 | `SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_LQqhseuSfNibffNh_cLLGQ_0cVxHQzX` |
