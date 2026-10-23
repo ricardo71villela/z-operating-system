@@ -22,7 +22,7 @@ insert into country_labor_profiles (
   ('ES', true, 1381.00, 'EUR',
    'Eurostat, Minimum wage statistics (dataset earn_mw_cur)', 'https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Minimum_wage_statistics',
    '2026-01-01', 48, 20, null),
-  ('FR', true, 1823.00, 'EUR',
+  ('FR', true, 1823.03, 'EUR',
    'Eurostat, Minimum wage statistics (dataset earn_mw_cur)', 'https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Minimum_wage_statistics',
    '2026-01-01', 48, 20, null),
   ('DE', true, 2343.00, 'EUR',
@@ -59,7 +59,7 @@ on conflict (country_code) do nothing;
 insert into country_income_tax_brackets (country_code, bracket_order, income_from, income_to, marginal_rate) values
   ('FR', 1,      0.00,  11600.00, 0.00),
   ('FR', 2,  11600.01,  29579.00, 0.11),
-  ('FR', 3,  29579.01,  84580.00, 0.30),
-  ('FR', 4,  84580.01, 181916.00, 0.41),
-  ('FR', 5, 181916.01,      null, 0.45)
+  ('FR', 3,  29579.01,  84577.00, 0.30),
+  ('FR', 4,  84577.01, 181917.00, 0.41),
+  ('FR', 5, 181917.01,      null, 0.45)
 on conflict (country_code, bracket_order) do nothing;

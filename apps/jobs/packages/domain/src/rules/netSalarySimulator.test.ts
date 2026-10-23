@@ -24,9 +24,9 @@ function test(name: string, fn: () => void) {
 const FR_2026_BRACKETS: TaxBracket[] = [
   { bracketOrder: 1, incomeFrom: 0, incomeTo: 11600, marginalRate: 0.0 },
   { bracketOrder: 2, incomeFrom: 11600, incomeTo: 29579, marginalRate: 0.11 },
-  { bracketOrder: 3, incomeFrom: 29579, incomeTo: 84580, marginalRate: 0.3 },
-  { bracketOrder: 4, incomeFrom: 84580, incomeTo: 181916, marginalRate: 0.41 },
-  { bracketOrder: 5, incomeFrom: 181916, incomeTo: null, marginalRate: 0.45 },
+  { bracketOrder: 3, incomeFrom: 29579, incomeTo: 84577, marginalRate: 0.3 },
+  { bracketOrder: 4, incomeFrom: 84577, incomeTo: 181917, marginalRate: 0.41 },
+  { bracketOrder: 5, incomeFrom: 181917, incomeTo: null, marginalRate: 0.45 },
 ];
 const FR_SOCIAL_RATE = 0.22;
 
