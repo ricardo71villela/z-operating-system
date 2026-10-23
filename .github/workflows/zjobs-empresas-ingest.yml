@@ -1,0 +1,67 @@
+name: Z Jobs — ingestão das empresas (FR)
+
+# Base de prospeção dos empregadores de França com 10 ou mais assalariados
+# (tabela zjobs_empresas no Supabase ZOS).
+# Todas as segundas-feiras às 05:00 UTC, ou à mão no separador Actions.
+# Num pull request que mexa no pipeline, só corre os testes.
+
+on:
+  schedule:
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+    inputs:
+      section:
+        description: "Só esta secção NAF (ex. F) — vazio = todas"
+        required: false
+        default: ""
+      band:
+        description: "Só este escalão INSEE (ex. 12 = 20-49) — vazio = todos a partir de 10"
+        required: false
+        default: ""
+  pull_request:
+    paths:
+      - "apps/jobs/ingest/empresas/**"
+      - "infrastructure/supabase/migrations/*zjobs_empresas*"
+      - "infrastructure/supabase/migrations/*z_jobs_empresas*"
+      - ".github/workflows/zjobs-empresas-ingest.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zjobs-empresas-ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    defaults:
+      run:
+        working-directory: apps/jobs/ingest/empresas
+    env:
+      # A mesma chave secreta do projeto Supabase ZOS que a ingestão das agências usa.
+      ZJOBS_SUPABASE_SERVICE_KEY: ${{ secrets.ZFIND_SUPABASE_SERVICE_KEY }}
+      SECTION: ${{ github.event.inputs.section || '' }}
+      BAND: ${{ github.event.inputs.band || '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: Testes
+        id: tests
+        run: python tests/test_empresas.py
+
+      - name: França — SIRENE (10+ assalariados)
+        if: ${{ !cancelled() && steps.tests.outcome == 'success' && github.event_name != 'pull_request' }}
+        run: |
+          args=""
+          if [ -n "$SECTION" ]; then args="$args --section $SECTION"; fi
+          if [ -n "$BAND" ]; then args="$args --band $BAND"; fi
+          python src/fetch_fr_sirene.py $args
