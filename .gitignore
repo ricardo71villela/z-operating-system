@@ -12,3 +12,7 @@ coverage/
 *.tsbuildinfo
 .vercel/
 supabase/.temp/
+
+# Python
+__pycache__/
+*.pyc
