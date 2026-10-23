@@ -126,6 +126,26 @@ _BAD_EMAIL = re.compile(
     r"(\.(png|jpe?g|gif|svg|webp|css|js)$)|(@(example|sentry|wixpress|domain|email)\.)|(^(noreply|no-reply|nepasrepondre|ne-pas-repondre)@)",
     re.I,
 )
+# Endereços que não servem para prospeção: exemplos deixados nos modelos de
+# site, e caixas de proteção de dados, menções legais, reclamações ou serviço
+# de clientes das redes (não chegam a quem decide na agência).
+_PLACEHOLDER_DOMAINS = {
+    "domaine.fr", "domaine.com", "exemple.fr", "exemple.com", "example.fr", "test.fr", "test.com",
+    "votre-domaine.fr", "votredomaine.fr", "monsite.fr", "wixpi.com", "sentry-next.wixpress.com",
+}
+_NOT_FOR_PROSPECTING = re.compile(
+    r"^(exemple|example|votre-?e?mail|nom|prenom|prenom\.nom|xxx+|abc"
+    r"|dpo[a-z0-9._-]*|rgpd|gdpr|cnil|privacy|vie-?privee|donnees-?personnelles|informatique-et-libertes"
+    r"|mentions-?legales|juridique|legal|fichiers|reclamations?|mediation|mediateur"
+    r"|service-?clients?|serviceclients?|abuse|postmaster|webmaster)$",
+    re.I,
+)
+
+
+def prospecting_email(email):
+    """True se o e-mail serve para contactar a agência (não é exemplo nem caixa jurídica/RGPD)."""
+    local, _, domain = email.partition("@")
+    return domain not in _PLACEHOLDER_DOMAINS and not _NOT_FOR_PROSPECTING.match(local)
 
 
 def clean_email(value):
@@ -135,7 +155,7 @@ def clean_email(value):
     if not m:
         return None
     email = m.group(0).strip(".").lower()
-    if _BAD_EMAIL.search(email):
+    if _BAD_EMAIL.search(email) or not prospecting_email(email):
         return None
     return email
 
