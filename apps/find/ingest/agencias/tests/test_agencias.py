@@ -50,6 +50,14 @@ check("'era' não apanha palavras que contêm era", common.detect_network("GENER
 check("e-mail: limpo, minúsculas, sem imagens nem noreply",
       common.clean_email(" Contact@Agence-Lac.FR ") == "contact@agence-lac.fr" and common.clean_email("logo@2x.png") is None
       and common.clean_email("noreply@agence.fr") is None)
+check("e-mails de exemplo e caixas RGPD/jurídicas não servem para prospeção",
+      common.clean_email("exemple@domaine.fr") is None and common.clean_email("donneespersonnelles@laforet.com") is None
+      and common.clean_email("informatique-et-libertes@guy-hoquet.com") is None and common.clean_email("mentions-legales@erafrance.com") is None
+      and common.clean_email("dpoadvenis@advenis.com") is None and common.clean_email("serviceclients@nestenn.com") is None
+      and common.clean_email("contact@nestenn.com") == "contact@nestenn.com" and common.clean_email("mail@agence-lac.fr") == "mail@agence-lac.fr"
+      and common.clean_email("marais@junot.fr") == "marais@junot.fr")
+check("pick_email ignora a caixa RGPD e escolhe o contacto da agência",
+      common.pick_email(["dpo@agence-lac.fr", "contact@agence-lac.fr"], "https://www.agence-lac.fr") == "contact@agence-lac.fr")
 check("telefone: formato internacional por país",
       common.clean_phone("04 50 75 00 00", "FR") == "+33450750000" and common.clean_phone("02 123 45 67", "BE") == "+3221234567"
       and common.clean_phone("26 12 34 56", "LU") == "+35226123456" and common.clean_phone("12", "FR") is None)
