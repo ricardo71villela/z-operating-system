@@ -87,3 +87,6 @@ jobs:
 
       - name: Verify Supabase JWT cryptography
         run: npx tsx apps/jobs/apps/api/src/supabaseAuth.test.ts
+
+      - name: Verify Supabase Storage adapter for candidate documents
+        run: npx tsx apps/jobs/apps/api/src/fileStorageService.test.ts

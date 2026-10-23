@@ -9,6 +9,7 @@
 import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import { createClient } from '@supabase/supabase-js';
 
 export interface StoredFile {
   storagePath: string; // identificador opaco — quem chama nunca deve construir isto à mão
@@ -101,4 +102,76 @@ export class LocalDiskFileStorageService implements FileStorageService {
   }
 }
 
-export const fileStorageService: FileStorageService = new LocalDiskFileStorageService();
+/** Same identifier rules as the local disk: relative, no "..", no leading slash. */
+function assertSafeStoragePath(storagePath: string) {
+  if (!storagePath || storagePath.startsWith('/') || storagePath.split('/').some((part) => part === '..' || part === '.' || part === '')) {
+    throw new InvalidStoragePathError();
+  }
+}
+
+/**
+ * Supabase Storage, private bucket (migration
+ * 20261023020000_z_jobs_candidate_documents_bucket). The API talks to it
+ * with the server-side secret key only; there are no Storage policies, so
+ * nobody can reach the files except through the API's own checks (owner or
+ * platform staff, see /candidates/:id/documents/:docId/download).
+ * Files survive deploys and serverless instances, unlike the local disk.
+ */
+export class SupabaseStorageFileStorageService implements FileStorageService {
+  private readonly client;
+
+  constructor(projectUrl: string, secretKey: string, private readonly bucket: string) {
+    this.client = createClient(projectUrl, secretKey, {
+      auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
+    });
+  }
+
+  async store(ownerId: string, fileName: string, contentBase64: string): Promise<StoredFile> {
+    const buffer = Buffer.from(contentBase64, 'base64');
+    if (buffer.byteLength > MAX_FILE_SIZE_BYTES) throw new FileTooLargeError(buffer.byteLength);
+    const safeFileName = fileName.replace(/[^\w.\-]/g, '_').slice(0, 200);
+    const storagePath = `${ownerId}/${randomUUID()}-${safeFileName}`;
+    assertSafeStoragePath(storagePath);
+    const { error } = await this.client.storage.from(this.bucket).upload(storagePath, buffer, {
+      contentType: 'application/octet-stream',
+      upsert: false,
+    });
+    if (error) throw new Error(`Supabase Storage upload failed: ${error.message}`);
+    return { storagePath, sizeBytes: buffer.byteLength };
+  }
+
+  async retrieve(storagePath: string): Promise<Buffer | null> {
+    assertSafeStoragePath(storagePath);
+    const { data, error } = await this.client.storage.from(this.bucket).download(storagePath);
+    if (error) {
+      const status = (error as any).statusCode ?? (error as any).status;
+      if (String(status) === '404' || /not found/i.test(error.message)) return null;
+      throw new Error(`Supabase Storage download failed: ${error.message}`);
+    }
+    return Buffer.from(await data.arrayBuffer());
+  }
+
+  async delete(storagePath: string): Promise<void> {
+    assertSafeStoragePath(storagePath);
+    const { error } = await this.client.storage.from(this.bucket).remove([storagePath]);
+    if (error) throw new Error(`Supabase Storage delete failed: ${error.message}`);
+  }
+}
+
+export const CANDIDATE_DOCUMENTS_BUCKET = 'jobs-candidate-documents';
+
+/**
+ * Supabase Storage when the API runs against the shared ZOS database with
+ * its server-side key (production); the local disk otherwise (development,
+ * CI). JOBS_FILE_STORAGE=local forces the local disk.
+ */
+export function createFileStorageService(env: NodeJS.ProcessEnv = process.env): FileStorageService {
+  const projectUrl = env.SUPABASE_URL;
+  const secretKey = env.SUPABASE_SECRET_KEY ?? env.SUPABASE_SERVICE_ROLE_KEY;
+  if (env.JOBS_FILE_STORAGE !== 'local' && env.JOBS_DB_SCHEMA?.trim() === 'jobs' && projectUrl && secretKey) {
+    return new SupabaseStorageFileStorageService(projectUrl, secretKey, env.JOBS_DOCUMENTS_BUCKET || CANDIDATE_DOCUMENTS_BUCKET);
+  }
+  return new LocalDiskFileStorageService();
+}
+
+export const fileStorageService: FileStorageService = createFileStorageService();
