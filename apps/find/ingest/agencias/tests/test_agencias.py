@@ -46,6 +46,18 @@ check("acentos e pontuação: Laforêt, Stéphane Plaza, Engel & Völkers",
 check("redes regionais: Oralia, Imogroup", common.detect_network("ORALIA BARNOUD")[0] == "oralia" and common.detect_network("IMOGROUP")[0] == "imogroup")
 check("'era' não apanha palavras que contêm era", common.detect_network("GENERAL IMMOBILIER")[0] is None and common.detect_network("ERA Immobilier Annemasse")[0] == "era")
 
+check("novas redes: Human Immobilier, 3G Immo, eXp, Latour & Petit",
+      common.detect_network("HUMAN IMMOBILIER BORDEAUX")[0] == "human-immobilier" and common.detect_network("3G IMMO CONSULTANT")[0] == "3g-immo"
+      and common.detect_network("EXP FRANCE")[0] == "exp" and common.detect_network("Latour & Petit")[0] == "latour-petit"
+      and common.detect_network("EXPERTISE IMMO")[0] is None)
+
+_redes_sql = open(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "infrastructure", "supabase", "migrations",
+                               "20261023220000_z_find_redes_prospection_v1.sql"), encoding="utf-8").read()
+import re as _re  # noqa: E402
+_redes_keys = set(_re.findall(r"^  \('([a-z0-9-]+)', '", _redes_sql, _re.M))
+check("cada rede detetada tem uma linha em zfind_redes (e vice-versa)",
+      _redes_keys == {k for k, _, _ in common.NETWORKS if k != "immoweb"})
+
 # ------------------------------------------------------------ contacts
 check("e-mail: limpo, minúsculas, sem imagens nem noreply",
       common.clean_email(" Contact@Agence-Lac.FR ") == "contact@agence-lac.fr" and common.clean_email("logo@2x.png") is None
