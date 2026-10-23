@@ -4,7 +4,7 @@ import React, { useMemo, useState } from "react";
 import {
   ArrowRight, Award, Bell, Briefcase, Eye, FileText, GraduationCap, Languages, LogOut, Plus, Search, Trash2, User,
 } from "lucide-react";
-import { t } from "./messages.js";
+import { t, messagesLocale } from "./messages.js";
 import {
   ACTIVE_APPLICATION_STATUSES, APPLICATION_PATH, APPLICATION_TRANSITIONS, Field, Kpi, PILLAR_KEYS, SalaryLedger,
   SectionNav, Stepper, formatDate, pillarLabel, statusLabel, OfferPlace, normalizeText,
@@ -601,7 +601,7 @@ function OffersSection({
       {rows.length === 0 && <p className="zj-empty">{offers.length === 0 ? t("no_published_offers") : t("no_results")}</p>}
 
       <h3 className="zj-subhead"><Bell size={14} aria-hidden="true" /> {t("alerts_title")}</h3>
-      <p className="zj-panel-hint">{t("alerts_hint")}</p>
+      <p className="zj-panel-hint">{t("alerts_hint")} {t("alert_daily_note")}</p>
       <AlertForm onCreate={onCreateAlert} defaultQuery={query} defaultPillar={pillar} />
       <ul className="zj-list zj-plain-list">
         {alerts.map((a) => (
@@ -609,6 +609,7 @@ function OffersSection({
             <span>
               <Search size={13} aria-hidden="true" /> {a.queryParams?.keywords || t("alert_any_keywords")}
               {a.queryParams?.pillar ? ` · ${pillarLabel(a.queryParams.pillar)}` : ""}
+              {a.queryParams?.country ? ` · ${t(`country_${a.queryParams.country}`)}` : ""}
             </span>
             <button type="button" className="zj-btn is-ghost is-danger" onClick={() => onDeleteAlert(a.id)}>
               <Trash2 size={14} aria-hidden="true" /> {t("delete")}<span className="zj-visually-hidden"> {a.queryParams?.keywords || ""}</span>
@@ -624,13 +625,20 @@ function OffersSection({
 function AlertForm({ onCreate, defaultQuery, defaultPillar }) {
   const [keywords, setKeywords] = useState(defaultQuery || "");
   const [pillar, setPillar] = useState(defaultPillar || "");
+  const [country, setCountry] = useState("");
   return (
-    <form className="zj-filters" onSubmit={(e) => { e.preventDefault(); onCreate({ keywords: keywords.trim(), pillar: pillar || undefined }); setKeywords(""); }}>
+    <form className="zj-filters" onSubmit={(e) => { e.preventDefault(); onCreate({ keywords: keywords.trim(), pillar: pillar || undefined, country: country || undefined, locale: messagesLocale() }); setKeywords(""); }}>
       <Field label={t("filter_keywords")}><input value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder={t("ph_filter_keywords")} /></Field>
       <Field label={t("field_pillar")}>
         <select value={pillar} onChange={(e) => setPillar(e.target.value)}>
           <option value="">{t("all_pillars")}</option>
           {PILLAR_KEYS.map((k) => <option key={k} value={k}>{pillarLabel(k)}</option>)}
+        </select>
+      </Field>
+      <Field label={t("alert_field_country")}>
+        <select value={country} onChange={(e) => setCountry(e.target.value)}>
+          <option value="">{t("alert_all_countries")}</option>
+          {["FR", "BE", "LU"].map((c) => <option key={c} value={c}>{t(`country_${c}`)}</option>)}
         </select>
       </Field>
       <button type="submit" className="zj-btn is-ghost zj-align-end"><Bell size={14} aria-hidden="true" /> {t("create_alert")}</button>

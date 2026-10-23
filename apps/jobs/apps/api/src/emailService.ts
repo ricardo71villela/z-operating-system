@@ -25,25 +25,85 @@ export interface EmailService {
   send(message: EmailMessage): Promise<EmailSendResult>;
 }
 
-// Modelos reais, em português — os mesmos que um fornecedor real usaria,
-// não texto de preenchimento. Cada função devolve {subject, body}.
+// Launch languages: French (default) and English, "vous" in French.
+// Each function returns {subject, body} (plain text).
+export type EmailLocale = 'fr' | 'en';
+
+const STATUS_LABELS: Record<EmailLocale, Record<string, string>> = {
+  fr: {
+    submitted: 'envoyée', received: 'reçue', screening: 'en cours d’examen', shortlisted: 'présélectionnée',
+    interview: 'entretien', assessment: 'évaluation', offer: 'proposition d’embauche', hired: 'embauche',
+    rejected: 'non retenue', withdrawn: 'retirée', closed: 'clôturée',
+  },
+  en: {
+    submitted: 'sent', received: 'received', screening: 'under review', shortlisted: 'shortlisted',
+    interview: 'interview', assessment: 'assessment', offer: 'job offer', hired: 'hired',
+    rejected: 'not selected', withdrawn: 'withdrawn', closed: 'closed',
+  },
+};
+
+export interface AlertEmailOffer {
+  title: string;
+  employer: string;
+  salary: string;
+  place: string;
+  url: string;
+}
+
 export const EMAIL_TEMPLATES = {
-  signupConfirmation: (fullName: string) => ({
-    subject: 'Bem-vindo/a ao Z Jobs',
-    body: `Olá ${fullName},\n\nA tua conta no Z Jobs foi criada com sucesso. Candidatos usam a plataforma sempre gratuitamente — nunca há subscrição.\n\nEquipa Z Jobs`,
-  }),
-  applicationStatusChanged: (candidateName: string, offerTitle: string, newStatus: string) => ({
-    subject: `Atualização da tua candidatura — ${offerTitle}`,
-    body: `Olá ${candidateName},\n\nA tua candidatura a "${offerTitle}" mudou de estado para: ${newStatus}.\n\nEquipa Z Jobs`,
-  }),
-  organizationVerified: (orgName: string) => ({
-    subject: 'A tua organização foi verificada',
-    body: `A organização "${orgName}" foi verificada com sucesso. Já podes publicar a tua primeira oferta, gratuitamente.\n\nEquipa Z Jobs`,
-  }),
-  reportResolved: (reporterName: string, resolution: 'confirmed' | 'unfounded') => ({
-    subject: 'A tua denúncia foi resolvida',
-    body: `Olá ${reporterName},\n\nA denúncia que submeteste foi ${resolution === 'confirmed' ? 'confirmada — a oferta foi suspensa' : 'analisada e considerada infundada'}.\n\nEquipa Z Jobs`,
-  }),
+  signupConfirmation: (fullName: string, locale: EmailLocale = 'fr') => locale === 'en'
+    ? {
+        subject: 'Welcome to Z Jobs',
+        body: `Hello ${fullName},\n\nYour Z Jobs account has been created. Z Jobs is always free for candidates — no subscription, ever.\n\nThe Z Jobs team`,
+      }
+    : {
+        subject: 'Bienvenue sur Z Jobs',
+        body: `Bonjour ${fullName},\n\nVotre compte Z Jobs a bien été créé. Z Jobs est toujours gratuit pour les candidats, sans abonnement.\n\nL’équipe Z Jobs`,
+      },
+  applicationStatusChanged: (candidateName: string, offerTitle: string, newStatus: string, locale: EmailLocale = 'fr') => {
+    const label = STATUS_LABELS[locale][newStatus] ?? newStatus;
+    return locale === 'en'
+      ? {
+          subject: `Update on your application — ${offerTitle}`,
+          body: `Hello ${candidateName},\n\nYour application for "${offerTitle}" is now: ${label}.\n\nThe Z Jobs team`,
+        }
+      : {
+          subject: `Votre candidature — ${offerTitle}`,
+          body: `Bonjour ${candidateName},\n\nVotre candidature pour « ${offerTitle} » est maintenant : ${label}.\n\nL’équipe Z Jobs`,
+        };
+  },
+  organizationVerified: (orgName: string, locale: EmailLocale = 'fr') => locale === 'en'
+    ? {
+        subject: 'Your organisation has been verified',
+        body: `"${orgName}" has been verified. You can now publish your first listing, free of charge.\n\nThe Z Jobs team`,
+      }
+    : {
+        subject: 'Votre organisation est vérifiée',
+        body: `L’organisation « ${orgName} » a été vérifiée. Vous pouvez maintenant publier votre première offre, gratuitement.\n\nL’équipe Z Jobs`,
+      },
+  reportResolved: (reporterName: string, resolution: 'confirmed' | 'unfounded', locale: EmailLocale = 'fr') => locale === 'en'
+    ? {
+        subject: 'Your report has been handled',
+        body: `Hello ${reporterName},\n\nThe report you sent has been ${resolution === 'confirmed' ? 'confirmed: the listing has been suspended' : 'reviewed and found unfounded'}.\n\nThe Z Jobs team`,
+      }
+    : {
+        subject: 'Votre signalement a été traité',
+        body: `Bonjour ${reporterName},\n\nLe signalement que vous avez envoyé a été ${resolution === 'confirmed' ? 'confirmé : l’offre a été suspendue' : 'examiné et jugé non fondé'}.\n\nL’équipe Z Jobs`,
+      },
+  /** Daily job alert: the new offers matching one saved search. */
+  jobAlert: (fullName: string, searchLabel: string, offers: AlertEmailOffer[], total: number, manageUrl: string, locale: EmailLocale = 'fr') => {
+    const lines = offers.map((o) => `• ${o.title} — ${o.employer}\n  ${[o.salary, o.place].filter(Boolean).join(' · ')}\n  ${o.url}`).join('\n\n');
+    const more = total > offers.length;
+    return locale === 'en'
+      ? {
+          subject: total === 1 ? `1 new listing for "${searchLabel}"` : `${total} new listings for "${searchLabel}"`,
+          body: `Hello ${fullName},\n\nNew listings match your alert "${searchLabel}":\n\n${lines}${more ? `\n\n…and ${total - offers.length} more on Z Jobs.` : ''}\n\nEvery listing shows the salary and the verified employer.\n\nYou receive this email because you created this alert. Change or delete your alerts: ${manageUrl}\n\nThe Z Jobs team`,
+        }
+      : {
+          subject: total === 1 ? `1 nouvelle offre pour « ${searchLabel} »` : `${total} nouvelles offres pour « ${searchLabel} »`,
+          body: `Bonjour ${fullName},\n\nDe nouvelles offres correspondent à votre alerte « ${searchLabel} » :\n\n${lines}${more ? `\n\n… et ${total - offers.length} autres sur Z Jobs.` : ''}\n\nChaque offre affiche le salaire et l’employeur vérifié.\n\nVous recevez cet e-mail parce que vous avez créé cette alerte. Modifier ou supprimer vos alertes : ${manageUrl}\n\nL’équipe Z Jobs`,
+        };
+  },
 };
 
 /**
@@ -103,16 +163,15 @@ export class ResendEmailService implements EmailService {
 }
 
 /**
- * Escolhe a implementação real quando RESEND_API_KEY existe no
- * ambiente; cai para o registo por consola caso contrário — mesmo
- * princípio de caminho duplo já usado para o Supabase Auth.
+ * Resend when both RESEND_API_KEY and RESEND_FROM_EMAIL are set (the sender
+ * must be on a domain verified in Resend, e.g. "Z Jobs <ne-pas-repondre@…>");
+ * the console log otherwise — an unverified sender would be refused anyway.
  */
-export function loadEmailServiceFromEnv(): EmailService {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (apiKey) {
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'nao-responder@zjobs.pt';
-    return new ResendEmailService(apiKey, fromEmail);
-  }
+export function loadEmailServiceFromEnv(env: NodeJS.ProcessEnv = process.env): EmailService {
+  const apiKey = env.RESEND_API_KEY;
+  const fromEmail = env.RESEND_FROM_EMAIL;
+  if (apiKey && fromEmail) return new ResendEmailService(apiKey, fromEmail);
+  if (apiKey) console.warn('[email] RESEND_API_KEY set without RESEND_FROM_EMAIL: emails are only logged');
   return consoleEmailService;
 }
 

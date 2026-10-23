@@ -894,8 +894,10 @@ export class PgStore {
 
   async setJobOfferStatus(id: string, status: JobOfferStatus): Promise<JobOfferRecord> {
     const { rows } = await this.query(
-      `update job_offers set status = $1, updated_at = now() where id = $2 returning *`,
-      [status, id],
+      `update job_offers set status = $1, updated_at = now(),
+              published_at = case when $3::boolean then coalesce(published_at, now()) else published_at end
+       where id = $2 returning *`,
+      [status, id, status === 'published'],
     );
     if (rows.length === 0) throw new NotFoundError(`job offer ${id} not found`);
     return this.rowToJobOffer(rows[0]);
@@ -926,6 +928,14 @@ export class PgStore {
     if (filters.country) {
       params.push(filters.country);
       where.push(`l.country_code = $${params.length}::text`);
+    }
+    if (filters.pillar) {
+      params.push(filters.pillar);
+      where.push(`o.pillar::text = $${params.length}::text`);
+    }
+    if (filters.publishedSince) {
+      params.push(filters.publishedSince);
+      where.push(`coalesce(o.published_at, o.updated_at) > $${params.length}::timestamptz`);
     }
     if (filters.organizationId) {
       params.push(filters.organizationId);
@@ -1325,6 +1335,18 @@ export class PgStore {
       [orgId, userId],
     );
     return rows.length > 0;
+  }
+
+  /* ---------------- Daily job alert emails (migration 0033) ---------------- */
+
+  /** Alerts due for an email (active, none sent in the last 20 hours). */
+  async listDueJobAlerts(limit = 100): Promise<Array<{ alertId: string; userId: string; queryParams: Record<string, any>; since: string }>> {
+    const { rows } = await this.query(`select * from job_alerts_due($1::int)`, [limit]);
+    return rows.map((r) => ({ alertId: r.alert_id, userId: r.user_id, queryParams: r.query_params ?? {}, since: r.since.toISOString() }));
+  }
+
+  async markJobAlertNotified(alertId: string, at: Date) {
+    await this.query(`select mark_job_alert_notified($1::uuid, $2::timestamptz)`, [alertId, at.toISOString()]);
   }
 
   /* ---------------- Messages between candidate and employer (migration 0032) ---------------- */

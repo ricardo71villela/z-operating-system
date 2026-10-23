@@ -87,6 +87,13 @@ async function main() {
     })).json();
     check('2. perfil de candidato criado', profile.professionalTitle === 'Engenheira de Software', profile);
 
+    // Alerta de emprego criado antes da publicação (enviado mais abaixo pelo cron diário).
+    const alertCreated = await fetch(`${BASE}/candidates/${candidate.id}/job-alerts`, {
+      method: 'POST', headers: authHeaders,
+      body: JSON.stringify({ queryParams: { keywords: 'estagio', pillar: 'first_jobs', locale: 'fr' } }),
+    });
+    check('(alertas) candidato cria um alerta', alertCreated.status === 201 || alertCreated.status === 200, await alertCreated.clone().json());
+
     // Passo 3: empresa cria conta organizacional
     const recruiterUser = await (await fetch(`${BASE}/candidates`, {
       method: 'POST',
@@ -540,6 +547,25 @@ async function main() {
       check(`(âmbito) /termination-terms/${country} fora do lançamento (404)`, out.status === 404 && (await out.json()).code === 'country_not_in_launch_scope');
     }
     check('(âmbito) /tax-simulator/DE fora do lançamento (404)', (await fetch(`${BASE}/tax-simulator/DE`)).status === 404);
+
+    // --- Alertas por e-mail (cron diário) ---
+    process.env.CRON_SECRET = 'slice-cron-secret';
+    const cronHeaders = { Authorization: 'Bearer slice-cron-secret' };
+    const cronDenied = await fetch(`${BASE}/cron/job-alerts`, { headers: authHeaders });
+    check('(alertas, negativo) cron sem o segredo recusado (401)', cronDenied.status === 401);
+    const firstRun = await (await fetch(`${BASE}/cron/job-alerts`, { headers: cronHeaders })).json();
+    check('(alertas) o cron envia o alerta com a oferta nova', firstRun.emailed >= 1 && firstRun.failed === 0, firstRun);
+    const emails = await (await fetch(`${BASE}/_dev/sent-emails`, { headers: adminHeaders })).json();
+    const alertEmail = Array.isArray(emails) ? emails.filter((e: any) => e.templateKey === 'jobAlert').at(-1) : null;
+    check(
+      '(alertas) e-mail em francês com a oferta, o salário e o link para a candidatura',
+      !!alertEmail && /nouvelle/.test(alertEmail.subject) && alertEmail.body.includes(offer2.title)
+        && /€ \/ mois/.test(alertEmail.body) && alertEmail.body.includes(`?offre=${offer2.id}&lang=fr`),
+      alertEmail,
+    );
+    const secondRun = await (await fetch(`${BASE}/cron/job-alerts`, { headers: cronHeaders })).json();
+    check('(alertas) no máximo um e-mail por dia (segunda execução não envia)', secondRun.emailed === 0, secondRun);
+    delete process.env.CRON_SECRET;
   } finally {
     server.close();
   }

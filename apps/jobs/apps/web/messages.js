@@ -602,6 +602,12 @@ export const MESSAGES = {
     messages_count: "{count} / 4 000 caractères",
     messages_load_failed: "Impossible de charger la conversation : {error}",
     messages_hide: "Masquer les messages",
+    alert_field_country: "Pays",
+    alert_all_countries: "Tous les pays",
+    alert_daily_note: "Un e-mail par jour au maximum, seulement s'il y a de nouvelles offres.",
+    country_FR: "France",
+    country_BE: "Belgique",
+    country_LU: "Luxembourg",
   },
 
   en: {
@@ -1141,5 +1147,11 @@ export const MESSAGES = {
     messages_count: "{count} / 4,000 characters",
     messages_load_failed: "Could not load the conversation: {error}",
     messages_hide: "Hide messages",
+    alert_field_country: "Country",
+    alert_all_countries: "All countries",
+    alert_daily_note: "At most one email a day, only when there are new listings.",
+    country_FR: "France",
+    country_BE: "Belgium",
+    country_LU: "Luxembourg",
   },
 };

@@ -56,6 +56,9 @@ writeFileSync(
         },
         { src: '/(.*)', dest: '/index' },
       ],
+      // Daily job alert emails at 06:00 UTC (08:00 in Paris in summer).
+      // Vercel calls it with Authorization: Bearer $CRON_SECRET.
+      crons: [{ path: '/cron/job-alerts', schedule: '0 6 * * *' }],
     },
     null,
     2,
