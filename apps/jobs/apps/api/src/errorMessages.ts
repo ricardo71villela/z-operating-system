@@ -55,6 +55,7 @@ export const ERROR_CATALOG: ErrorEntry[] = [
   { code: 'thread_closed', match: 'candidatura encerrada: a conversa já não aceita mensagens', fr: 'Candidature clôturée : la conversation n’accepte plus de messages.', en: 'Application closed: the conversation no longer accepts messages.' },
   { code: 'message_length', match: 'mensagem vazia ou demasiado longa (máximo 4000 caracteres)', fr: 'Message vide ou trop long (4 000 caractères maximum).', en: 'Message empty or too long (4,000 characters maximum).' },
   { code: 'candidate_or_staff_only', match: 'só o próprio candidato, ou staff, pode ver este perfil completo', fr: 'Seul le candidat ou l’équipe de la plateforme peut voir ce profil complet.', en: 'Only the candidate or platform staff can see this full profile.' },
+  { code: 'cron_not_configured', match: 'CRON_SECRET em falta', fr: 'Tâche planifiée non configurée.', en: 'Scheduled task not configured.' },
   { code: 'unknown_location', match: 'localidade desconhecida', fr: 'Localité inconnue : choisissez-la dans la liste.', en: 'Unknown place: pick it from the list.' },
   { code: 'candidate_profile_missing', match: 'perfil de candidato ainda não preenchido', fr: 'Votre profil de candidat n’est pas encore rempli.', en: 'Your candidate profile is not filled in yet.' },
   { code: 'candidate_withdraw_only', match: 'candidato só pode retirar a candidatura (withdrawn)', fr: 'En tant que candidat, vous pouvez seulement retirer votre candidature.', en: 'As a candidate, you can only withdraw your application.' },

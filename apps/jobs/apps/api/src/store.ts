@@ -51,6 +51,10 @@ export interface PublicOfferSearch {
   /** NACE Rev. 2 section letter of the employer, e.g. 'J'. */
   naceSection?: string;
   organizationId?: string;
+  /** first_jobs | professional_careers | senior_careers */
+  pillar?: string;
+  /** Only offers published after this ISO date-time. */
+  publishedSince?: string;
   limit?: number;
   offset?: number;
 }

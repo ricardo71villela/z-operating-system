@@ -43,6 +43,7 @@ import { isLaunchCountry, isLaunchLocale, launchLocaleOrDefault } from '../../..
 import { translateError, type ErrorLocale } from './errorMessages';
 import { estimateSmeCategoryByEmployeeCount } from '../../../packages/domain/src/rules/companyClassification';
 import { applicationResponseDeadline } from '../../../packages/domain/src/rules/responseDeadline';
+import { runJobAlerts } from './jobAlerts';
 import { canPublishGivenBilling, productByCode } from '../../../packages/domain/src/rules/billing';
 import type { BillingProductCode } from '../../../packages/domain/src/rules/billing';
 import { computeCVQuality, validateCoverLetterPersonalization } from '../../../packages/domain/src/rules/cvStudio';
@@ -319,7 +320,7 @@ export function createServer() {
               );
             }
           }
-          const tpl = EMAIL_TEMPLATES.signupConfirmation(fullName);
+          const tpl = EMAIL_TEMPLATES.signupConfirmation(fullName, (res as any).__locale === 'en' ? 'en' : 'fr');
           await emailService.send({ to: email, subject: tpl.subject, body: tpl.body, templateKey: 'signupConfirmation' });
           return json(res, 201, { id: userId, fullName, email, token });
         }
@@ -1167,6 +1168,19 @@ export function createServer() {
           return json(res, 200, { ...app, myScoreForThisOffer: explainCandidateScore(score, requestedMessageLocale) });
         }
         return json(res, 200, app);
+      }
+
+      // Daily job alert emails, called by the Vercel cron (vercel.json) with
+      // Authorization: Bearer $CRON_SECRET. Refused when the secret is not set.
+      if (path === '/cron/job-alerts' && (method === 'GET' || method === 'POST')) {
+        const secret = process.env.CRON_SECRET;
+        if (!secret) return json(res, 503, { error: 'CRON_SECRET em falta' });
+        if (req.headers.authorization !== `Bearer ${secret}`) return json(res, 401, { error: 'não autenticado' });
+        if (!usingPostgres) return json(res, 501, { error: 'só disponível com Postgres real ligado' });
+        const result = await runJobAlerts(store as PgStore, emailService, {
+          portalUrl: process.env.JOBS_PORTAL_URL || 'https://z-jobs-app-zoperatingsystem.vercel.app',
+        });
+        return json(res, 200, result);
       }
 
       // Messages between the candidate and the employer, one thread per application.
