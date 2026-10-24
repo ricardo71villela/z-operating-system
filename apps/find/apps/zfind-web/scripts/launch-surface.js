@@ -77,7 +77,10 @@ const TEXT_FIXES = Object.freeze([
   ['Não deve ser publicada no Z Find uma “taxa única de mais-valias imobiliárias” para pessoas singulares, porque',
    'Não existe uma “taxa única de mais-valias imobiliárias” para pessoas singulares:'],
   ['Para efeitos deste Master Pack prevaleceu', 'Neste guia prevaleceu'],
-  ['À data de corte deste Master Pack', 'À data de referência deste guia']
+  ['À data de corte deste Master Pack', 'À data de referência deste guia'],
+  // Règle du HCSF (depuis 2022) : 35 % assurance comprise, et non 33 %.
+  ['les banques appliquent un taux d&#x27;endettement maximal de 33 % et',
+   'les banques appliquent un taux d&#x27;endettement maximal de 35 % assurance comprise (règle du HCSF) et']
 ]);
 
 function splitViews(body) {

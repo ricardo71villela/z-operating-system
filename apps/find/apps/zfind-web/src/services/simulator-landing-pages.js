@@ -95,7 +95,7 @@ function shell({ base, pathName, title, description, crumb, eyebrow, h1, lead, b
   const others = [
     [PAGES.notaire, 'Frais de notaire'], [PAGES.pret, 'Simulateur de prêt'], [PAGES.capacite, 'Capacité d’emprunt'],
     [PAGES.rentabilite, 'Rentabilité locative'], [PAGES.estimation, 'Estimation gratuite'], [PAGES.belgique, 'Frais d’achat en Belgique'],
-    [PAGES.luxembourg, 'Frais d’achat au Luxembourg'], [PRICE_HUB, 'Prix au m² par commune']
+    [PAGES.luxembourg, 'Frais d’achat au Luxembourg'], [PRICE_HUB, 'Prix au m² par commune'], ['/fr/guides', 'Guides juridiques (France, Belgique)']
   ].filter(([p]) => p !== pathName);
   return `<!DOCTYPE html>
 <html lang="fr">
