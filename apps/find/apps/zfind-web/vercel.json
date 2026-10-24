@@ -42,6 +42,10 @@
       "destination": "/api/alerts"
     },
     {
+      "source": "/api/prospection-optout",
+      "destination": "/api/prospection-optout"
+    },
+    {
       "source": "/api/reviews",
       "destination": "/api/reviews"
     },
