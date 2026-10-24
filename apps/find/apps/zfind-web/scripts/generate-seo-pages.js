@@ -21,6 +21,8 @@ const launchScope = require('../src/services/launch-scope.js');
 const seoGenerator = require('../src/services/seo-page-generator.js');
 const prixPages = require('../api/_lib/prix-pages.js');
 const simulatorPages = require('../src/services/simulator-landing-pages.js');
+const guidePages = require('./guide-pages.js');
+const GUIDE_PATH = Object.freeze(Object.fromEntries(guidePages.GUIDES.map(g => [g.view, g.path])));
 const PRICE_SITEMAP = 'sitemap-prix.xml';
 
 const PERSISTED_LOCALE_BY_PUBLIC = Object.freeze({
@@ -153,8 +155,10 @@ function buildMarketSeoEntries(baseUrl) {
         seoTitle: copy.seoTitle,
         seoDescription: copy.seoDescription,
         interactiveSpaPath: `/#/${locale}/market/${market.key}`,
-        legalSpaPath: market.legalRoute ? `/#/${locale}/${market.legalRoute}` : null,
-        touristRentalSpaPath: market.touristRentalRoute ? `/#/${locale}/${market.touristRentalRoute}` : null,
+        // Guides publiés en pages statiques (scripts/guide-pages.js) : lien
+        // explorable ; sinon la vue de l'application.
+        legalSpaPath: market.legalRoute ? (GUIDE_PATH[market.legalRoute] || `/#/${locale}/${market.legalRoute}`) : null,
+        touristRentalSpaPath: market.touristRentalRoute ? (GUIDE_PATH[market.touristRentalRoute] || `/#/${locale}/${market.touristRentalRoute}`) : null,
         guidesPendingLabel: locale === 'fr'
           ? 'Le guide juridique de ce marché est en préparation.'
           : 'The legal guide for this market is in preparation.'
@@ -220,6 +224,15 @@ async function main() {
   const developments = developmentsResult.data || [];
   let written = 0;
   const sitemapUrls = new Set();
+
+  // Guides juridiques des marchés de lancement (statiques, indexables).
+  for (const page of guidePages.buildGuidePages(baseUrl)) {
+    const outPath = path.join(DIST_SEO_DIR, `${page.path.replace(/^\//, '')}.html`);
+    fs.mkdirSync(path.dirname(outPath), { recursive: true });
+    fs.writeFileSync(outPath, page.html);
+    sitemapUrls.add(baseUrl + page.path);
+    written++;
+  }
 
   // Pages publiques des simulateurs (statiques, indexables).
   for (const page of simulatorPages.buildSimulatorPages(baseUrl)) {
