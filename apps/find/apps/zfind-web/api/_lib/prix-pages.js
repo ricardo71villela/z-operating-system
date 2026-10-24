@@ -102,7 +102,10 @@ function depOfCommune(code) {
   return code.startsWith('97') ? code.slice(0, 3) : code.slice(0, 2);
 }
 
-function page({ base, title, description, canonicalPath, indexable, breadcrumbs, body, jsonLd }) {
+const FR_SOURCE = 'Source : DVF — Demandes de valeurs foncières (DGFiP), ventes de logements anciens enregistrées par l’administration fiscale, sous licence ouverte. Prix médians au m² calculés par Z Find ; fourchette = 1er et 3e quartiles. L’Alsace-Moselle et Mayotte ne sont pas couvertes par DVF. Ces chiffres ne remplacent pas une estimation de votre bien.';
+
+function page({ base, title, description, canonicalPath, indexable, breadcrumbs, body, jsonLd, market, source }) {
+  const mk = market || 'FR';
   const canonical = base + canonicalPath;
   const crumbsLd = {
     '@context': 'https://schema.org', '@type': 'BreadcrumbList',
@@ -133,14 +136,14 @@ ${seo.presentationHead()}
 <header class="zf-seo-site-header">
   <div class="zf-seo-wrap zf-seo-nav">
     <a class="zf-seo-brand" href="${base}/" aria-label="Z Find">Z <em>Find</em></a>
-    <a class="zf-seo-nav-cta" href="${base}/#/fr/estimation?market=FR&amp;mode=owner">Estimer mon bien →</a>
+    <a class="zf-seo-nav-cta" href="${base}/#/fr/estimation?market=${mk}&amp;mode=owner">Estimer mon bien →</a>
   </div>
 </header>
 <main class="zf-seo-main">
   <div class="zf-seo-wrap">
     <nav class="zf-seo-breadcrumb" aria-label="Fil d’Ariane">${breadcrumbs.map((b, i) => i === breadcrumbs.length - 1 ? `<span>${esc(b.name)}</span>` : `<a href="${base}${b.path}">${esc(b.name)}</a>`).join(' / ')}</nav>
 ${body}
-    <p class="zp-source">Source : DVF — Demandes de valeurs foncières (DGFiP), ventes de logements anciens enregistrées par l’administration fiscale, sous licence ouverte. Prix médians au m² calculés par Z Find ; fourchette = 1er et 3e quartiles. L’Alsace-Moselle et Mayotte ne sont pas couvertes par DVF. Ces chiffres ne remplacent pas une estimation de votre bien.</p>
+    <p class="zp-source">${esc(source || FR_SOURCE)}</p>
   </div>
 </main>
 </body>
@@ -316,7 +319,8 @@ function renderCountry({ base, index }) {
         const da = latest(d.A); const dm = latest(d.M);
         return `<tr><td><a href="${base}${depPath(d.code, d.name)}">${esc(d.name)} (${esc(d.code)})</a></td><td>${da ? eurM2(da.med) : '—'}</td><td>${dm ? eurM2(dm.med) : '—'}</td></tr>`;
       }).join('')}</tbody></table></div>
-    </section>`;
+    </section>
+    <section class="zp-section"><h2>Autres pays</h2><ul class="zp-links"><li><a href="${base}/fr/prix-immobilier/belgique">Prix de l’immobilier en Belgique</a></li><li><a href="${base}/fr/prix-immobilier/luxembourg">Prix de l’immobilier au Luxembourg</a></li></ul></section>`;
   return page({
     base, title, description, canonicalPath: ROOT_PATH, indexable: true, body,
     jsonLd: [{ '@context': 'https://schema.org', '@type': 'CollectionPage', name: title, url: base + ROOT_PATH, inLanguage: 'fr', about: { '@type': 'Country', name: 'France' } }],
@@ -343,6 +347,6 @@ function sitemapPaths(index, depFiles) {
 }
 
 module.exports = {
-  aCommune, deCommune, MIN_SALES, ROOT_PATH, BIG_CITY_PREFIX, slugify, parsePath, depOfCommune, depPath, communePath, latest, isIndexable,
+  page, esc, eur, eurM2, pct, signed, aCommune, deCommune, MIN_SALES, ROOT_PATH, BIG_CITY_PREFIX, slugify, parsePath, depOfCommune, depPath, communePath, latest, isIndexable,
   salesCount, neighboursOf, renderCommune, renderDepartment, renderCountry, sitemapPaths
 };

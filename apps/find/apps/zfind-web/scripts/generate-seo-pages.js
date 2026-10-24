@@ -20,6 +20,7 @@ const marketRegistry = require('../src/services/market-registry.js');
 const launchScope = require('../src/services/launch-scope.js');
 const seoGenerator = require('../src/services/seo-page-generator.js');
 const prixPages = require('../api/_lib/prix-pages.js');
+const prixPagesBeLu = require('../api/_lib/prix-pages-be-lu.js');
 const simulatorPages = require('../src/services/simulator-landing-pages.js');
 const guidePages = require('./guide-pages.js');
 const GUIDE_PATH = Object.freeze(Object.fromEntries(guidePages.GUIDES.map(g => [g.view, g.path])));
@@ -73,7 +74,9 @@ function priceSitemapUrls(baseUrl, dataDir) {
     const file = path.join(dir, 'dep', `${code}.json`);
     if (fs.existsSync(file)) depFiles[code] = JSON.parse(fs.readFileSync(file, 'utf8'));
   }
-  return prixPages.sitemapPaths(index, depFiles).map(p => base + p);
+  const root = path.dirname(dir);
+  const read = cc => { const f = path.join(root, cc, 'index.json'); return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : null; };
+  return prixPages.sitemapPaths(index, depFiles).concat(prixPagesBeLu.sitemapPaths(read('be'), read('lu'))).map(p => base + p);
 }
 
 function buildPriceSitemapXml(baseUrl, urls) {
