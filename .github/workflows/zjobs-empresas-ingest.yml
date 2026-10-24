@@ -2,12 +2,14 @@ name: Z Jobs — ingestão das empresas (FR)
 
 # Base de prospeção dos empregadores de França com 10 ou mais assalariados
 # (tabela zjobs_empresas no Supabase ZOS).
-# Todas as segundas-feiras às 05:00 UTC, ou à mão no separador Actions.
+# Uma vez por trimestre (1 de janeiro, abril, julho e outubro, às 05:00 UTC),
+# ou à mão no separador Actions. O registo muda devagar: os efetivos do
+# SIRENE só são atualizados uma vez por ano.
 # Num pull request que mexa no pipeline, só corre os testes.
 
 on:
   schedule:
-    - cron: "0 5 * * 1"
+    - cron: "0 5 1 1,4,7,10 *"
   workflow_dispatch:
     inputs:
       section:

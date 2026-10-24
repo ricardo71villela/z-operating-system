@@ -43,6 +43,12 @@ uma só vez. No fim de uma passagem completa e sem erros, as empresas que
 deixaram de aparecer (fechadas, ou abaixo de 10 assalariados) ficam
 `active = false` — nada é apagado.
 
+## Quando corre
+
+Uma vez por trimestre (1 de janeiro, abril, julho e outubro), ou à mão no
+separador Actions. O registo muda devagar: o escalão de efetivos do SIRENE só
+é atualizado uma vez por ano.
+
 ## Regras de prospeção
 
 - **França, B2B:** e-mail permitido sem consentimento prévio se a mensagem
