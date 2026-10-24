@@ -20,6 +20,7 @@ const marketRegistry = require('../src/services/market-registry.js');
 const launchScope = require('../src/services/launch-scope.js');
 const seoGenerator = require('../src/services/seo-page-generator.js');
 const prixPages = require('../api/_lib/prix-pages.js');
+const simulatorPages = require('../src/services/simulator-landing-pages.js');
 const PRICE_SITEMAP = 'sitemap-prix.xml';
 
 const PERSISTED_LOCALE_BY_PUBLIC = Object.freeze({
@@ -219,6 +220,15 @@ async function main() {
   const developments = developmentsResult.data || [];
   let written = 0;
   const sitemapUrls = new Set();
+
+  // Pages publiques des simulateurs (statiques, indexables).
+  for (const page of simulatorPages.buildSimulatorPages(baseUrl)) {
+    const outPath = path.join(DIST_SEO_DIR, `${page.path.replace(/^\//, '')}.html`);
+    fs.mkdirSync(path.dirname(outPath), { recursive: true });
+    fs.writeFileSync(outPath, page.html);
+    sitemapUrls.add(baseUrl + page.path);
+    written++;
+  }
 
   for (const entry of buildMarketSeoEntries(baseUrl)) {
     const outPath = path.join(DIST_SEO_DIR, entry.outRelativePath);
