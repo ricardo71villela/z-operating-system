@@ -107,3 +107,7 @@ a{color:inherit;text-decoration:none}
   .mobile-dock span{font-size:18px;line-height:1}.mobile-dock small{font-size:8px;text-transform:uppercase;letter-spacing:.06em}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+/* Store sign-up link: header on desktop, footer column everywhere */
+.partner-cta{font-weight:600}
+@media (max-width:760px){.customer-header .partner-cta{display:none}}

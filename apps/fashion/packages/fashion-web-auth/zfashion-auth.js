@@ -66,6 +66,8 @@
       deniedpartner: 'Ce compte n’est relié à aucune boutique Z Fashion. Si votre adhésion est en cours, nous vous contacterons dès son activation.',
       sessionExpired: 'Votre session a expiré. Reconnectez-vous.',
       signedInAs: 'Connecté :',
+      joinText: 'Pas encore de compte boutique ? Le compte est créé lors de la demande d’adhésion.',
+      joinLink: 'Demander l’adhésion de ma boutique →',
     },
     en: {
       titleadmin: 'Z Fashion backoffice',
@@ -88,6 +90,8 @@
       deniedpartner: 'This account is not linked to any Z Fashion store. If your application is in progress, we will contact you once it is activated.',
       sessionExpired: 'Your session has expired. Sign in again.',
       signedInAs: 'Signed in:',
+      joinText: 'No store account yet? It is created when you apply.',
+      joinLink: 'Apply for my store →',
     },
   };
 
@@ -144,6 +148,9 @@
     '.zf-auth-msg{font-size:14px;margin:0 0 14px;padding:10px 12px;border-radius:9px;background:#f1efe9}',
     '.zf-auth-msg.err{background:#fbeaea;color:#8a1c1c}',
     '.zf-auth-msg:empty{display:none}',
+    '.zf-auth-join{margin:18px 0 0!important;padding-top:14px;border-top:1px solid #ece8e2;font-size:14px}',
+    '.zf-auth-join[hidden]{display:none}',
+    '.zf-auth-join a{color:#151515;font-weight:600}',
     '.zf-auth-session{position:fixed;right:12px;bottom:12px;z-index:2147482000;display:flex;gap:10px;align-items:center;background:#151515;color:#fff;border-radius:999px;padding:6px 6px 6px 14px;font:13px system-ui,sans-serif;max-width:calc(100vw - 24px)}',
     '.zf-auth-session[hidden]{display:none}',
     'html.zf-auth-signed-in body{padding-bottom:72px}',
@@ -186,7 +193,15 @@
 
     ui.deniedSignOut = el('button', { type: 'button', hidden: '' });
 
-    card.append(ui.title, ui.subtitle, ui.msg, ui.emailForm, ui.codeForm, ui.deniedSignOut);
+    // Partner space only: a store without an account is sent to the adhesion
+    // page, the only page that creates accounts.
+    ui.join = el('p', { class: 'zf-auth-join' });
+    ui.joinText = el('span');
+    ui.joinLink = el('a', { href: './adhesion', class: 'zf-link' });
+    ui.join.append(ui.joinText, document.createElement('br'), ui.joinLink);
+    if (surface !== 'partner') ui.join.hidden = true;
+
+    card.append(ui.title, ui.subtitle, ui.msg, ui.emailForm, ui.codeForm, ui.deniedSignOut, ui.join);
     ui.root.appendChild(card);
     document.body.appendChild(ui.root);
 
@@ -215,6 +230,8 @@
     ui.changeBtn.textContent = t('changeEmail');
     ui.deniedSignOut.textContent = t('signOut');
     ui.sessionOut.textContent = t('signOut');
+    ui.joinText.textContent = t('joinText');
+    ui.joinLink.textContent = t('joinLink');
   }
 
   function setMsg(text, isError) {
