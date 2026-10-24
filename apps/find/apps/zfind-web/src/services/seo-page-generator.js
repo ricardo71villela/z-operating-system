@@ -90,6 +90,7 @@ function siteHeader(base, ctaHref, ctaLabel) {
 </header>`;
 }
 
+const PRICE_HUBS = Object.freeze({ FR: '/fr/prix-immobilier/france', BE: '/fr/prix-immobilier/belgique', LU: '/fr/prix-immobilier/luxembourg' });
 function buildMarketPage({ baseUrl, locale, marketKey, marketLabel, publicPath, pathByLocale, heroEyebrow, heroTitle, heroLead, featuredTitle, featuredIntro, searchTitle, searchIntro, guidesTitle, guidesIntro, legalLabel, rentalLabel, openInteractive, seoTitle, seoDescription, interactiveSpaPath, legalSpaPath, touristRentalSpaPath, guidesPendingLabel }) {
   const base = requireBaseUrl(baseUrl);
   requireLocale(locale);
@@ -128,7 +129,7 @@ ${siteHeader(base, interactiveUrl, openInteractive)}
     </header>
     <div class="zf-seo-section-grid">
       <section class="zf-seo-card"><h2>${escapeHtml(featuredTitle)}</h2><p>${escapeHtml(featuredIntro)}</p></section>
-      <section class="zf-seo-card"><h2>${escapeHtml(searchTitle)}</h2><p>${escapeHtml(searchIntro)}</p>${marketKey === 'FR' ? `<p><a href="${base}/fr/prix-immobilier/france">${locale === 'fr' ? 'Prix de l’immobilier par département et par commune' : 'Property prices by département and commune (in French)'}</a></p>` : ''}</section>
+      <section class="zf-seo-card"><h2>${escapeHtml(searchTitle)}</h2><p>${escapeHtml(searchIntro)}</p>${PRICE_HUBS[marketKey] ? `<p><a href="${base}${PRICE_HUBS[marketKey]}">${locale === 'fr' ? 'Prix de l’immobilier par commune' : 'Property prices by municipality (in French)'}</a></p>` : ''}</section>
       <section class="zf-seo-card"><h2>${escapeHtml(guidesTitle)}</h2><p>${escapeHtml(guidesIntro)}</p><p>${[legalSpaPath ? `<a href="${base}${legalSpaPath}">${escapeHtml(legalLabel)}</a>` : '', touristRentalSpaPath ? `<a href="${base}${touristRentalSpaPath}">${escapeHtml(rentalLabel)}</a>` : ''].filter(Boolean).join(' · ') || escapeHtml(guidesPendingLabel || '')}</p></section>
     </div>
     <div class="zf-seo-cta-row"><a class="zf-seo-primary" href="${interactiveUrl}">${escapeHtml(openInteractive)} →</a></div>

@@ -65,7 +65,7 @@ function run(p, method) {
   const urls = gen.priceSitemapUrls('https://zfind.online');
   check('sitemap-prix : plus de 20 000 pages, moins de 50 000', urls.length > 20000 && urls.length < 50000);
   check('sitemap-prix : hub France et URL canoniques', urls.includes('https://zfind.online/fr/prix-immobilier/france') && urls.includes('https://zfind.online/fr/prix-immobilier/france/evian-les-bains-74119'));
-  check('sitemap-prix : pas d’Alsace-Moselle', !urls.some(u => /-(57|67|68)\d{3}$|-(57|67|68)$/.test(u)));
+  check('sitemap-prix : pas d’Alsace-Moselle', !urls.filter(u => u.includes('/france/')).some(u => /-(57|67|68)\d{3}$|-(57|67|68)$/.test(u)));
   check('robots.txt annonce les deux sitemaps', gen.buildRobotsTxt('https://zfind.online').includes('Sitemap: https://zfind.online/sitemap-prix.xml'));
 
   console.log('\n=== 5. Vercel ===');

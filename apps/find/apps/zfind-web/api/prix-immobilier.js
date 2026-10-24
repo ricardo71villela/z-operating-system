@@ -15,9 +15,15 @@ const fs = require('fs');
 const path = require('path');
 const S = require('./_lib/server');
 const P = require('./_lib/prix-pages');
+const BL = require('./_lib/prix-pages-be-lu');
 
-const DATA_DIR = path.join(__dirname, '..', 'public', 'market-data', 'fr');
-const cache = { index: null, deps: new Map(), agencies: new Map() };
+const DATA_ROOT = path.join(__dirname, '..', 'public', 'market-data');
+const DATA_DIR = path.join(DATA_ROOT, 'fr');
+const cache = { index: null, deps: new Map(), agencies: new Map(), be: null, lu: null };
+function countryData(cc) {
+  if (!cache[cc]) cache[cc] = JSON.parse(fs.readFileSync(path.join(DATA_ROOT, cc, 'index.json'), 'utf8'));
+  return cache[cc];
+}
 
 function readJson(file) { return JSON.parse(fs.readFileSync(path.join(DATA_DIR, file), 'utf8')); }
 function index() { if (!cache.index) cache.index = readJson('index.json'); return cache.index; }
@@ -69,6 +75,13 @@ async function handler(req, res) {
   const base = S.siteUrl();
   if (req.method !== 'GET' && req.method !== 'HEAD') { res.statusCode = 405; res.setHeader('Allow', 'GET, HEAD'); return res.end(); }
   const q = S.queryOf(req);
+  const parts = String(q.p || '').toLowerCase().split('/').filter(Boolean);
+  if (parts[0] === 'belgique' || parts[0] === 'luxembourg') {
+    const out = BL.route(parts, { base, be: parts[0] === 'belgique' ? countryData('be') : null, lu: parts[0] === 'luxembourg' ? countryData('lu') : null, today: new Date() });
+    if (!out) return notFound(res, base);
+    if (out.redirect) return redirect(res, base + out.redirect);
+    return send(res, 200, out.html, true);
+  }
   const route = P.parsePath(q.p);
   const idx = index();
   if (route.kind === 'root') return redirect(res, base + P.ROOT_PATH);
