@@ -43,16 +43,15 @@ def main():
         sys.exit("Nenhum scope aceite.")
     h = {"Authorization": f"Bearer {tok}", "Accept": "application/json"}
     tries = [
-        ("recherche", {"rome": "D1106", "citycode": "75056"}),
-        ("recherche", {"rome": "D1106", "citycode": "75056", "distance": 30}),
-        ("recherche", {"rome": "D1106", "latitude": 48.8566, "longitude": 2.3522, "distance": 30}),
-        ("recherche", {"job": "vendeur", "citycode": "69123", "distance": 30}),
-        ("recherche", {"naf": "4711D", "citycode": "69123", "distance": 50}),
-        ("recherche", {"rome": "F1703", "citycode": "74281", "distance": 50, "page_size": 3}),
-        ("recherche", {"rome": "D1106", "department": "75"}),
-        ("recherche", {"rome": "D1106", "region": "11"}),
+        ("recherche", {"naf": ["4711D", "4711F", "5610A"], "latitude": 45.7676, "longitude": 4.835, "distance": 30, "page_size": 100}),
+        ("recherche", {"naf": "4711D", "latitude": 45.7676, "longitude": 4.835, "distance": 30, "page_size": 1000}),
+        ("recherche", {"naf": "4711D", "latitude": 45.7676, "longitude": 4.835, "distance": 30, "is_high_potential": "true"}),
+        ("recherche", {"naf": "4711D", "latitude": 45.7676, "longitude": 4.835, "distance": 200}),
+        ("recherche", {"siret": "31073855400024"}),
+        ("recherche", {"rome": "D1106", "latitude": 46.6, "longitude": 2.4, "distance": 1000}),
     ]
     for path, params in tries:
+        import time; time.sleep(1.2)
         r = requests.get(f"{BASE}/{path}", params=params, headers=h, timeout=30)
         print(f"\nGET /{path} {params}: HTTP {r.status_code}")
         try:
@@ -60,7 +59,8 @@ def main():
             items = data.get("items") if isinstance(data, dict) else None
             print("hits:", data.get("hits") if isinstance(data, dict) else None, "| locations:", json.dumps((data.get("resolved_params") or {}).get("locations"), ensure_ascii=False)[:300] if isinstance(data, dict) else "")
             if items:
-                print("1.º registo:", json.dumps(items[0], ensure_ascii=False, indent=1)[:2500])
+                print("itens nesta página:", len(items), "| params:", json.dumps(data.get("params"), ensure_ascii=False)[:400])
+                print("1.º registo:", json.dumps(items[0], ensure_ascii=False)[:600])
             elif not isinstance(data, dict) or "items" not in data:
                 print(json.dumps(data, ensure_ascii=False)[:800])
         except ValueError:
