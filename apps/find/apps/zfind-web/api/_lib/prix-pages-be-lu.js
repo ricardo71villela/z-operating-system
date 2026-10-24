@@ -117,7 +117,7 @@ function beCommune({ base, index, commune, today }) {
   const indexable = beIndexable(commune, year);
   const title = `Prix immobilier ${name} ${year} : maisons et appartements | Z Find`;
   const description = ok(house) || ok(apt)
-    ? `Prix de l’immobilier ${aCommune(name)} (${group ? beGroupName(group) : 'Belgique'}) : ${ok(house) ? `maison ${eur(house.med)}` : ''}${ok(house) && ok(apt) ? ', ' : ''}${ok(apt) ? `appartement ${eur(apt.med)}` : ''} (médianes Statbel ${year}). Évolution depuis 2021 et frais d’achat.`
+    ? `Prix de l’immobilier ${aCommune(name)} (${group ? (group.c === '4000' ? 'Bruxelles-Capitale' : group.n.replace(/^Province/, 'province')) : 'Belgique'}) : ${ok(house) ? `maison ${eur(house.med)}` : ''}${ok(house) && ok(apt) ? ', ' : ''}${ok(apt) ? `appartement ${eur(apt.med)}` : ''} (médianes Statbel ${year}). Évolution depuis 2021 et frais d’achat.`
     : `Prix de l’immobilier ${aCommune(name)} (Belgique) : repères de la province, évolution et estimation gratuite.`;
   const faq = [];
   if (ok(house)) faq.push({ q: `Quel est le prix d’une maison ${aCommune(name)} ?`, a: `${eur(house.med)} en ${year} (prix médian Statbel, ${house.n} ventes), avec une fourchette de ${eur(house.q1)} à ${eur(house.q3)}.` });
@@ -149,11 +149,11 @@ function beCommune({ base, index, commune, today }) {
       <p>Une médiane décrit le marché, pas votre bien : l’état, la surface, le PEB ou le jardin font varier le prix. L’<a href="${base}/fr/estimation-immobiliere">estimation Z Find</a> en tient compte et vous donne une fourchette immédiatement. Pour les règles d’achat, consultez le <a href="${base}/fr/guides/immobilier-belgique">guide de l’immobilier en Belgique</a>.</p>
       <p>Vous êtes une agence immobilière ? <a href="${base}/#/fr/pro">Publiez vos annonces sur Z Find</a>.</p>
     </section>
-    ${neighbours.length ? `<section class="zp-section"><h2>Prix dans les communes voisines</h2><ul class="zp-links">${neighbours.map(n => `<li><a href="${base}${beCommunePath(n)}">${esc(beName(n))}</a></li>`).join('')}</ul>${group ? `<p><a href="${base}${beGroupPath(group)}">Toutes les communes — ${esc(beGroupName(group))} →</a></p>` : ''}</section>` : ''}`;
+    ${neighbours.length ? `<section class="zp-section"><h2>Prix dans les communes voisines</h2><ul class="zp-links">${neighbours.map(n => `<li><a href="${base}${beCommunePath(n)}">${esc(beName(n))}</a></li>`).join('')}</ul>${group ? `<p><a href="${base}${beGroupPath(group)}">Toutes les communes — ${esc(group.c === '4000' ? 'Bruxelles-Capitale' : group.n)} →</a></p>` : ''}</section>` : ''}`;
   const jsonLd = [{ '@context': 'https://schema.org', '@type': 'WebPage', name: title, url: base + path, inLanguage: 'fr', about: { '@type': 'City', name, containedInPlace: { '@type': 'Country', name: 'Belgique' } } }];
   if (faq.length && indexable) jsonLd.push({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faq.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) });
   const crumbs = [{ name: 'Z Find', path: '/' }, { name: 'Prix de l’immobilier', path: P.ROOT_PATH }, { name: 'Belgique', path: BE_ROOT }];
-  if (group) crumbs.push({ name: beGroupName(group), path: beGroupPath(group) });
+  if (group) crumbs.push({ name: group.c === '4000' ? 'Bruxelles-Capitale' : group.n, path: beGroupPath(group) });
   crumbs.push({ name, path });
   return P.page({ base, title, description, canonicalPath: path, indexable, breadcrumbs: crumbs, body, jsonLd, market: 'BE', source: BE_SOURCE });
 }
