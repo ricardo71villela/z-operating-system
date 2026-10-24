@@ -1,0 +1,32 @@
+name: Z Jobs — sonda La Bonne Boîte
+
+# Temporário: confirma o formato da API La Bonne Boîte v2 antes de a ligar
+# às empresas do Z Jobs. Só lê a API e mostra a estrutura da resposta.
+
+on:
+  pull_request:
+    paths:
+      - "apps/jobs/ingest/labonneboite/**"
+      - ".github/workflows/zjobs-labonneboite-probe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/jobs/ingest/labonneboite
+    env:
+      FRANCE_TRAVAIL_CLIENT_ID: ${{ secrets.FRANCE_TRAVAIL_CLIENT_ID }}
+      FRANCE_TRAVAIL_CLIENT_SECRET: ${{ secrets.FRANCE_TRAVAIL_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - run: python src/probe.py
