@@ -48,7 +48,7 @@
     fr: {
       titleadmin: 'Backoffice Z Fashion',
       titlepartner: 'Espace Partner Z Fashion',
-      titleonboarding: 'Vendre sur Z Fashion',
+      titleonboarding: 'Votre Corner sur Z Fashion',
       subtitle: 'Saisissez votre e-mail professionnel pour recevoir un code de connexion à 6 chiffres.',
       subtitleonboarding: 'Saisissez votre e-mail professionnel pour recevoir un code à 6 chiffres. Votre compte Partner est créé à la première connexion ; vous pourrez ensuite déposer la demande d’adhésion de votre boutique.',
       email: 'E-mail', emailPlaceholder: 'nom@boutique.fr', sendCode: 'Recevoir le code',
@@ -67,12 +67,12 @@
       sessionExpired: 'Votre session a expiré. Reconnectez-vous.',
       signedInAs: 'Connecté :',
       joinText: 'Pas encore de compte boutique ? Le compte est créé lors de la demande d’adhésion.',
-      joinLink: 'Demander l’adhésion de ma boutique →',
+      joinLink: 'Ouvrir mon Corner sur Z Fashion →',
     },
     en: {
       titleadmin: 'Z Fashion backoffice',
       titlepartner: 'Z Fashion Partner space',
-      titleonboarding: 'Sell on Z Fashion',
+      titleonboarding: 'Your Corner on Z Fashion',
       subtitle: 'Enter your work e-mail to receive a 6-digit sign-in code.',
       subtitleonboarding: 'Enter your work e-mail to receive a 6-digit code. Your Partner account is created the first time you sign in; you can then submit your store’s application.',
       email: 'E-mail', emailPlaceholder: 'name@store.com', sendCode: 'Send code',
@@ -91,7 +91,7 @@
       sessionExpired: 'Your session has expired. Sign in again.',
       signedInAs: 'Signed in:',
       joinText: 'No store account yet? It is created when you apply.',
-      joinLink: 'Apply for my store →',
+      joinLink: 'Open my Corner on Z Fashion →',
     },
   };
 
