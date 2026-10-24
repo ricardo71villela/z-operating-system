@@ -43,18 +43,26 @@ def main():
         sys.exit("Nenhum scope aceite.")
     h = {"Authorization": f"Bearer {tok}", "Accept": "application/json"}
     tries = [
-        ("recherche", {"rome": "M1805", "citycode": "74281"}),
-        ("recherche", {"rome": "M1805", "department": "74"}),
-        ("recherche", {"rome": "F1703", "departments": "69"}),
-        ("recherche", {"naf": "4120A", "department": "74"}),
-        ("recherche", {"rome": "M1805", "citycode": "74281", "page": 1, "page_size": 2}),
+        ("recherche", {"rome": "D1106", "citycode": "75056"}),
+        ("recherche", {"rome": "D1106", "citycode": "75056", "distance": 30}),
+        ("recherche", {"rome": "D1106", "latitude": 48.8566, "longitude": 2.3522, "distance": 30}),
+        ("recherche", {"job": "vendeur", "citycode": "69123", "distance": 30}),
+        ("recherche", {"naf": "4711D", "citycode": "69123", "distance": 50}),
+        ("recherche", {"rome": "F1703", "citycode": "74281", "distance": 50, "page_size": 3}),
+        ("recherche", {"rome": "D1106", "department": "75"}),
+        ("recherche", {"rome": "D1106", "region": "11"}),
     ]
     for path, params in tries:
         r = requests.get(f"{BASE}/{path}", params=params, headers=h, timeout=30)
         print(f"\nGET /{path} {params}: HTTP {r.status_code}")
         try:
             data = r.json()
-            print(json.dumps(shape(data), ensure_ascii=False, indent=1)[:3000])
+            items = data.get("items") if isinstance(data, dict) else None
+            print("hits:", data.get("hits") if isinstance(data, dict) else None, "| locations:", json.dumps((data.get("resolved_params") or {}).get("locations"), ensure_ascii=False)[:300] if isinstance(data, dict) else "")
+            if items:
+                print("1.º registo:", json.dumps(items[0], ensure_ascii=False, indent=1)[:2500])
+            elif not isinstance(data, dict) or "items" not in data:
+                print(json.dumps(data, ensure_ascii=False)[:800])
         except ValueError:
             print(r.text[:400])
 
