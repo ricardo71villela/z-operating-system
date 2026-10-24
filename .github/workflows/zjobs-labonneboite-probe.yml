@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
   probe:
@@ -29,4 +30,11 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install requests
-      - run: python src/probe.py
+      - run: python src/probe.py | tee probe.txt
+      - name: Resultado no PR
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          { echo '<details><summary>Sonda La Bonne Boîte</summary>'; echo; echo '```'; head -c 60000 probe.txt; echo '```'; echo '</details>'; } > comment.md
+          gh pr comment ${{ github.event.pull_request.number }} --body-file comment.md
