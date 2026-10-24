@@ -17,7 +17,7 @@
 
   var STRINGS = {
     fr: {
-      partners: 'Partners', language: 'Langue', eyebrow: 'Adhésion des boutiques', title: 'Vendez sur Z Fashion',
+      partners: 'Partners', language: 'Langue', eyebrow: 'Votre Corner sur Z Fashion', title: 'Votre Corner sur Z Fashion pour vendre au-delà de votre vitrine',
       lead: 'Présentez votre boutique, vos marques et vos collections dans un espace à votre image, avec un panier commun à toutes les boutiques. Votre demande est examinée par l’équipe Z Fashion avant toute mise en ligne.',
       offerTitle: 'L’offre Partner', loading: 'Chargement…',
       subscriptionTitle: 'Abonnement mensuel, selon le nombre de catégories vendues', perMonth: 'HT / mois',
@@ -67,7 +67,7 @@
       err_partner_terms_not_published: 'Les adhésions ne sont pas encore ouvertes.',
     },
     en: {
-      partners: 'Partners', language: 'Language', eyebrow: 'Store adhesion', title: 'Sell on Z Fashion',
+      partners: 'Partners', language: 'Language', eyebrow: 'Your Corner on Z Fashion', title: 'Your Corner on Z Fashion, to sell beyond your shop window',
       lead: 'Present your store, your brands and your collections in a space that looks like you, with one bag shared by every store. Your application is reviewed by the Z Fashion team before anything goes live.',
       offerTitle: 'The Partner offer', loading: 'Loading…',
       subscriptionTitle: 'Monthly subscription, by number of categories sold', perMonth: 'excl. VAT / month',

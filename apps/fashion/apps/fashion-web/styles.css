@@ -214,3 +214,5 @@ img{display:block;width:100%}
   .search-results{grid-template-columns:1fr 1fr}
 }
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+
+.utility-nav .partner-cta{font-weight:600;text-decoration:none}
