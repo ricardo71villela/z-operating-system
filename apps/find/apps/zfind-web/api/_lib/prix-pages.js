@@ -197,7 +197,7 @@ function budgetSection(base, name, a, m, today) {
       <div class="zp-table-wrap"><table class="zp-table"><thead><tr><th>Bien type</th><th>Prix</th><th>Frais d’achat (notaire)</th><th>Emprunt</th><th>Mensualité</th></tr></thead><tbody>${rows.map(r =>
         `<tr><td>${esc(r.label)}</td><td>${eur(r.price)}</td><td>${eur(r.costs)}</td><td>${eur(r.loan)}</td><td>${r.monthly != null ? `${eur(r.monthly)} / mois` : '—'}</td></tr>`).join('')}</tbody></table></div>
       <div class="zp-ctas">${rows.map(r => `<a class="zp-secondary" href="${base}/#/fr/simulator?market=FR&amp;mode=payment&amp;price=${r.price}">Simuler le crédit — ${esc(r.label.toLowerCase())}</a>`).join('')}<a class="zp-secondary" href="${base}/#/fr/simulator?market=FR&amp;mode=capacity">Calculer ma capacité d’emprunt</a><a class="zp-secondary" href="${base}/#/fr/yield?market=FR&amp;mode=long&amp;price=${rows[0].price}">Calculer la rentabilité locative</a></div>
-      <p class="zp-small">Simulation indicative : ni offre de prêt ni conseil. Frais d’achat calculés pour un logement ancien (droits de mutation, émoluments du notaire, débours).</p>
+      <p class="zp-small">Simulation indicative : ni offre de prêt ni conseil. Frais d’achat calculés pour un logement ancien (droits de mutation, émoluments du notaire, débours) — <a href="${base}/fr/frais-de-notaire">détail des frais de notaire</a>, <a href="${base}/fr/capacite-emprunt">capacité d’emprunt</a>.</p>
     </section>`;
 }
 
@@ -258,7 +258,7 @@ function renderCommune({ base, commune, department, national, neighbours, agenci
     ${budgetSection(base, name, a, m, today)}
     <section class="zp-section">
       <h2>Vendre ou acheter ${esc(aCommune(name))}</h2>
-      <p>Une médiane décrit le marché, pas votre bien : l’étage, l’état, la vue ou le terrain font varier le prix. L’estimation Z Find tient compte de ces critères et vous donne une fourchette immédiatement, puis un rapport détaillé par e-mail.</p>
+      <p>Une médiane décrit le marché, pas votre bien : l’étage, l’état, la vue ou le terrain font varier le prix. L’<a href="${base}/fr/estimation-immobiliere">estimation Z Find</a> tient compte de ces critères et vous donne une fourchette immédiatement, puis un rapport détaillé par e-mail.</p>
       ${agencies > 0 ? `<p>${nf.format(agencies)} agence${agencies > 1 ? 's' : ''} immobilière${agencies > 1 ? 's sont établies' : ' est établie'} ${esc(aCommune(name))}. Vous êtes une agence ? <a href="${base}/#/fr/pro">Publiez vos annonces sur Z Find</a>.</p>` : `<p>Vous êtes une agence immobilière ? <a href="${base}/#/fr/pro">Publiez vos annonces sur Z Find</a>.</p>`}
     </section>
     ${neighbours.length ? `<section class="zp-section"><h2>Prix dans les autres communes du département</h2><ul class="zp-links">${neighbours.map(n => `<li><a href="${base}${communePath(n)}">${esc(n.n)}</a></li>`).join('')}</ul><p><a href="${base}${depPath(department.code, department.name)}">Toutes les communes — ${esc(department.name)} (${esc(department.code)}) →</a></p></section>` : ''}`;
