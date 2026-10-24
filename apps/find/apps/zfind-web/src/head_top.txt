@@ -30,6 +30,7 @@ window.va('beforeSend', function (event) {
 <title>Z Find — Annonces immobilières en France, Belgique et Luxembourg</title>
 <meta name="description" content="Achetez, louez et investissez dans des biens et programmes immobiliers sur Z Find — un inventaire structuré, clair et sans doublons.">
 <meta name="robots" content="index,follow">
+<meta name="google-site-verification" content="iTUN5s9YaD9hrTMRj7Xf8gNY5GTWJcqWoOyKfNIlKBg">
 <link rel="canonical" href="https://zfind.online/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Z Find">
