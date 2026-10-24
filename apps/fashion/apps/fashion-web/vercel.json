@@ -184,10 +184,6 @@
       "source": "/(.*)",
       "headers": [
         {
-          "key": "X-Robots-Tag",
-          "value": "noindex"
-        },
-        {
           "key": "X-Content-Type-Options",
           "value": "nosniff"
         },
@@ -215,6 +211,15 @@
         {
           "key": "Cache-Control",
           "value": "no-cache"
+        }
+      ]
+    },
+    {
+      "source": "/(compte|compte/.*|checkout|checkout/.*|panier|connexion|favoris|recherche|erreur|maintenance|404|consentement|technical-shell|technical-shell.html|404.html|fr.html|polished.html|zfashion-config.js)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
         }
       ]
     }

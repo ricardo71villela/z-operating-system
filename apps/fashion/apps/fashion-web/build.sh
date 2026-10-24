@@ -4,6 +4,7 @@
 set -e
 rm -rf public && mkdir -p public
 cp ./*.html ./*.css ./*.js public/
+cp robots.txt sitemap.xml public/
 cp launch.html public/index.html
 # Old preview pages stay in the repository for their own tests only.
 rm -f public/fr.html public/polished.html
