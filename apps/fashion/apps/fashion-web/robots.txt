@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /compte
+Disallow: /checkout
+Disallow: /panier
+Disallow: /connexion
+Disallow: /favoris
+Disallow: /recherche
+
+Sitemap: https://zfashion.online/sitemap.xml
