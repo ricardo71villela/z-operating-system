@@ -128,7 +128,7 @@ ${siteHeader(base, interactiveUrl, openInteractive)}
     </header>
     <div class="zf-seo-section-grid">
       <section class="zf-seo-card"><h2>${escapeHtml(featuredTitle)}</h2><p>${escapeHtml(featuredIntro)}</p></section>
-      <section class="zf-seo-card"><h2>${escapeHtml(searchTitle)}</h2><p>${escapeHtml(searchIntro)}</p></section>
+      <section class="zf-seo-card"><h2>${escapeHtml(searchTitle)}</h2><p>${escapeHtml(searchIntro)}</p>${marketKey === 'FR' ? `<p><a href="${base}/fr/prix-immobilier/france">${locale === 'fr' ? 'Prix de l’immobilier par département et par commune' : 'Property prices by département and commune (in French)'}</a></p>` : ''}</section>
       <section class="zf-seo-card"><h2>${escapeHtml(guidesTitle)}</h2><p>${escapeHtml(guidesIntro)}</p><p>${[legalSpaPath ? `<a href="${base}${legalSpaPath}">${escapeHtml(legalLabel)}</a>` : '', touristRentalSpaPath ? `<a href="${base}${touristRentalSpaPath}">${escapeHtml(rentalLabel)}</a>` : ''].filter(Boolean).join(' · ') || escapeHtml(guidesPendingLabel || '')}</p></section>
     </div>
     <div class="zf-seo-cta-row"><a class="zf-seo-primary" href="${interactiveUrl}">${escapeHtml(openInteractive)} →</a></div>

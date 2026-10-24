@@ -19,6 +19,8 @@ const DIST_SEO_DIR = path.join(__dirname, '..', 'dist', 'seo');
 const marketRegistry = require('../src/services/market-registry.js');
 const launchScope = require('../src/services/launch-scope.js');
 const seoGenerator = require('../src/services/seo-page-generator.js');
+const prixPages = require('../api/_lib/prix-pages.js');
+const PRICE_SITEMAP = 'sitemap-prix.xml';
 
 const PERSISTED_LOCALE_BY_PUBLIC = Object.freeze({
   fr: 'fr',
@@ -47,7 +49,7 @@ function xmlEscape(value) {
 
 function buildRobotsTxt(baseUrl) {
   const base = normalizeBaseUrl(baseUrl);
-  return ['User-agent: *', 'Allow: /', '', `Sitemap: ${base}/sitemap.xml`, ''].join('\n');
+  return ['User-agent: *', 'Allow: /', '', `Sitemap: ${base}/sitemap.xml`, `Sitemap: ${base}/${PRICE_SITEMAP}`, ''].join('\n');
 }
 
 function buildSitemapXml(baseUrl, urls) {
@@ -57,9 +59,31 @@ function buildSitemapXml(baseUrl, urls) {
   return ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">', body, '</urlset>', ''].join('\n');
 }
 
+/* Pages « Prix de l'immobilier » (servies par api/prix-immobilier.js) :
+   seules les pages indexables, lues dans les fichiers DVF publiés. */
+function priceSitemapUrls(baseUrl, dataDir) {
+  const base = normalizeBaseUrl(baseUrl);
+  const dir = dataDir || path.join(__dirname, '..', 'public', 'market-data', 'fr');
+  const index = JSON.parse(fs.readFileSync(path.join(dir, 'index.json'), 'utf8'));
+  const depFiles = {};
+  for (const code of Object.keys(index.departments || {})) {
+    const file = path.join(dir, 'dep', `${code}.json`);
+    if (fs.existsSync(file)) depFiles[code] = JSON.parse(fs.readFileSync(file, 'utf8'));
+  }
+  return prixPages.sitemapPaths(index, depFiles).map(p => base + p);
+}
+
+function buildPriceSitemapXml(baseUrl, urls) {
+  const body = Array.from(new Set(urls)).map(url => `  <url><loc>${xmlEscape(url)}</loc></url>`).join('\n');
+  return ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">', body, '</urlset>', ''].join('\n');
+}
+
 function writeIndexingArtifacts(baseUrl, urls) {
   fs.writeFileSync(path.join(DIST_SEO_DIR, 'robots.txt'), buildRobotsTxt(baseUrl));
   fs.writeFileSync(path.join(DIST_SEO_DIR, 'sitemap.xml'), buildSitemapXml(baseUrl, urls));
+  const priceUrls = priceSitemapUrls(baseUrl);
+  if (priceUrls.length > 50000) throw new Error(`BUILD FAILED: ${PRICE_SITEMAP} would hold ${priceUrls.length} URLs (limit 50 000).`);
+  fs.writeFileSync(path.join(DIST_SEO_DIR, PRICE_SITEMAP), buildPriceSitemapXml(baseUrl, priceUrls));
 }
 
 function contentForPublicLocale(contentRows, publicLocale) {
@@ -316,7 +340,7 @@ async function main() {
 
   writeIndexingArtifacts(baseUrl, sitemapUrls);
   console.log(`SEO pages generated: ${written} files in ${DIST_SEO_DIR}`);
-  console.log('SEO indexing artifacts generated: robots.txt, sitemap.xml');
+  console.log('SEO indexing artifacts generated: robots.txt, sitemap.xml, sitemap-prix.xml');
 }
 
 if (require.main === module) {
@@ -328,6 +352,8 @@ module.exports = {
   normalizeBaseUrl,
   buildRobotsTxt,
   buildSitemapXml,
+  buildPriceSitemapXml,
+  priceSitemapUrls,
   buildMarketSeoEntries,
   contentForPublicLocale,
   genuineEditorialLocales,
