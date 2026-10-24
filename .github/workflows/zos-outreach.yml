@@ -1,0 +1,82 @@
+name: ZOS — prospeção por e-mail
+
+# Envio diário dos e-mails de prospeção às agências do Z Find
+# (apps/find/outreach). Dias úteis às 07:30 UTC (09:30 em Paris no verão,
+# 08:30 no inverno), ou à mão no separador Actions.
+#
+# Desligado por defeito: só envia quando a variável do repositório
+# OUTREACH_ENABLED = true e os segredos da caixa de correio e a identidade
+# da empresa estão configurados. Caso contrário faz uma simulação (nada é
+# enviado nem escrito na base) e mostra três mensagens de exemplo.
+
+on:
+  schedule:
+    - cron: "30 7 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Simulação (nada é enviado)"
+        type: boolean
+        default: true
+      limit:
+        description: "Máximo de e-mails nesta passagem (vazio = limite do dia)"
+        required: false
+        default: ""
+  pull_request:
+    paths:
+      - "apps/find/outreach/**"
+      - ".github/workflows/zos-outreach.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zos-outreach
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        working-directory: apps/find/outreach
+    env:
+      ZFIND_SUPABASE_SERVICE_KEY: ${{ secrets.ZFIND_SUPABASE_SERVICE_KEY }}
+      OUTREACH_ENABLED: ${{ vars.OUTREACH_ENABLED }}
+      OUTREACH_DAILY_LIMIT: ${{ vars.OUTREACH_DAILY_LIMIT }}
+      OUTREACH_FROM_NAME: ${{ vars.OUTREACH_FROM_NAME }}
+      OUTREACH_FROM_EMAIL: ${{ vars.OUTREACH_FROM_EMAIL }}
+      OUTREACH_REPLY_TO: ${{ vars.OUTREACH_REPLY_TO }}
+      OUTREACH_SIGNATURE: ${{ vars.OUTREACH_SIGNATURE }}
+      OUTREACH_LEGAL_NAME: ${{ vars.OUTREACH_LEGAL_NAME }}
+      OUTREACH_POSTAL_ADDRESS: ${{ vars.OUTREACH_POSTAL_ADDRESS }}
+      OUTREACH_SMTP_HOST: ${{ vars.OUTREACH_SMTP_HOST }}
+      OUTREACH_SMTP_PORT: ${{ vars.OUTREACH_SMTP_PORT }}
+      OUTREACH_IMAP_HOST: ${{ vars.OUTREACH_IMAP_HOST }}
+      OUTREACH_IMAP_PORT: ${{ vars.OUTREACH_IMAP_PORT }}
+      OUTREACH_SMTP_USER: ${{ secrets.OUTREACH_SMTP_USER }}
+      OUTREACH_SMTP_PASSWORD: ${{ secrets.OUTREACH_SMTP_PASSWORD }}
+      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true' }}
+      LIMIT: ${{ github.event.inputs.limit || '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: Testes
+        id: tests
+        run: python tests/test_outreach.py
+
+      - name: Envio do dia
+        if: ${{ !cancelled() && steps.tests.outcome == 'success' && github.event_name != 'pull_request' }}
+        run: |
+          args=""
+          if [ "$DRY_RUN" = "true" ]; then args="$args --dry-run"; fi
+          if [ -n "$LIMIT" ]; then args="$args --limit $(printf '%d' "$LIMIT")"; fi
+          python src/outreach.py $args
