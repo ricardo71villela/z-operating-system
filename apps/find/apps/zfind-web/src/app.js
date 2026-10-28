@@ -379,16 +379,12 @@ function parseHash() {
   const parts = pathPart.split('/').filter(Boolean);
   let lang = parts[0];
   if (!SUPPORTED_LANGS.includes(lang) || !LAUNCH_SCOPE_SERVICE.isLaunchLocale(lang)) {
-    // Launch scope: only fr/en are public. A hidden locale in the URL
-    // (/pt/, /es/, /de/, /it/) is replaced by the stored or default locale.
+    // Launch scope: only fr/en are public. Without a public locale in the
+    // URL Z Find always opens in French (DEFAULT_LANG). A language chosen
+    // earlier is never reapplied silently: English is reached only through
+    // an explicit /en/ URL or the language switch.
     const hiddenLocale = SUPPORTED_LANGS.includes(lang);
-    const storedLang =
-      localStorage.getItem('zfind_lang');
-
-    lang =
-      SUPPORTED_LANGS.includes(storedLang) && LAUNCH_SCOPE_SERVICE.isLaunchLocale(storedLang)
-        ? storedLang
-        : DEFAULT_LANG;
+    lang = DEFAULT_LANG;
     const rest = hiddenLocale ? parts.slice(1) : parts;
     location.hash = '/' + lang + (rest.length ? '/'+rest.join('/') : '/home') + (queryPart ? '?'+queryPart : '');
     return; // hashchange will re-fire parseHash

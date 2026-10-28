@@ -1,0 +1,634 @@
+{
+  "valeur-venale": {
+    "slug": "market-value",
+    "term": "Market value (valeur vénale)",
+    "synonyms": ["Open-market value"],
+    "definition": "Estimated price at which a property could be sold under normal market conditions, between willing and sufficiently informed parties, at a given date.",
+    "title": "Market value of a property: definition and valuation",
+    "description": "What the market value (valeur vénale) of a property means and the main criteria used to estimate it."
+  },
+  "surface-habitable": {
+    "slug": "living-area",
+    "term": "Living area (surface habitable)",
+    "synonyms": ["Regulatory living area"],
+    "definition": "Built floor area after deducting the space taken up by walls, partitions, steps, stairwells, ducts and door and window recesses, according to the regulatory rules. Some areas are excluded.",
+    "title": "Living area (surface habitable): definition and calculation",
+    "description": "How the French living area is defined, the main deductions and how it differs from the Carrez area."
+  },
+  "surface-carrez": {
+    "slug": "carrez-area",
+    "term": "Carrez area (surface privative Carrez)",
+    "synonyms": ["Carrez law", "Carrez floor area"],
+    "definition": "Private floor area calculated under the rules of the Carrez law for the co-ownership units concerned. It does not necessarily match the living area.",
+    "title": "Carrez law: definition of the private floor area",
+    "description": "How the Carrez area is defined and when it must be stated in the sale of a co-ownership unit in France."
+  },
+  "dpe": {
+    "slug": "energy-performance-certificate",
+    "term": "Energy performance certificate (DPE)",
+    "synonyms": ["DPE", "EPC"],
+    "definition": "Document assessing the energy performance of a home and its greenhouse gas emissions. It assigns ratings from A to G under the applicable regulatory method.",
+    "title": "DPE (energy performance certificate): definition and ratings",
+    "description": "Understand the French DPE, its energy ratings and its role when a home is sold or let."
+  },
+  "audit-energetique": {
+    "slug": "energy-audit",
+    "term": "Energy audit (audit énergétique)",
+    "synonyms": ["Regulatory energy audit"],
+    "definition": "Study analysing the energy characteristics of a building and proposing works scenarios to improve its energy performance. Whether it is mandatory depends on the situation and the rules in force.",
+    "title": "Energy audit: definition and purpose",
+    "description": "What an energy audit is for and in which situations it may be required when a property is sold in France."
+  },
+  "compromis-de-vente": {
+    "slug": "preliminary-sale-agreement",
+    "term": "Preliminary sale agreement (compromis de vente)",
+    "synonyms": ["Promesse synallagmatique de vente", "Bilateral promise to sell"],
+    "definition": "Pre-contract by which the seller and the buyer mutually commit to complete the sale, subject to the conditions set out in the contract.",
+    "title": "Compromis de vente (preliminary sale agreement): definition",
+    "description": "The role of the French preliminary sale agreement, its conditions precedent and the steps before the final deed."
+  },
+  "acte-authentique-de-vente": {
+    "slug": "notarial-deed-of-sale",
+    "term": "Notarial deed of sale (acte authentique de vente)",
+    "synonyms": ["Final deed of sale"],
+    "definition": "Legal deed received and signed before a notary that formalises the property sale and the transfer of ownership on the agreed terms.",
+    "title": "Notarial deed of sale (acte authentique): definition",
+    "description": "The notary’s role and the main steps in signing the final notarial deed of sale in France."
+  },
+  "condition-suspensive": {
+    "slug": "condition-precedent",
+    "term": "Condition precedent (condition suspensive)",
+    "synonyms": ["Suspensive clause"],
+    "definition": "Clause making the final completion of a contract dependent on a specified event, such as obtaining a mortgage.",
+    "title": "Condition precedent (condition suspensive) in real estate",
+    "description": "How a condition precedent works in a French property pre-contract and what effects it can have."
+  },
+  "frais-acquisition": {
+    "slug": "purchase-costs",
+    "term": "Purchase costs (frais d’acquisition)",
+    "synonyms": ["Notary fees (frais de notaire)"],
+    "definition": "All the costs linked to buying a property, including in particular duties and taxes, the notary’s fees and certain administrative costs.",
+    "title": "Property purchase costs (frais de notaire): definition",
+    "description": "What property purchase costs include in France, often called notary fees, and how to estimate them."
+  },
+  "mandat-de-vente": {
+    "slug": "sale-mandate",
+    "term": "Sale mandate (mandat de vente)",
+    "synonyms": ["Real estate mandate", "Listing agreement"],
+    "definition": "Contract by which an owner entrusts a real estate professional with marketing the property under the terms defined in the mandate.",
+    "title": "Sale mandate (mandat de vente): definition",
+    "description": "The role of a sale mandate, the obligations it sets out and the main types of mandate in France."
+  },
+  "honoraires-agence": {
+    "slug": "agency-fees",
+    "term": "Agency fees (honoraires d’agence)",
+    "synonyms": ["Real estate fees"],
+    "definition": "Remuneration owed to a real estate professional for the services set out in the mandate. The amount and who pays it must be stated in line with the applicable rules.",
+    "title": "Real estate agency fees: definition",
+    "description": "What agency fees cover and why it must be clearly stated who pays them."
+  },
+  "terrain-constructible": {
+    "slug": "building-land",
+    "term": "Building land (terrain constructible)",
+    "synonyms": ["Building plot"],
+    "definition": "Land on which construction may be authorised under the applicable planning rules. Whether it can be built on depends in particular on the zoning, the regulations, easements and the characteristics of the land.",
+    "title": "Building land: definition and checks",
+    "description": "The main points to check before buying a plot advertised as building land in France."
+  },
+  "emprise-au-sol": {
+    "slug": "building-footprint",
+    "term": "Building footprint (emprise au sol)",
+    "synonyms": ["Built footprint"],
+    "definition": "Vertical projection of the volume of a building, including overhangs and projections as defined by planning rules. It can be used to assess what may be built on a plot.",
+    "title": "Building footprint (emprise au sol): planning definition",
+    "description": "How the building footprint is defined and its role in assessing a construction project."
+  },
+  "plan-local-urbanisme": {
+    "slug": "local-urban-plan",
+    "term": "Local urban plan (PLU)",
+    "synonyms": ["PLU", "Local development plan"],
+    "definition": "Planning document that sets out, among other things, the land-use rules, the zones and the requirements applying to construction or development projects.",
+    "title": "PLU (local urban plan): definition and planning rules",
+    "description": "What the French local urban plan is for and how it can affect a property project."
+  },
+  "copropriete": {
+    "slug": "co-ownership",
+    "term": "Co-ownership (copropriété)",
+    "synonyms": ["Condominium", "Co-ownership regime"],
+    "definition": "Legal organisation of a building whose ownership is shared between several people, each holding one or more units made up of a private part and a share of the common parts.",
+    "title": "Co-ownership (copropriété): definition and how it works",
+    "description": "The principles of co-ownership, the difference between private and common parts and the role of the managing agent."
+  },
+  "charges-copropriete": {
+    "slug": "service-charges",
+    "term": "Service charges (charges de copropriété)",
+    "synonyms": ["Co-ownership charges", "Condo fees"],
+    "definition": "Expenses for the upkeep, maintenance and administration of the common parts and for shared services and equipment. How they are split depends on the applicable rules.",
+    "title": "Co-ownership service charges: definition",
+    "description": "What co-ownership service charges cover and how they are split between co-owners."
+  },
+  "servitude": {
+    "slug": "easement",
+    "term": "Easement (servitude)",
+    "synonyms": ["Property servitude"],
+    "definition": "Burden placed on a property for the benefit of another property or, in some cases, arising from legal or administrative provisions. It may concern, for example, a right of way or utility networks.",
+    "title": "Easement (servitude): definition and examples",
+    "description": "What a property easement is and how it can affect the use of land or a building."
+  },
+  "credit-immobilier": {
+    "slug": "mortgage",
+    "term": "Mortgage (crédit immobilier)",
+    "synonyms": ["Home loan", "Property loan"],
+    "definition": "Loan granted to finance the purchase or construction of a property or certain works on it.",
+    "title": "Mortgage (crédit immobilier): definition and how it works",
+    "description": "How a mortgage works and the main points to examine before committing."
+  },
+  "capacite-emprunt": {
+    "slug": "borrowing-capacity",
+    "term": "Borrowing capacity (capacité d’emprunt)",
+    "synonyms": ["Borrowing power"],
+    "definition": "Amount a lender might agree to finance, based in particular on income, outgoings, the loan term and the applicable lending criteria.",
+    "title": "Mortgage borrowing capacity: definition",
+    "description": "The main factors that determine how much you can borrow to buy a property."
+  },
+  "rendement-locatif-brut": {
+    "slug": "gross-rental-yield",
+    "term": "Gross rental yield (rendement locatif brut)",
+    "synonyms": ["Gross rental return"],
+    "definition": "Ratio between the theoretical annual rent and the purchase price used, expressed as a percentage. This indicator does not take all charges and taxes into account.",
+    "title": "Gross rental yield: definition and calculation",
+    "description": "How gross rental yield is calculated and its limits when comparing investments."
+  },
+  "vacance-locative": {
+    "slug": "rental-vacancy",
+    "term": "Rental vacancy (vacance locative)",
+    "synonyms": ["Void period"],
+    "definition": "Period during which a home intended for letting has no tenant and therefore generates no rent.",
+    "title": "Rental vacancy: definition and impact on yield",
+    "description": "What rental vacancy is and how it affects the income and yield of a property investment."
+  },
+  "bail-habitation": {
+    "slug": "residential-lease",
+    "term": "Residential lease (bail d’habitation)",
+    "synonyms": ["Tenancy agreement"],
+    "definition": "Lease of a home governed by the legal regime that applies to its use and to the situation of the parties.",
+    "title": "Residential lease: definition and obligations",
+    "description": "The principles of a French residential lease and the essential obligations of landlord and tenant."
+  },
+  "logement-decent": {
+    "slug": "decent-housing",
+    "term": "Decent housing (logement décent)",
+    "synonyms": ["Housing decency standard"],
+    "definition": "Housing that meets the legal criteria on safety, health, minimum comfort and energy performance.",
+    "title": "Decent housing: definition and criteria",
+    "description": "The decency criteria a rented home must meet in France and why they matter."
+  },
+  "garantie-decennale": {
+    "slug": "ten-year-builder-warranty",
+    "term": "Ten-year builder warranty (garantie décennale)",
+    "synonyms": ["Decennial liability"],
+    "definition": "Statutory guarantee that can cover, for ten years, certain defects that undermine the soundness of a building or make it unfit for its purpose, under the conditions laid down by law.",
+    "title": "Ten-year builder warranty (garantie décennale)",
+    "description": "The principles of the French ten-year builder warranty and the defects it may cover."
+  },
+  "vefa": {
+    "slug": "off-plan-sale",
+    "term": "Off-plan sale (VEFA)",
+    "synonyms": ["Buying off plan", "Vente en l’état futur d’achèvement"],
+    "definition": "Contract by which the buyer purchases a property that is to be built or under construction. The transfer of ownership follows the statutory regime for this type of transaction.",
+    "title": "VEFA: definition of an off-plan sale",
+    "description": "How a VEFA (off-plan sale) works and the main steps in buying a new-build home in France."
+  },
+  "viager": {
+    "slug": "life-annuity-sale",
+    "term": "Life annuity sale (viager)",
+    "synonyms": ["Viager sale"],
+    "definition": "Property transaction in which the price may consist of an initial lump sum (bouquet) and a periodic annuity paid to the seller, on the terms set in the contract.",
+    "title": "Viager (life annuity sale): definition and how it works",
+    "description": "The principles of a viager sale: the lump sum, the annuity and the main forms of this transaction."
+  },
+  "plus-value-immobiliere": {
+    "slug": "capital-gain",
+    "term": "Capital gain on property (plus-value immobilière)",
+    "synonyms": ["Gain on resale"],
+    "definition": "Positive difference between the sale price of a property and its purchase price as adjusted under the applicable tax rules. The taxable amount may include costs, expenses and allowances provided for by law.",
+    "title": "Capital gain on property: definition and calculation",
+    "description": "What a capital gain on property is and the items that can enter into its tax calculation."
+  },
+  "etat-des-risques": {
+    "slug": "risk-disclosure-statement",
+    "term": "Risk disclosure statement (état des risques)",
+    "synonyms": ["État des risques et pollutions", "ERP"],
+    "definition": "Document providing information on certain risks and pollution to which a property may be exposed, in line with the obligations that apply to a sale or a letting.",
+    "title": "Risk disclosure statement (état des risques): definition",
+    "description": "The role of the risk disclosure statement and what it may contain for a sale or a letting in France."
+  },
+  "notaire": {
+    "slug": "notary",
+    "term": "Notary (notaire)",
+    "synonyms": ["Property notary"],
+    "definition": "Public officer responsible in particular for receiving certain authentic deeds and for advising and ensuring legal certainty, especially in property transactions.",
+    "title": "Notary: role in a property sale",
+    "description": "The notary’s role in a French property transaction, from preparing the deeds to the final signing."
+  },
+  "surface-de-plancher": {
+    "slug": "floor-area",
+    "term": "Floor area (surface de plancher)",
+    "synonyms": ["Regulatory floor area"],
+    "definition": "Regulatory area used in particular in planning, calculated from enclosed and covered areas with a ceiling height above 1.80 m, after the deductions laid down in the French Planning Code.",
+    "title": "Floor area (surface de plancher): planning definition",
+    "description": "How the planning floor area is defined and how it differs from the living area."
+  },
+  "acompte": {
+    "slug": "advance-payment",
+    "term": "Advance payment (acompte)",
+    "synonyms": ["Down payment"],
+    "definition": "Sum paid on account of the price or amount due, under the terms of the contract. In real estate, its effect depends in particular on the nature of the commitment and the contract terms.",
+    "title": "Advance payment in real estate: definition and precautions",
+    "description": "What an advance payment (acompte) is and what to check before paying one."
+  },
+  "acte-sous-seing-prive": {
+    "slug": "private-agreement",
+    "term": "Private agreement (acte sous seing privé)",
+    "synonyms": ["Private deed"],
+    "definition": "Deed drawn up and signed by the parties without being received by a public officer. Its effect and the formalities required depend on the deed concerned and the applicable texts.",
+    "title": "Private agreement (acte sous seing privé): definition",
+    "description": "The difference between a private agreement and an authentic deed in a property transaction."
+  },
+  "acquisition-en-viager": {
+    "slug": "buying-a-life-annuity-property",
+    "term": "Buying a property en viager (acquisition en viager)",
+    "synonyms": ["Life annuity purchase"],
+    "definition": "Purchase of a property whose price may consist of a lump sum (bouquet) and a life annuity paid to the seller, on the agreed terms and under the applicable rules.",
+    "title": "Buying en viager: how it works",
+    "description": "The main elements of a viager purchase and what the lump sum and the annuity mean."
+  },
+  "acquereur-non-professionnel": {
+    "slug": "non-professional-buyer",
+    "term": "Non-professional buyer (acquéreur non professionnel)",
+    "synonyms": ["Private buyer"],
+    "definition": "Person who buys a property outside any professional real estate activity. This status can have legal consequences depending on the transaction and the applicable texts.",
+    "title": "Non-professional buyer: definition",
+    "description": "What being a non-professional buyer means in a French property transaction."
+  },
+  "amiante": {
+    "slug": "asbestos",
+    "term": "Asbestos (amiante)",
+    "synonyms": ["Asbestos-containing materials"],
+    "definition": "Fibrous material formerly used in many building products, whose inhalation can pose health risks. Survey obligations depend in particular on the age of the building and the transaction.",
+    "title": "Asbestos in a home: definition and surveys",
+    "description": "Why an asbestos survey may be required for a sale, a letting or building works."
+  },
+  "annonce-immobiliere": {
+    "slug": "property-listing",
+    "term": "Property listing (annonce immobilière)",
+    "synonyms": ["Sale listing", "Rental listing"],
+    "definition": "Presentation of a property for sale or rent, usually including its description, main features, price or rent and the applicable regulatory information.",
+    "title": "Property listing: essential information",
+    "description": "The information a property listing should give and what to check before contacting the advertiser."
+  },
+  "apport-personnel": {
+    "slug": "deposit",
+    "term": "Deposit (apport personnel)",
+    "synonyms": ["Personal contribution", "Down payment"],
+    "definition": "Money the buyer has available and puts towards part of the property project, possibly alongside a loan.",
+    "title": "Deposit (apport personnel): definition",
+    "description": "The role of the buyer’s own deposit in financing a property purchase."
+  },
+  "architecte": {
+    "slug": "architect",
+    "term": "Architect (architecte)",
+    "synonyms": ["Architecte DE", "Architecte DPLG (former title)"],
+    "definition": "Regulated professional involved in particular in architectural design and, depending on the assignment, in overseeing a construction or renovation project.",
+    "title": "Architect: role in a property project",
+    "description": "The architect’s role and the situations in which hiring one may be required in France."
+  },
+  "assainissement-collectif": {
+    "slug": "mains-sewerage",
+    "term": "Mains sewerage (assainissement collectif)",
+    "synonyms": ["Public sewer connection"],
+    "definition": "System in which waste water is carried to a public collection network and then treated by a suitable facility.",
+    "title": "Mains sewerage (assainissement collectif): definition",
+    "description": "How mains sewerage works and the useful checks when buying a property."
+  },
+  "assainissement-non-collectif": {
+    "slug": "private-sewage-system",
+    "term": "Private sewage system (assainissement non collectif)",
+    "synonyms": ["ANC", "Septic system"],
+    "definition": "Individual installation for collecting and treating domestic waste water from a home that is not connected to the public sewer network.",
+    "title": "Private sewage system (ANC): definition",
+    "description": "The principles of individual sewage treatment and the inspections to plan for depending on the property."
+  },
+  "attestation-de-propriete": {
+    "slug": "certificate-of-ownership",
+    "term": "Certificate of ownership (attestation de propriété)",
+    "synonyms": ["Property certificate"],
+    "definition": "Document drawn up in particular in an inheritance or a notarial formality to record the transfer or holding of property rights, depending on the context.",
+    "title": "Certificate of ownership: definition",
+    "description": "What a certificate of ownership is for and in which situations it may be issued in France."
+  },
+  "bail-mobilite": {
+    "slug": "mobility-lease",
+    "term": "Mobility lease (bail mobilité)",
+    "synonyms": ["Short-term furnished lease"],
+    "definition": "Short-term furnished lease reserved for certain categories of temporary tenants and subject to specific legal conditions.",
+    "title": "Mobility lease (bail mobilité): definition and conditions",
+    "description": "The main features of the French mobility lease and the conditions that apply to it."
+  },
+  "bailleur-social": {
+    "slug": "social-housing-landlord",
+    "term": "Social housing landlord (bailleur social)",
+    "synonyms": ["Social housing provider"],
+    "definition": "Organisation or entity that offers social rental housing within the rules and missions that apply to it.",
+    "title": "Social housing landlord: definition",
+    "description": "The role of a social housing landlord in providing social rental homes."
+  },
+  "bornage": {
+    "slug": "boundary-survey",
+    "term": "Boundary survey (bornage)",
+    "synonyms": ["Boundary marking"],
+    "definition": "Procedure that legally fixes the boundary between adjoining plots of land, carried out under the applicable rules and, where required, by a chartered surveyor (géomètre-expert).",
+    "title": "Boundary survey (bornage): definition and purpose",
+    "description": "What a boundary survey is for and why it can matter before buying or dividing a plot."
+  },
+  "budget-acquisition": {
+    "slug": "purchase-budget",
+    "term": "Purchase budget (budget d’acquisition)",
+    "synonyms": ["Total buying budget"],
+    "definition": "Overall amount a buyer plans to commit to buy a property, which may include the price, purchase costs, financing costs and planned works.",
+    "title": "Property purchase budget: definition",
+    "description": "How to tell the price of a property from the total budget a purchase really requires."
+  },
+  "caution": {
+    "slug": "guarantor",
+    "term": "Guarantor (caution)",
+    "synonyms": ["Surety", "Personal guarantee"],
+    "definition": "Person who undertakes, on the terms of the deed, to guarantee the payment of certain sums or the performance of obligations by another person. The word is also commonly used for the guarantee mechanism itself.",
+    "title": "Guarantor in a rental: definition",
+    "description": "The role of a guarantor and the difference between a guarantor and a security deposit."
+  },
+  "certificat-de-conformite": {
+    "slug": "certificate-of-compliance",
+    "term": "Certificate of compliance (certificat de conformité)",
+    "synonyms": ["Compliance of works"],
+    "definition": "Expression sometimes used for a document attesting compliance in a given context. In planning, the applicable formalities and documents must be identified precisely, as there is no single certificate for every situation.",
+    "title": "Compliance of building works: which documents?",
+    "description": "The documents that may come into play after building works and what to check depending on the project."
+  },
+  "certificat-urbanisme-operationnel": {
+    "slug": "detailed-planning-certificate",
+    "term": "Detailed planning certificate (certificat d’urbanisme opérationnel)",
+    "synonyms": ["CU opérationnel"],
+    "definition": "Planning certificate stating whether a described project can be carried out on a plot in view of the known rules and public utilities, without being a building permit in itself.",
+    "title": "Detailed planning certificate (CU opérationnel): definition",
+    "description": "What a detailed planning certificate tells you before you prepare a construction project in France."
+  },
+  "charges-recuperables": {
+    "slug": "recoverable-charges",
+    "term": "Recoverable charges (charges récupérables)",
+    "synonyms": ["Tenant service charges"],
+    "definition": "Expenses the landlord may ask the tenant to reimburse, within the limits and in the manner set by the applicable texts.",
+    "title": "Recoverable charges: definition",
+    "description": "The principle of recoverable charges and the split between landlord expenses and charges payable by the tenant."
+  },
+  "clause-penale": {
+    "slug": "penalty-clause",
+    "term": "Penalty clause (clause pénale)",
+    "synonyms": ["Liquidated damages clause"],
+    "definition": "Contract clause setting in advance a sum due in the event of non-performance or delay, subject to the review and rules provided for by the applicable law.",
+    "title": "Penalty clause in real estate: definition",
+    "description": "The role of a penalty clause in a property contract and why its wording deserves attention."
+  },
+  "coefficient-occupation-sols": {
+    "slug": "plot-ratio",
+    "term": "Plot ratio (coefficient d’occupation des sols, COS)",
+    "synonyms": ["COS", "Floor area ratio"],
+    "definition": "Former planning indicator that capped the buildable floor area in relation to the size of the plot. Its general use was abolished by national reforms, subject to the situations and documents that apply.",
+    "title": "Plot ratio (COS): definition",
+    "description": "What the French plot ratio (COS) meant and why current rules must be checked in the applicable planning document."
+  },
+  "combles": {
+    "slug": "loft-space",
+    "term": "Loft space (combles)",
+    "synonyms": ["Attic", "Roof space"],
+    "definition": "Space between a building’s top floor and its roof. Depending on its layout, it may be convertible or remain a non-habitable volume.",
+    "title": "Loft space: definition and conversion potential",
+    "description": "The difference between convertible and non-convertible loft space and what determines how it can be used."
+  },
+  "commission-agence": {
+    "slug": "agency-commission",
+    "term": "Agency commission (commission d’agence)",
+    "synonyms": ["Real estate commission"],
+    "definition": "Remuneration of a real estate professional when the conditions set out in the mandate and by regulation are met. How it is calculated and paid must be specified.",
+    "title": "Real estate agency commission: definition",
+    "description": "How an agency commission is defined and where to check the conditions of payment."
+  },
+  "compromis-sous-condition": {
+    "slug": "conditional-sale-agreement",
+    "term": "Conditional sale agreement (compromis sous condition suspensive)",
+    "synonyms": ["Conditional compromis"],
+    "definition": "Preliminary sale agreement whose final completion depends in particular on one or more conditions set out in the contract being met.",
+    "title": "Conditional sale agreement: definition",
+    "description": "How conditions precedent can frame a French preliminary sale agreement."
+  },
+  "conge-pour-vendre": {
+    "slug": "notice-to-sell",
+    "term": "Notice to quit in order to sell (congé pour vendre)",
+    "synonyms": ["Notice to sell"],
+    "definition": "Notice by which a landlord ends a residential lease in order to sell the home, in the cases and under the forms, time limits and pre-emption rights laid down by law.",
+    "title": "Notice to sell (congé pour vendre): definition and general rules",
+    "description": "The principle of a landlord’s notice to sell and why the time limits and formalities must be respected."
+  },
+  "diagnostic-plomb": {
+    "slug": "lead-survey",
+    "term": "Lead survey (diagnostic plomb, CREP)",
+    "synonyms": ["CREP", "Lead exposure risk report"],
+    "definition": "Report aimed at identifying the risk of lead exposure from the coatings of certain homes, depending in particular on their construction date and the applicable rules.",
+    "title": "Lead survey (CREP): definition and purpose",
+    "description": "In which situations a lead survey may be required and what it seeks to identify."
+  },
+  "diagnostic-termites": {
+    "slug": "termite-survey",
+    "term": "Termite survey (diagnostic termites)",
+    "synonyms": ["Termite report"],
+    "definition": "Report checking for termites in the areas and buildings covered by the applicable obligations, which depend in particular on local orders.",
+    "title": "Termite survey: definition",
+    "description": "The purpose of a termite survey and why the obligations depend on where the property is located."
+  },
+  "division-parcellaire": {
+    "slug": "land-division",
+    "term": "Land division (division parcellaire)",
+    "synonyms": ["Plot subdivision"],
+    "definition": "Operation that divides a landholding into several plots, subject to the applicable formalities and planning rules.",
+    "title": "Land division: definition and steps",
+    "description": "The main checks to carry out before dividing a plot of land into several parcels."
+  },
+  "droit-de-mutation": {
+    "slug": "transfer-duties",
+    "term": "Transfer duties (droits de mutation)",
+    "synonyms": ["Droits de mutation à titre onéreux", "DMTO", "Stamp duty"],
+    "definition": "Duties and taxes payable on certain transfers of assets or rights, in particular on the sale of a property. The amount depends on the applicable regime and the nature of the transaction.",
+    "title": "Property transfer duties: definition",
+    "description": "The role of transfer duties in the purchase costs of a property in France."
+  },
+  "encadrement-loyers": {
+    "slug": "rent-control",
+    "term": "Rent control (encadrement des loyers)",
+    "synonyms": ["Rent cap"],
+    "definition": "Regulatory scheme that limits, in certain areas and under certain conditions, the level or increase of residential rents.",
+    "title": "Rent control: definition and scope",
+    "description": "The principle of rent control and why the rules that apply at the home’s address must be checked."
+  },
+  "etat-datation": {
+    "slug": "co-ownership-financial-statement",
+    "term": "Co-ownership financial statement (état daté)",
+    "synonyms": ["État daté"],
+    "definition": "Document prepared by the managing agent when a co-ownership unit is sold, setting out certain financial information on the seller, the unit and the co-ownership, under the applicable rules.",
+    "title": "État daté: definition in a co-ownership sale",
+    "description": "The role of the état daté and the financial information it provides when a co-ownership unit is sold."
+  },
+  "frais-mainlevee": {
+    "slug": "mortgage-release-fees",
+    "term": "Mortgage release fees (frais de mainlevée)",
+    "synonyms": ["Charge removal fees"],
+    "definition": "Fees linked to removing a security registered against a property, when a release is needed and under the applicable formalities.",
+    "title": "Mortgage release fees: definition",
+    "description": "When mortgage release fees may arise on a sale or on repaying a loan."
+  },
+  "garantie-visale": {
+    "slug": "visale-guarantee",
+    "term": "Visale guarantee (garantie Visale)",
+    "synonyms": ["Visale"],
+    "definition": "Rental guarantee scheme offered by Action Logement for tenants and homes that meet its eligibility criteria. The conditions must be checked when applying.",
+    "title": "Visale guarantee: definition and conditions",
+    "description": "The principle of the Visale rental guarantee and the eligibility conditions to check before signing the lease."
+  },
+  "indemnite-immobilisation": {
+    "slug": "option-fee",
+    "term": "Option fee (indemnité d’immobilisation)",
+    "synonyms": ["Holding fee"],
+    "definition": "Sum provided for in some unilateral promises to sell in return for taking the property off the market during the option period, under the contractual and legal conditions.",
+    "title": "Option fee (indemnité d’immobilisation): definition",
+    "description": "What the option fee is in a French unilateral promise to sell."
+  },
+  "loi-pinel": {
+    "slug": "pinel-scheme",
+    "term": "Pinel scheme (dispositif Pinel)",
+    "synonyms": ["Pinel"],
+    "definition": "Former tax scheme for buy-to-let investment whose conditions and period of application are set by law. The rules that apply to each investment and its date must be checked.",
+    "title": "Pinel scheme: definition and points to watch",
+    "description": "The historical principle of the Pinel scheme and why the investment date is key to its tax treatment."
+  },
+  "loi-alur": {
+    "slug": "alur-law",
+    "term": "ALUR law (loi ALUR)",
+    "synonyms": ["Loi pour l’accès au logement et un urbanisme rénové"],
+    "definition": "French law that reformed several aspects of housing, letting, co-ownership and the real estate professions. Its provisions apply according to the texts in force and their amendments.",
+    "title": "ALUR law: definition and areas covered",
+    "description": "The main areas covered by the French ALUR law and why the provisions in force must be checked."
+  },
+  "loi-hoguet": {
+    "slug": "hoguet-law",
+    "term": "Hoguet law (loi Hoguet)",
+    "synonyms": ["Estate agent regulation"],
+    "definition": "Law governing certain professional activities relating to property transactions and property management, with obligations attached to carrying out these activities.",
+    "title": "Hoguet law: definition and professional obligations",
+    "description": "The role of the Hoguet law in regulating real estate professionals in France."
+  },
+  "mandat-exclusif": {
+    "slug": "exclusive-mandate",
+    "term": "Exclusive mandate (mandat exclusif)",
+    "synonyms": ["Exclusive listing"],
+    "definition": "Mandate by which the owner entrusts the marketing of the property to a single professional for the period and on the conditions set in the contract.",
+    "title": "Exclusive sale mandate: definition",
+    "description": "The principle of an exclusive mandate and the contract terms to examine before signing it."
+  },
+  "mandat-simple": {
+    "slug": "non-exclusive-mandate",
+    "term": "Non-exclusive mandate (mandat simple)",
+    "synonyms": ["Open listing"],
+    "definition": "Mandate allowing the owner to entrust the marketing of the property to a professional while keeping, subject to the contract, the option of using other agencies or selling privately.",
+    "title": "Non-exclusive sale mandate: definition",
+    "description": "How a non-exclusive mandate works and how it differs from an exclusive mandate."
+  },
+  "offre-achat": {
+    "slug": "purchase-offer",
+    "term": "Purchase offer (offre d’achat)",
+    "synonyms": ["Offer to buy"],
+    "definition": "Proposal made by a prospective buyer stating in particular the price offered and, where relevant, certain conditions. Its effect depends on its wording, its acceptance and the circumstances.",
+    "title": "Purchase offer on a property: definition",
+    "description": "What to state in a purchase offer and the points to watch before sending it."
+  },
+  "pret-amortissable": {
+    "slug": "repayment-loan",
+    "term": "Repayment loan (prêt amortissable)",
+    "synonyms": ["Amortising loan"],
+    "definition": "Loan whose capital is repaid gradually with each instalment, usually made up of a capital part and an interest part.",
+    "title": "Repayment (amortising) mortgage: definition",
+    "description": "How a repayment loan works and what monthly instalments are usually made of."
+  },
+  "pret-taux-fixe": {
+    "slug": "fixed-rate-mortgage",
+    "term": "Fixed-rate mortgage (prêt à taux fixe)",
+    "synonyms": ["Fixed-rate loan"],
+    "definition": "Loan whose nominal interest rate stays the same for the term set in the contract, subject to the applicable contract terms.",
+    "title": "Fixed-rate mortgage: definition",
+    "description": "The features of a fixed-rate mortgage and what to compare in a loan offer."
+  },
+  "reglement-lotissement": {
+    "slug": "subdivision-regulations",
+    "term": "Subdivision regulations (règlement de lotissement)",
+    "synonyms": ["Housing estate rules"],
+    "definition": "Document that may set rules specific to a housing subdivision, subject to its scope, its duration and the applicable legal rules. It must be distinguished from public planning documents.",
+    "title": "Subdivision regulations: definition",
+    "description": "The role of subdivision regulations and the useful checks before buying a plot."
+  },
+  "retrait-gonflement-argiles": {
+    "slug": "clay-shrink-swell",
+    "term": "Clay shrink-swell (retrait-gonflement des argiles)",
+    "synonyms": ["RGA", "Clay soil movement", "Subsidence"],
+    "definition": "Phenomenon caused by changes in the volume of certain clay soils depending in particular on their water content, which can lead to ground movement and damage buildings.",
+    "title": "Clay shrink-swell: definition",
+    "description": "The clay shrink-swell phenomenon and why it matters when assessing the risks of a plot."
+  },
+  "syndic-benevole": {
+    "slug": "volunteer-managing-agent",
+    "term": "Volunteer managing agent (syndic bénévole)",
+    "synonyms": ["Non-professional managing agent"],
+    "definition": "Co-owner elected to act as managing agent without carrying out this role as a paid professional, under the conditions laid down by regulation.",
+    "title": "Volunteer managing agent: definition and role",
+    "description": "The role of a volunteer managing agent and the responsibilities of running a co-ownership."
+  },
+  "tantiemes-copropriete": {
+    "slug": "co-ownership-shares",
+    "term": "Co-ownership shares (tantièmes)",
+    "synonyms": ["Millièmes", "Ownership quotas"],
+    "definition": "Share expressing a unit’s portion of the co-ownership, used in particular to split certain charges and to determine voting rights under the applicable rules.",
+    "title": "Co-ownership shares (tantièmes): definition",
+    "description": "What tantièmes represent and their role in splitting charges and in co-ownership votes."
+  },
+  "taux-endettement": {
+    "slug": "debt-to-income-ratio",
+    "term": "Debt-to-income ratio (taux d’endettement)",
+    "synonyms": ["Debt ratio"],
+    "definition": "Ratio between the loan repayments taken into account and the income considered in a borrower’s financial assessment, according to the lender’s criteria.",
+    "title": "Debt-to-income ratio for a mortgage: definition",
+    "description": "What the debt-to-income ratio means and the other points examined in a mortgage application."
+  },
+  "usufruit-temporaire": {
+    "slug": "temporary-usufruct",
+    "term": "Temporary usufruct (usufruit temporaire)",
+    "synonyms": ["Fixed-term usufruct"],
+    "definition": "Right to use a property and receive its income for a fixed period without holding the bare ownership, according to how the right was created.",
+    "title": "Temporary usufruct: definition",
+    "description": "The principle of temporary usufruct and the difference between usufruct and bare ownership."
+  },
+  "vente-aux-encheres-immobilieres": {
+    "slug": "property-auction",
+    "term": "Property auction (vente aux enchères immobilières)",
+    "synonyms": ["Real estate auction"],
+    "definition": "Sale procedure in which candidates place bids under set rules. The terms, effects and safeguards vary depending in particular on whether it is a court-ordered or a notarial sale.",
+    "title": "Property auctions: definition",
+    "description": "The principles of a property auction and the precautions to take before bidding."
+  }
+}
