@@ -27,7 +27,7 @@ assert.match(read('apps/jobs/apps/web/entry.jsx'), /ZJobsDemo/);
 
 // Montra: páginas estáticas em francês; antigos endereços em português → 301.
 const montra = json('apps/jobs/apps/montra/vercel.json');
-for (const route of ['candidats', 'employeurs', 'outils', 'entreprise']) {
+for (const route of ['candidats', 'employeurs', 'outils', 'entreprise', 'mentions-legales']) {
   assert.ok(montra.rewrites.some((r) => r.source === `/${route}` && r.destination === `/${route}.html`), route);
   assert.ok(existsSync(`apps/jobs/apps/montra/${route}.html`), route);
 }
