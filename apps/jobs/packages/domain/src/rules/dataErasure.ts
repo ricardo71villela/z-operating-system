@@ -33,7 +33,8 @@ export type CandidateErasureTable =
   | 'applications'
   | 'application_status_history'
   | 'application_notes'
-  | 'application_messages';
+  | 'application_messages'
+  | 'application_answers';
 
 export type ErasureAction =
   | {
@@ -93,6 +94,13 @@ export function planCandidateErasure(ctx: ErasureContext): ErasurePlan {
     action: 'delete',
     reason:
       'Mensagens trocadas sobre as candidaturas (dos dois lados) são texto livre pessoal.',
+  });
+
+  actions.push({
+    table: 'application_answers',
+    action: 'delete',
+    reason:
+      'Respostas às perguntas do empregador são texto livre sobre o candidato.',
   });
 
   actions.push({

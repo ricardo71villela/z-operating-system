@@ -82,6 +82,9 @@ const COPY = {
     duration: 'Durée du contrat',
     process: 'Déroulement du recrutement',
     languages: 'Langues',
+    questions: 'Questions de l’employeur',
+    questionsIntro: 'Vous y répondrez en postulant. Les réponses aident l’employeur à lire votre candidature ; elles ne la rejettent jamais automatiquement.',
+    optional: 'facultatif',
     similar: 'Offres similaires',
     allOffers: 'Toutes les offres',
     salaryShown: 'Salaire affiché par l’employeur, comparé aux grilles officielles des conventions collectives.',
@@ -118,6 +121,9 @@ const COPY = {
     duration: 'Contract length',
     process: 'Hiring process',
     languages: 'Languages',
+    questions: 'Questions from the employer',
+    questionsIntro: 'You will answer them when you apply. The answers help the employer read your application; they never reject it automatically.',
+    optional: 'optional',
     similar: 'Similar jobs',
     allOffers: 'All jobs',
     salaryShown: 'Salary shown by the employer, compared with the official collective-agreement scales.',
@@ -305,7 +311,8 @@ const PAGE_STYLE = `
   .offer-layout{ display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:48px; align-items:start; padding-top:40px; padding-bottom:72px; }
   .offer-body h2{ font-size:26px; margin:34px 0 10px; } .offer-body h2:first-child{ margin-top:0; }
   .offer-body p, .offer-body li{ color:var(--zj-text); font-size:15.5px; }
-  .offer-body ul{ padding-left:20px; }
+  .offer-body ul, .offer-body ol{ padding-left:20px; }
+  .offer-body small{ color:var(--zj-muted); }
   .offer-aside{ position:sticky; top:104px; border:1px solid var(--zj-line); background:#fff; padding:26px; box-shadow:0 18px 50px rgba(58,66,80,.06); }
   .facts{ margin:0; display:grid; gap:12px; }
   .facts div{ display:grid; gap:2px; padding-bottom:12px; border-bottom:1px solid var(--zj-line); }
@@ -391,7 +398,7 @@ function shortText(text: string, max: number): string {
 }
 
 // ------------------------------------------------------------------ pages
-export function renderOfferPage(o: PublicOfferPage, similar: PublicOfferRecord[], locale: PageLocale): string {
+export function renderOfferPage(o: PublicOfferPage, similar: PublicOfferRecord[], locale: PageLocale, questions: { label: string; kind: string; required: boolean }[] = []): string {
   const c = COPY[locale];
   const path = offerPath(o);
   const frUrl = absoluteUrl(path, 'fr');
@@ -468,6 +475,7 @@ ${navHtml(locale, path, path + '?lang=en')}
   <article class="offer-body">
 ${sections.filter(([, text]) => text && String(text).trim()).map(([h, text]) => `    <h2>${esc(h)}</h2>\n    ${textToHtml(text)}`).join('\n')}
 ${languages ? `    <h2>${esc(c.languages)}</h2>\n    <p>${esc(languages)}</p>` : ''}
+${questions.length ? `    <h2>${esc(c.questions)}</h2>\n    <p>${esc(c.questionsIntro)}</p>\n    <ol>${questions.map((q) => `<li>${esc(q.label)}${q.required ? '' : ` <small>(${esc(c.optional)})</small>`}</li>`).join('')}</ol>` : ''}
   </article>
   <aside class="offer-aside" aria-label="${esc(c.apply)}">
     <dl class="facts">

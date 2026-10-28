@@ -63,6 +63,7 @@ import type {
   PublicOfferPage,
 } from './store';
 
+import type { ScreeningQuestion } from '../../../packages/domain/src/rules/screeningQuestions';
 import { RESPONSE_DEADLINE_DAYS } from '../../../packages/domain/src/rules/responseDeadline';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -1064,6 +1065,64 @@ export class PgStore {
     return this.rowToApplication(rows[0], [{ from_status: null, to_status: 'submitted', created_at: rows[0].created_at }]);
   }
 
+  // ---------------------------------------------------- screening questions
+  async getOfferQuestions(jobOfferId: string): Promise<ScreeningQuestion[]> {
+    const { rows } = await this.query(
+      `select id, position, kind, label, required from job_offer_questions where job_offer_id = $1 order by position`,
+      [jobOfferId],
+    );
+    return rows.map((r) => ({ id: r.id, position: Number(r.position), kind: r.kind, label: r.label, required: r.required }));
+  }
+
+  /** Replaces all the questions of an offer (RLS: employer, draft or needs_changes only). */
+  async replaceOfferQuestions(
+    jobOfferId: string,
+    questions: { position: number; kind: string; label: string; required: boolean }[],
+  ): Promise<ScreeningQuestion[]> {
+    await this.query(`delete from job_offer_questions where job_offer_id = $1`, [jobOfferId]);
+    for (const q of questions) {
+      await this.query(
+        `insert into job_offer_questions (job_offer_id, position, kind, label, required) values ($1, $2, $3, $4, $5)`,
+        [jobOfferId, q.position, q.kind, q.label, q.required],
+      );
+    }
+    return this.getOfferQuestions(jobOfferId);
+  }
+
+  async saveApplicationExtras(applicationId: string, extras: { coverNote?: string | null; answers?: { questionId: string; answer: string }[] }) {
+    if (extras.coverNote) {
+      await this.query(`update applications set cover_note = $1 where id = $2`, [extras.coverNote, applicationId]);
+    }
+    for (const a of extras.answers ?? []) {
+      await this.query(
+        `insert into application_answers (application_id, question_id, answer) values ($1, $2, $3)`,
+        [applicationId, a.questionId, a.answer],
+      );
+    }
+  }
+
+  /** Cover note and answers (with the question) of each application, for the employer and the candidate. */
+  async getApplicationExtras(applicationIds: string[]): Promise<Record<string, { coverNote: string | null; answers: { questionId: string; position: number; kind: string; label: string; answer: string }[] }>> {
+    const out: Record<string, { coverNote: string | null; answers: { questionId: string; position: number; kind: string; label: string; answer: string }[] }> = {};
+    if (applicationIds.length === 0) return out;
+    const notes = await this.query(`select id, cover_note from applications where id = any($1::uuid[])`, [applicationIds]);
+    for (const r of notes.rows) out[r.id] = { coverNote: r.cover_note ?? null, answers: [] };
+    const { rows } = await this.query(
+      `select r.application_id, r.question_id, r.answer, q.position, q.kind, q.label
+         from application_answers r
+         join job_offer_questions q on q.id = r.question_id
+        where r.application_id = any($1::uuid[])
+        order by q.position`,
+      [applicationIds],
+    );
+    for (const r of rows) {
+      (out[r.application_id] ??= { coverNote: null, answers: [] }).answers.push({
+        questionId: r.question_id, position: Number(r.position), kind: r.kind, label: r.label, answer: r.answer,
+      });
+    }
+    return out;
+  }
+
   async listApplicationsForOffer(jobOfferId: string): Promise<ApplicationRecord[]> {
     const { rows } = await this.query(`select * from applications where job_offer_id = $1`, [jobOfferId]);
     // Sequencial, não Promise.all — ver nota em getCandidateProfileBundle.
@@ -1756,6 +1815,17 @@ export class PgStore {
         if (action.table === 'application_messages') {
           await this.query(
             `delete from application_messages
+             where application_id in (
+               select id from applications where candidate_id = $1
+             )`,
+            [candidateId],
+          );
+          continue;
+        }
+
+        if (action.table === 'application_answers') {
+          await this.query(
+            `delete from application_answers
              where application_id in (
                select id from applications where candidate_id = $1
              )`,
