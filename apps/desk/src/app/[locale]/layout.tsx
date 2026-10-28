@@ -20,5 +20,5 @@ export default async function LocaleLayout({ children, params }: { children: Rea
   if (!hasLocale(routing.locales, locale)) notFound();
   setRequestLocale(locale);
   const t = await getTranslations('Nav');
-  return <html lang={locale} className={`${dmSans.variable} ${cormorant.variable}`}><body><NextIntlClientProvider><DeskShell locale={locale} labels={{ today:t('today'), visits:t('visits'), inbox:t('inbox'), tasks:t('tasks'), calendar:t('calendar'), personnel:t('personnel'), contacts:t('contacts'), team:t('team'), settings:t('settings'), workspace:t('workspace'), skipToContent:t('skipToContent'), signOut:t('signOut') }}>{children}</DeskShell></NextIntlClientProvider></body></html>;
+  return <html lang={locale} className={`${dmSans.variable} ${cormorant.variable}`}><body><NextIntlClientProvider><DeskShell locale={locale} labels={{ today:t('today'), requests:t('requests'), requestsAlertTitle:t('requestsAlertTitle'), requestsAlertBody:t('requestsAlertBody'), visits:t('visits'), inbox:t('inbox'), tasks:t('tasks'), calendar:t('calendar'), personnel:t('personnel'), contacts:t('contacts'), team:t('team'), settings:t('settings'), workspace:t('workspace'), skipToContent:t('skipToContent'), signOut:t('signOut') }}>{children}</DeskShell></NextIntlClientProvider></body></html>;
 }

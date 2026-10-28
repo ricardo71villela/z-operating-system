@@ -198,3 +198,10 @@
 .visit-decline { margin-top: 4px; }
 .visit-decline input { min-width: min(320px, 100%); }
 .visit-history-title { display: block; margin-top: 6px; }
+
+/* Marketplace requests (Z Desk Lite) */
+.desk-nav a .nav-count { margin-left: auto; min-width: 20px; padding: 1px 7px; border-radius: 999px; background: var(--gold); color: var(--white); font-size: 11px; font-weight: 600; text-align: center; }
+.request-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+.request-alerts { display: flex; justify-content: flex-end; margin: 0 0 12px; }
+.request-card.compact .visit-head strong { font-size: 13px; }
+.badge.source { background: var(--gray-100, #f0efe9); color: var(--gray-700, #3a3834); }

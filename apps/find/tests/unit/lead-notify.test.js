@@ -55,6 +55,7 @@ const row = o => Object.assign({ lead_id: 'l1', created_at: '2026-10-04T10:00:00
   check('visit request: its own subject and a link to confirm a slot in Z Desk (not the partner panel)',
     visitMail && visitMail.subject === 'Demande de visite : T3 vue lac' && visitMail.html.includes('Demande de visite (créneaux proposés)')
     && visitMail.html.includes('https://z-desk.vercel.app/fr/visits') && !visitMail.html.includes('Voir mes demandes') && visitMail.text.includes('Z Desk'));
+  check('contact request: « Répondre dans Z Desk » (Demandes inbox) + agency space link', toAgency.html.includes('https://z-desk.vercel.app/fr/requests') && toAgency.html.includes('Répondre dans Z Desk') && toAgency.text.includes('Répondre dans Z Desk') && toAgency.text.includes('https://partner.zfind.online'));
 
   mails.length = 0; calls.length = 0; failMailTo = 'agent@lac-immo.fr'; pending = [row()];
   const report = await api._internals.processPending(10);
