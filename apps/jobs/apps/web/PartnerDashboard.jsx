@@ -9,6 +9,7 @@ import {
   TEMP_AGENCY_CONTRACT_TYPES, VerificationBadge, formatDate, offerStatusLabel, pillarLabel, statusLabel,
   LocationPicker, OfferPlace, companyPageUrl, naceSectionLabel, ResponseDeadlineNote, MessageThread,
 } from "./shared.jsx";
+import { QuestionsEditor, OfferQuestions, ApplicationAnswers } from "./ScreeningQuestions.jsx";
 
 const PIPELINE_COLUMNS = [
   { key: "new", statuses: ["submitted", "received"] },
@@ -99,7 +100,7 @@ export function PartnerDashboard(props) {
           {org.verificationStatus !== "verified" && org.verificationStatus !== "enhanced_verified" && (
             <p className="zj-notice">{t("offer_needs_verification")}</p>
           )}
-          <OfferForm onSearchLocations={props.onSearchLocations} onCreate={async (draft) => { const ok = await props.onCreateOffer(org.id, draft); if (ok) setSection("offers"); }} />
+          <OfferForm onSearchLocations={props.onSearchLocations} onCreate={async (draft, questions) => { const ok = await props.onCreateOffer(org.id, draft, questions); if (ok) setSection("offers"); }} />
         </div>
       )}
     </section>
@@ -177,7 +178,7 @@ function OrgOverview({ org, offers, toProcess, go, openCandidates, onRequestVeri
   );
 }
 
-function OffersList({ offers, onSubmitForReview, openCandidates, translations, onAddTranslation, onFetchPoolInsight, go }) {
+function OffersList({ offers, onSubmitForReview, openCandidates, translations, onAddTranslation, onFetchPoolInsight, onLoadQuestions, onSaveQuestions, go }) {
   const [poolByOffer, setPoolByOffer] = useState({});
   async function showPool(offerId) {
     try {
@@ -234,6 +235,9 @@ function OffersList({ offers, onSubmitForReview, openCandidates, translations, o
                 )}
                 {poolByOffer[o.id]?.error && <p className="zj-empty">{poolByOffer[o.id].error}</p>}
               </div>
+              {(o.status === "draft" || o.status === "needs_changes") && onLoadQuestions && (
+                <OfferQuestions offerId={o.id} onLoad={onLoadQuestions} onSave={onSaveQuestions} />
+              )}
               {o.status === "published" && <TranslationEditor offerId={o.id} translations={translations} onAdd={onAddTranslation} />}
             </li>
           );
@@ -342,6 +346,7 @@ function PipelineCard({ application: a, score, onMove, onLoadMessages, onSendMes
       <span className={`zj-status status-${a.status}`}>{statusLabel(a.status)}</span>
       <span className="zj-hint-inline">{t("applied_on", { date: formatDate(a.createdAt) })}</span>
       <ResponseDeadlineNote response={a.response} audience="employer" />
+      <ApplicationAnswers coverNote={a.coverNote} answers={a.answers} />
       <MessageThread applicationId={a.id} title={label} unread={a.unreadMessages || 0} audience="employer" onLoad={onLoadMessages} onSend={onSendMessage} />
       {score && (
         <details className="zj-score-details">
@@ -380,6 +385,7 @@ function OfferForm({ onCreate, onSearchLocations }) {
   const [equalTreatmentConfirmed, setEqualTreatmentConfirmed] = useState(false);
   const [derogationReference, setDerogationReference] = useState("");
   const [informedOfPermanentVacancies, setInformedOfPermanentVacancies] = useState(false);
+  const [questions, setQuestions] = useState([]);
   const isTempAgency = TEMP_AGENCY_CONTRACT_TYPES.includes(contractType);
   const salaryOk = Number(salaryMin) > 0 && (!salaryMax || Number(salaryMax) >= Number(salaryMin));
   const placeOk = !!location || regime === "remote";
@@ -398,7 +404,7 @@ function OfferForm({ onCreate, onSearchLocations }) {
         collectiveAgreementDerogationReference: derogationReference || null,
         informedOfPermanentVacancies,
       } : {}),
-    });
+    }, questions.filter((q) => q.label.trim()));
   }
 
   return (
@@ -469,6 +475,7 @@ function OfferForm({ onCreate, onSearchLocations }) {
           <label className="zj-checkbox"><input type="checkbox" checked={informedOfPermanentVacancies} onChange={(e) => setInformedOfPermanentVacancies(e.target.checked)} /> {t("permanent_vacancies")}</label>
         </fieldset>
       )}
+      <QuestionsEditor value={questions} onChange={setQuestions} />
       <button type="submit" className="zj-btn is-primary" disabled={!title || !description || !salaryOk || !placeOk}>
         {t("save_draft")} <ArrowRight size={14} aria-hidden="true" />
       </button>
