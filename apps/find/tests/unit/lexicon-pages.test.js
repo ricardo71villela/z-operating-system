@@ -18,7 +18,7 @@ const byPath = new Map(pages.map(p => [p.path, p.html]));
 
 console.log('\n=== 1. données ===');
 check('CSV : guillemets, virgules et retours à la ligne', JSON.stringify(L.parseCsv('﻿a,b\n"x, ""y""","l1\nl2"\n')) === JSON.stringify([{ a: 'x, "y"', b: 'l1\nl2' }]));
-check('79 termes, tous traduits en anglais', terms.length === 79 && terms.every(t => t.termEn && t.definitionEn && t.slugEn));
+check('150 termes, tous traduits en anglais', terms.length === 150 && terms.every(t => t.termEn && t.definitionEn && t.slugEn));
 check('slugs FR et EN uniques', new Set(terms.map(t => t.slug)).size === terms.length && new Set(terms.map(t => t.slugEn)).size === terms.length);
 check('catégories traduites', terms.every(t => L.CATEGORY_EN[t.category] === t.categoryEn));
 check('termes liés : uniquement des termes existants, jamais lui-même', terms.every(t => t.related.every(r => terms.includes(r) && r !== t)));
@@ -30,14 +30,14 @@ check('chaque terme a au moins 2 termes liés', terms.every(t => t.related.lengt
 check('outils : seulement des clés connues', Object.values(L.TERM_TOOLS).every(keys => keys.every(k => ['frais', 'pret', 'capacite', 'rentabilite', 'estimation', 'prix', 'guide'].includes(k))) && Object.keys(L.TERM_TOOLS).every(s => terms.some(t => t.slug === s)));
 
 console.log('\n=== 2. pages ===');
-check('160 pages : 2 sommaires + 79 termes × 2 langues', pages.length === 160 && byPath.has('/fr/lexique-immobilier') && byPath.has('/en/real-estate-glossary'));
+check('302 pages : 2 sommaires + 150 termes × 2 langues', pages.length === 302 && byPath.has('/fr/lexique-immobilier') && byPath.has('/en/real-estate-glossary'));
 const fr = byPath.get('/fr/lexique-immobilier/dpe');
 const en = byPath.get('/en/real-estate-glossary/energy-performance-certificate');
 check('terme FR : lang, canonical, H1, indexable', fr.includes('<html lang="fr">') && fr.includes('<link rel="canonical" href="https://zfind.online/fr/lexique-immobilier/dpe">') && fr.includes('<h1>Diagnostic de performance énergétique (DPE)</h1>') && fr.includes('content="index,follow"'));
 check('terme EN : lang, canonical, H1', en.includes('<html lang="en">') && en.includes('<link rel="canonical" href="https://zfind.online/en/real-estate-glossary/energy-performance-certificate">') && en.includes('<h1>Energy performance certificate (DPE)</h1>'));
 check('hreflang croisés fr/en et x-default en français', [fr, en].every(h => h.includes('hreflang="fr" href="https://zfind.online/fr/lexique-immobilier/dpe"') && h.includes('hreflang="en" href="https://zfind.online/en/real-estate-glossary/energy-performance-certificate"') && h.includes('hreflang="x-default" href="https://zfind.online/fr/lexique-immobilier/dpe"')));
 check('JSON-LD DefinedTerm + fil d’Ariane', fr.includes('"@type":"DefinedTerm"') && fr.includes('"inDefinedTermSet"') && fr.includes('"BreadcrumbList"'));
-check('sommaires : DefinedTermSet de 79 termes', ['/fr/lexique-immobilier', '/en/real-estate-glossary'].every(p => { const m = byPath.get(p).match(/"hasDefinedTerm":\[(.*?)\]/); return m && (m[1].match(/"DefinedTerm"/g) || []).length === 79; }));
+check('sommaires : DefinedTermSet de 150 termes', ['/fr/lexique-immobilier', '/en/real-estate-glossary'].every(p => { const m = byPath.get(p).match(/"hasDefinedTerm":\[(.*?)\]/); return m && (m[1].match(/"DefinedTerm"/g) || []).length === 150; }));
 check('frais d’acquisition → simulateur de frais de notaire', byPath.get('/fr/lexique-immobilier/frais-acquisition').includes('href="https://zfind.online/fr/frais-de-notaire"'));
 check('capacité d’emprunt → simulateur (FR) et outil anglais (EN)', byPath.get('/fr/lexique-immobilier/capacite-emprunt').includes('/fr/capacite-emprunt"') && byPath.get('/en/real-estate-glossary/borrowing-capacity').includes('/#/en/simulator?market=FR&amp;mode=capacity'));
 check('page EN sans texte français d’interface', !/Termes liés|Outils gratuits|Aussi appelé|Catégorie/.test(en) && en.includes('Related terms') && en.includes('Also known as:'));

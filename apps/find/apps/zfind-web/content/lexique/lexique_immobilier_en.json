@@ -630,5 +630,573 @@
     "definition": "Sale procedure in which candidates place bids under set rules. The terms, effects and safeguards vary depending in particular on whether it is a court-ordered or a notarial sale.",
     "title": "Property auctions: definition",
     "description": "The principles of a property auction and the precautions to take before bidding."
+  },
+  "estimation-immobiliere": {
+    "slug": "property-valuation",
+    "term": "Property valuation (estimation immobilière)",
+    "synonyms": ["Appraisal", "Market appraisal"],
+    "definition": "Assessment of what a property is worth at a given date, based in particular on comparable sales, location, floor area, condition and features. A valuation gives a price range and is not a formal expert appraisal.",
+    "title": "Property valuation (estimation immobilière): definition",
+    "description": "Property valuation: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "prix-au-metre-carre": {
+    "slug": "price-per-square-metre",
+    "term": "Price per square metre (prix au m²)",
+    "synonyms": ["Price per m²", "Price per sq m"],
+    "definition": "Price of a property divided by its floor area. The median price per m² of a municipality, based on recorded sales, is a benchmark for comparing properties, but condition, floor, view or land make it vary.",
+    "title": "Price per square metre (prix au m²): definition",
+    "description": "Price per square metre: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "prix-de-vente": {
+    "slug": "sale-price",
+    "term": "Sale price (prix de vente)",
+    "synonyms": ["Net seller price", "Price including agency fees"],
+    "definition": "Price at which a property is sold. A listing must state whether the price shown includes agency fees and, where it does, the price before fees and the share of fees paid by the buyer.",
+    "title": "Sale price (prix de vente): definition",
+    "description": "Sale price: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "negociation-immobiliere": {
+    "slug": "price-negotiation",
+    "term": "Price negotiation (négociation immobilière)",
+    "synonyms": ["Negotiation margin"],
+    "definition": "Difference obtained between the asking price and the price finally agreed. It depends on the local market, how long the property has been for sale, its condition and the gap between the asking price and recorded prices.",
+    "title": "Price negotiation (négociation immobilière): definition",
+    "description": "Price negotiation: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "promesse-unilaterale-de-vente": {
+    "slug": "unilateral-promise-to-sell",
+    "term": "Unilateral promise to sell (promesse unilatérale de vente)",
+    "synonyms": ["Purchase option"],
+    "definition": "Pre-contract by which the seller undertakes to sell at a set price during an option period, while the buyer remains free to buy or not. It often provides for an option fee.",
+    "title": "Unilateral promise to sell (promesse unilatérale de vente): definition",
+    "description": "Unilateral promise to sell: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "droit-de-retractation": {
+    "slug": "cooling-off-period",
+    "term": "Cooling-off period (droit de rétractation)",
+    "synonyms": ["Right of withdrawal"],
+    "definition": "Right of a non-professional buyer of a home to withdraw from the pre-contract after signing it, without reason or penalty, within the statutory period that starts when it is notified. In France this period is 10 days.",
+    "title": "Cooling-off period (droit de rétractation): definition",
+    "description": "Cooling-off period: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "depot-de-garantie": {
+    "slug": "purchase-deposit",
+    "term": "Purchase deposit (dépôt de garantie)",
+    "synonyms": ["Escrow deposit"],
+    "definition": "Sum paid by the buyer when signing the pre-contract and held by a third party (notary or authorised estate agent) until completion. It counts towards the price or is returned under the contract terms.",
+    "title": "Purchase deposit (dépôt de garantie): definition",
+    "description": "Purchase deposit: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "agent-immobilier": {
+    "slug": "estate-agent",
+    "term": "Estate agent (agent immobilier)",
+    "synonyms": ["Real estate agent", "Realtor"],
+    "definition": "Professional holding a professional licence who acts in the sale or letting of other people’s property under a written mandate. In France the activity is regulated by the Hoguet law.",
+    "title": "Estate agent (agent immobilier): definition",
+    "description": "Estate agent: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "mandataire-immobilier": {
+    "slug": "independent-property-agent",
+    "term": "Independent property agent (mandataire immobilier)",
+    "synonyms": ["Self-employed estate agent"],
+    "definition": "Self-employed commercial agent who finds and assists clients on behalf of a network or agency holding the professional licence, under that agency’s responsibility.",
+    "title": "Independent property agent (mandataire immobilier): definition",
+    "description": "Independent property agent: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "dossier-de-diagnostic-technique": {
+    "slug": "technical-survey-file",
+    "term": "Technical survey file (dossier de diagnostic technique)",
+    "synonyms": ["DDT"],
+    "definition": "All the surveys the seller or landlord must provide depending on the property and its location: energy performance, asbestos, lead, termites, gas, electrical installation, sewage, risk disclosure, etc. It is attached to the pre-contract or lease.",
+    "title": "Technical survey file (dossier de diagnostic technique): definition",
+    "description": "Technical survey file: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "diagnostic-immobilier": {
+    "slug": "property-survey",
+    "term": "Property survey (diagnostic immobilier)",
+    "synonyms": ["Mandatory surveys"],
+    "definition": "Inspection carried out by a certified surveyor to inform the buyer or tenant about one aspect of the property (energy, asbestos, lead, electrics, gas, termites…). Each survey has its own period of validity.",
+    "title": "Property survey (diagnostic immobilier): definition",
+    "description": "Property survey: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "indivision": {
+    "slug": "joint-ownership",
+    "term": "Joint ownership (indivision)",
+    "synonyms": ["Undivided co-ownership"],
+    "definition": "Situation in which several people jointly hold rights over the same property without physical division, for example after an inheritance or a purchase by two people. Major decisions follow majority or unanimity rules.",
+    "title": "Joint ownership (indivision): definition",
+    "description": "Joint ownership: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "nue-propriete": {
+    "slug": "bare-ownership",
+    "term": "Bare ownership (nue-propriété)",
+    "synonyms": ["Bare owner"],
+    "definition": "Right to dispose of a property without using it or receiving its income, which belong to the usufructuary. When the usufruct ends, the bare owner becomes full owner.",
+    "title": "Bare ownership (nue-propriété): definition",
+    "description": "Bare ownership: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "usufruit": {
+    "slug": "usufruct",
+    "term": "Usufruct (usufruit)",
+    "synonyms": ["Life interest"],
+    "definition": "Right to use a property and receive its income (rent, for example) without owning it. A usufruct may be for life or for a fixed term and ends at the latest on the usufructuary’s death.",
+    "title": "Usufruct (usufruit): definition",
+    "description": "Usufruct: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "droit-de-preemption": {
+    "slug": "pre-emption-right",
+    "term": "Pre-emption right (droit de préemption)",
+    "synonyms": ["Right of first refusal"],
+    "definition": "Right granted by law to a public body (such as the municipality) or, in some cases, to the tenant or a joint owner, to buy a property first when it is put up for sale. The notary clears this right before completion.",
+    "title": "Pre-emption right (droit de préemption): definition",
+    "description": "Pre-emption right: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "hypotheque": {
+    "slug": "mortgage-charge",
+    "term": "Mortgage charge (hypothèque)",
+    "synonyms": ["Legal charge", "Lien"],
+    "definition": "Security registered against a property that guarantees the repayment of a loan: if the borrower does not repay, the lender can have the property sold. It is published in the land registry.",
+    "title": "Mortgage charge (hypothèque): definition",
+    "description": "Mortgage charge: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "adjudication": {
+    "slug": "auction-award",
+    "term": "Auction award (adjudication)",
+    "synonyms": ["Knock-down"],
+    "definition": "Award of a property to the highest bidder at the end of a court-ordered or notarial auction. The successful bidder must pay the price and costs within the time limits set by the conditions of sale.",
+    "title": "Auction award (adjudication): definition",
+    "description": "Auction award: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "assurance-emprunteur": {
+    "slug": "mortgage-insurance",
+    "term": "Borrower insurance (assurance emprunteur)",
+    "synonyms": ["Loan protection insurance"],
+    "definition": "Insurance that covers all or part of the instalments or outstanding capital if the borrower dies or becomes disabled or unable to work, depending on the contract. The borrower may choose another insurer than the bank’s if the cover is equivalent.",
+    "title": "Borrower insurance (assurance emprunteur): definition",
+    "description": "Borrower insurance: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "taeg": {
+    "slug": "annual-percentage-rate",
+    "term": "Annual percentage rate (TAEG)",
+    "synonyms": ["APR", "APRC"],
+    "definition": "Rate expressing the total cost of a loan over a year, including interest, arrangement fees, required insurance and guarantee costs. It makes it possible to compare loan offers.",
+    "title": "Annual percentage rate (TAEG): definition",
+    "description": "Annual percentage rate: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "taux-usure": {
+    "slug": "usury-rate",
+    "term": "Usury rate (taux d’usure)",
+    "synonyms": ["Legal maximum rate"],
+    "definition": "Maximum rate, insurance and fees included, at which a loan may be granted. It is set by the Banque de France for each category of loan and revised periodically.",
+    "title": "Usury rate (taux d’usure): definition",
+    "description": "Usury rate: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "pret-a-taux-zero": {
+    "slug": "zero-interest-loan",
+    "term": "Zero-interest loan (prêt à taux zéro, PTZ)",
+    "synonyms": ["PTZ"],
+    "definition": "State-supported interest-free loan for certain first-time buyers, subject to income, location and type of home. It tops up a main loan; its conditions are set by the regulations in force.",
+    "title": "Zero-interest loan (prêt à taux zéro, PTZ): definition",
+    "description": "Zero-interest loan: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "offre-de-pret": {
+    "slug": "mortgage-offer",
+    "term": "Mortgage offer (offre de prêt)",
+    "synonyms": ["Loan offer"],
+    "definition": "Document by which the bank commits to the loan terms (amount, term, rate, insurance, total cost). The borrower may only accept it after a 10-day reflection period following receipt.",
+    "title": "Mortgage offer (offre de prêt): definition",
+    "description": "Mortgage offer: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "remboursement-anticipe": {
+    "slug": "early-repayment",
+    "term": "Early repayment (remboursement anticipé)",
+    "synonyms": ["Early repayment charges"],
+    "definition": "Repayment of all or part of a loan before its term, for example when the property is sold. The contract may provide for charges, which are capped by law for home loans.",
+    "title": "Early repayment (remboursement anticipé): definition",
+    "description": "Early repayment: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "investissement-locatif": {
+    "slug": "buy-to-let",
+    "term": "Buy-to-let investment (investissement locatif)",
+    "synonyms": ["Rental investment"],
+    "definition": "Purchase of a property to let in order to earn income and, possibly, a capital gain. Its return depends on the price, rents, charges, taxation, vacancy and financing.",
+    "title": "Buy-to-let investment (investissement locatif): definition",
+    "description": "Buy-to-let investment: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "rendement-locatif-net": {
+    "slug": "net-rental-yield",
+    "term": "Net rental yield (rendement locatif net)",
+    "synonyms": ["Net return"],
+    "definition": "Ratio between annual rent minus non-recoverable charges, property tax, insurance and management costs, and the total cost of the property (price and purchase costs). It is closer to reality than gross yield.",
+    "title": "Net rental yield (rendement locatif net): definition",
+    "description": "Net rental yield: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "location-meublee": {
+    "slug": "furnished-letting",
+    "term": "Furnished letting (location meublée)",
+    "synonyms": ["LMNP", "Furnished lease"],
+    "definition": "Letting of a home equipped with the furniture needed to live in it. A furnished lease of a main residence normally lasts one year (nine months for a student) and the income is taxed as business income.",
+    "title": "Furnished letting (location meublée): definition",
+    "description": "Furnished letting: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "sci": {
+    "slug": "property-holding-company",
+    "term": "Property holding company (SCI)",
+    "synonyms": ["SCI", "Real estate partnership"],
+    "definition": "Company whose purpose is to own and manage one or more properties. It makes joint management and passing on assets easier; its tax treatment (income tax or corporation tax) depends on the choices made.",
+    "title": "Property holding company (SCI): definition",
+    "description": "Property holding company: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "revenus-fonciers": {
+    "slug": "rental-income-tax",
+    "term": "Rental income (revenus fonciers)",
+    "synonyms": ["Unfurnished rental income"],
+    "definition": "Rent from unfurnished lettings, subject to income tax and social charges under the micro-foncier regime (flat allowance) or the actual-expenses regime (deductible charges).",
+    "title": "Rental income (revenus fonciers): definition",
+    "description": "Rental income: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "taxe-fonciere": {
+    "slug": "property-tax",
+    "term": "Property tax (taxe foncière)",
+    "synonyms": ["Land tax"],
+    "definition": "Annual local tax payable by the owner of a property on 1 January, based on the cadastral rental value and the rates set by local authorities. Only the household waste collection part may be passed on to the tenant.",
+    "title": "Property tax (taxe foncière): definition",
+    "description": "Property tax: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "taxe-habitation": {
+    "slug": "council-tax",
+    "term": "Residence tax (taxe d’habitation)",
+    "synonyms": ["Second-home tax"],
+    "definition": "Local tax that no longer applies to main residences since 2023 and is still due on second homes and some premises. Some municipalities may increase it or apply a tax on empty homes.",
+    "title": "Residence tax (taxe d’habitation): definition",
+    "description": "Residence tax: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "fiscalite-immobiliere": {
+    "slug": "property-taxation",
+    "term": "Property taxation (fiscalité immobilière)",
+    "synonyms": ["Real estate taxes"],
+    "definition": "All taxes linked to property: transfer duties on purchase, property tax, residence tax on second homes, tax on rental income, capital gains tax on resale and, where applicable, the real estate wealth tax.",
+    "title": "Property taxation (fiscalité immobilière): definition",
+    "description": "Property taxation: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "ifi": {
+    "slug": "real-estate-wealth-tax",
+    "term": "Real estate wealth tax (IFI)",
+    "synonyms": ["IFI"],
+    "definition": "Annual tax payable by households whose net property assets exceed a threshold set by law on 1 January. Debts relating to the properties and certain allowances, notably on the main residence, are taken into account.",
+    "title": "Real estate wealth tax (IFI): definition",
+    "description": "Real estate wealth tax: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "locataire": {
+    "slug": "tenant",
+    "term": "Tenant (locataire)",
+    "synonyms": ["Lessee"],
+    "definition": "Person who occupies a home in return for rent under a lease. They must pay rent and charges, use the home peacefully, insure it and carry out routine maintenance.",
+    "title": "Tenant (locataire): definition",
+    "description": "Tenant: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "bailleur": {
+    "slug": "landlord",
+    "term": "Landlord (bailleur)",
+    "synonyms": ["Lessor"],
+    "definition": "Person who lets a home. They must provide decent housing, ensure peaceful enjoyment, carry out major repairs and give the tenant the surveys and rent receipts.",
+    "title": "Landlord (bailleur): definition",
+    "description": "Landlord: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "depot-de-garantie-locatif": {
+    "slug": "tenancy-deposit",
+    "term": "Tenancy deposit (dépôt de garantie locatif)",
+    "synonyms": ["Security deposit"],
+    "definition": "Sum paid by the tenant on moving in to secure their obligations. Its amount is capped by law (one month’s rent excluding charges for an unfurnished let in France) and it is returned after the move-out inventory, less any sums owed.",
+    "title": "Tenancy deposit (dépôt de garantie locatif): definition",
+    "description": "Tenancy deposit: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "etat-des-lieux": {
+    "slug": "inventory-check",
+    "term": "Inventory and condition report (état des lieux)",
+    "synonyms": ["Check-in report", "Check-out report"],
+    "definition": "Document drawn up jointly when the tenant moves in and out, describing the condition of the home and its fittings. Comparing the two determines any repairs owed.",
+    "title": "Inventory and condition report (état des lieux): definition",
+    "description": "Inventory and condition report: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "preavis": {
+    "slug": "notice-period",
+    "term": "Notice period (préavis)",
+    "synonyms": ["Notice to quit"],
+    "definition": "Period required between sending notice and the actual end of a lease. For an unfurnished let it is normally three months for the tenant (one month in high-demand areas and some cases) and six months before term for the landlord.",
+    "title": "Notice period (préavis): definition",
+    "description": "Notice period: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "loyer-charges-comprises": {
+    "slug": "rent-including-charges",
+    "term": "Rent including charges (loyer charges comprises)",
+    "synonyms": ["Rent inclusive of service charges"],
+    "definition": "Total amount paid each month by the tenant, made up of the rent and the advance for recoverable charges. Listings must show the rent and the amount of charges.",
+    "title": "Rent including charges (loyer charges comprises): definition",
+    "description": "Rent including charges: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "irl": {
+    "slug": "rent-reference-index",
+    "term": "Rent reference index (IRL)",
+    "synonyms": ["IRL", "Rent review index"],
+    "definition": "Index published every quarter by Insee that caps the annual rent review during a lease, when the lease contains a review clause.",
+    "title": "Rent reference index (IRL): definition",
+    "description": "Rent reference index: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "loyer-de-reference": {
+    "slug": "reference-rent",
+    "term": "Reference rent (loyer de référence)",
+    "synonyms": ["Capped reference rent"],
+    "definition": "In cities under rent control, rent per m² set by prefectoral order according to district, type and age of the home. The base rent may not exceed the increased reference rent, except for a justified rent supplement.",
+    "title": "Reference rent (loyer de référence): definition",
+    "description": "Reference rent: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "colocation": {
+    "slug": "flat-share",
+    "term": "Flat-share (colocation)",
+    "synonyms": ["House share", "Joint tenancy"],
+    "definition": "Letting of one home to several tenants under a single lease or separate leases. A joint liability clause may make each co-tenant liable for the whole rent, within the limits set by law.",
+    "title": "Flat-share (colocation): definition",
+    "description": "Flat-share: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "gestion-locative": {
+    "slug": "property-management",
+    "term": "Property management (gestion locative)",
+    "synonyms": ["Letting management"],
+    "definition": "Service by which a professional manages a letting on the owner’s behalf: finding the tenant, lease, rent collection, charge adjustments and works follow-up, for a fee.",
+    "title": "Property management (gestion locative): definition",
+    "description": "Property management: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "administrateur-de-biens": {
+    "slug": "property-manager",
+    "term": "Property manager (administrateur de biens)",
+    "synonyms": ["Letting agent"],
+    "definition": "Professional holding the “property management” licence who manages properties on their owners’ behalf. They must have a financial guarantee for the funds they hold.",
+    "title": "Property manager (administrateur de biens): definition",
+    "description": "Property manager: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "meuble-de-tourisme": {
+    "slug": "holiday-let",
+    "term": "Holiday let (meublé de tourisme)",
+    "synonyms": ["Short-term rental", "Furnished tourist accommodation"],
+    "definition": "Furnished home let to passing guests for short stays. Depending on the municipality, it may require a declaration, a registration number or a change-of-use authorisation, and a main residence can only be let this way within an annual limit.",
+    "title": "Holiday let (meublé de tourisme): definition",
+    "description": "Holiday let: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "changement-d-usage": {
+    "slug": "change-of-use",
+    "term": "Change of use (changement d’usage)",
+    "synonyms": ["Change-of-use permit"],
+    "definition": "Authorisation required in some municipalities to use residential premises for another purpose, in particular repeated short-term tourist letting. It may require compensation.",
+    "title": "Change of use (changement d’usage): definition",
+    "description": "Change of use: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "syndic-de-copropriete": {
+    "slug": "managing-agent",
+    "term": "Managing agent (syndic de copropriété)",
+    "synonyms": ["Building manager", "HOA manager"],
+    "definition": "Agent, professional or volunteer, appointed by the general meeting to run the building: carry out decisions, keep the accounts, maintain the common parts and represent the owners’ association.",
+    "title": "Managing agent (syndic de copropriété): definition",
+    "description": "Managing agent: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "reglement-de-copropriete": {
+    "slug": "co-ownership-rules",
+    "term": "Co-ownership rules (règlement de copropriété)",
+    "synonyms": ["Building regulations", "Condo bylaws"],
+    "definition": "Document setting the purpose of the building, the split between private and common parts, how charges are shared and the rules of operation. It binds all co-owners and occupants.",
+    "title": "Co-ownership rules (règlement de copropriété): definition",
+    "description": "Co-ownership rules: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "assemblee-generale-copropriete": {
+    "slug": "general-meeting",
+    "term": "Co-owners’ general meeting (assemblée générale)",
+    "synonyms": ["AGM"],
+    "definition": "Meeting of the co-owners, held at least once a year, that votes the budget, works, the appointment of the managing agent and collective decisions, by majorities that depend on the type of decision.",
+    "title": "Co-owners’ general meeting (assemblée générale): definition",
+    "description": "Co-owners’ general meeting: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "conseil-syndical": {
+    "slug": "owners-council",
+    "term": "Owners’ council (conseil syndical)",
+    "synonyms": ["Residents’ committee"],
+    "definition": "Group of elected co-owners who assist and oversee the managing agent, give opinions and prepare some general meeting decisions.",
+    "title": "Owners’ council (conseil syndical): definition",
+    "description": "Owners’ council: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "fonds-de-travaux": {
+    "slug": "sinking-fund",
+    "term": "Works fund (fonds de travaux)",
+    "synonyms": ["Reserve fund", "Sinking fund"],
+    "definition": "Financial reserve funded each year by a contribution from co-owners to pay for future works on the building. Sums paid stay with the unit when it is sold.",
+    "title": "Works fund (fonds de travaux): definition",
+    "description": "Works fund: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "parties-communes": {
+    "slug": "common-parts",
+    "term": "Common parts (parties communes)",
+    "synonyms": ["Common areas"],
+    "definition": "Parts of the building used by all or several co-owners (land, structure, roof, staircases, lifts…), as opposed to the private parts reserved for one unit.",
+    "title": "Common parts (parties communes): definition",
+    "description": "Common parts: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "permis-de-construire": {
+    "slug": "building-permit",
+    "term": "Building permit (permis de construire)",
+    "synonyms": ["Planning permission"],
+    "definition": "Planning authorisation required for new buildings and the largest works. The town hall checks that the project complies with planning rules; the permit must be displayed on the site.",
+    "title": "Building permit (permis de construire): definition",
+    "description": "Building permit: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "declaration-prealable-de-travaux": {
+    "slug": "prior-declaration-of-works",
+    "term": "Prior declaration of works (déclaration préalable)",
+    "synonyms": ["Minor works permit"],
+    "definition": "Simplified planning authorisation for smaller works: façade changes, small extensions, pools, fences, land division, depending on the thresholds and the municipality.",
+    "title": "Prior declaration of works (déclaration préalable): definition",
+    "description": "Prior declaration of works: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "certificat-d-urbanisme": {
+    "slug": "planning-certificate",
+    "term": "Planning certificate (certificat d’urbanisme)",
+    "synonyms": ["Zoning certificate"],
+    "definition": "Document issued by the town hall stating the planning rules, administrative restrictions and taxes that apply to a plot. The information certificate differs from the detailed certificate, which concerns a specific project.",
+    "title": "Planning certificate (certificat d’urbanisme): definition",
+    "description": "Planning certificate: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "daact": {
+    "slug": "completion-declaration",
+    "term": "Declaration of completion and compliance (DAACT)",
+    "synonyms": ["Completion certificate"],
+    "definition": "Declaration filed at the town hall at the end of works authorised by a permit or prior declaration, by which the holder certifies they are complete and compliant. The town hall may challenge it within a statutory period.",
+    "title": "Declaration of completion and compliance (DAACT): definition",
+    "description": "Declaration of completion and compliance: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "parcelle-cadastrale": {
+    "slug": "cadastral-parcel",
+    "term": "Cadastral parcel (parcelle cadastrale)",
+    "synonyms": ["Land registry plot"],
+    "definition": "Piece of land identified in the cadastre by a section and a number. The cadastre is used for tax and does not on its own prove ownership or exact boundaries, which are set by a boundary survey.",
+    "title": "Cadastral parcel (parcelle cadastrale): definition",
+    "description": "Cadastral parcel: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "geometre-expert": {
+    "slug": "chartered-surveyor",
+    "term": "Chartered land surveyor (géomètre-expert)",
+    "synonyms": ["Land surveyor"],
+    "definition": "Registered professional who alone may legally fix property boundaries and draw up division plans; they also carry out measurements and topographic surveys.",
+    "title": "Chartered land surveyor (géomètre-expert): definition",
+    "description": "Chartered land surveyor: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "lotissement": {
+    "slug": "housing-subdivision",
+    "term": "Housing subdivision (lotissement)",
+    "synonyms": ["Housing estate"],
+    "definition": "Division of a property into several plots intended for building, authorised by a development permit or prior declaration. A subdivision may have its own regulations and specifications.",
+    "title": "Housing subdivision (lotissement): definition",
+    "description": "Housing subdivision: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "garantie-de-parfait-achevement": {
+    "slug": "one-year-completion-warranty",
+    "term": "One-year completion warranty (garantie de parfait achèvement)",
+    "synonyms": ["Snagging warranty"],
+    "definition": "One-year warranty from acceptance of the works, under which the contractor must repair defects reported at acceptance or during the following year.",
+    "title": "One-year completion warranty (garantie de parfait achèvement): definition",
+    "description": "One-year completion warranty: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "garantie-biennale": {
+    "slug": "two-year-equipment-warranty",
+    "term": "Two-year equipment warranty (garantie biennale)",
+    "synonyms": ["Proper functioning warranty"],
+    "definition": "Two-year warranty from acceptance covering fittings that can be separated from the structure (shutters, taps, radiators…) when they do not work properly.",
+    "title": "Two-year equipment warranty (garantie biennale): definition",
+    "description": "Two-year equipment warranty: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "maitre-d-ouvrage": {
+    "slug": "project-owner",
+    "term": "Project owner (maître d’ouvrage)",
+    "synonyms": ["Client", "Developer"],
+    "definition": "Person on whose behalf, and at whose expense, the works are carried out: individual, developer or public body. They define the need and accept the finished works.",
+    "title": "Project owner (maître d’ouvrage): definition",
+    "description": "Project owner: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "maitre-d-oeuvre": {
+    "slug": "project-manager",
+    "term": "Works supervisor (maître d’œuvre)",
+    "synonyms": ["Project manager", "Site supervisor"],
+    "definition": "Professional (architect, engineering firm, independent project manager) responsible for designing the project and/or supervising its execution on behalf of the project owner.",
+    "title": "Works supervisor (maître d’œuvre): definition",
+    "description": "Works supervisor: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "renovation-energetique": {
+    "slug": "energy-renovation",
+    "term": "Energy renovation (rénovation énergétique)",
+    "synonyms": ["Energy-saving works", "Retrofit"],
+    "definition": "Works that reduce a home’s energy use: insulation, heating, ventilation, windows. Public grants may be available under conditions; the energy audit helps plan them.",
+    "title": "Energy renovation (rénovation énergétique): definition",
+    "description": "Energy renovation: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "passoire-energetique": {
+    "slug": "energy-inefficient-home",
+    "term": "Energy-inefficient home (passoire énergétique)",
+    "synonyms": ["F or G-rated home"],
+    "definition": "Home rated F or G on the energy performance certificate. In France, letting the least efficient homes is being banned in stages under a timetable set by law.",
+    "title": "Energy-inefficient home (passoire énergétique): definition",
+    "description": "Energy-inefficient home: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "etiquette-energetique": {
+    "slug": "energy-rating",
+    "term": "Energy rating (étiquette énergétique)",
+    "synonyms": ["Energy class", "Climate class"],
+    "definition": "A-to-G rating shown on the energy performance certificate, combining the home’s energy use and greenhouse gas emissions. It must appear in property listings.",
+    "title": "Energy rating (étiquette énergétique): definition",
+    "description": "Energy rating: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "droits-d-enregistrement": {
+    "slug": "belgian-registration-duties",
+    "term": "Registration duties (Belgium)",
+    "synonyms": ["Belgian transfer tax"],
+    "definition": "In Belgium, tax paid by the buyer when purchasing an existing property, whose rate and reductions for a sole own home depend on the Region (Brussels-Capital, Flanders, Wallonia). It is collected through the notary.",
+    "title": "Registration duties (Belgium): definition",
+    "description": "Registration duties: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "abattement-belgique": {
+    "slug": "belgian-duty-allowance",
+    "term": "Duty allowance (Belgium, abattement)",
+    "synonyms": ["Registration duty relief"],
+    "definition": "Reduction of the taxable base for registration duties granted, under conditions, when buying a sole own home, under the rules of the Region where the property is located.",
+    "title": "Duty allowance (Belgium, abattement): definition",
+    "description": "Duty allowance: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "precompte-immobilier": {
+    "slug": "belgian-property-tax",
+    "term": "Property withholding tax (Belgium, précompte immobilier)",
+    "synonyms": ["Onroerende voorheffing"],
+    "definition": "Annual Belgian property tax payable by the owner, calculated on the indexed cadastral income of the property and the Region’s, province’s and municipality’s rates.",
+    "title": "Property withholding tax (Belgium, précompte immobilier): definition",
+    "description": "Property withholding tax: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "revenu-cadastral": {
+    "slug": "cadastral-income",
+    "term": "Cadastral income (Belgium, revenu cadastral)",
+    "synonyms": ["Notional rental value"],
+    "definition": "In Belgium, notional annual rental income assigned to a property by the tax authority, used as the basis for property tax and some other taxes.",
+    "title": "Cadastral income (Belgium, revenu cadastral): definition",
+    "description": "Cadastral income: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "certificat-peb": {
+    "slug": "belgian-epc",
+    "term": "Energy performance certificate (Belgium, PEB)",
+    "synonyms": ["EPC", "PEB"],
+    "definition": "In Belgium, energy performance certificate required to sell or let a home. Its rules and scale vary by Region.",
+    "title": "Energy performance certificate (Belgium, PEB): definition",
+    "description": "Energy performance certificate: a clear definition of this French property term, with related terms and Z Find’s free tools."
+  },
+  "bellegen-akt": {
+    "slug": "bellegen-akt",
+    "term": "Bëllegen Akt (Luxembourg)",
+    "synonyms": ["Registration duty tax credit"],
+    "definition": "In Luxembourg, personal tax credit that reduces the registration and transcription duties due when buying a home to be the buyer’s main residence, under conditions and up to a cap per person.",
+    "title": "Bëllegen Akt (Luxembourg): definition",
+    "description": "Bëllegen Akt: a clear definition of this French property term, with related terms and Z Find’s free tools."
   }
 }
