@@ -148,8 +148,9 @@
 
   function resolveInitialLocale() {
     return (
+      // French first: the URL decides, otherwise French (never a stored
+      // locale from an earlier visit).
       localeFromLocation() ||
-      publicLocales.normalizePublicLocale(safeStorageGet(STORAGE_KEY)) ||
       publicLocales.DEFAULT_PUBLIC_LOCALE
     );
   }

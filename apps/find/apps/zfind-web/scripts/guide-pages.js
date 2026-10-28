@@ -128,7 +128,7 @@ const TOOLS = Object.freeze([
   ['/fr/frais-de-notaire', 'Calculer les frais de notaire'], ['/fr/frais-achat-immobilier-belgique', 'Frais d’achat en Belgique'],
   ['/fr/simulateur-pret-immobilier', 'Simulateur de prêt'], ['/fr/capacite-emprunt', 'Capacité d’emprunt'],
   ['/fr/rentabilite-locative', 'Rentabilité locative'], ['/fr/estimation-immobiliere', 'Estimation gratuite'],
-  ['/fr/prix-immobilier/france', 'Prix au m² par commune']
+  ['/fr/prix-immobilier/france', 'Prix au m² par commune'], ['/fr/lexique-immobilier', 'Lexique immobilier']
 ]);
 
 function shell({ base, pathName, title, description, crumbs, jsonLd, main }) {

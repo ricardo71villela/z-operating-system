@@ -23,6 +23,7 @@ const prixPages = require('../api/_lib/prix-pages.js');
 const prixPagesBeLu = require('../api/_lib/prix-pages-be-lu.js');
 const simulatorPages = require('../src/services/simulator-landing-pages.js');
 const guidePages = require('./guide-pages.js');
+const lexiconPages = require('./lexicon-pages.js');
 const GUIDE_PATH = Object.freeze(Object.fromEntries(guidePages.GUIDES.map(g => [g.view, g.path])));
 const PRICE_SITEMAP = 'sitemap-prix.xml';
 
@@ -230,6 +231,15 @@ async function main() {
 
   // Guides juridiques des marchés de lancement (statiques, indexables).
   for (const page of guidePages.buildGuidePages(baseUrl)) {
+    const outPath = path.join(DIST_SEO_DIR, `${page.path.replace(/^\//, '')}.html`);
+    fs.mkdirSync(path.dirname(outPath), { recursive: true });
+    fs.writeFileSync(outPath, page.html);
+    sitemapUrls.add(baseUrl + page.path);
+    written++;
+  }
+
+  // Lexique immobilier FR + glossaire EN (statiques, indexables).
+  for (const page of lexiconPages.buildLexiconPages(baseUrl)) {
     const outPath = path.join(DIST_SEO_DIR, `${page.path.replace(/^\//, '')}.html`);
     fs.mkdirSync(path.dirname(outPath), { recursive: true });
     fs.writeFileSync(outPath, page.html);
