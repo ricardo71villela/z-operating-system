@@ -119,7 +119,8 @@ function signupCompletionError(error) {
 }
 
 /* Offer wording comes from the public price list (zfind-web services/pro-offer.js):
-   agency tiers Essentiel / Pro / Premium, 3 months free, price guaranteed 1 year.
+   agency tiers Essentiel / Plus / Pro / Premium, 3 months free, price guaranteed
+   1 year, Z Desk and Z Studio included.
    The plan / founder_wave columns of zfind_partner_signups are no longer shown. */
 function signupPrices() { return (window.ZFindServices.proOffer && window.ZFindServices.proOffer.PRICES) || {}; }
 function proOffer() { return window.ZFindServices.proOffer || null; }
@@ -130,8 +131,9 @@ function offerSummary(role, createdAt) {
     return `<strong>Programme neuf :</strong> ${p.developmentMonth} € HT par programme et par mois, sans engagement.`;
   }
   const svc = proOffer();
-  const essentiel = svc ? svc.essentielPriceFor(createdAt) : p.essentiel;
-  return `<strong>Votre offre.</strong> ${p.freeMonths} mois gratuits, puis selon le nombre de vos annonces actives : Essentiel ${essentiel} € HT / mois (jusqu’à ${p.essentielMaxListings}), Pro ${p.pro} € HT / mois (${p.essentielMaxListings + 1} à ${p.proMaxListings}), Premium ${p.premium} € HT / mois (plus de ${p.proMaxListings}). Prix garanti 1 an, sans engagement.`;
+  const grid = svc ? svc.gridTextFr(p) : '';
+  const included = svc ? ` ${svc.INCLUDED_FR}.` : '';
+  return `<strong>Votre offre.</strong> ${p.freeMonths} mois offerts, puis selon le nombre de vos annonces actives : ${grid}. Prix garanti 1 an, sans engagement.${included}`;
 }
 
 let partnerCountry = null;
@@ -200,8 +202,8 @@ function renderSignupOfferPanel() {
   }
   const svc = proOffer();
   const lines = svc ? svc.tierLinesFr(p) : [];
-  lead.textContent = `${p.freeMonths} mois gratuits ${(proOffer() && proOffer().launchStartText) ? proOffer().launchStartText('fr') : 'à compter du lancement public de Z Find'} (ou de votre inscription, si elle est postérieure), quel que soit votre abonnement, sans carte bancaire ni engagement. Ensuite, votre prix est garanti 1 an.`;
-  marks.innerHTML = lines.map(([k, v]) => `<div class="mark-row"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
+  lead.textContent = `${p.freeMonths} mois offerts ${(proOffer() && proOffer().launchStartText) ? proOffer().launchStartText('fr') : 'à compter du lancement public de Z Find'} (ou de votre inscription, si elle est postérieure), quel que soit votre abonnement, sans carte bancaire ni engagement. Ensuite, votre prix est garanti 1 an.`;
+  marks.innerHTML = lines.concat([['Inclus', 'Z Desk et l’application Z Studio']]).map(([k, v]) => `<div class="mark-row"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
 }
 
 function renderSignupOfferBox() {
@@ -211,7 +213,7 @@ function renderSignupOfferBox() {
   const svc = proOffer();
   box.innerHTML = promoter
     ? `<strong>Votre offre.</strong> ${p.developmentMonth} € HT par programme et par mois. Sans engagement.`
-    : `<strong>Votre offre.</strong> ${p.freeMonths} mois gratuits, puis l’abonnement correspondant à votre nombre d’annonces actives : Essentiel ${p.essentiel} € HT / mois jusqu’à ${p.essentielMaxListings} annonces (${svc ? svc.launchWindowText('fr') : 'tarif de lancement'} ; ${p.essentielLater} € ensuite), Pro ${p.pro} € HT de ${p.essentielMaxListings + 1} à ${p.proMaxListings}, Premium ${p.premium} € HT au-delà. Prix garanti 1 an. Sans carte bancaire ni engagement.`;
+    : `<strong>Votre offre.</strong> ${p.freeMonths} mois offerts, puis l’abonnement correspondant à votre nombre d’annonces actives : ${svc ? svc.gridTextFr(p) : ''}. Prix garanti 1 an. Sans carte bancaire ni engagement. ${svc ? svc.INCLUDED_FR + '.' : ''}`;
   document.getElementById('su-certify-text').textContent = promoter
     ? 'Je certifie représenter cette société et être habilité à l’inscrire.'
     : 'Je certifie être titulaire de la carte professionnelle indiquée (ou habilité par son titulaire) et représenter cette agence.';
