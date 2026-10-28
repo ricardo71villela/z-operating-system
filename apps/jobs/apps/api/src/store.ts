@@ -64,6 +64,23 @@ export interface PublicOfferRecord extends JobOfferRecord {
   employer: { displayName: string; verificationStatus: string; naceSection: string | null };
 }
 
+/** A published offer as shown on its public page (zjobs.online/offres/…). */
+export interface PublicOfferPage extends JobOfferRecord {
+  employer: { displayName: string; verificationStatus: string; naceSection: string | null; website: string | null; logoUrl: string | null };
+  responsibilities: string | null;
+  requiredQualifications: string | null;
+  preferredQualifications: string | null;
+  contractDurationNotes: string | null;
+  weeklyHours: number | null;
+  benefits: string | null;
+  expectedStartDate: string | null;
+  applicationProcessNotes: string | null;
+  applicationDeadline: string | null;
+  languageRequirements: string[];
+  publishedAt: string;
+  expiresAt: string | null;
+}
+
 export interface ApplicationRecord {
   id: string;
   jobOfferId: string;

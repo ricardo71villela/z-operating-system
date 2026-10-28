@@ -8,6 +8,14 @@
       "destination": "https://z-jobs-api-zoperatingsystem.vercel.app/:path*"
     },
     {
+      "source": "/offres/:slug",
+      "destination": "https://z-jobs-api-zoperatingsystem.vercel.app/public/offres/:slug"
+    },
+    {
+      "source": "/sitemap-offres.xml",
+      "destination": "https://z-jobs-api-zoperatingsystem.vercel.app/public/sitemap-offres.xml"
+    },
+    {
       "source": "/candidats",
       "destination": "/candidats.html"
     },

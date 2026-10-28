@@ -60,6 +60,7 @@ import type {
   TranslationRecord,
   PublicOfferSearch,
   PublicOfferRecord,
+  PublicOfferPage,
 } from './store';
 
 import { RESPONSE_DEADLINE_DAYS } from '../../../packages/domain/src/rules/responseDeadline';
@@ -973,6 +974,73 @@ export class PgStore {
         },
       })),
     };
+  }
+
+  /**
+   * One published offer for its public page (zjobs.online/offres/…), with
+   * the employer's public identity and the full text fields. Returns null
+   * when the offer does not exist, is not published, or its deadline or
+   * expiry has passed — the page then answers 410 so search engines drop it.
+   */
+  async getPublicOffer(id: string): Promise<PublicOfferPage | null> {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return null;
+    const { rows } = await this.query(
+      `select o.*, l.country_code as loc_country, l.city as loc_city, l.postal_code as loc_postal, l.admin_area as loc_admin,
+              g.display_name as employer_name, g.website as employer_website,
+              cp.verification_status as employer_verification, cp.logo_url as employer_logo,
+              n.section_letter as employer_nace_section
+         from job_offers o
+         join organizations g on g.id = o.organization_id
+         left join company_profiles cp on cp.organization_id = o.organization_id
+         left join nace_codes n on n.code = cp.nace_code
+         left join locations l on l.id = o.location_id
+        where o.id = $1::uuid
+          and o.status = 'published'
+          and (o.expires_at is null or o.expires_at > now())
+          and (o.application_deadline is null or o.application_deadline >= current_date)`,
+      [id],
+    );
+    const r = rows[0];
+    if (!r) return null;
+    const date = (v: any) => (v instanceof Date ? v.toISOString().slice(0, 10) : v ?? null);
+    return {
+      ...this.rowToJobOffer(r),
+      employer: {
+        displayName: r.employer_name,
+        verificationStatus: r.employer_verification ?? 'unverified',
+        naceSection: r.employer_nace_section ?? null,
+        website: r.employer_website ?? null,
+        logoUrl: r.employer_logo ?? null,
+      },
+      responsibilities: r.responsibilities ?? null,
+      requiredQualifications: r.required_qualifications ?? null,
+      preferredQualifications: r.preferred_qualifications ?? null,
+      contractDurationNotes: r.contract_duration_notes ?? null,
+      weeklyHours: r.weekly_hours === null || r.weekly_hours === undefined ? null : Number(r.weekly_hours),
+      benefits: r.benefits ?? null,
+      expectedStartDate: date(r.expected_start_date),
+      applicationProcessNotes: r.application_process_notes ?? null,
+      applicationDeadline: date(r.application_deadline),
+      languageRequirements: Array.isArray(r.language_requirements) ? r.language_requirements : [],
+      publishedAt: (r.published_at ?? r.updated_at).toISOString(),
+      expiresAt: r.expires_at ? r.expires_at.toISOString() : null,
+    };
+  }
+
+  /** Every live published offer, for sitemap-offres.xml (newest first). */
+  async listPublicOfferSitemap(limit = 5000): Promise<{ id: string; title: string; city: string | null; updatedAt: string }[]> {
+    const { rows } = await this.query(
+      `select o.id, o.title, l.city, o.updated_at
+         from job_offers o
+         left join locations l on l.id = o.location_id
+        where o.status = 'published'
+          and (o.expires_at is null or o.expires_at > now())
+          and (o.application_deadline is null or o.application_deadline >= current_date)
+        order by o.updated_at desc
+        limit $1`,
+      [Math.min(Math.max(Math.trunc(limit), 1), 50000)],
+    );
+    return rows.map((r) => ({ id: r.id, title: r.title, city: r.city ?? null, updatedAt: r.updated_at.toISOString() }));
   }
 
   private rowToApplication(r: any, history: any[]): ApplicationRecord {
