@@ -159,6 +159,9 @@ async function run(options) {
     try { report[name] = await fn(); } catch (e) { report[name] = `error: ${e.message}`; console.error('cron:', name, e.message); }
   };
   await step('purge', () => purge(now));
+  // Z Studio included for Z Find agencies and verified Z Jobs employers:
+  // grant, extend (monthly AI quota) or expire the included subscription.
+  await step('studioBundles', () => S.db('rpc/zos_sync_marketplace_studio_bundles', { method: 'POST', body: {} }));
   if (S.configured(['mail'])) {
     await step('leads', () => leadNotify._internals.processPending(100));
     await step('estimations', () => leadNotify._internals.processEstimations(50));
