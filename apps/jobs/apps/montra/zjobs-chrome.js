@@ -37,7 +37,8 @@
       contact: 'Nous écrire',
       soon: 'bientôt',
       rights: '© 2026 Z Jobs — construit sur le Z Operating System',
-      place: 'Publier, Haute-Savoie, France'
+      place: 'Publier, Haute-Savoie, France',
+      legal: 'Mentions légales'
     },
     en: {
       signin: 'Sign in',
@@ -67,7 +68,8 @@
       contact: 'Write to us',
       soon: 'soon',
       rights: '© 2026 Z Jobs — built on the Z Operating System',
-      place: 'Publier, Haute-Savoie, France'
+      place: 'Publier, Haute-Savoie, France',
+      legal: 'Legal notice'
     }
   };
 
@@ -102,7 +104,7 @@
       '<nav class="zj-foot-zos" aria-label="Z Operating System">' + ZOS.map(function (a) {
         return a.href ? '<a href="' + a.href + '" target="_blank" rel="noopener">' + esc(a.label) + '</a>' : '<span>' + esc(a.label) + '<span class="soon">' + esc(c.soon) + '</span></span>';
       }).join('') + '</nav>' +
-      '<div class="zj-foot-bottom"><span>' + esc(c.rights) + '</span><span>' + esc(c.place) + '</span></div>' +
+      '<div class="zj-foot-bottom"><span>' + esc(c.rights) + '</span><span class="zj-foot-legal"><a href="/mentions-legales' + (lang() === 'en' ? '?lang=en' : '') + '">' + esc(c.legal) + '</a><span>' + esc(c.place) + '</span></span></div>' +
     '</div>';
   }
 

@@ -129,3 +129,7 @@ footer .flags, footer .fine{ display:none; }
 /* Cartes des indicateurs : jamais plus larges que l’écran (canvas compris). */
 .econ-grid > *{ min-width:0; }
 .econ-card canvas{ max-width:100%; }
+
+.zj-foot-legal{ display:flex; gap:18px; flex-wrap:wrap; }
+.zj-foot-legal a{ color:#AEB7C3; text-decoration:underline; text-underline-offset:3px; }
+.zj-foot-legal a:hover{ color:#fff; }

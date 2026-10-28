@@ -30,6 +30,10 @@
     {
       "source": "/entreprise",
       "destination": "/entreprise.html"
+    },
+    {
+      "source": "/mentions-legales",
+      "destination": "/mentions-legales.html"
     }
   ],
   "headers": [

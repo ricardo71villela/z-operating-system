@@ -28,12 +28,16 @@
   };
 
   var E = {
-    company: '{{raison sociale de la société qui exploite Z Fashion}}',
-    form: '{{forme juridique et capital social}}',
-    address: '{{adresse du siège social}}',
-    rcs: '{{numéro RCS et ville du greffe}}',
-    vat: '{{numéro de TVA intracommunautaire}}',
-    director: '{{nom du directeur de la publication}}',
+    // Owner's decision (28 Oct 2026): the publisher is « ZOS », trade name of
+    // an individual business (EI). The person's name appears only where the
+    // law requires it — the publisher paragraph of the Mentions légales.
+    company: 'ZOS',
+    form: 'nom commercial de José Ricardo Coelho de Vilela, entrepreneur individuel (EI)',
+    address: '204 rue de la Plaine, 74500 Publier, France',
+    rcs: 'SIREN 750 908 493',
+    vat: '{{numéro de TVA intracommunautaire, ou mention « TVA non applicable, art. 293 B du CGI »}}',
+    director: 'L’entrepreneur individuel exploitant ZOS',
+    phone: '+33 6 74 06 10 15',
     email: 'contact@zfashion.online',
     partnerEmail: 'partenaires@zfashion.online',
     privacyEmail: 'donnees@zfashion.online',
@@ -50,9 +54,9 @@
     title: 'Mentions légales',
     sections: [
       { h: 'Éditeur du site', p: [
-        'Le site zfashion.online et les espaces associés (espace Partner, backoffice) sont édités par ' + E.company + ', ' + E.form + ', dont le siège est situé ' + E.address + ', immatriculée sous le ' + E.rcs + ', numéro de TVA ' + E.vat + '.',
+        'Le site zfashion.online et les espaces associés (espace Partner, backoffice) sont édités par ' + E.company + ', ' + E.form + ', immatriculé sous le numéro ' + E.rcs + '. Adresse : ' + E.address + '. TVA : ' + E.vat + '.',
         'Z Fashion est une marque de l’écosystème ZOS.',
-        'Contact : ' + E.email + '.',
+        'Contact : ' + E.email + ' · ' + E.phone + '.',
       ] },
       { h: 'Directeur de la publication', p: [E.director + '.'] },
       { h: 'Hébergement', p: [
