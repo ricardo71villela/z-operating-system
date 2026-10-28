@@ -259,7 +259,9 @@
       li.appendChild(el('span', 'salary', salary(o)));
       li.appendChild(el('span', 'meta', [t('contract_' + o.contractType), place(o.location), o.workRegime ? t('regime_' + o.workRegime) : ''].filter(Boolean).join(' · ')));
       var link = el('a', 'co-link', t('open_offer'));
-      link.href = PORTAL_URL + '?offre=' + encodeURIComponent(o.id) + '&lang=' + locale;
+      link.href = o.publicPath
+        ? o.publicPath + (locale === 'en' ? '?lang=en' : '')
+        : PORTAL_URL + '?offre=' + encodeURIComponent(o.id) + '&lang=' + locale;
       link.setAttribute('aria-label', t('open_offer') + ' — ' + o.title);
       li.appendChild(link);
       list.appendChild(li);

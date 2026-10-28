@@ -54,6 +54,14 @@ writeFileSync(
           headers: { 'X-Content-Type-Options': 'nosniff', 'X-Robots-Tag': 'noindex, nofollow', 'Referrer-Policy': 'no-referrer' },
           continue: true,
         },
+        // The JSON API is never indexed; the public offer pages under
+        // /public/ (served on zjobs.online/offres/… by a rewrite) must be:
+        // this later route overrides the two headers above for them.
+        {
+          src: '/public/(.*)',
+          headers: { 'X-Robots-Tag': 'index, follow', 'Referrer-Policy': 'strict-origin-when-cross-origin' },
+          continue: true,
+        },
         { src: '/(.*)', dest: '/index' },
       ],
       // Daily job alert emails at 06:00 UTC (08:00 in Paris in summer).

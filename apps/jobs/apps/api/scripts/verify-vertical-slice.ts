@@ -233,6 +233,24 @@ async function main() {
     const outOfCountry = await fetch(`${BASE}/job-offers/search?country=DE`);
     check('10c. pesquisa fora dos países de lançamento recusada (404)', outOfCountry.status === 404);
 
+    // Passo 10d: página pública da oferta (zjobs.online/offres/…) com JobPosting
+    const found = searched.offers?.find((o: any) => o.id === offer.id);
+    check('10d. pesquisa devolve o caminho público da oferta', typeof found?.publicPath === 'string' && found.publicPath.endsWith(offer.id), found);
+    const pageRes = await fetch(`${BASE}/public${found?.publicPath}`);
+    const pageHtml = await pageRes.text();
+    check(
+      '10e. página pública: 200, HTML, JobPosting com salário e empregador',
+      pageRes.status === 200 && /text\/html/.test(pageRes.headers.get('content-type') ?? '')
+        && pageHtml.includes('"@type":"JobPosting"') && pageHtml.includes('"baseSalary"') && pageHtml.includes('"hiringOrganization"'),
+      { status: pageRes.status },
+    );
+    const wrongSlug = await fetch(`${BASE}/public/offres/titre-ancien-${offer.id}`, { redirect: 'manual' });
+    check('10f. slug antigo redireciona (301) para o endereço canónico', wrongSlug.status === 301 && wrongSlug.headers.get('location') === found?.publicPath);
+    const gone = await fetch(`${BASE}/public/offres/${badOffer.id}`);
+    check('10g. oferta não publicada: 410, nunca indexada', gone.status === 410 && (await gone.text()).includes('noindex'));
+    const offersSitemap = await (await fetch(`${BASE}/public/sitemap-offres.xml`)).text();
+    check('10h. sitemap das ofertas contém a oferta publicada e não a outra', offersSitemap.includes(found?.publicPath) && !offersSitemap.includes(badOffer.id));
+
     // --- Teste negativo: não se pode candidatar a oferta não publicada ---
     const unpublishedApplyRes = await fetch(`${BASE}/applications`, {
       method: 'POST',

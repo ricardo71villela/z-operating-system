@@ -606,7 +606,9 @@
       var meta = [t('contract_' + o.contractType), placeText(o)].filter(Boolean).join(' · ');
       item.appendChild(el('p', 'result-meta', meta));
       var link = el('a', 'result-link', t('results_open'));
-      link.href = PORTAL_URL + '?offre=' + encodeURIComponent(o.id) + '&lang=' + window.CURRENT_LOCALE;
+      link.href = o.publicPath
+        ? o.publicPath + (window.CURRENT_LOCALE === 'en' ? '?lang=en' : '')
+        : PORTAL_URL + '?offre=' + encodeURIComponent(o.id) + '&lang=' + window.CURRENT_LOCALE;
       link.setAttribute('aria-label', t('results_open') + ' — ' + o.title);
       item.appendChild(link);
       list.appendChild(item);

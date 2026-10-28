@@ -53,6 +53,7 @@ import { computeMatchScore, explainMatchFactors } from '../../../packages/domain
 import { computeCandidateScore, explainCandidateScore } from '../../../packages/domain/src/rules/candidateScore';
 import type { MessageLocale } from '../../../packages/domain/src/i18n/messages';
 import type { JobOfferDraft } from '../../../packages/domain/src/types/jobOffer';
+import { offerIdFromSlug, offerPath, pageLocale, renderGonePage, renderOfferPage, renderOffersSitemap } from './publicPages';
 
 // Versão atual dos Termos de Serviço / Política de Privacidade — muda
 // sempre que docs/legal/*.md tiver uma alteração material, para que
@@ -76,9 +77,19 @@ function json(res: http.ServerResponse, status: number, body: unknown) {
   (res as any).__pendingResponse = { status, body };
 }
 
+/** HTML/XML pages (public offer pages, sitemap): same deferred send as json(). */
+function sendText(res: http.ServerResponse, status: number, contentType: string, body: string, headers: Record<string, string> = {}) {
+  (res as any).__pendingResponse = { status, raw: body, contentType, headers };
+}
+
 function flushPendingResponse(res: http.ServerResponse) {
   const pending = (res as any).__pendingResponse;
   if (!pending || res.writableEnded) return;
+  if (typeof pending.raw === 'string') {
+    res.writeHead(pending.status, { 'Content-Type': pending.contentType, ...pending.headers });
+    res.end(pending.raw);
+    return;
+  }
   // Erros: mensagem na língua do pedido + código estável (errorMessages.ts).
   if (pending.status >= 400 && pending.body && typeof pending.body.error === 'string') {
     const locale: ErrorLocale = (res as any).__locale === 'en' ? 'en' : 'fr';
@@ -799,7 +810,7 @@ export function createServer() {
             ...details,
             smeCategory: estimateSmeCategoryByEmployeeCount(details.employeeCount).category,
           },
-          offers: openOffers.offers,
+          offers: openOffers.offers.map((o) => ({ ...o, publicPath: offerPath(o) })),
           offersTotal: openOffers.total,
         });
       }
@@ -1082,6 +1093,46 @@ export function createServer() {
         return json(res, 200, references);
       }
 
+      // Public offer pages, server-rendered for search engines (Google for
+      // Jobs reads the JobPosting data). zjobs.online/offres/<slug> and
+      // /sitemap-offres.xml are rewritten here by the public site.
+      if (method === 'GET' && path.startsWith('/public/offres/')) {
+        const locale = pageLocale(url.searchParams.get('lang'));
+        const slug = decodeURIComponent(path.slice('/public/offres/'.length)).replace(/\/+$/, '');
+        const id = offerIdFromSlug(slug);
+        const offer = id && usingPostgres ? await (store as PgStore).getPublicOffer(id) : null;
+        if (!offer) {
+          return sendText(res, 410, 'text/html; charset=utf-8', renderGonePage(locale, slug), {
+            'Cache-Control': 'public, max-age=0, s-maxage=300',
+            'X-Robots-Tag': 'noindex, follow',
+          });
+        }
+        const canonicalPath = offerPath(offer);
+        if ('/offres/' + slug !== canonicalPath) {
+          // Old title or city in the URL: one canonical address per offer.
+          return sendText(res, 301, 'text/html; charset=utf-8', '', {
+            Location: canonicalPath + (locale === 'en' ? '?lang=en' : ''),
+            'Cache-Control': 'public, max-age=0, s-maxage=300',
+          });
+        }
+        const pool = await (store as PgStore).searchPublishedJobOffers({
+          country: offer.location?.countryCode || undefined,
+          naceSection: offer.employer.naceSection || undefined,
+          limit: 7,
+        });
+        const similar = pool.offers.filter((o) => o.id !== offer.id).slice(0, 6);
+        return sendText(res, 200, 'text/html; charset=utf-8', renderOfferPage(offer, similar, locale), {
+          'Cache-Control': 'public, max-age=0, s-maxage=600, stale-while-revalidate=3600',
+        });
+      }
+
+      if (method === 'GET' && path === '/public/sitemap-offres.xml') {
+        const offers = usingPostgres ? await (store as PgStore).listPublicOfferSitemap() : [];
+        return sendText(res, 200, 'application/xml; charset=utf-8', renderOffersSitemap(offers), {
+          'Cache-Control': 'public, max-age=0, s-maxage=3600',
+        });
+      }
+
       // Public offer search (montra, portal): no sign-in needed, published
       // offers only. ?q= keyword, ?country=FR|BE|LU, ?sector= NACE section
       // letter, ?limit= (max 50), ?offset=.
@@ -1099,7 +1150,7 @@ export function createServer() {
           limit: Number.isFinite(limit) ? limit : 20,
           offset: Number.isFinite(offset) ? offset : 0,
         });
-        return json(res, 200, result);
+        return json(res, 200, { ...result, offers: result.offers.map((o) => ({ ...o, publicPath: offerPath(o) })) });
       }
 
       if (method === 'GET' && path === '/job-offers') {
