@@ -123,13 +123,15 @@ const hashOf = page => page.evaluate(() => location.hash);
   const studio = await page.$eval('[data-zos-app="studio"]', a => ({ href: a.getAttribute('href'), target: a.target, rel: a.rel }));
   check('Z Studio (live) opens zstudio.space in a new tab', studio.href === 'https://zstudio.space' && studio.target === '_blank' && /noopener/.test(studio.rel), studio);
   const coming = await page.$$eval('#zfind-zos-ecosystem-footer a.is-coming', els => els.map(a => [a.dataset.zosApp, a.getAttribute('href'), a.textContent.trim()]));
-  check('Z Fashion, Z Desk, Z Jobs, Z Mobility, Z Intelligence → « en développement » page, marked « bientôt »',
-    JSON.stringify(coming.map(c => c[0])) === JSON.stringify(['fashion', 'desk', 'jobs', 'mobility', 'intelligence']) && coming.every(c => c[1] === '#/fr/bientot/' + c[0] && /bientôt$/.test(c[2])), coming);
-  await page.click('[data-zos-app="fashion"]'); await page.waitForTimeout(300);
+  const liveApps = await page.$$eval('[data-zos-app="fashion"], [data-zos-app="jobs"]', els => els.map(a => [a.getAttribute('href'), a.target]));
+  check('Z Fashion and Z Jobs (live) open zfashion.online and zjobs.online in a new tab', JSON.stringify(liveApps) === JSON.stringify([['https://zfashion.online', '_blank'], ['https://zjobs.online', '_blank']]), liveApps);
+  check('Z Desk, Z Mobility, Z Intelligence → « en développement » page, marked « bientôt »',
+    JSON.stringify(coming.map(c => c[0])) === JSON.stringify(['desk', 'mobility', 'intelligence']) && coming.every(c => c[1] === '#/fr/bientot/' + c[0] && /bientôt$/.test(c[2])), coming);
+  await page.click('[data-zos-app="mobility"]'); await page.waitForTimeout(300);
   const soonText = await page.textContent('#bientot-root');
-  check('« Z Fashion est en cours de développement — Bientôt disponible », description, back to Z Find',
-    await activeView(page) === 'view-bientot' && soonText.includes('Z Fashion est en cours de développement') && soonText.includes('Bientôt disponible') && soonText.includes('boutiques indépendantes') && soonText.includes('Retour à Z Find')
-    && await page.title() === 'Z Fashion — bientôt disponible — Z Find', { title: await page.title(), soonText: soonText.slice(0, 200) });
+  check('« Z Mobility est en cours de développement — Bientôt disponible », description, back to Z Find',
+    await activeView(page) === 'view-bientot' && soonText.includes('Z Mobility est en cours de développement') && soonText.includes('Bientôt disponible') && soonText.includes('constructeurs') && soonText.includes('Retour à Z Find')
+    && await page.title() === 'Z Mobility — bientôt disponible — Z Find', { title: await page.title(), soonText: soonText.slice(0, 200) });
   await shot(page, 'footer-bientot-desktop', true);
   await page.click('#bientot-root a.btn-gold'); await page.waitForTimeout(300);
   check('« Retour à Z Find » → home', await activeView(page) === 'view-home');
@@ -148,9 +150,9 @@ const hashOf = page => page.evaluate(() => location.hash);
   const m = await mobile.newPage();
   m.on('pageerror', e => pageErrors.push(e.message));
   await mock(m);
-  await m.goto(FILE_URL + '#/fr/bientot/jobs'); await m.waitForTimeout(500);
+  await m.goto(FILE_URL + '#/fr/bientot/desk'); await m.waitForTimeout(500);
   const overflow = await m.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-  check('mobile: « Z Jobs est en cours de développement », no horizontal scroll', (await m.textContent('#bientot-root')).includes('Z Jobs est en cours de développement') && overflow <= 1, overflow);
+  check('mobile: « Z Desk est en cours de développement », no horizontal scroll', (await m.textContent('#bientot-root')).includes('Z Desk est en cours de développement') && overflow <= 1, overflow);
   await shot(m, 'footer-bientot-mobile', true);
   await m.goto(FILE_URL + '#/fr/home'); await m.waitForTimeout(400);
   await m.locator('footer.site').scrollIntoViewIfNeeded();
