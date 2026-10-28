@@ -7,6 +7,7 @@ import {
 } from "./shared.jsx";
 import { AuthPanel, CandidateDashboard } from "./CandidateDashboard.jsx";
 import { OrganizationSetup, PartnerDashboard } from "./PartnerDashboard.jsx";
+import { AnswerFields } from "./ScreeningQuestions.jsx";
 
 /* ============================================================
    Z JOBS — portal (public listings, candidate and partner dashboards,
@@ -72,7 +73,9 @@ const api = {
   transitionApplication: (applicationId, to, actor) => post(`/applications/${applicationId}/transition`, { to, actor }),
   checkCVQuality: (userId, payload) => post(`/candidates/${userId}/cv-quality-check`, payload),
   checkCoverLetter: (userId, payload) => post(`/candidates/${userId}/cover-letter-check`, payload),
-  applyToOffer: ({ jobOfferId, candidateId }) => post("/applications", { jobOfferId, candidateId }),
+  applyToOffer: ({ jobOfferId, candidateId, answers, coverNote }) => post("/applications", { jobOfferId, candidateId, answers, coverNote }),
+  getOfferQuestions: (offerId) => apiFetch(`/job-offers/${offerId}/questions`),
+  putOfferQuestions: (offerId, questions) => apiFetch(`/job-offers/${offerId}/questions`, { method: "PUT", body: JSON.stringify({ questions }) }),
   // organisations
   listMyOrganizations: () => apiFetch("/me/organizations"),
   createOrganization: ({ legalName, displayName, createdBy }) => post("/organizations", { legalName, displayName, createdBy }),
@@ -180,6 +183,7 @@ export default function ZJobsDemo() {
       return null;
     }
   });
+  const [applyingOfferId, setApplyingOfferId] = useState(null);
   const [viewingCompanyOrgId, setViewingCompanyOrgId] = useState(null);
   const [toast, setToast] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -316,11 +320,18 @@ export default function ZJobsDemo() {
     return ok;
   }
 
-  async function applyToOffer(offerId) {
+  // Applying opens a short dialog: the employer's questions (if any) and an
+  // optional message. Same profile, no form to fill in again.
+  function applyToOffer(offerId) {
     if (!userId) { setRole("candidate"); return notify(t("toast_create_candidate_first"), "warn"); }
     if (applications.some((a) => a.jobOfferId === offerId)) return notify(t("toast_already_applied"), "warn");
-    const result = await run(() => api.applyToOffer({ jobOfferId: offerId, candidateId: userId }), "toast_apply_failed");
-    if (result) { await loadCandidate(userId); notify(t("toast_applied"), "success"); }
+    setApplyingOfferId(offerId);
+  }
+
+  async function submitApplication(offerId, answers, coverNote) {
+    const result = await run(() => api.applyToOffer({ jobOfferId: offerId, candidateId: userId, answers, coverNote }), "toast_apply_failed");
+    if (result) { setApplyingOfferId(null); await loadCandidate(userId); notify(t("toast_applied"), "success"); }
+    return !!result;
   }
 
   async function withdraw(applicationId) {
@@ -365,10 +376,16 @@ export default function ZJobsDemo() {
     if (ok) { await loadOrgs(); notify(t("toast_verification_requested"), "info"); }
   }
 
-  async function createOffer(orgId, draft) {
-    const ok = await run(() => api.createJobOffer({ organizationId: orgId, ...draft }), "toast_offer_save_failed");
+  async function createOffer(orgId, draft, questions) {
+    const ok = await run(() => api.createJobOffer({ organizationId: orgId, ...draft, ...(questions?.length ? { questions } : {}) }), "toast_offer_save_failed");
     if (ok) { await loadOrgOffers(orgId); notify(t("toast_offer_saved"), "info"); }
     return !!ok;
+  }
+
+  async function saveOfferQuestions(offerId, questions) {
+    const saved = await run(() => api.putOfferQuestions(offerId, questions), "toast_questions_failed");
+    if (saved) notify(t("questions_saved"), "success");
+    return saved;
   }
 
   async function savePublicProfile(orgId, fields, classification) {
@@ -571,6 +588,8 @@ export default function ZJobsDemo() {
             onAddTranslation={addTranslation}
             onFetchPoolInsight={(id) => api.getCandidatePoolInsight(id)}
             onLoadApplications={(id) => api.listApplicationsForOffer(id)}
+            onLoadQuestions={(id) => api.getOfferQuestions(id)}
+            onSaveQuestions={saveOfferQuestions}
             onLoadScores={(id) => api.getCandidateScores(id)}
             onTransition={transitionForPartner}
             onSearchLocations={(q) => api.searchLocations(q)}
@@ -611,6 +630,16 @@ export default function ZJobsDemo() {
           alreadyApplied={applications.some((a) => a.jobOfferId === selectedOffer.id)}
           onViewCompanyProfile={() => setViewingCompanyOrgId(selectedOffer.organizationId)}
           onReport={(reason) => reportTarget("job_offer", selectedOffer.id, reason)}
+        />
+      )}
+
+      {applyingOfferId && (
+        <ApplyDialog
+          offer={allKnownOffers.find((o) => o.id === applyingOfferId) || { id: applyingOfferId, title: "" }}
+          onLoadQuestions={(id) => api.getOfferQuestions(id)}
+          onSubmit={submitApplication}
+          onClose={() => setApplyingOfferId(null)}
+          busy={busy}
         />
       )}
 
@@ -825,6 +854,48 @@ function AdminView({ orgs, offers, onApproveVerification, onReviewOffer, onPubli
         {auditLog.length === 0 && <p className="zj-empty">{t("audit_empty")}</p>}
       </div>
     </section>
+  );
+}
+
+function ApplyDialog({ offer, onLoadQuestions, onSubmit, onClose, busy }) {
+  const ref = useDialog(onClose);
+  const [questions, setQuestions] = useState(null);
+  const [answers, setAnswers] = useState({});
+  const [coverNote, setCoverNote] = useState("");
+  useEffect(() => {
+    let cancelled = false;
+    onLoadQuestions(offer.id).then((q) => { if (!cancelled) setQuestions(q || []); }).catch(() => { if (!cancelled) setQuestions([]); });
+    return () => { cancelled = true; };
+  }, [offer.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const missing = (questions || []).some((q) => q.required && !String(answers[q.id] ?? "").trim());
+  return (
+    <div className="zj-drawer-backdrop" onClick={onClose}>
+      <div className="zj-drawer" role="dialog" aria-modal="true" aria-labelledby="apply-h" ref={ref} onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="zj-drawer-close" onClick={onClose}>{t("close")}</button>
+        <p className="zj-eyebrow">{t("apply")}</p>
+        <h2 id="apply-h">{offer.title}</h2>
+        <p className="zj-panel-hint">{t("apply_intro")}</p>
+        {!questions && <p className="zj-empty">{t("loading")}</p>}
+        {questions && (
+          <form
+            className="zj-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              onSubmit(offer.id, questions.map((q) => ({ questionId: q.id, answer: answers[q.id] ?? "" })), coverNote.trim());
+            }}
+          >
+            {questions.length > 0 && <p className="zj-field-hint">{t("apply_questions_note")}</p>}
+            <AnswerFields questions={questions} value={answers} onChange={setAnswers} />
+            <Field label={`${t("apply_message")} (${t("optional")})`} hint={t("apply_message_hint")}>
+              <textarea rows={4} maxLength={2000} value={coverNote} onChange={(e) => setCoverNote(e.target.value)} />
+            </Field>
+            <button type="submit" className="zj-btn is-primary" disabled={busy || missing}>
+              {t("apply_send")} <ArrowRight size={14} aria-hidden="true" />
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -1283,6 +1354,12 @@ function FontsAndStyles() {
       .zj-facts { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 12px 0 0; font-size: 13px; }
       .zj-facts dt { font-size: 11px; color: #5c5544; }
       .zj-facts dd { margin: 0; font-weight: 600; }
+      .zj-questions-edit { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 12px; }
+      .zj-questions-edit li { border-left: 2px solid rgba(43,94,167,0.25); padding-left: 12px; }
+      .zj-answers { display: grid; gap: 8px; margin: 8px 0 0; font-size: 13px; }
+      .zj-answers dt { font-size: 12px; color: #5F6773; }
+      .zj-answers dd { margin: 0; font-weight: 600; }
+      .zj-cover-note { white-space: pre-line; font-size: 13px; margin: 8px 0 0; }
       .zj-place { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #3D4A46; }
       .zj-place-chosen { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; border: 1px solid var(--line); background: var(--paper); }
       .zj-location-results { display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow-y: auto; }

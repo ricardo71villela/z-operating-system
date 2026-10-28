@@ -53,6 +53,7 @@ import { computeMatchScore, explainMatchFactors } from '../../../packages/domain
 import { computeCandidateScore, explainCandidateScore } from '../../../packages/domain/src/rules/candidateScore';
 import type { MessageLocale } from '../../../packages/domain/src/i18n/messages';
 import type { JobOfferDraft } from '../../../packages/domain/src/types/jobOffer';
+import { validateScreeningQuestions, validateScreeningAnswers } from '../../../packages/domain/src/rules/screeningQuestions';
 import { offerIdFromSlug, offerPath, pageLocale, renderGonePage, renderOfferPage, renderOffersSitemap } from './publicPages';
 
 // Versão atual dos Termos de Serviço / Política de Privacidade — muda
@@ -849,12 +850,20 @@ export function createServer() {
 
       // 6. Empresa cria oferta com salário fixo obrigatório
       if (method === 'POST' && path === '/job-offers') {
-        const draft = (await readBody(req)) as Omit<JobOfferDraft, 'status'>;
+        const { questions: rawQuestions, ...draft } = (await readBody(req)) as Omit<JobOfferDraft, 'status'> & { questions?: unknown };
         if (draft.locationId && usingPostgres && !(await (store as PgStore).locationExists(draft.locationId))) {
           return json(res, 400, { error: 'localidade desconhecida' });
         }
+        // Screening questions are checked before the offer exists, so a
+        // refused question never leaves a half-created draft behind.
+        const checkedQuestions = rawQuestions === undefined ? null : validateScreeningQuestions(rawQuestions);
+        if (checkedQuestions && !checkedQuestions.ok) return json(res, 422, { error: checkedQuestions.error, index: checkedQuestions.index });
         const offer = await store.createJobOffer(draft);
         await store.addAuditLog(draft.organizationId, 'job_offer', offer.id, 'create');
+        if (usingPostgres && checkedQuestions?.ok && checkedQuestions.questions.length) {
+          const questions = await (store as PgStore).replaceOfferQuestions(offer.id, checkedQuestions.questions);
+          return json(res, 201, { ...offer, questions });
+        }
         return json(res, 201, offer);
       }
 
@@ -1121,7 +1130,7 @@ export function createServer() {
           limit: 7,
         });
         const similar = pool.offers.filter((o) => o.id !== offer.id).slice(0, 6);
-        return sendText(res, 200, 'text/html; charset=utf-8', renderOfferPage(offer, similar, locale), {
+        return sendText(res, 200, 'text/html; charset=utf-8', renderOfferPage(offer, similar, locale, await (store as PgStore).getOfferQuestions(offer.id)), {
           'Cache-Control': 'public, max-age=0, s-maxage=600, stale-while-revalidate=3600',
         });
       }
@@ -1183,8 +1192,33 @@ export function createServer() {
       }
 
       // 11. Candidato candidata-se
+      // Screening questions of an offer (up to 5). Read: public once the offer
+      // is published (RLS). Write: members of the employer, while the offer
+      // is a draft or being corrected, so they go through moderation.
+      if (method === 'GET' && path.match(/^\/job-offers\/[^/]+\/questions$/)) {
+        if (!usingPostgres) return json(res, 200, []);
+        return json(res, 200, await (store as PgStore).getOfferQuestions(path.split('/')[2]));
+      }
+
+      if (method === 'PUT' && path.match(/^\/job-offers\/[^/]+\/questions$/)) {
+        if (!usingPostgres) return json(res, 501, { error: 'só disponível com Postgres real ligado' });
+        if (!currentUserId) return json(res, 401, { error: 'não autenticado' });
+        const offerId = path.split('/')[2];
+        const offer = await store.mustGetJobOffer(offerId);
+        if (!(await (store as PgStore).isOrganizationMember(offer.organizationId, currentUserId))) {
+          return json(res, 403, { error: 'questions_employer_only' });
+        }
+        if (offer.status !== 'draft' && offer.status !== 'needs_changes') {
+          return json(res, 409, { error: 'questions_locked' });
+        }
+        const body = await readBody(req);
+        const checked = validateScreeningQuestions(body?.questions);
+        if (!checked.ok) return json(res, 422, { error: checked.error, index: checked.index });
+        return json(res, 200, await (store as PgStore).replaceOfferQuestions(offerId, checked.questions));
+      }
+
       if (method === 'POST' && path === '/applications') {
-        const { jobOfferId, candidateId } = await readBody(req);
+        const { jobOfferId, candidateId, answers, coverNote } = await readBody(req);
         if (usingSharedZosDatabase && !currentUserId) {
           return json(res, 401, { error: 'não autenticado' });
         }
@@ -1193,8 +1227,20 @@ export function createServer() {
         if (offer.status !== 'published') {
           return json(res, 409, { error: 'só é possível candidatar-se a ofertas publicadas' });
         }
+        const note = typeof coverNote === 'string' ? coverNote.trim() : '';
+        if (note.length > 2000) return json(res, 422, { error: 'cover_note_too_long' });
+        let checkedAnswers: { questionId: string; answer: string }[] = [];
+        if (usingPostgres) {
+          const questions = await (store as PgStore).getOfferQuestions(jobOfferId);
+          const checked = validateScreeningAnswers(questions, answers);
+          if (!checked.ok) return json(res, 422, { error: checked.error, questionId: checked.questionId });
+          checkedAnswers = checked.answers;
+        }
         const app = await store.createApplication(jobOfferId, effectiveCandidateId);
-        return json(res, 201, app);
+        if (usingPostgres && (note || checkedAnswers.length)) {
+          await (store as PgStore).saveApplicationExtras(app.id, { coverNote: note || null, answers: checkedAnswers });
+        }
+        return json(res, 201, { ...app, coverNote: note || null, answers: checkedAnswers });
       }
 
       // 12. Empresa visualiza a candidatura
@@ -1202,13 +1248,22 @@ export function createServer() {
         const jobOfferId = path.split('/')[2];
         const apps = await store.listApplicationsForOffer(jobOfferId);
         const unread = usingPostgres ? await (store as PgStore).countUnreadMessages(apps.map((a) => a.id), 'employer') : {};
-        return json(res, 200, apps.map((app) => ({ ...app, response: applicationResponseDeadline(app), unreadMessages: unread[app.id] ?? 0 })));
+        const extras = usingPostgres ? await (store as PgStore).getApplicationExtras(apps.map((a) => a.id)) : {};
+        return json(res, 200, apps.map((app) => ({
+          ...app,
+          response: applicationResponseDeadline(app),
+          unreadMessages: unread[app.id] ?? 0,
+          coverNote: extras[app.id]?.coverNote ?? null,
+          answers: extras[app.id]?.answers ?? [],
+        })));
       }
 
       // 13. Ambas as partes veem o estado da candidatura + empresa avança pipeline
       if (method === 'GET' && path.match(/^\/applications\/[^/]+$/)) {
         const id = path.split('/')[2];
-        const app = await store.mustGetApplication(id);
+        const base = await store.mustGetApplication(id);
+        const extra = usingPostgres ? (await (store as PgStore).getApplicationExtras([id]))[id] : undefined;
+        const app = { ...base, coverNote: extra?.coverNote ?? null, answers: extra?.answers ?? [] };
         // Transparência (ver candidateScore.ts, ponto 5 do aviso): o
         // candidato vê a mesma pontuação orientadora que o empregador,
         // nunca uma versão diferente ou escondida.
