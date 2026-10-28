@@ -125,7 +125,8 @@ function beCommune({ base, index, commune, today }) {
   if (tr != null) faq.push({ q: `Les prix augmentent-ils ${aCommune(name)} ?`, a: `Le prix médian des maisons a évolué de ${signed(tr)} entre 2021 et ${year}.` });
   const neighbours = index.communes.filter(c => c.p === commune.p && c.c !== commune.c && beIndexable(c, year))
     .sort((a, b) => beSales(b, year) - beSales(a, year)).slice(0, 15);
-  const cmpRows = [[name, commune, null], arr && [arr.n, arr, null], group && [group.c === '4000' ? 'Région de Bruxelles-Capitale' : group.n, group, beGroupPath(group)], nat && ['Belgique', nat, BE_ROOT]].filter(Boolean);
+  const beRegion = group && group.c !== '4000' ? index.byCode[group.p] || null : null;
+  const cmpRows = [[name, commune, null], arr && [arr.n, arr, null], group && [group.c === '4000' ? 'Région de Bruxelles-Capitale' : group.n, group, beGroupPath(group)], beRegion && [beRegion.n, beRegion, BE_ROOT], nat && ['Belgique', nat, BE_ROOT]].filter(Boolean);
   const body = `    <header class="zf-seo-hero">
       <p class="zf-seo-eyebrow">Prix de l’immobilier · ${esc(group ? (group.c === '4000' ? 'Bruxelles-Capitale' : group.n) : 'Belgique')}</p>
       <h1>Prix de l’immobilier ${esc(aCommune(name))}</h1>
@@ -140,7 +141,7 @@ function beCommune({ base, index, commune, today }) {
       <div class="zp-table-wrap"><table class="zp-table"><thead><tr><th>Année</th><th>Maisons</th><th>Appartements</th><th>Ventes</th></tr></thead><tbody>${BE_YEARS.map(y => `<tr><td>${y}</td><td>${beCell(beStat(commune, 'M', y))}</td><td>${beCell(beStat(commune, 'A', y))}</td><td>${nf.format(beSales(commune, y))}</td></tr>`).join('')}</tbody></table></div>
     </section>
     <section class="zp-section">
-      <h2>${esc(name)} comparée à la province et à la Belgique</h2>
+      <h2>Prix ${esc(aCommune(name))} comparés ${arr ? 'à l’arrondissement, ' : ''}à la ${group && group.c === '4000' ? 'région' : `province${beRegion ? ', à la région' : ''}`} et à la Belgique</h2>
       <div class="zp-table-wrap"><table class="zp-table"><thead><tr><th></th><th>Maisons</th><th>Appartements</th></tr></thead><tbody>${cmpRows.map(([n, r, p]) => `<tr><td>${p ? `<a href="${base}${p}">${esc(n)}</a>` : esc(n)}</td><td>${beCell(beStat(r, 'M', year))}</td><td>${beCell(beStat(r, 'A', year))}</td></tr>`).join('')}</tbody></table></div>
     </section>
     ${beBudget(base, commune.c, name, house, apt, today)}
@@ -198,6 +199,7 @@ function beCountry({ base, index }) {
       <div class="zp-ctas"><a class="zf-seo-primary" href="${base}/#/fr/estimation?market=BE&amp;mode=owner">Estimer mon bien →</a><a class="zp-secondary" href="${base}/fr/frais-achat-immobilier-belgique">Frais d’achat en Belgique</a></div>
     </header>
     <div class="zp-stats">${BE_TYPES.map(([t, l]) => beCard(l, beStat(nat, t, year))).join('')}</div>
+    <section class="zp-section"><h2>Prix par région</h2><div class="zp-table-wrap"><table class="zp-table"><thead><tr><th>Région</th><th>Maisons</th><th>Appartements</th></tr></thead><tbody>${(index.data.levels.region || []).map(r => `<tr><td>${esc(r.n)}</td><td>${beCell(beStat(r, 'M', year))}</td><td>${beCell(beStat(r, 'A', year))}</td></tr>`).join('')}</tbody></table></div></section>
     <section class="zp-section"><h2>Prix par province</h2><div class="zp-table-wrap"><table class="zp-table"><thead><tr><th>Province</th><th>Maisons</th><th>Appartements</th></tr></thead><tbody>${groups.map(g => `<tr><td><a href="${base}${beGroupPath(g)}">${esc(beGroupName(g))}</a></td><td>${beCell(beStat(g, 'M', year))}</td><td>${beCell(beStat(g, 'A', year))}</td></tr>`).join('')}</tbody></table></div></section>
     <section class="zp-section"><h2>Les communes les plus actives</h2><ul class="zp-links">${top.map(c => `<li><a href="${base}${beCommunePath(c)}">${esc(beName(c))}</a></li>`).join('')}</ul></section>
     <section class="zp-section"><h2>Autres pays</h2><ul class="zp-links"><li><a href="${base}${P.ROOT_PATH}">Prix de l’immobilier en France</a></li><li><a href="${base}${LU_ROOT}">Prix de l’immobilier au Luxembourg</a></li></ul></section>`;

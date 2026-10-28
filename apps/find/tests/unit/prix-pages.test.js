@@ -77,6 +77,37 @@ function run(p, method) {
   const body = fs.readFileSync(path.join(WEB, 'src', 'body.html'), 'utf8');
   check('pied de page : liens explorables (sans #) vers les prix', body.includes('<a href="/fr/prix-immobilier/france">'));
 
+  console.log('\n=== 6. régions, villes à arrondissements ===');
+  const frIdx = JSON.parse(fs.readFileSync(path.join(WEB, 'public', 'market-data', 'fr', 'index.json'), 'utf8'));
+  const regions = P.regionsOf(frIdx);
+  check('13 régions métropolitaines (DROM et Mayotte exclus)', regions.length === 13 && !regions.some(r => /Guadeloupe|Mayotte|Réunion/.test(r.name)));
+  check('route région', JSON.stringify(P.parsePath('france/region-bretagne')) === JSON.stringify({ kind: 'region', slug: 'bretagne' }));
+  check('« en / dans le / dans les »', P.enRegion('Bretagne') === 'en Bretagne' && P.enRegion('Grand Est') === 'dans le Grand Est' && P.enRegion('Hauts-de-France') === 'dans les Hauts-de-France');
+  const ara = regions.find(r => r.name === 'Auvergne-Rhône-Alpes');
+  const araA = P.regionLatest(ara, 'A');
+  check('prix de référence régional : moyenne des médianes pondérée par les ventes, entre le min et le max des départements',
+    araA && araA.n > 1000 && ara.departments.every(d => true) &&
+    araA.med >= Math.min(...ara.departments.map(d => d.A['2024-2025'][2])) && araA.med <= Math.max(...ara.departments.map(d => d.A['2024-2025'][2])));
+  const reg = await run('france/region-auvergne-rhone-alpes');
+  check('page région : 200, H1, départements liés, FAQ, comparaison France', reg.status === 200 && reg.body.includes('<h1>Prix de l’immobilier en Auvergne-Rhône-Alpes</h1>') &&
+    reg.body.includes('/fr/prix-immobilier/france/haute-savoie-74') && reg.body.includes('"FAQPage"') && reg.body.includes('comparée à la France') && !/undefined|NaN/.test(reg.body));
+  const ge = await run('france/region-grand-est');
+  check('Grand Est : Alsace-Moselle signalée hors DVF', ge.status === 200 && ge.body.includes('Hors DVF (Alsace-Moselle)'));
+  check('région inconnue → 404', (await run('france/region-atlantide')).status === 404);
+  const frPage = await run('france');
+  check('page France : tableau par région lié', frPage.body.includes('Prix au m² par région') && frPage.body.includes('/fr/prix-immobilier/france/region-bretagne'));
+  const ev = await run('france/evian-les-bains-74119');
+  check('commune : comparaison commune / département / région / France sur 2024-2025, fil d’Ariane avec la région',
+    ev.body.includes('comparés au département, à la région Auvergne-Rhône-Alpes et à la France') && ev.body.includes('region-auvergne-rhone-alpes') && ev.body.includes('"name":"Auvergne-Rhône-Alpes"'));
+  const dep74 = await run('france/haute-savoie-74');
+  check('département : comparaison avec la région et la France', dep74.body.includes('Prix dans le département comparés à la région Auvergne-Rhône-Alpes et à la France'));
+  const lyon = await run('france/lyon-69123');
+  check('ville : prix par arrondissement', lyon.body.includes('Prix au m² par arrondissement de Lyon') && lyon.body.includes('lyon-1er-arrondissement-69381'));
+  const lyon3 = await run('france/lyon-3e-arrondissement-69383');
+  check('arrondissement : comparé à la ville, fil d’Ariane par la ville', P.cityOfArrondissement('69383') === '69123' && P.cityOfArrondissement('69123') === null &&
+    lyon3.body.includes('comparés à Lyon, au département') && lyon3.body.includes('"name":"Lyon","item":"https://zfind.online/fr/prix-immobilier/france/lyon-69123"'));
+  check('sitemap-prix : les 13 régions', regions.every(r => urls.includes('https://zfind.online' + P.regionPath(r.name))));
+
   console.log(`\nRESULT: ${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);
 })();
