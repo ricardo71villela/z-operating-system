@@ -16,17 +16,18 @@
 (function () {
   'use strict';
 
-  /* status 'live': canonical public address validated (zstudio.space is the
-     Z Studio domain configured in apps/studio). Everything else is in
+  /* status 'live': canonical public address validated (zstudio.space,
+     zfashion.online and zjobs.online, the domains of Z Studio, Z Fashion and
+     Z Jobs, owner's decision of 28 Oct 2026). Everything else is in
      development: preview deployments (*.vercel.app) are not public links. */
   const ZOS_APPS = [
     { key: 'studio', label: 'Z Studio', href: 'https://zstudio.space', status: 'live',
       desc: { fr: 'Création de contenus visuels et vidéo pour les professionnels.', en: 'Visual and video content creation for professionals.' } },
-    { key: 'fashion', label: 'Z Fashion', href: null, status: 'development',
+    { key: 'fashion', label: 'Z Fashion', href: 'https://zfashion.online', status: 'live',
       desc: { fr: 'La mode et le lifestyle des boutiques indépendantes : vêtements, chaussures, sport, maroquinerie et cosmétique, réunis sur une même place de marché.', en: 'Fashion and lifestyle from independent stores — clothing, footwear, sportswear, leather goods and cosmetics — on one marketplace.' } },
     { key: 'desk', label: 'Z Desk', href: null, status: 'development',
       desc: { fr: 'L’espace de travail des équipes : e-mails, WhatsApp, agenda, tâches et planning réunis au même endroit.', en: 'The workspace for teams: e-mail, WhatsApp, calendar, tasks and schedules in one place.' } },
-    { key: 'jobs', label: 'Z Jobs', href: null, status: 'development',
+    { key: 'jobs', label: 'Z Jobs', href: 'https://zjobs.online', status: 'live',
       desc: { fr: 'L’emploi en Europe : des offres d’employeurs vérifiés, gratuites pour les candidats.', en: 'Jobs in Europe: offers from verified employers, free for candidates.' } },
     { key: 'mobility', label: 'Z Mobility', href: null, status: 'development',
       desc: { fr: 'La place de marché automobile, appuyée sur les données officielles des constructeurs.', en: 'The car marketplace, built on official manufacturer data.' } },
