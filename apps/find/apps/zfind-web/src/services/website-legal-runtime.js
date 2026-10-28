@@ -172,7 +172,6 @@
     const link = document.createElement('a');
     link.id = COOKIE_LINK_ID;
     link.href = '#';
-    link.style.marginLeft = '14px';
     link.addEventListener('click', event => {
       event.preventDefault();
       navigate('cookies');

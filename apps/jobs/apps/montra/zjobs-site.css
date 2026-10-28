@@ -89,7 +89,34 @@ footer a:hover{ color:#fff; }
 .zj-foot-bottom{ border-top:1px solid rgba(255,255,255,.14); margin-top:18px; padding-top:18px; display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; font-size:12px; color:#AEB7C3; }
 footer .flags, footer .fine{ display:none; }
 @media (max-width:1000px){ .zj-foot-cols{ grid-template-columns:repeat(3,1fr); } .zj-foot-brand{ grid-column:1/-1; } }
-@media (max-width:620px){ .zj-foot-cols{ grid-template-columns:1fr 1fr; gap:22px 16px; } .zj-foot-cols a{ padding:8px 0; } .zj-foot-zos{ justify-content:flex-start; } }
+@media (max-width:620px){
+  .zj-foot-cols{ grid-template-columns:1fr 1fr; gap:22px 16px; }
+  .zj-foot-cols a{ padding:8px 0; }
+  /* Portails ZOS : grille régulière de 3 colonnes, « bientôt » sous le nom. */
+  .zj-foot-zos{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); align-items:start; gap:14px 16px; margin-top:36px; padding-top:22px; font-size:13.5px; }
+  .zj-foot-zos a, .zj-foot-zos > span{ display:flex; flex-direction:column; align-items:flex-start; gap:3px; }
+  .zj-foot-zos .soon{ margin-left:0; font-size:9.5px; }
+  .zj-foot-bottom{ flex-direction:column; gap:6px; }
+}
+
+/* ---------- en-tête sur téléphone : une ligne équilibrée ---------- */
+@media (max-width:640px){
+  .wrap{ padding-left:18px !important; padding-right:18px !important; }
+  nav .nav-top{ padding-top:10px; padding-bottom:4px; gap:8px 12px; flex-wrap:wrap; }
+  .brand{ gap:10px !important; }
+  .brand img{ width:38px !important; height:38px !important; }
+  .brand span{ font-size:24px !important; }
+  .zj-nav-actions{ margin-left:auto; gap:8px; }
+  .locales{ gap:4px !important; }
+  .locales button, .locales a{ padding:5px 8px !important; font-size:10.5px !important; }
+  .nav-cta{ padding:8px 12px !important; font-size:10.5px !important; letter-spacing:.06em !important; }
+  nav .navlinks{ order:3; flex-basis:100%; gap:20px; padding:6px 0 2px; border-top:1px solid var(--zj-line) !important; margin-top:4px; }
+  nav .navlinks a{ font-size:13.5px; }
+}
+@media (max-width:370px){
+  .brand span{ font-size:21px !important; }
+  .nav-cta{ padding:7px 9px !important; letter-spacing:.03em !important; }
+}
 
 /* Lignes « pays → valeur » : drapeau et nom ensemble, valeur à droite. */
 .legal-row{ justify-content:flex-start !important; gap:6px; align-items:center; }
@@ -98,3 +125,7 @@ footer .flags, footer .fine{ display:none; }
 /* Les cinq labels sur une seule rangée en grand écran (aucune case vide). */
 @media (min-width:1100px){ .badge-grid{ grid-template-columns:repeat(5,1fr) !important; } }
 .badge-cell{ background:#fff; }
+
+/* Cartes des indicateurs : jamais plus larges que l’écran (canvas compris). */
+.econ-grid > *{ min-width:0; }
+.econ-card canvas{ max-width:100%; }
