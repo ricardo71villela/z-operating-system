@@ -2,7 +2,7 @@
    Z FIND — GET /fr/prix-immobilier/... (réécrit vers /api/prix-immobilier?p=...)
 
    Pages publiques et indexables « Prix de l'immobilier » (France) :
-   pays, département, commune. Rendu par _lib/prix-pages.js à partir des
+   pays, région, département, ville et arrondissement, commune. Rendu par _lib/prix-pages.js à partir des
    médianes DVF de public/market-data/fr (fichiers inclus dans la
    fonction). Mises en cache par le CDN (1 jour, puis révalidation).
 
@@ -86,13 +86,19 @@ async function handler(req, res) {
   const idx = index();
   if (route.kind === 'root') return redirect(res, base + P.ROOT_PATH);
   if (route.kind === 'country') return send(res, 200, P.renderCountry({ base, index: idx }), true);
+  if (route.kind === 'region') {
+    const regions = P.regionsOf(idx);
+    const region = regions.find(r => r.slug === route.slug);
+    if (!region) return notFound(res, base);
+    return send(res, 200, P.renderRegion({ base, region, index: idx, regions }), true);
+  }
   if (route.kind === 'department') {
     const d = idx.departments[route.code];
     const file = d && depFile(route.code);
     if (!file) return notFound(res, base);
     const canonical = P.depPath(route.code, d.name);
     if (`${P.ROOT_PATH}/${String(q.p).toLowerCase().split('/').filter(Boolean).pop()}` !== canonical) return redirect(res, base + canonical);
-    return send(res, 200, P.renderDepartment({ base, department: Object.assign({ code: route.code }, d), communes: file.communes || [], national: idx.national }), true);
+    return send(res, 200, P.renderDepartment({ base, department: Object.assign({ code: route.code }, d), communes: file.communes || [], national: idx.national, region: P.regionOfDepartment(idx, route.code) }), true);
   }
   if (route.kind === 'commune') {
     const depCode = P.depOfCommune(route.code);
@@ -103,9 +109,13 @@ async function handler(req, res) {
     const canonical = P.communePath(commune);
     if (`${P.ROOT_PATH}/${String(q.p).toLowerCase().split('/').filter(Boolean).pop()}` !== canonical) return redirect(res, base + canonical);
     const agencies = await agencyCount(commune.c);
+    const cityCode = P.cityOfArrondissement(commune.c);
     return send(res, 200, P.renderCommune({
       base, commune, department: Object.assign({ code: depCode }, d), national: idx.national,
-      neighbours: P.neighboursOf(commune, file.communes || [], 15), agencies, today: new Date()
+      neighbours: P.neighboursOf(commune, file.communes || [], 15), agencies, today: new Date(),
+      region: P.regionOfDepartment(idx, depCode),
+      city: cityCode ? (file.communes || []).find(c => c.c === cityCode) || null : null,
+      communes: P.BIG_CITY_PREFIX[commune.c] ? file.communes || [] : null
     }), true);
   }
   return notFound(res, base);
