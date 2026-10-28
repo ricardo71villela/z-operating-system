@@ -197,8 +197,8 @@ async function routeNetworkStubs(page) {
       if (phone && metrics.categoryColumns !== 2) {
         fail('phone categories must remain a compact 2x2 grid', { viewport, metrics });
       }
-      if (phone && metrics.footerColumns !== 1) {
-        fail('phone footer must use one-column composition', { viewport, metrics });
+      if (phone && metrics.footerColumns !== 2) {
+        fail('phone footer must use a compact two-column composition', { viewport, metrics });
       }
       if (!phone && metrics.footerColumns > 2) {
         fail('tablet footer must not retain desktop four-column composition', { viewport, metrics });

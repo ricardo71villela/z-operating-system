@@ -471,8 +471,12 @@
   }
 
   html body footer.site .cols {
-    grid-template-columns: 1fr;
-    gap: 26px;
+    grid-template-columns: 1fr 1fr;
+    gap: 22px 16px;
+  }
+
+  html body footer.site .footer-brand {
+    grid-column: 1 / -1;
   }
 
   html body footer.site .bottom {

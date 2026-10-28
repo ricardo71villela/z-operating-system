@@ -67,9 +67,9 @@ check('reader-facing status wording replaces internal markers in French guides',
 check('French wording fixes are applied',
   launch.html.includes('à la date de ce guide') && !launch.html.includes('à la date de cette guide') &&
   launch.html.includes('Ne jamais assimiler automatiquement'));
-check('static footer guide links default to the French guides',
-  launch.html.includes(`onclick="navigate('legal-fr');return false;" data-i18n="footer.legalGuide"`) &&
-  launch.html.includes(`onclick="navigate('tourist-rental-fr');return false;" data-i18n="footer.alManual"`));
+check('footer links to the static French guides (no application guide links)',
+  launch.html.includes('href="/fr/guides/immobilier-france/acheter"') && launch.html.includes('href="/fr/guides/location-touristique-france"') &&
+  !launch.html.includes('data-i18n="footer.legalGuide"') && !launch.html.includes('data-i18n="footer.alManual"'));
 
 check('published HTML keeps only the fr/en language buttons',
   launch.html.includes('data-lang="fr"') && launch.html.includes('data-lang="en"') &&

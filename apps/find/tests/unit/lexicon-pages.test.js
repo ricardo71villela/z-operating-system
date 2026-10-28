@@ -48,7 +48,7 @@ check('avertissement « à titre informatif » sur chaque terme', pages.filter(p
 console.log('\n=== 3. intégration ===');
 check('build : pages écrites et ajoutées au sitemap', /lexiconPages\.buildLexiconPages\(baseUrl\)/.test(gen));
 const body = fs.readFileSync(path.join(WEB, 'src', 'body.html'), 'utf8');
-check('pied de page : liens vers le lexique FR et le glossaire EN', body.includes('<a href="/fr/lexique-immobilier">') && body.includes('href="/en/real-estate-glossary"'));
+check('pied de page : liens vers le lexique FR et le glossaire EN', body.includes('<a href="/fr/lexique-immobilier" data-href-en="/en/real-estate-glossary"'));
 
 console.log('\n=== 4. langue par défaut : français ===');
 const app = fs.readFileSync(path.join(WEB, 'src', 'app.js'), 'utf8');

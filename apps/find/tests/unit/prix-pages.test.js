@@ -75,7 +75,7 @@ function run(p, method) {
   check('réécriture avant la route SPA', idx >= 0 && idx < catchAll && vercel.rewrites[idx].destination === '/api/prix-immobilier?p=:path*');
   check('fonction : données DVF et simulateurs inclus', /public\/market-data\/fr/.test(vercel.functions['api/prix-immobilier.js'].includeFiles) && /credit-simulator/.test(vercel.functions['api/prix-immobilier.js'].includeFiles));
   const body = fs.readFileSync(path.join(WEB, 'src', 'body.html'), 'utf8');
-  check('pied de page : liens explorables (sans #) vers les prix', body.includes('<a href="/fr/prix-immobilier/france">'));
+  check('pied de page : liens explorables (sans #) vers les prix', body.includes('<a href="/fr/prix-immobilier/france" data-i18n="footer.pricesFrance">'));
 
   console.log('\n=== 6. régions, villes à arrondissements ===');
   const frIdx = JSON.parse(fs.readFileSync(path.join(WEB, 'public', 'market-data', 'fr', 'index.json'), 'utf8'));
