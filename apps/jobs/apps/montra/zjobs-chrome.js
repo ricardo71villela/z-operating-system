@@ -75,7 +75,7 @@
     { label: 'Z Find', href: 'https://zfind.online' },
     { label: 'Z Studio', href: 'https://zstudio.space' },
     { label: 'Z Fashion', href: 'https://zfashion.online' },
-    { label: 'Z Desk', href: null },
+    { label: 'Z Desk', href: 'https://z-desk.vercel.app' },
     { label: 'Z Mobility', href: null },
     { label: 'Z Intelligence', href: null }
   ];

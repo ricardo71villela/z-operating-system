@@ -16,17 +16,19 @@
 (function () {
   'use strict';
 
-  /* status 'live': canonical public address validated (zstudio.space is the
-     Z Studio domain configured in apps/studio). Everything else is in
-     development: preview deployments (*.vercel.app) are not public links. */
+  /* status 'live': canonical public address validated (zstudio.space,
+     zfashion.online and zjobs.online, the domains of Z Studio, Z Fashion and
+     Z Jobs; Z Desk on its production address z-desk.vercel.app until
+     desk.zfind.online points to Vercel — owner's decision of 28 Oct 2026).
+     Only Z Mobility and Z Intelligence are still "coming soon". */
   const ZOS_APPS = [
     { key: 'studio', label: 'Z Studio', href: 'https://zstudio.space', status: 'live',
       desc: { fr: 'Création de contenus visuels et vidéo pour les professionnels.', en: 'Visual and video content creation for professionals.' } },
-    { key: 'fashion', label: 'Z Fashion', href: null, status: 'development',
+    { key: 'fashion', label: 'Z Fashion', href: 'https://zfashion.online', status: 'live',
       desc: { fr: 'La mode et le lifestyle des boutiques indépendantes : vêtements, chaussures, sport, maroquinerie et cosmétique, réunis sur une même place de marché.', en: 'Fashion and lifestyle from independent stores — clothing, footwear, sportswear, leather goods and cosmetics — on one marketplace.' } },
-    { key: 'desk', label: 'Z Desk', href: null, status: 'development',
+    { key: 'desk', label: 'Z Desk', href: 'https://z-desk.vercel.app', status: 'live',
       desc: { fr: 'L’espace de travail des équipes : e-mails, WhatsApp, agenda, tâches et planning réunis au même endroit.', en: 'The workspace for teams: e-mail, WhatsApp, calendar, tasks and schedules in one place.' } },
-    { key: 'jobs', label: 'Z Jobs', href: null, status: 'development',
+    { key: 'jobs', label: 'Z Jobs', href: 'https://zjobs.online', status: 'live',
       desc: { fr: 'L’emploi en Europe : des offres d’employeurs vérifiés, gratuites pour les candidats.', en: 'Jobs in Europe: offers from verified employers, free for candidates.' } },
     { key: 'mobility', label: 'Z Mobility', href: null, status: 'development',
       desc: { fr: 'La place de marché automobile, appuyée sur les données officielles des constructeurs.', en: 'The car marketplace, built on official manufacturer data.' } },
@@ -191,7 +193,14 @@
 
       footer.site .bottom {
         margin-top: 20px;
+        align-items: baseline;
       }
+      footer.site .bottom a {
+        font-size: inherit;
+        padding: 0;
+        color: inherit;
+      }
+      footer.site .bottom a:hover { color: #fff; }
 
       .zfoot-page { padding-top: 56px; padding-bottom: 72px; }
       .zfoot-page h1 { font-size: 2.3rem; margin: 6px 0 12px; line-height: 1.15; }
@@ -256,9 +265,27 @@
           padding: 6px 0;
         }
 
+        /* Phones: an even grid, three per row, no separators — each name in
+           its own cell, "bientôt" under the name. */
+        #${ROW_ID} { display: block; margin-top: 36px; padding-top: 22px; }
         #${ROW_ID} .zos-ecosystem-links {
-          row-gap: 2px;
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          align-items: start;
+          gap: 14px 16px;
         }
+        #${ROW_ID} .zos-app-link {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          justify-content: flex-start;
+          gap: 3px;
+          padding: 2px 0;
+          font-size: 0.86rem;
+          white-space: normal;
+        }
+        #${ROW_ID} .zos-app-link + .zos-app-link::before { content: none; }
+        #${ROW_ID} .zos-app-soon { font-size: 0.6rem; }
 
         .zfoot-page { padding-top: 34px; padding-bottom: 52px; }
         .zfoot-page h1 { font-size: 1.8rem; }

@@ -123,13 +123,15 @@ const hashOf = page => page.evaluate(() => location.hash);
   const studio = await page.$eval('[data-zos-app="studio"]', a => ({ href: a.getAttribute('href'), target: a.target, rel: a.rel }));
   check('Z Studio (live) opens zstudio.space in a new tab', studio.href === 'https://zstudio.space' && studio.target === '_blank' && /noopener/.test(studio.rel), studio);
   const coming = await page.$$eval('#zfind-zos-ecosystem-footer a.is-coming', els => els.map(a => [a.dataset.zosApp, a.getAttribute('href'), a.textContent.trim()]));
-  check('Z Fashion, Z Desk, Z Jobs, Z Mobility, Z Intelligence → « en développement » page, marked « bientôt »',
-    JSON.stringify(coming.map(c => c[0])) === JSON.stringify(['fashion', 'desk', 'jobs', 'mobility', 'intelligence']) && coming.every(c => c[1] === '#/fr/bientot/' + c[0] && /bientôt$/.test(c[2])), coming);
-  await page.click('[data-zos-app="fashion"]'); await page.waitForTimeout(300);
+  const liveApps = await page.$$eval('[data-zos-app="fashion"], [data-zos-app="desk"], [data-zos-app="jobs"]', els => els.map(a => [a.getAttribute('href'), a.target]));
+  check('Z Fashion, Z Desk and Z Jobs (live) open in a new tab', JSON.stringify(liveApps) === JSON.stringify([['https://zfashion.online', '_blank'], ['https://z-desk.vercel.app', '_blank'], ['https://zjobs.online', '_blank']]), liveApps);
+  check('only Z Mobility and Z Intelligence → « en développement » page, marked « bientôt »',
+    JSON.stringify(coming.map(c => c[0])) === JSON.stringify(['mobility', 'intelligence']) && coming.every(c => c[1] === '#/fr/bientot/' + c[0] && /bientôt$/.test(c[2])), coming);
+  await page.click('[data-zos-app="mobility"]'); await page.waitForTimeout(300);
   const soonText = await page.textContent('#bientot-root');
-  check('« Z Fashion est en cours de développement — Bientôt disponible », description, back to Z Find',
-    await activeView(page) === 'view-bientot' && soonText.includes('Z Fashion est en cours de développement') && soonText.includes('Bientôt disponible') && soonText.includes('boutiques indépendantes') && soonText.includes('Retour à Z Find')
-    && await page.title() === 'Z Fashion — bientôt disponible — Z Find', { title: await page.title(), soonText: soonText.slice(0, 200) });
+  check('« Z Mobility est en cours de développement — Bientôt disponible », description, back to Z Find',
+    await activeView(page) === 'view-bientot' && soonText.includes('Z Mobility est en cours de développement') && soonText.includes('Bientôt disponible') && soonText.includes('constructeurs') && soonText.includes('Retour à Z Find')
+    && await page.title() === 'Z Mobility — bientôt disponible — Z Find', { title: await page.title(), soonText: soonText.slice(0, 200) });
   await shot(page, 'footer-bientot-desktop', true);
   await page.click('#bientot-root a.btn-gold'); await page.waitForTimeout(300);
   check('« Retour à Z Find » → home', await activeView(page) === 'view-home');
@@ -138,23 +140,27 @@ const hashOf = page => page.evaluate(() => location.hash);
 
   /* ---------- English ---------- */
   await page.goto(FILE_URL + '#/en/home'); await page.waitForTimeout(400);
-  const enHrefs = await page.$$eval('footer.site a[data-i18n="footer.buyApartments"], [data-zos-app="desk"]', els => els.map(a => a.getAttribute('href')));
-  check('English: footer links follow the language, English tab title', JSON.stringify(enHrefs) === JSON.stringify(['#/en/search?subtype=apartment', '#/en/bientot/desk']) && await page.title() === 'Z Find — Property listings in France, Belgium and Luxembourg', { enHrefs, title: await page.title() });
-  await page.click('[data-zos-app="desk"]'); await page.waitForTimeout(300);
-  check('English « coming soon » page', (await page.textContent('#bientot-root')).includes('Z Desk is under development'));
+  const enHrefs = await page.$$eval('footer.site a[data-i18n="footer.buyApartments"], [data-zos-app="mobility"]', els => els.map(a => a.getAttribute('href')));
+  check('English: footer links follow the language, English tab title', JSON.stringify(enHrefs) === JSON.stringify(['#/en/search?subtype=apartment', '#/en/bientot/mobility']) && await page.title() === 'Z Find — Property listings in France, Belgium and Luxembourg', { enHrefs, title: await page.title() });
+  await page.click('[data-zos-app="mobility"]'); await page.waitForTimeout(300);
+  check('English « coming soon » page', (await page.textContent('#bientot-root')).includes('Z Mobility is under development'));
 
   /* ---------- mobile ---------- */
   const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const m = await mobile.newPage();
   m.on('pageerror', e => pageErrors.push(e.message));
   await mock(m);
-  await m.goto(FILE_URL + '#/fr/bientot/jobs'); await m.waitForTimeout(500);
+  await m.goto(FILE_URL + '#/fr/bientot/intelligence'); await m.waitForTimeout(500);
   const overflow = await m.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-  check('mobile: « Z Jobs est en cours de développement », no horizontal scroll', (await m.textContent('#bientot-root')).includes('Z Jobs est en cours de développement') && overflow <= 1, overflow);
+  check('mobile: « Z Intelligence est en cours de développement », no horizontal scroll', (await m.textContent('#bientot-root')).includes('Z Intelligence est en cours de développement') && overflow <= 1, overflow);
   await shot(m, 'footer-bientot-mobile', true);
   await m.goto(FILE_URL + '#/fr/home'); await m.waitForTimeout(400);
   await m.locator('footer.site').scrollIntoViewIfNeeded();
   if (SHOTS) await m.locator('footer.site').screenshot({ path: path.join(SHOTS, 'footer-mobile.png') });
+  const zosGrid = await m.$$eval('#zfind-zos-ecosystem-footer .zos-app-link', els => els.map(a => { const r = a.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top)]; }));
+  const rows = [...new Set(zosGrid.map(p => p[1]))];
+  const lefts = [...new Set(zosGrid.map(p => p[0]))];
+  check('mobile: ZOS portals in an even grid (3 columns × 2 rows)', zosGrid.length === 6 && rows.length === 2 && lefts.length === 3, zosGrid);
   await m.tap('footer.site a[data-i18n="footer.buyApartments"]'); await m.waitForTimeout(500);
   check('mobile: tapping « Appartements » applies the filter', await m.evaluate(() => location.hash) === '#/fr/search?subtype=apartment');
   await shot(m, 'footer-filter-apartments-mobile');
