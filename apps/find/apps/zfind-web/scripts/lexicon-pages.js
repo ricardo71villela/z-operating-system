@@ -40,7 +40,8 @@ const CATEGORY_ORDER = Object.freeze([
   'Surfaces et caractéristiques du bien',
   'Diagnostics et performance énergétique',
   'Construction, état et rénovation',
-  'Droit immobilier'
+  'Droit immobilier',
+  'Belgique et Luxembourg'
 ]);
 const CATEGORY_EN = Object.freeze({
   'Estimation et valeur immobilière': 'Valuation and property value',
@@ -54,7 +55,8 @@ const CATEGORY_EN = Object.freeze({
   'Surfaces et caractéristiques du bien': 'Floor areas and property features',
   'Diagnostics et performance énergétique': 'Surveys and energy performance',
   'Construction, état et rénovation': 'Construction and renovation',
-  'Droit immobilier': 'Property law'
+  'Droit immobilier': 'Property law',
+  'Belgique et Luxembourg': 'Belgium and Luxembourg'
 });
 
 /* Outils Z Find proposés depuis un terme. */
