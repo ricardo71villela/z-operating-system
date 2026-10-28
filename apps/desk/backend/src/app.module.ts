@@ -11,6 +11,7 @@ import { IntegrationsModule } from './integrations/integrations.module';
 import { LeadsModule } from './leads/leads.module';
 import { MessagesModule } from './messages/messages.module';
 import { PersonnelModule } from './personnel/personnel.module';
+import { RequestsModule } from './requests/requests.module';
 import { SettingsModule } from './settings/settings.module';
 import { TasksModule } from './tasks/tasks.module';
 import { TeamModule } from './team/team.module';
@@ -34,6 +35,7 @@ import { WhatsappModule } from './whatsapp/whatsapp.module';
     ContactsModule,
     LeadsModule,
     VisitsModule,
+    RequestsModule,
     TasksModule,
     PersonnelModule,
     SettingsModule,
