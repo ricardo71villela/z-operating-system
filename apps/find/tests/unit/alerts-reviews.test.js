@@ -264,29 +264,29 @@ function propertyRow({ id, title, price, city = 'Évian-les-Bains', postal = '74
   const P = pro.PRICES;
   check('professionals page: revenue lines, neutral-results rule, no private sellers, demo link',
     proHtml.includes('Mise en avant « À la une »') && proHtml.includes('Résultats neutres') && proHtml.includes('Aucun particulier') && proHtml.includes('?demo=1'));
-  check('professionals page: validated agency grid (Essentiel ≤ 25 / Pro 26–75 / Premium > 75, HT, monthly)',
-    P.essentiel === 99 && P.essentielLater === 129 && P.essentielMaxListings === 25 && P.pro === 149 && P.proMaxListings === 75 && P.premium === 199 &&
-    P.proHighlightsPerMonth === 1 && P.premiumHighlightsPerMonth === 3 && P.freeMonths === 3 && P.priceGuaranteeMonths === 12 && P.launchRateMonths === 6 &&
-    proHtml.includes('99 € HT / mois') && proHtml.includes('149 € HT / mois') && proHtml.includes('199 € HT / mois') && proHtml.includes('Premium') &&
-    proHtml.includes('Jusqu’à 25 annonces actives') && proHtml.includes('De 26 à 75 annonces actives') && proHtml.includes('Plus de 75 annonces actives') &&
-    proHtml.includes('sans engagement') && pro.pageHTML('en').includes('€149 excl. VAT / month') && pro.pageHTML('en').includes('€199 excl. VAT / month'));
+  check('professionals page: validated agency grid of 28 Oct 2026 (Essentiel ≤ 25 / Plus ≤ 50 / Pro ≤ 75 / Premium > 75, HT, monthly)',
+    P.essentiel === 99 && P.essentielMaxListings === 25 && P.plus === 129 && P.plusMaxListings === 50 && P.pro === 149 && P.proMaxListings === 75 && P.premium === 199 &&
+    P.proHighlightsPerMonth === 1 && P.premiumHighlightsPerMonth === 3 && P.freeMonths === 3 && P.priceGuaranteeMonths === 12 && P.essentielLater === undefined &&
+    proHtml.includes('99 € HT / mois') && proHtml.includes('129 € HT / mois') && proHtml.includes('149 € HT / mois') && proHtml.includes('199 € HT / mois') &&
+    proHtml.includes('Jusqu’à 25 annonces actives') && proHtml.includes('De 26 à 50 annonces actives') && proHtml.includes('De 51 à 75 annonces actives') && proHtml.includes('Plus de 75 annonces actives, sans plafond') &&
+    proHtml.includes('sans engagement') && pro.pageHTML('en').includes('€129 excl. VAT / month') && pro.pageHTML('en').includes('€199 excl. VAT / month'));
+  check('professionals page: Z Desk and Z Studio « inclus » (never « gratuit »)',
+    proHtml.includes('Z Desk et Z Studio inclus') && proHtml.includes('Inclus dans l’abonnement') && pro.pageHTML('en').includes('Z Desk and Z Studio included') &&
+    !/Z Desk[^.]{0,40}gratuit|Z Studio[^.]{0,40}gratuit/.test(proHtml) && /Z Studio/.test(pro.INCLUDED_FR));
   check('professionals page: highlights (9 € / 7 days, 29 € / 30 days, pack of 5 at 119 €, Agence à la une 99 € per commune) and seller leads (49 € / 79 € qualified)',
     P.highlight7Days === 9 && P.highlight30Days === 29 && P.highlightPack === 119 && P.highlightPackSize === 5 && P.agencyFeaturedMonth === 99 &&
     P.sellerLead === 49 && P.sellerLeadQualified === 79 && P.developmentMonth === 199 &&
     proHtml.includes('9 € HT') && proHtml.includes('119 € HT') && proHtml.includes('99 € HT / commune / mois') && proHtml.includes('jamais mélangées aux résultats de recherche') &&
     proHtml.includes('49 € HT / contact') && proHtml.includes('79 € HT / contact') && proHtml.includes('projet de vente dans les 6 mois') && proHtml.includes('une seule agence'));
-  check('professionals page: launch offer (3 months free, price guaranteed 1 year, 99 € in the first 6 months then 129 €), no founder waves / seats',
-    proHtml.includes('3 mois gratuits à compter du lancement public de Z Find, le 1er décembre 2026') && proHtml.includes('garanti pendant 1 an') &&
-    proHtml.includes('inscrites jusqu’au 31 mai 2027') && proHtml.includes('129 € HT par mois ensuite') &&
+  check('professionals page: launch offer (3 months offered, price guaranteed 1 year, the four tiers), no launch-window rate, no founder waves / seats',
+    proHtml.includes('3 mois offerts à compter du lancement public de Z Find, le 1er décembre 2026') && proHtml.includes('garanti pendant 1 an') &&
+    proHtml.includes('129 € jusqu’à 50') && !proHtml.includes('inscrites jusqu’au') &&
     !/Fondateur|vague|premières agences de chaque pays|Founder/.test(proHtml + pro.pageHTML('en')) && !Object.keys(P).some(k => /founder/i.test(k)));
-  check('launch rule: one LAUNCH_DATE constant; Essentiel 99 € inside the 6-month window, 129 € after; tiers by listing count',
-    pro.LAUNCH_DATE === '2026-12-01' && pro.launchRateEndsAt().toISOString().startsWith('2027-06-01') &&
-    pro.essentielPriceFor('2027-05-31T12:00:00Z') === 99 && pro.essentielPriceFor('2027-06-01T00:00:00Z') === 129 &&
-    pro.launchRateEndsAt(null) === null && pro.essentielPriceFor('2030-01-01', null) === 99 &&
-    pro.launchRateEndsAt('2026-11-01').toISOString().startsWith('2027-05-01') &&
-    pro.essentielPriceFor('2027-04-30T23:00:00Z', '2026-11-01') === 99 && pro.essentielPriceFor('2027-05-01T00:00:00Z', '2026-11-01') === 129 &&
-    pro.launchWindowText('fr', '2026-11-01') === 'pour les agences inscrites jusqu’au 30 avril 2027' &&
-    pro.tierFor(0) === 'essentiel' && pro.tierFor(25) === 'essentiel' && pro.tierFor(26) === 'pro' && pro.tierFor(75) === 'pro' && pro.tierFor(76) === 'premium');
+  check('tiers by listing count and price per tier',
+    pro.LAUNCH_DATE === '2026-12-01' && pro.TIERS.join() === 'essentiel,plus,pro,premium' &&
+    pro.tierFor(0) === 'essentiel' && pro.tierFor(25) === 'essentiel' && pro.tierFor(26) === 'plus' && pro.tierFor(50) === 'plus' && pro.tierFor(51) === 'pro' && pro.tierFor(75) === 'pro' && pro.tierFor(76) === 'premium' &&
+    pro.priceForListings(40) === 129 && pro.priceForListings(500) === 199 && pro.tierRange('premium').max === null && pro.tierRange('plus').min === 26 &&
+    pro.gridTextFr().includes('Plus 129 € HT (jusqu’à 50)'));
   check('professionals page: seller leads only with the owner’s express agreement, one agency',
     proHtml.includes('acceptent expressément') && proHtml.includes('une seule agence') && !/\[object|undefined/.test(proHtml + pro.pageHTML('en')));
   const body = fs.readFileSync(path.join(WEB, 'src', 'body.html'), 'utf8');

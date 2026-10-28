@@ -3,9 +3,8 @@
 
    What Z Find offers agencies, networks and developers, and how the
    portal earns money: the agency subscription grid validated by the owner
-   (Essentiel ≤ 25 listings / Pro 26–75 / Premium > 75; 3 months free then
-   the price guaranteed 1 year; 129 € instead of 99 € for the Essentiel tier
-   after the first 6 months from LAUNCH_DATE), paid highlights, exclusive
+   (Essentiel ≤ 25 listings / Plus ≤ 50 / Pro ≤ 75 / Premium > 75; 3 months free then
+   the price guaranteed 1 year; Z Desk and Z Studio included), paid highlights, exclusive
    seller leads, the same in FR / BE / LU. Single source of truth for prices:
    the public site, the Partner sign-up and the Admin all read PRICES.
    Z Find is 100 % professional: no private sellers.
@@ -21,19 +20,23 @@
 })(typeof window !== 'undefined' ? window : this, function () {
   'use strict';
 
-  /* Agency subscription grid VALIDATED by the owner (14 Oct 2026). Prices
-     excl. VAT, monthly, identical in FR / BE / LU. Three tiers by the number
-     of active listings; every tier: 3 months free, then the price is
-     guaranteed for 1 year (the free months count from the public launch, or
-     from sign-up if later). Paid highlights (« mises en avant ») only appear
-     in their dedicated slots, never inside the search results. Seller leads
+  /* Agency subscription grid VALIDATED by the owner (28 Oct 2026, replaces
+     the 14 Oct grid). Prices excl. VAT, monthly, identical in FR / BE / LU.
+     Four tiers by the number of active listings: Essentiel ≤ 25 (99 €),
+     Plus ≤ 50 (129 €), Pro ≤ 75 (149 €), Premium > 75 (199 €, no ceiling).
+     Every tier: 3 months free, then the price is guaranteed for 1 year (the
+     free months count from the public launch, or from sign-up if later), and
+     Z Desk Lite + the Z Studio app are included in the subscription (« inclus »,
+     never « gratuit »). Paid highlights (« mises en avant ») only appear in
+     their dedicated slots, never inside the search results. Seller leads
      (estimation tool) are each sold to ONE agency only. */
   const PRICES = Object.freeze({
     // Subscriptions
-    essentiel: 99, essentielLater: 129, essentielMaxListings: 25,
+    essentiel: 99, essentielMaxListings: 25,
+    plus: 129, plusMaxListings: 50,
     pro: 149, proMaxListings: 75, proHighlightsPerMonth: 1,
     premium: 199, premiumHighlightsPerMonth: 3,
-    freeMonths: 3, priceGuaranteeMonths: 12, launchRateMonths: 6,
+    freeMonths: 3, priceGuaranteeMonths: 12,
     // Mises en avant (dedicated slots only)
     highlight7Days: 9, highlight30Days: 29, highlightPack: 119, highlightPackSize: 5, agencyFeaturedMonth: 99,
     // Seller leads from the estimation tool (exclusive: one agency per lead)
@@ -43,43 +46,42 @@
     developmentMonth: 199
   });
 
-  /* Public launch date of Z Find (ISO 'YYYY-MM-DD'). The 99 € « Essentiel »
-     rate applies to agencies that sign up within the first
-     PRICES.launchRateMonths months after this date; 129 € after.
-     Set by the owner on 14 Oct 2026: public launch on 1 December 2026, so
-     the 99 € rate applies to sign-ups up to 31 May 2027. If it is ever set
-     back to null, the rule is shown as text and every sign-up gets 99 €. */
+  /* Public launch date of Z Find (ISO 'YYYY-MM-DD'), set by the owner on
+     14 Oct 2026. The 3 free months count from this date (or from sign-up if
+     later). If it is ever set back to null, the rule is shown without a date. */
   const LAUNCH_DATE = '2026-12-01';
 
   /* Self sign-up lives in the Partner app (#inscription opens the form). */
   const SIGNUP_URL = 'https://partner.zfind.online/#inscription';
+
+  /* Tools included in every agency subscription. */
+  const DESK_URL = 'https://desk.zfind.online';
+  const STUDIO_URL = 'https://zstudio.space';
 
   function parseDate(v) {
     if (!v) return null;
     const d = v instanceof Date ? new Date(v.getTime()) : new Date(String(v).length === 10 ? `${v}T00:00:00Z` : v);
     return Number.isNaN(d.getTime()) ? null : d;
   }
-  /** End of the launch window (launch date + 6 months), or null when the launch date is not set. */
-  function launchRateEndsAt(launchDate) {
-    const d = parseDate(launchDate === undefined ? LAUNCH_DATE : launchDate);
-    if (!d) return null;
-    d.setUTCMonth(d.getUTCMonth() + PRICES.launchRateMonths);
-    return d;
-  }
-  /** Monthly « Essentiel » price for an agency that signed up on signupDate (99 € in the launch window, else 129 €). */
-  function essentielPriceFor(signupDate, launchDate) {
-    const end = launchRateEndsAt(launchDate);
-    const at = parseDate(signupDate) || new Date();
-    return end && at >= end ? PRICES.essentielLater : PRICES.essentiel;
-  }
-  /** Tier key for a number of active listings: essentiel (≤ 25), pro (26–75), premium (> 75). */
+  const TIERS = Object.freeze(['essentiel', 'plus', 'pro', 'premium']);
+  const TIER_NAMES = Object.freeze({ essentiel: 'Essentiel', plus: 'Plus', pro: 'Pro', premium: 'Premium' });
+  /** Tier key for a number of active listings: essentiel (≤ 25), plus (26–50), pro (51–75), premium (> 75). */
   function tierFor(listings) {
     const n = Number(listings) || 0;
     if (n <= PRICES.essentielMaxListings) return 'essentiel';
+    if (n <= PRICES.plusMaxListings) return 'plus';
     if (n <= PRICES.proMaxListings) return 'pro';
     return 'premium';
   }
-  const TIER_NAMES = Object.freeze({ essentiel: 'Essentiel', pro: 'Pro', premium: 'Premium' });
+  /** Monthly price (€ HT) of a tier key. */
+  function priceFor(tier) { return PRICES[tier] == null ? null : PRICES[tier]; }
+  /** Monthly price (€ HT) for a number of active listings. */
+  function priceForListings(listings) { return priceFor(tierFor(listings)); }
+  /** Listing range of a tier: { min, max } (max null = no ceiling). */
+  function tierRange(tier) {
+    const bounds = { essentiel: [0, PRICES.essentielMaxListings], plus: [PRICES.essentielMaxListings + 1, PRICES.plusMaxListings], pro: [PRICES.plusMaxListings + 1, PRICES.proMaxListings], premium: [PRICES.proMaxListings + 1, null] }[tier];
+    return bounds ? { min: bounds[0], max: bounds[1] } : null;
+  }
   function dateLabel(d, lang) {
     const t = d.toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
     return lang === 'fr' && d.getUTCDate() === 1 ? t.replace(/^1 /, '1er ') : t;
@@ -90,28 +92,23 @@
     if (lang === 'fr') return d ? `à compter du lancement public de Z Find, le ${dateLabel(d, 'fr')}` : 'à compter du lancement public de Z Find';
     return d ? `from Z Find’s public launch on ${dateLabel(d, 'en')}` : 'from Z Find’s public launch';
   }
-  /** « pour les agences inscrites dans les 6 premiers mois » or « … inscrites jusqu’au 13 avril 2027 ». */
-  function launchWindowText(lang, launchDate) {
-    const end = launchRateEndsAt(launchDate);
-    if (lang === 'fr') {
-      if (!end) return `pour les agences inscrites dans les ${PRICES.launchRateMonths} premiers mois après le lancement de Z Find`;
-      const last = new Date(end.getTime() - 86400000);
-      return `pour les agences inscrites jusqu’au ${dateLabel(last, 'fr')}`;
-    }
-    if (!end) return `for agencies joining in the first ${PRICES.launchRateMonths} months after Z Find’s launch`;
-    return `for agencies joining by ${dateLabel(new Date(end.getTime() - 86400000), 'en')}`;
-  }
   /** One line per tier, in French, for the Partner sign-up and banner. */
-  function tierLinesFr(p, essentielPrice) {
-    const e = essentielPrice == null
-      ? `${p.essentiel} € HT / mois (${launchWindowText('fr')}, puis ${p.essentielLater} €)`
-      : `${essentielPrice} € HT / mois`;
+  function tierLinesFr(p) {
+    const q = p || PRICES;
     return [
-      ['Essentiel — jusqu’à 25 annonces', e],
-      ['Pro — 26 à 75 annonces', `${p.pro} € HT / mois, 1 mise en avant par mois incluse`],
-      ['Premium — plus de 75 annonces', `${p.premium} € HT / mois, 3 mises en avant par mois incluses`]
+      [`Essentiel — jusqu’à ${q.essentielMaxListings} annonces`, `${q.essentiel} € HT / mois`],
+      [`Plus — ${q.essentielMaxListings + 1} à ${q.plusMaxListings} annonces`, `${q.plus} € HT / mois`],
+      [`Pro — ${q.plusMaxListings + 1} à ${q.proMaxListings} annonces`, `${q.pro} € HT / mois, ${q.proHighlightsPerMonth} mise en avant par mois incluse`],
+      [`Premium — plus de ${q.proMaxListings} annonces, sans plafond`, `${q.premium} € HT / mois, ${q.premiumHighlightsPerMonth} mises en avant par mois incluses`]
     ];
   }
+  /** Short one-line grid, in French: « Essentiel 99 € HT / mois (jusqu’à 25) · Plus … ». */
+  function gridTextFr(p) {
+    const q = p || PRICES;
+    return `Essentiel ${q.essentiel} € HT / mois (jusqu’à ${q.essentielMaxListings} annonces), Plus ${q.plus} € HT (jusqu’à ${q.plusMaxListings}), Pro ${q.pro} € HT (jusqu’à ${q.proMaxListings}), Premium ${q.premium} € HT (au-delà, sans plafond)`;
+  }
+  /** What every subscription includes, in French (Partner sign-up, banner, outreach). */
+  const INCLUDED_FR = 'Z Desk (vos demandes de contact et de visite réunies, avec notification immédiate) et l’application Z Studio (photos, visuels et textes pour vos annonces et vos réseaux) inclus dans l’abonnement';
 
   const COPY = Object.freeze({
     fr: Object.freeze({
@@ -120,7 +117,8 @@
       lead: 'Le portail immobilier 100 % professionnel pour la France, la Belgique et le Luxembourg : uniquement des agences, réseaux, mandataires et promoteurs identifiés — aucune annonce de particulier. Une grille de prix publique, la même pour tous.',
       offersTitle: 'Ce que vous obtenez',
       offers: [
-        { title: 'Publication et page agence', body: 'Vos annonces et programmes neufs, votre page agence, vos coordonnées, la réception des demandes des acheteurs et locataires et vos statistiques chaque mois.', model: 'Abonnement Essentiel, Pro ou Premium selon le nombre d’annonces' },
+        { title: 'Publication et page agence', body: 'Vos annonces et programmes neufs, votre page agence, vos coordonnées, la réception des demandes des acheteurs et locataires et vos statistiques chaque mois.', model: 'Abonnement Essentiel, Plus, Pro ou Premium selon le nombre d’annonces' },
+        { title: 'Z Desk et Z Studio inclus', body: 'Z Desk réunit les demandes de contact et de visite de vos annonces dans une seule boîte, avec une notification immédiate : vous confirmez une visite ou répondez en un clic. L’application Z Studio transforme vos photos en visuels, carrousels et textes prêts à publier pour vos annonces et vos réseaux.', model: 'Inclus dans l’abonnement' },
         { title: 'Mise en avant « À la une »', body: 'Des emplacements dédiés, séparés des résultats : 6 sur chaque page marché, 3 à côté des résultats de recherche. Toujours signalés « À la une », jamais mélangés aux résultats de recherche.', model: 'À partir de 9 € HT les 7 jours' },
         { title: 'Programmes neufs', body: 'Page programme avec lots, plans et prix, et une semaine « À la une » au lancement.', model: 'Par programme et par mois' },
         { title: 'Contacts vendeurs', body: 'L’estimation gratuite de Z Find reçoit des demandes de propriétaires (projet, délai, coordonnées). Seuls ceux qui acceptent expressément d’être mis en relation avec une agence sont transmis, à une seule agence partenaire de leur commune.', model: 'Par contact exclusif, à partir de 49 € HT' },
@@ -139,9 +137,10 @@
       pricesNote: 'Prix hors TVA, identiques en France, en Belgique et au Luxembourg ; la TVA du pays s’ajoute. Abonnements mensuels sans engagement de durée.',
       plansTitle: 'Abonnements agences',
       planRows: p => [
-        ['Essentiel', `${p.essentiel} € HT / mois`, `Jusqu’à ${p.essentielMaxListings} annonces actives : page agence, demandes des acheteurs et locataires, statistiques mensuelles, avis vérifiés, alertes. ${p.essentiel} € ${launchWindowText('fr')}, ${p.essentielLater} € HT / mois pour les agences inscrites ensuite.`],
-        ['Pro', `${p.pro} € HT / mois`, `De ${p.essentielMaxListings + 1} à ${p.proMaxListings} annonces actives, tout l’Essentiel et ${p.proHighlightsPerMonth} mise en avant par mois incluse.`],
-        ['Premium', `${p.premium} € HT / mois`, `Plus de ${p.proMaxListings} annonces actives, tout l’Essentiel et ${p.premiumHighlightsPerMonth} mises en avant par mois incluses.`]
+        ['Essentiel', `${p.essentiel} € HT / mois`, `Jusqu’à ${p.essentielMaxListings} annonces actives : page agence, demandes des acheteurs et locataires, statistiques mensuelles, avis vérifiés, alertes, Z Desk et Z Studio inclus.`],
+        ['Plus', `${p.plus} € HT / mois`, `De ${p.essentielMaxListings + 1} à ${p.plusMaxListings} annonces actives, tout l’Essentiel.`],
+        ['Pro', `${p.pro} € HT / mois`, `De ${p.plusMaxListings + 1} à ${p.proMaxListings} annonces actives, tout l’Essentiel et ${p.proHighlightsPerMonth} mise en avant par mois incluse.`],
+        ['Premium', `${p.premium} € HT / mois`, `Plus de ${p.proMaxListings} annonces actives, sans plafond : tout l’Essentiel et ${p.premiumHighlightsPerMonth} mises en avant par mois incluses.`]
       ],
       highlightsTitle: 'Mises en avant « À la une »',
       highlightsNote: 'Affichées uniquement dans les emplacements « À la une », jamais mélangées aux résultats de recherche.',
@@ -164,9 +163,9 @@
       pricesHead: ['Offre', 'Prix', 'Inclus'],
       launchTitle: 'Offre de lancement',
       launch: p => [
-        `${p.freeMonths} mois gratuits ${launchStartText('fr')} (ou de votre inscription, si elle est postérieure), quel que soit votre abonnement, sans carte bancaire ni engagement.`,
-        `Ensuite, votre prix est garanti pendant 1 an.`,
-        `Essentiel à ${p.essentiel} € HT par mois ${launchWindowText('fr')} (${p.essentielLater} € HT par mois ensuite).`
+        `${p.freeMonths} mois offerts ${launchStartText('fr')} (ou de votre inscription, si elle est postérieure), quel que soit votre abonnement, sans carte bancaire ni engagement.`,
+        `Ensuite, votre prix est garanti pendant 1 an : ${p.essentiel} € HT par mois jusqu’à ${p.essentielMaxListings} annonces, ${p.plus} € jusqu’à ${p.plusMaxListings}, ${p.pro} € jusqu’à ${p.proMaxListings}, ${p.premium} € au-delà.`,
+        'Z Desk et l’application Z Studio sont inclus dans l’abonnement, pendant les mois offerts comme ensuite.'
       ],
       contact: 'Inscrire mon agence', signup: 'Inscrire mon agence', write: 'Nous écrire', demo: 'Voir la démonstration des emplacements « À la une »',
       mailSubject: 'Z Find Pro — inscription agence'
@@ -177,7 +176,8 @@
       lead: 'The 100% professional property portal for France, Belgium and Luxembourg: only identified agencies, networks, agents and developers — no private listings. One public price list, the same for everyone.',
       offersTitle: 'What you get',
       offers: [
-        { title: 'Listings and agency page', body: 'Your listings and new developments, your agency page, your contact details, the enquiries of buyers and tenants, and your statistics every month.', model: 'Essentiel, Pro or Premium subscription depending on your number of listings' },
+        { title: 'Listings and agency page', body: 'Your listings and new developments, your agency page, your contact details, the enquiries of buyers and tenants, and your statistics every month.', model: 'Essentiel, Plus, Pro or Premium subscription depending on your number of listings' },
+        { title: 'Z Desk and Z Studio included', body: 'Z Desk brings the contact and viewing requests for your listings into one inbox, with an instant notification: confirm a viewing or reply in one click. The Z Studio app turns your photos into visuals, carousels and texts ready to post for your listings and social networks.', model: 'Included in the subscription' },
         { title: '"Featured" placements', body: 'Dedicated slots, separate from the results: 6 on each market page, 3 next to the search results. Always marked "Featured", never mixed into the search results.', model: 'From €9 excl. VAT for 7 days' },
         { title: 'New developments', body: 'Development page with units, plans and prices, and one "Featured" week at launch.', model: 'Per development and per month' },
         { title: 'Seller leads', body: 'Z Find’s free valuation receives requests from owners (plans, timing, contact details). Only those who expressly agree to be put in touch with an agency are passed on, to a single partner agency in their municipality.', model: 'Per exclusive lead, from €49 excl. VAT' },
@@ -196,9 +196,10 @@
       pricesNote: 'Prices excluding VAT, the same in France, Belgium and Luxembourg; the country’s VAT is added. Monthly subscriptions with no minimum term.',
       plansTitle: 'Agency subscriptions',
       planRows: p => [
-        ['Essentiel', `€${p.essentiel} excl. VAT / month`, `Up to ${p.essentielMaxListings} active listings: agency page, buyer and tenant enquiries, monthly statistics, verified reviews, alerts. €${p.essentiel} ${launchWindowText('en')}, €${p.essentielLater} excl. VAT / month for agencies joining later.`],
-        ['Pro', `€${p.pro} excl. VAT / month`, `${p.essentielMaxListings + 1} to ${p.proMaxListings} active listings, everything in Essentiel and ${p.proHighlightsPerMonth} featured placement a month included.`],
-        ['Premium', `€${p.premium} excl. VAT / month`, `More than ${p.proMaxListings} active listings, everything in Essentiel and ${p.premiumHighlightsPerMonth} featured placements a month included.`]
+        ['Essentiel', `€${p.essentiel} excl. VAT / month`, `Up to ${p.essentielMaxListings} active listings: agency page, buyer and tenant enquiries, monthly statistics, verified reviews, alerts, Z Desk and Z Studio included.`],
+        ['Plus', `€${p.plus} excl. VAT / month`, `${p.essentielMaxListings + 1} to ${p.plusMaxListings} active listings, everything in Essentiel.`],
+        ['Pro', `€${p.pro} excl. VAT / month`, `${p.plusMaxListings + 1} to ${p.proMaxListings} active listings, everything in Essentiel and ${p.proHighlightsPerMonth} featured placement a month included.`],
+        ['Premium', `€${p.premium} excl. VAT / month`, `More than ${p.proMaxListings} active listings, no ceiling: everything in Essentiel and ${p.premiumHighlightsPerMonth} featured placements a month included.`]
       ],
       highlightsTitle: '"Featured" placements',
       highlightsNote: 'Shown only in the "Featured" slots, never mixed into the search results.',
@@ -222,8 +223,8 @@
       launchTitle: 'Launch offer',
       launch: p => [
         `${p.freeMonths} months free ${launchStartText('en')} (or from your sign-up, if later), whatever your subscription, no card and no commitment.`,
-        'Then your price is guaranteed for 1 year.',
-        `Essentiel at €${p.essentiel} excl. VAT a month ${launchWindowText('en')} (€${p.essentielLater} excl. VAT a month after that).`
+        `Then your price is guaranteed for 1 year: €${p.essentiel} excl. VAT a month up to ${p.essentielMaxListings} listings, €${p.plus} up to ${p.plusMaxListings}, €${p.pro} up to ${p.proMaxListings}, €${p.premium} above.`,
+        'Z Desk and the Z Studio app are included in the subscription, during the free months and after.'
       ],
       contact: 'Register my agency', signup: 'Register my agency', write: 'Write to us', demo: 'See the "Featured" placements demonstration',
       mailSubject: 'Z Find Pro — agency registration'
@@ -286,6 +287,6 @@
     return true;
   }
 
-  return Object.freeze({ COPY, PRICES, LAUNCH_DATE, TIER_NAMES, SIGNUP_URL, pageHTML, render,
-    launchRateEndsAt, essentielPriceFor, tierFor, launchWindowText, launchStartText, tierLinesFr });
+  return Object.freeze({ COPY, PRICES, LAUNCH_DATE, TIERS, TIER_NAMES, SIGNUP_URL, DESK_URL, STUDIO_URL, INCLUDED_FR, pageHTML, render,
+    tierFor, priceFor, priceForListings, tierRange, launchStartText, tierLinesFr, gridTextFr });
 });

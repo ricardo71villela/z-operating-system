@@ -34,7 +34,7 @@ URL = o.optout_url(TOKEN)
 subject, text, html_doc = messages.render(1, AGENCY, SENDER, URL, date(2026, 11, 3))
 check("1.º contacto: assunto com o nome da agência em letras normais", subject.startswith("Agence du Lac sur Z Find"))
 check("nome e cidade no texto, sem MAIÚSCULAS", "Agence du Lac (Thonon-les-Bains)" in text)
-check("preços e prazo da oferta validada", "99 € HT par mois" in text and "31 mai 2027" in text and "3 mois offerts" in text)
+check("preços da oferta validada e Z Desk/Z Studio incluídos", "99 € HT par mois" in text and "129 €" in text and "199 €" in text and "3 mois offerts" in text and "Z Desk inclus" in text and "Z Studio" in text)
 check("antes do lançamento fala da abertura a 1 de dezembro", "ouvre au public le 1er décembre 2026" in text)
 check("depois do lançamento muda a frase",
       "ouvert au public depuis le 1er décembre 2026" in messages.render(1, AGENCY, SENDER, URL, date(2026, 12, 2))[1])

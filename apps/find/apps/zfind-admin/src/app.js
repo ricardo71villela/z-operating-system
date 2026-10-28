@@ -234,16 +234,15 @@ async function loadOperationsOverview() {
 /* ---------------- Inscriptions (self sign-up) ---------------- */
 const SIGNUP_STATUS = { pending: 'À vérifier', verified: 'Vérifiée', rejected: 'Refusée' };
 /* Offer of a sign-up, from the public price list (zfind-web services/pro-offer.js):
-   agencies get the Essentiel / Pro / Premium grid — the Essentiel price depends
-   on the sign-up date (launch window) — promoters the programme price.
-   The legacy plan / founder_wave columns are not shown any more. */
+   agencies get the Essentiel / Plus / Pro / Premium grid (by active listings),
+   promoters the programme price. The legacy plan / founder_wave columns are
+   not shown any more. */
 function signupOfferLabel(x) {
   const svc = window.ZFindServices.proOffer;
   const p = svc ? svc.PRICES : null;
   if (!p) return x.role === 'promoter' ? 'Promoteur' : 'Agence';
   if (x.role === 'promoter') return `Promoteur · ${p.developmentMonth} € HT / programme / mois`;
-  const e = svc.essentielPriceFor(x.created_at);
-  return `Agence · Essentiel ${e} € HT${e === p.essentiel ? ' (tarif de lancement)' : ''} · Pro ${p.pro} € · Premium ${p.premium} €`;
+  return `Agence · Essentiel ${p.essentiel} € · Plus ${p.plus} € · Pro ${p.pro} € · Premium ${p.premium} € HT`;
 }
 
 async function renderSignupsList() {

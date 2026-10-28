@@ -7,8 +7,9 @@ da empresa), de onde vem o endereço e como deixar de receber (link + «STOP»)
 — exigências da CNIL para a prospeção B2B.
 
 Os preços e as datas vêm da oferta validada (apps/find/apps/zfind-web/src/
-services/pro-offer.js): 3 meses grátis, 99 € HT/mês até 25 anúncios para as
-agências inscritas até 31/05/2027, preço garantido 1 ano.
+services/pro-offer.js, grelha de 28/10/2026): 3 meses oferecidos, depois
+99 € HT/mês até 25 anúncios, 129 € até 50, 149 € até 75, 199 € acima, preço
+garantido 1 ano; Z Desk e Z Studio incluídos na assinatura.
 """
 
 import html
@@ -16,7 +17,6 @@ import re
 from datetime import date
 
 LAUNCH_DATE = date(2026, 12, 1)
-LAUNCH_RATE_UNTIL = "31 mai 2027"
 SIGNUP_URL = "https://partner.zfind.online/#inscription"
 OFFER_URL = "https://zfind.online/#/fr/pro"
 
@@ -73,8 +73,11 @@ def body_for(step, target, today):
             "les mises en avant payantes restent dans leurs emplacements et ne passent jamais devant vos annonces "
             "dans les résultats. " + _launch_line(today),
             "Pour les agences qui nous rejoignent maintenant :",
-            f"- 3 mois offerts, puis 99 € HT par mois jusqu’à 25 annonces, prix garanti un an (inscription jusqu’au {LAUNCH_RATE_UNTIL}) ;",
-            "- les demandes de visite des acheteurs arrivent directement dans votre agenda Z Desk, inclus ;",
+            "- 3 mois offerts, puis à partir de 99 € HT par mois jusqu’à 25 annonces (129 € jusqu’à 50, 149 € jusqu’à 75, "
+            "199 € au-delà), prix garanti un an ;",
+            "- Z Desk inclus : les demandes de contact et de visite de vos annonces arrivent dans une seule boîte, "
+            "avec une notification immédiate ;",
+            "- l’application Z Studio incluse, pour transformer vos photos en visuels et textes prêts à publier ;",
             "- des leads vendeurs issus de notre outil d’estimation, chacun réservé à une seule agence.",
             f"L’inscription prend quelques minutes : {SIGNUP_URL}",
             f"L’offre en détail : {OFFER_URL}",
@@ -84,8 +87,8 @@ def body_for(step, target, today):
         return [
             "Bonjour,",
             f"Je reviens vers vous au sujet de Z Find pour {where}.",
-            f"Les 3 mois offerts et le tarif de 99 € HT par mois, garanti un an, valent pour les agences inscrites "
-            f"jusqu’au {LAUNCH_RATE_UNTIL}. Voulez-vous que je vous présente le portail en 15 minutes, "
+            "Les 3 mois sont offerts, puis le tarif (à partir de 99 € HT par mois) est garanti un an, "
+            "avec Z Desk et Z Studio inclus. Voulez-vous que je vous présente le portail en 15 minutes, "
             "par téléphone ou en visio ?",
             f"Inscription : {SIGNUP_URL}",
         ]
