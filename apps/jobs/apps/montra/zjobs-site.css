@@ -1,0 +1,100 @@
+/* ============================================================
+   Z JOBS — charte du site public, alignée sur Z Find
+   Même mise en page que Z Find (fond clair, titres Cormorant Garamond,
+   texte DM Sans, angles nets, filets fins, pied de page sombre), avec
+   le bleu à la place de l'or et le gris ardoise à la place du noir.
+   Chargé après les styles propres à chaque page.
+   ============================================================ */
+:root{
+  --zj-blue:#2B5EA7;         /* accent sur fond clair (contraste 6,4:1 sur blanc) */
+  --zj-blue-dark:#1E4A8A;    /* survol, accent appuyé */
+  --zj-blue-light:#A9C6EC;   /* accent sur le gris ardoise (5,8:1) */
+  --zj-blue-pale:#EAF1FA;    /* fonds teintés */
+  --zj-slate:#3A4250;        /* le « noir » de Z Find devient ce gris */
+  --zj-slate-2:#4A5261;
+  --zj-text:#2F3540;
+  --zj-muted:#5F6773;
+  --zj-line:#E2E6EC;
+  --zj-bg-soft:#F6F7F9;
+}
+
+body{ background:#fff; color:var(--zj-text); font-family:'DM Sans',sans-serif; font-weight:400; }
+h1,h2,h3{ font-family:'Cormorant Garamond',Georgia,serif !important; font-weight:500 !important; letter-spacing:-0.01em; color:var(--zj-text); }
+h1 em, h2 em{ font-style:italic; color:var(--zj-blue) !important; }
+
+/* ---------- en-tête sur une ligne, comme Z Find ---------- */
+nav:has(.nav-top){ background:rgba(255,255,255,.96) !important; backdrop-filter:blur(10px); border-bottom:1px solid var(--zj-line) !important; }
+footer nav{ background:none !important; border:none !important; position:static !important; backdrop-filter:none !important; }
+nav .nav-top{ height:76px; gap:28px; display:flex; align-items:center; justify-content:space-between; max-width:1240px; }
+nav .navlinks{ border-top:none !important; height:auto !important; display:flex; gap:26px; flex:1; justify-content:center; align-items:center; }
+@media (max-width:999px){ nav .nav-top{ flex-wrap:wrap; height:auto; padding-top:12px; padding-bottom:10px; gap:10px 16px; } nav .navlinks{ order:3; flex-basis:100%; justify-content:flex-start; overflow-x:auto; white-space:nowrap; gap:18px; } }
+.brand{ text-decoration:none; }
+.brand span{ font-family:'Cormorant Garamond',Georgia,serif !important; font-size:28px !important; font-weight:500 !important; color:var(--zj-text); }
+.brand span::first-letter{ color:var(--zj-blue); }
+.navlinks a{ color:var(--zj-text) !important; font-size:14px; letter-spacing:.01em; padding:6px 0; border-bottom:2px solid transparent; }
+.navlinks a:hover, .navlinks a[aria-current="page"]{ color:var(--zj-blue) !important; border-bottom-color:var(--zj-blue); }
+.locales button{ border-radius:2px !important; border-color:var(--zj-line) !important; color:var(--zj-muted) !important; }
+.locales button.is-active{ background:var(--zj-slate) !important; border-color:var(--zj-slate) !important; color:#fff !important; }
+.nav-cta{ border-radius:2px !important; border:1px solid var(--zj-blue) !important; color:var(--zj-blue) !important; font-size:12px !important; font-weight:600 !important; letter-spacing:.1em; text-transform:uppercase; padding:11px 18px !important; }
+.nav-cta:hover{ background:var(--zj-blue); color:#fff !important; }
+.zj-nav-actions{ display:flex; align-items:center; gap:12px; }
+.zj-nav-publish{ font-size:12px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--zj-text); text-decoration:none; white-space:nowrap; }
+.zj-nav-publish:hover{ color:var(--zj-blue); }
+@media (max-width:999px){ .zj-nav-publish{ display:none; } }
+
+/* ---------- typographie et accents ---------- */
+.eyebrow, .section-kicker, .kicker, .compare-tag{ font-family:'DM Sans',sans-serif !important; font-weight:500; letter-spacing:.18em !important; text-transform:uppercase; color:var(--zj-blue) !important; }
+.eyebrow::before{ background:var(--zj-blue) !important; }
+.sub, .section-sub{ color:var(--zj-muted) !important; }
+header.hero{ background:linear-gradient(180deg, var(--zj-bg-soft) 0%, #fff 78%); border-bottom:1px solid var(--zj-line); }
+header.hero::before{ background:radial-gradient(ellipse at 85% 0%, rgba(43,94,167,0.10), transparent 60%) !important; }
+section{ border-color:var(--zj-line) !important; }
+
+/* Bandes « claires » des pages : fond gris très clair et texte ardoise, comme
+   les sections alternées de Z Find (jamais de grand bloc sombre au milieu). */
+.section-light{
+  background:var(--zj-bg-soft) !important; color:var(--zj-text) !important;
+  --gold:#2B5EA7; --gold-bright:#1E4A8A; --ash:#5F6773; --trust:#2E7D62;
+  --surface:#FFFFFF; --surface-2:#EEF1F5; --line:rgba(43,94,167,0.22);
+  --paper-surface:#FFFFFF;
+}
+.section-light :focus-visible{ outline-color:var(--zj-blue) !important; }
+
+/* Cartes : blanches à filet fin, ombre discrète (comme les cartes Z Find). */
+.proof-grid{ background:var(--zj-line) !important; border-color:var(--zj-line) !important; }
+.proof-cell, .compare-card.dim, .reveal-card, .pricing-card, .tool-card, .card{ box-shadow:0 18px 50px rgba(58,66,80,.06); }
+
+/* Boutons pleins : bleu, texte blanc, angles nets, capitales espacées. */
+.price-cta, .search-btn, button[type="submit"], .btn-primary{ border-radius:2px !important; letter-spacing:.08em; text-transform:uppercase; font-size:12.5px !important; }
+
+/* Carte « Z Jobs » sombre de la comparaison : étiquette lisible sur l'ardoise. */
+.compare-card.bright .compare-tag{ color:var(--zj-blue-light) !important; }
+
+/* ---------- pied de page gris ardoise, organisé comme Z Find ---------- */
+footer{ background:var(--zj-slate) !important; color:#C9D0D9 !important; border-top:none !important; padding:60px 0 28px !important; margin-top:0; }
+footer > .wrap{ display:block !important; }
+footer a{ color:#D6DCE4; text-decoration:none; }
+footer a:hover{ color:#fff; }
+.zj-foot-cols{ display:grid; grid-template-columns:1.6fr repeat(4,1fr); gap:28px; }
+.zj-foot-brand .zj-foot-logo{ font-family:'Cormorant Garamond',Georgia,serif; font-size:30px; color:#fff; }
+.zj-foot-brand .zj-foot-logo b{ font-weight:500; color:var(--zj-blue-light); }
+.zj-foot-tagline{ font-family:'Cormorant Garamond',Georgia,serif; font-style:italic; font-size:21px; color:#E5E9EF; margin:10px 0 12px; }
+.zj-foot-about{ font-size:13.5px; line-height:1.6; color:#C9D0D9; max-width:280px; margin:0 0 14px; }
+.zj-foot-h{ font-family:'DM Sans',sans-serif; font-weight:700; color:#fff; font-size:12px; letter-spacing:.12em; text-transform:uppercase; margin:0 0 16px; }
+.zj-foot-cols a{ display:block; font-size:13.5px; padding:5px 0; }
+.zj-foot-zos{ border-top:1px solid rgba(255,255,255,.14); margin-top:44px; padding-top:18px; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:6px 18px; font-size:12.5px; }
+.zj-foot-zos a, .zj-foot-zos span{ color:#AEB7C3; }
+.zj-foot-zos a:hover{ color:#fff; }
+.zj-foot-zos .soon{ color:var(--zj-blue-light); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; margin-left:4px; }
+.zj-foot-bottom{ border-top:1px solid rgba(255,255,255,.14); margin-top:18px; padding-top:18px; display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; font-size:12px; color:#AEB7C3; }
+footer .flags, footer .fine{ display:none; }
+@media (max-width:1000px){ .zj-foot-cols{ grid-template-columns:repeat(3,1fr); } .zj-foot-brand{ grid-column:1/-1; } }
+@media (max-width:620px){ .zj-foot-cols{ grid-template-columns:1fr 1fr; gap:22px 16px; } .zj-foot-cols a{ padding:8px 0; } .zj-foot-zos{ justify-content:flex-start; } }
+
+/* Lignes « pays → valeur » : drapeau et nom ensemble, valeur à droite. */
+.legal-row{ justify-content:flex-start !important; gap:6px; align-items:center; }
+.legal-row .legal-value{ margin-left:auto; text-align:right; }
+
+/* Les cinq labels sur une seule rangée en grand écran (aucune case vide). */
+@media (min-width:1100px){ .badge-grid{ grid-template-columns:repeat(5,1fr) !important; } }
+.badge-cell{ background:#fff; }
