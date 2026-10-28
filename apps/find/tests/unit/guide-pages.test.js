@@ -63,7 +63,7 @@ const frMarket = gen.buildMarketSeoEntries(BASE).find(e => e.canonicalUrl.endsWi
 check('page marché France → guide statique', frMarket && frMarket.html.includes(`${BASE}${FR}`));
 const src = fs.readFileSync(path.join(WEB, 'scripts', 'generate-seo-pages.js'), 'utf8');
 check('guides écrits au build et ajoutés au sitemap', src.includes('guidePages.buildGuidePages(baseUrl)'));
-check('pied de page : lien vers les guides', fs.readFileSync(path.join(WEB, 'src', 'body.html'), 'utf8').includes('<a href="/fr/guides">'));
+check('pied de page : liens vers les guides', fs.readFileSync(path.join(WEB, 'src', 'body.html'), 'utf8').includes('<a href="/fr/guides/immobilier-france/acheter"'));
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -103,14 +103,14 @@
 
   /* Footer shortcuts: data-i18n key → route (without the language). */
   const FOOTER_ROUTES = {
-    'search.filterApartments': 'search?subtype=apartment',
-    'search.filterDevelopments': 'search?subtype=development',
-    'search.tabLand': 'search?subtype=land',
-    'common.publish': 'pro',
-    'footer.servicesLevels': 'pro',
-    'footer.partnerNetwork': 'pro',
-    'footer.trustProvenance': 'confiance?section=provenance',
-    'footer.howVerified': 'confiance?section=verification'
+    'footer.buyApartments': 'search?subtype=apartment',
+    'footer.buyHouses': 'search?subtype=villa',
+    'footer.rentals': 'search?transactionType=rent',
+    'footer.developments': 'search?subtype=development',
+    'footer.land': 'search?subtype=land',
+    'footer.publishListings': 'pro',
+    'footer.pricing': 'pro',
+    'footer.trust': 'confiance?section=verification'
   };
 
   const STYLE_ID = 'zfind-zos-ecosystem-footer-style';
@@ -133,7 +133,15 @@
     style.id = STYLE_ID;
     style.textContent = `
       footer.site .cols {
-        grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+        grid-template-columns: 1.6fr repeat(5, 1fr);
+        gap: 28px;
+      }
+      footer.site .footer-about {
+        margin: 14px 0 16px;
+        max-width: 260px;
+        color: var(--gray-400);
+        font-size: 0.85rem;
+        line-height: 1.6;
       }
 
       #${ROW_ID} {
@@ -216,6 +224,18 @@
       .zfoot-trust section { scroll-margin-top: 90px; }
       .zfoot-contact { margin-top: 30px; color: var(--gray-500); font-size: .9rem; }
 
+      @media (max-width: 1100px) {
+        footer.site .cols {
+          grid-template-columns: repeat(3, 1fr);
+        }
+        footer.site .footer-brand {
+          grid-column: 1 / -1;
+        }
+        footer.site .footer-about {
+          max-width: 520px;
+        }
+      }
+
       @media (max-width: 900px) {
         footer.site .cols {
           grid-template-columns: 1fr 1fr;
@@ -229,7 +249,11 @@
 
       @media (max-width: 560px) {
         footer.site .cols {
-          grid-template-columns: 1fr;
+          grid-template-columns: 1fr 1fr;
+          gap: 22px 16px;
+        }
+        footer.site a {
+          padding: 6px 0;
         }
 
         #${ROW_ID} .zos-ecosystem-links {
@@ -275,6 +299,12 @@
       a.setAttribute('href', routeHref(route, l));
       a.removeAttribute('onclick');
       a.dataset.footerRoute = route;
+    });
+    // Static pages that exist in English (glossary): follow the language.
+    document.querySelectorAll('footer.site a[data-href-en]').forEach(a => {
+      if (!a.dataset.hrefFr) a.dataset.hrefFr = a.getAttribute('href');
+      a.setAttribute('href', l === 'en' ? a.dataset.hrefEn : a.dataset.hrefFr);
+      a.setAttribute('hreflang', l === 'en' ? 'en' : 'fr');
     });
     document.querySelectorAll('#' + ROW_ID + ' a.is-coming').forEach(a => {
       a.setAttribute('href', routeHref('bientot/' + a.dataset.zosApp, l));

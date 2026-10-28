@@ -68,7 +68,7 @@ console.log('\n=== 5. build et site ===');
 const gen = fs.readFileSync(path.join(WEB, 'scripts', 'generate-seo-pages.js'), 'utf8');
 check('les pages sont écrites au build et ajoutées au sitemap', gen.includes('simulatorPages.buildSimulatorPages(baseUrl)') && gen.includes('sitemapUrls.add(baseUrl + page.path)'));
 const body = fs.readFileSync(path.join(WEB, 'src', 'body.html'), 'utf8');
-check('pied de page : liens explorables vers les simulateurs', body.includes('<a href="/fr/simulateurs-immobiliers">') && body.includes('<a href="/fr/frais-de-notaire">'));
+check('pied de page : liens explorables vers les simulateurs', body.includes('<a href="/fr/simulateurs-immobiliers"') && body.includes('<a href="/fr/frais-de-notaire"'));
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

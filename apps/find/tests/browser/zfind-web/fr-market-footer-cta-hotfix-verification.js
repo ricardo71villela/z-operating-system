@@ -78,56 +78,6 @@ async function footerTarget(page, kind) {
     }));
 }
 
-async function tapFooterGuide(page, kind) {
-  await page.locator(footerSelector(kind)).tap();
-}
-
-async function expectHashView(page, locale, route) {
-  await page.waitForFunction(
-    ({ locale, route }) =>
-      location.hash === `#/${locale}/${route}` &&
-      document.querySelector('.view.active')?.id ===
-        `view-${route}`,
-    { locale, route }
-  );
-
-  assert.strictEqual(
-    await page.locator('.view.active').getAttribute('id'),
-    `view-${route}`
-  );
-}
-
-async function expectFooterTarget(
-  page,
-  kind,
-  locale,
-  marketKey,
-  route
-) {
-  const target = await footerTarget(page, kind);
-
-  assert.strictEqual(
-    target.href,
-    `#/${locale}/${route}`,
-    `${marketKey} ${kind} href must be physical-navigation safe`
-  );
-  assert.strictEqual(
-    target.route,
-    route,
-    `${marketKey} ${kind} route marker drift`
-  );
-  assert.strictEqual(
-    target.market,
-    marketKey,
-    `${marketKey} ${kind} market marker drift`
-  );
-  assert.strictEqual(
-    target.onclick,
-    `navigate('${route}');return false;`,
-    `${marketKey} ${kind} inline fallback must match registry route`
-  );
-}
-
 async function run() {
   const browser = await launchBrowser();
 
@@ -145,124 +95,16 @@ async function run() {
     );
 
     await openMarket(page, 'fr', 'FR');
-    await expectFooterTarget(
-      page,
-      'legal',
-      'fr',
-      'FR',
-      'legal-fr'
-    );
-    pass(
-      'France footer Legal Guide DOM target is legal-fr before touch'
-    );
-    await tapFooterGuide(page, 'legal');
-    await expectHashView(page, 'fr', 'legal-fr');
-    pass(
-      'France market touch navigation opens legal-fr'
-    );
-
-    await openMarket(page, 'fr', 'FR');
-    await expectFooterTarget(
-      page,
-      'rental',
-      'fr',
-      'FR',
-      'tourist-rental-fr'
-    );
-    pass(
-      'France footer rental DOM target is tourist-rental-fr before touch'
-    );
-    await tapFooterGuide(page, 'rental');
-    await expectHashView(
-      page,
-      'fr',
-      'tourist-rental-fr'
-    );
-    pass(
-      'France market touch navigation opens tourist-rental-fr'
-    );
+    const frenchGuides = await page.$$eval('footer.site a', anchors => anchors.map(a => a.getAttribute('href')));
+    assert.ok(frenchGuides.includes('/fr/guides/immobilier-france/acheter'), 'footer links to the static France guide');
+    assert.ok(frenchGuides.includes('/fr/guides/location-touristique-france'), 'footer links to the static tourist rental guide');
+    assert.ok(!frenchGuides.some(href => /^#\/[a-z]{2}\/(legal|al-manual|tourist-rental)/.test(href || '')), 'footer has no application guide routes');
+    pass('Footer guides are real, crawlable pages (no application routes)');
 
     await openMarket(page, 'en', 'FR');
-    await expectFooterTarget(
-      page,
-      'legal',
-      'en',
-      'FR',
-      'legal-fr'
-    );
-    await tapFooterGuide(page, 'legal');
-    await expectHashView(page, 'en', 'legal-fr');
-    pass(
-      'France jurisdiction is preserved under English mobile UI locale'
-    );
-
-    await openMarket(page, 'fr', 'BE');
-    await expectFooterTarget(
-      page,
-      'legal',
-      'fr',
-      'BE',
-      'legal-belgium'
-    );
-    await tapFooterGuide(page, 'legal');
-    await expectHashView(page, 'fr', 'legal-belgium');
-    pass(
-      'Belgium jurisdiction is preserved under French mobile UI locale'
-    );
-
-    await openMarket(page, 'fr', 'FR');
-    await page.evaluate(() => {
-      navigate('property', 'physical-mobile-context-probe');
-    });
-    await page.waitForFunction(() =>
-      location.hash.includes('/fr/property/physical-mobile-context-probe')
-    );
-    await page.evaluate(() =>
-      window.ZFindServices
-        .marketGuideFooterHotfix
-        .syncFooterGuideTargets()
-    );
-    await expectFooterTarget(
-      page,
-      'legal',
-      'fr',
-      'FR',
-      'legal-fr'
-    );
-    await expectFooterTarget(
-      page,
-      'rental',
-      'fr',
-      'FR',
-      'tourist-rental-fr'
-    );
-    pass(
-      'France guide targets survive navigation from market into property detail'
-    );
-
-    await page.reload({ waitUntil: 'load' });
-    await page.evaluate(() =>
-      window.ZFindServices
-        .marketGuideFooterHotfix
-        .syncFooterGuideTargets()
-    );
-    await expectFooterTarget(
-      page,
-      'legal',
-      'fr',
-      'FR',
-      'legal-fr'
-    );
-    await expectFooterTarget(
-      page,
-      'rental',
-      'fr',
-      'FR',
-      'tourist-rental-fr'
-    );
-    pass(
-      'France guide targets survive physical-page reload via stored market context'
-    );
+    const glossary = await page.locator('footer.site a[data-i18n="footer.lexicon"]').evaluate(a => ({ href: a.getAttribute('href'), lang: a.getAttribute('hreflang'), text: a.textContent.trim() }));
+    assert.deepStrictEqual(glossary, { href: '/en/real-estate-glossary', lang: 'en', text: 'Real estate glossary' });
+    pass('English UI: the footer glossary link opens the English glossary');
 
     await page.goto(
       `${FILE_URL}#/en/legal-fr`,

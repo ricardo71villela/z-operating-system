@@ -94,7 +94,7 @@ const hashOf = page => page.evaluate(() => location.hash);
 
   /* ---------- type shortcuts ---------- */
   const clickFooter = async key => { await page.click(`footer.site a[data-i18n="${key}"]`); await page.waitForTimeout(400); };
-  await clickFooter('search.filterApartments');
+  await clickFooter('footer.buyApartments');
   await page.waitForFunction(() => document.querySelectorAll('#search-grid .card, #search-grid [data-asset-id], #search-grid article').length > 0, null, { timeout: 8000 }).catch(() => {});
   const aptHash = await hashOf(page);
   const aptPill = await page.evaluate(() => (document.querySelector('#view-search .tabs-row .pill.active') || {}).dataset?.filter);
@@ -102,19 +102,19 @@ const hashOf = page => page.evaluate(() => location.hash);
   check('« Appartements » → search filtered on apartments (address, active tab, results)', aptHash === '#/fr/search?subtype=apartment' && await activeView(page) === 'view-search' && aptPill === 'apartment'
     && gridText.includes('T3 vue lac') && !gridText.includes('Maison familiale') && !gridText.includes('Terrain à bâtir'), { aptHash, aptPill, gridText: gridText.slice(0, 200) });
   await shot(page, 'footer-filter-apartments-results');
-  await clickFooter('search.tabLand');
+  await clickFooter('footer.land');
   check('« Terrains » → search filtered on land', await hashOf(page) === '#/fr/search?subtype=land' && await page.evaluate(() => document.querySelector('#view-search .tabs-row .pill.active')?.dataset.filter) === 'land');
-  await clickFooter('search.filterDevelopments');
+  await clickFooter('footer.developments');
   check('« Programmes neufs » → search filtered on developments', await hashOf(page) === '#/fr/search?subtype=development' && await page.evaluate(() => document.querySelector('#view-search .tabs-row .pill.active')?.dataset.filter) === 'development');
 
   /* ---------- formerly dead links ---------- */
-  await clickFooter('footer.partnerNetwork');
-  check('« Réseau de partenaires » → professionals page', await activeView(page) === 'view-pro' && /Professionnels/.test(await page.title()));
-  await clickFooter('footer.howVerified');
-  check('« Comment les opportunités sont vérifiées » → Confiance et vérification, verification section',
+  await clickFooter('footer.publishListings');
+  check('« Publier vos annonces » → professionals page', await activeView(page) === 'view-pro' && /Professionnels/.test(await page.title()));
+  await clickFooter('footer.trust');
+  check('« Confiance et vérification » → Confiance et vérification, verification section',
     await activeView(page) === 'view-confiance' && (await page.textContent('#confiance-root')).includes('Comment les annonces sont vérifiées') && await page.title() === 'Confiance et vérification — Z Find');
   await shot(page, 'footer-confiance-page');
-  await clickFooter('footer.trustProvenance');
+  await page.goto(FILE_URL + '#/fr/confiance?section=provenance'); await page.waitForTimeout(400);
   check('« Confiance et provenance » → same page, provenance section', await hashOf(page) === '#/fr/confiance?section=provenance' && (await page.textContent('#confiance-root')).includes('Provenance des annonces'));
   await page.goto(FILE_URL + '#/fr/home'); await page.waitForTimeout(300);
   check('leaving a page with its own title resets the tab title', await page.title() === 'Z Find — Annonces immobilières en France, Belgique et Luxembourg', await page.title());
@@ -138,7 +138,7 @@ const hashOf = page => page.evaluate(() => location.hash);
 
   /* ---------- English ---------- */
   await page.goto(FILE_URL + '#/en/home'); await page.waitForTimeout(400);
-  const enHrefs = await page.$$eval('footer.site a[data-i18n="search.filterApartments"], [data-zos-app="desk"]', els => els.map(a => a.getAttribute('href')));
+  const enHrefs = await page.$$eval('footer.site a[data-i18n="footer.buyApartments"], [data-zos-app="desk"]', els => els.map(a => a.getAttribute('href')));
   check('English: footer links follow the language, English tab title', JSON.stringify(enHrefs) === JSON.stringify(['#/en/search?subtype=apartment', '#/en/bientot/desk']) && await page.title() === 'Z Find — Property listings in France, Belgium and Luxembourg', { enHrefs, title: await page.title() });
   await page.click('[data-zos-app="desk"]'); await page.waitForTimeout(300);
   check('English « coming soon » page', (await page.textContent('#bientot-root')).includes('Z Desk is under development'));
@@ -155,7 +155,7 @@ const hashOf = page => page.evaluate(() => location.hash);
   await m.goto(FILE_URL + '#/fr/home'); await m.waitForTimeout(400);
   await m.locator('footer.site').scrollIntoViewIfNeeded();
   if (SHOTS) await m.locator('footer.site').screenshot({ path: path.join(SHOTS, 'footer-mobile.png') });
-  await m.tap('footer.site a[data-i18n="search.filterApartments"]'); await m.waitForTimeout(500);
+  await m.tap('footer.site a[data-i18n="footer.buyApartments"]'); await m.waitForTimeout(500);
   check('mobile: tapping « Appartements » applies the filter', await m.evaluate(() => location.hash) === '#/fr/search?subtype=apartment');
   await shot(m, 'footer-filter-apartments-mobile');
 
