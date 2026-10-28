@@ -203,6 +203,27 @@ async function main() {
     })).json();
     check('6. oferta criada em draft', offer.status === 'draft' && offer.hasFixedSalary === true);
 
+    // Passo 6b: perguntas de pré-seleção (até 5, nunca discriminatórias)
+    const forbiddenQ = await fetch(`${BASE}/job-offers/${offer.id}/questions`, {
+      method: 'PUT', headers: recruiterHeaders,
+      body: JSON.stringify({ questions: [{ kind: 'yes_no', label: 'Êtes-vous enceinte ?' }] }),
+    });
+    check('6b. pergunta discriminatória recusada (422)', forbiddenQ.status === 422 && (await forbiddenQ.json()).code === 'question_forbidden_topic');
+    const strangerQ = await fetch(`${BASE}/job-offers/${offer.id}/questions`, {
+      method: 'PUT', headers: authHeaders,
+      body: JSON.stringify({ questions: [{ kind: 'yes_no', label: 'Avez-vous le permis B ?' }] }),
+    });
+    check('6c. só a empresa da oferta define as perguntas (403/404)', strangerQ.status === 403 || strangerQ.status === 404, { status: strangerQ.status });
+    const savedQuestions = await (await fetch(`${BASE}/job-offers/${offer.id}/questions`, {
+      method: 'PUT', headers: recruiterHeaders,
+      body: JSON.stringify({ questions: [
+        { kind: 'yes_no', label: 'Avez-vous le permis B ?' },
+        { kind: 'number', label: "Combien d'années d'expérience en TypeScript ?" },
+        { kind: 'short_text', label: 'Quand pourriez-vous commencer ?', required: false },
+      ] }),
+    })).json();
+    check('6d. três perguntas gravadas, por ordem', Array.isArray(savedQuestions) && savedQuestions.length === 3 && savedQuestions[1].kind === 'number', savedQuestions);
+
     // Passo 7: sistema valida a oferta (submissão + review)
     await fetch(`${BASE}/job-offers/${offer.id}/submit-for-review`, { method: 'POST', headers: recruiterHeaders });
     const reviewed = await (await fetch(`${BASE}/job-offers/${offer.id}/review`, { method: 'POST', headers: adminHeaders })).json();
@@ -214,6 +235,12 @@ async function main() {
     // Passo 9: oferta fica publicamente visível
     const published = await (await fetch(`${BASE}/job-offers/${offer.id}/publish`, { method: 'POST', headers: adminHeaders })).json();
     check('9. oferta publicada', published.status === 'published');
+    const lockedQ = await fetch(`${BASE}/job-offers/${offer.id}/questions`, {
+      method: 'PUT', headers: recruiterHeaders, body: JSON.stringify({ questions: [] }),
+    });
+    check('9b. perguntas bloqueadas depois da publicação (409)', lockedQ.status === 409);
+    const publicQuestions = await (await fetch(`${BASE}/job-offers/${offer.id}/questions`)).json();
+    check('9c. perguntas visíveis sem sessão quando a oferta está publicada', Array.isArray(publicQuestions) && publicQuestions.length === 3);
 
     // Passo 10: candidato pesquisa a oferta
     const publicOffers = await (await fetch(`${BASE}/job-offers`)).json();
@@ -268,12 +295,26 @@ async function main() {
     );
 
     // Passo 11: candidato candidata-se
-    const application = await (await fetch(`${BASE}/applications`, {
+    const missingAnswers = await fetch(`${BASE}/applications`, {
       method: 'POST',
       headers: authHeaders,
       body: JSON.stringify({ jobOfferId: offer.id, candidateId: candidate.id }),
+    });
+    check('11a. candidatura sem as respostas obrigatórias recusada (422)', missingAnswers.status === 422 && (await missingAnswers.json()).code === 'answer_required');
+    const application = await (await fetch(`${BASE}/applications`, {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({
+        jobOfferId: offer.id, candidateId: candidate.id,
+        coverNote: 'Bonjour, votre programme de premier emploi correspond exactement à mon projet.',
+        answers: [
+          { questionId: publicQuestions[0].id, answer: 'oui' },
+          { questionId: publicQuestions[1].id, answer: '2,5' },
+        ],
+      }),
     })).json();
     check('11. candidatura submetida', application.status === 'submitted');
+    check('11b. respostas normalizadas (oui → yes, 2,5 → 2.5)', application.answers?.[0]?.answer === 'yes' && application.answers?.[1]?.answer === '2.5', application.answers);
 
     // Passo 12: empresa visualiza a candidatura
     const orgApplications = await (await fetch(`${BASE}/job-offers/${offer.id}/applications`, { headers: recruiterHeaders })).json();
@@ -281,6 +322,12 @@ async function main() {
       '12. empresa vê a candidatura',
       orgApplications.some((a: any) => a.id === application.id),
       orgApplications,
+    );
+    const seen = orgApplications.find((a: any) => a.id === application.id);
+    check(
+      '12b. empresa vê a mensagem e as respostas, com a pergunta',
+      seen?.coverNote?.startsWith('Bonjour') && seen?.answers?.length === 2 && seen.answers[0].label === 'Avez-vous le permis B ?',
+      seen,
     );
 
     // Passo 13: ambas as partes veem o estado; empresa avança o pipeline
