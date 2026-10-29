@@ -14,6 +14,8 @@
       /api/lead-notify): sent now. Same for owner estimation requests the
       Admin assigned to an agency.
    7. Enquiries unanswered 24 h after being sent: one reminder to the agency.
+   8. On the 1st of the month: each active agency receives last month's
+      statistics (listing views, contact and visit requests), once.
 
    Protected by CRON_SECRET (Vercel sends "Authorization: Bearer …").
    Each step is independent: one failure does not stop the others.
@@ -151,6 +153,51 @@ async function summary(report) {
   return 'sent';
 }
 
+/* ---------------- 8. monthly statistics ---------------- */
+const MONTHS_FR = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+const nfFr = v => new Intl.NumberFormat('fr-FR').format(Number(v) || 0).replace(/[\u202f\u00a0]/g, ' ');
+
+/** First day (YYYY-MM-DD) of the month before `now`, in UTC. */
+function previousMonth(now) {
+  const d = new Date(now);
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - 1, 1)).toISOString().slice(0, 10);
+}
+
+function statsEmail(row, month, recipients) {
+  const m = new Date(`${month}T12:00:00Z`);
+  const label = `${MONTHS_FR[m.getUTCMonth()]} ${m.getUTCFullYear()}`;
+  const st = row.stats || {};
+  const t = (st.months || [])[0] || { views: 0, contacts: 0, visits: 0 };
+  const top = (st.listings || []).filter(l => Number(l.views) || Number(l.contacts) || Number(l.visits)).slice(0, 5);
+  const panel = `${S.env('ZFIND_PARTNER_URL', 'https://partner.zfind.online').replace(/\/+$/, '')}/#statistiques`;
+  const heading = `Vos statistiques de ${label}`;
+  const cell = 'padding:8px 10px;border-bottom:1px solid #e7e1d4;';
+  const tableRows = top.map(l => `<tr><td style="${cell}">${S.esc(l.title)}</td><td style="${cell}text-align:right">${nfFr(l.views)}</td><td style="${cell}text-align:right">${nfFr(l.contacts)}</td><td style="${cell}text-align:right">${nfFr(l.visits)}</td></tr>`).join('');
+  const html = S.mailHtml('fr', heading,
+    `<p style="line-height:1.6">Voici le bilan de ${S.esc(row.partner_name || 'votre agence')} sur Z Find en ${S.esc(label)} :</p>`
+    + `<p style="font-size:16px;line-height:1.8"><b>${nfFr(t.views)}</b> vues de vos annonces · <b>${nfFr(t.contacts)}</b> demandes de contact · <b>${nfFr(t.visits)}</b> demandes de visite</p>`
+    + (top.length ? `<table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr><th style="${cell}text-align:left">Annonce</th><th style="${cell}text-align:right">Vues</th><th style="${cell}text-align:right">Contacts</th><th style="${cell}text-align:right">Visites</th></tr></thead><tbody>${tableRows}</tbody></table>` : '')
+    + S.button(panel, 'Voir le détail dans « Statistiques »'),
+    'Vous recevez ce bilan une fois par mois parce que votre agence publie sur Z Find. Une vue = une personne qui ouvre la page d’une annonce (robots exclus). Z Find · hello@zfind.online');
+  const text = [heading, '', `${nfFr(t.views)} vues · ${nfFr(t.contacts)} demandes de contact · ${nfFr(t.visits)} demandes de visite`, '',
+    ...top.map(l => `- ${l.title} : ${nfFr(l.views)} vues, ${nfFr(l.contacts)} contacts, ${nfFr(l.visits)} visites`), '', `Détail : ${panel}`].join('\n');
+  return { to: recipients, subject: S.oneLine(`Z Find — ${heading}`, 150), html, text };
+}
+
+async function sendMonthlyStats(now) {
+  const month = previousMonth(now);
+  const rows = await S.db('rpc/zfind_pending_monthly_stats', { method: 'POST', body: { p_month: month } }) || [];
+  let sent = 0;
+  for (const row of rows.slice(0, 300)) {
+    try {
+      const recipients = ((await S.db('rpc/zfind_partner_recipients', { method: 'POST', body: { p_partner_id: row.partner_id } })) || []).filter(e => S.EMAIL_RE.test(e)).slice(0, 5);
+      if (recipients.length) { await S.sendMail(statsEmail(row, month, recipients)); sent += 1; }
+      await S.db('zfind_partner_stats_reports', { method: 'POST', body: { partner_id: row.partner_id, month }, prefer: 'resolution=ignore-duplicates,return=minimal' });
+    } catch (e) { console.error('cron: monthly stats', row.partner_id, e.message); }
+  }
+  return { month, partners: rows.length, sent };
+}
+
 async function run(options) {
   const now = (options && options.now) || Date.now();
   const monday = new Date(now).getUTCDay() === 1 || (options && options.force === 'weekly');
@@ -169,6 +216,9 @@ async function run(options) {
     await step('reviewNotices', () => leadNotify._internals.processReviewNotices(100));
     await step('invitations', () => sendInvitations(now));
     await step('value', () => sendValueAlerts());
+    if (new Date(now).getUTCDate() === 1 || (options && options.force === 'monthly')) {
+      await step('monthlyStats', () => sendMonthlyStats(now));
+    }
     if (monday) {
       await step('search', () => sendSearchAlerts(now));
       await step('summary', () => summary(report));
@@ -184,10 +234,10 @@ async function handler(req, res) {
   if (!secret || !S.configured(['db'])) return S.sendJson(res, 503, { ok: false, error: 'not_configured' });
   if (String((req.headers && req.headers.authorization) || '') !== `Bearer ${secret}`) return S.sendJson(res, 401, { ok: false, error: 'unauthorized' });
   const query = S.queryOf(req);
-  const report = await run({ force: query.force === 'weekly' ? 'weekly' : null });
+  const report = await run({ force: ['weekly', 'monthly'].includes(query.force) ? query.force : null });
   console.log('cron-daily', JSON.stringify(report));
   return S.sendJson(res, 200, { ok: true, report });
 }
 
 module.exports = handler;
-module.exports._internals = { run, inviteEmail, purge, sendInvitations, sendValueAlerts, sendSearchAlerts };
+module.exports._internals = { run, inviteEmail, purge, sendInvitations, sendValueAlerts, sendSearchAlerts, sendMonthlyStats, statsEmail, previousMonth };
