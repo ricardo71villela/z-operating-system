@@ -471,3 +471,8 @@ input, select, textarea{ font-family:'DM Sans', sans-serif; }
 .phl-table-wrap .pstats-table th, .phl-table-wrap .pstats-table td{ text-align:left; }
 .phl-list{ margin:0; padding-left:18px; font-size:0.88rem; line-height:1.8; }
 @media (max-width:860px){ .phl-form{ grid-template-columns:1fr; } }
+
+/* « Contacts vendeurs » (seller-leads.js) */
+.psl-table th, .psl-table td{ text-align:left; vertical-align:top; }
+.psl-table a{ color:var(--gold-dark); }
+.psl-table .btn{ white-space:nowrap; }

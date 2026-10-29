@@ -4,6 +4,8 @@
      POST highlight-checkout        { listingId, product: '7d' | '30d', start: 'AAAA-MM-JJ' }
      POST highlight-pack-checkout   {}
      POST agency-feature-checkout   { communeCode, month: 'AAAA-MM' }
+     POST seller-lead-checkout      { requestId }  contact vendeur exclusif
+                                    (migration 20261029230000)
 
    1. La base réserve l'emplacement (35 min) et crée la commande
       (zfind_order_* : complet → { error: 'full', next_start | next_month }).
@@ -24,7 +26,7 @@ const PRODUCTS = Object.freeze({
   pack: { kind: 'highlight_pack', price: () => core.PRICES.highlightPack, label: `Pack de ${core.PRICES.highlightPackSize} mises en avant « À la une » (30 jours)` },
   agency: { kind: 'agency_featured_month', price: () => core.PRICES.agencyFeaturedMonth, label: 'Agence à la une — 1 mois' }
 });
-const PURPOSES = new Set(['highlight', 'highlight_pack', 'agency_feature']);
+const PURPOSES = new Set(['highlight', 'highlight_pack', 'agency_feature', 'seller_lead']);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH_RE = /^\d{4}-\d{2}$/;
 const COMMUNE_RE = /^(?:2A|2B|\d{2})\d{3}$|^97[1-6]\d{2}$/;
@@ -62,8 +64,8 @@ async function checkoutFor(deps, stripe, ctx, auth, order) {
     customer_update: { address: 'auto', name: 'auto' },
     billing_address_collection: 'required',
     expires_at: Math.floor(Date.now() / 1000) + 31 * 60, // la réservation en base tient 35 min
-    success_url: `${deps.partnerUrl()}/#mises-en-avant?retour=ok`,
-    cancel_url: `${deps.partnerUrl()}/#mises-en-avant?retour=annule`,
+    success_url: `${deps.partnerUrl()}/#${order.purpose === 'seller_lead' ? 'contacts-vendeurs' : 'mises-en-avant'}?retour=ok`,
+    cancel_url: `${deps.partnerUrl()}/#${order.purpose === 'seller_lead' ? 'contacts-vendeurs' : 'mises-en-avant'}?retour=annule`,
     metadata: meta
   }, `zfind-order-${order.orderId}`);
   await S.db('rpc/zfind_order_attach_session', { method: 'POST', body: { p_order: order.orderId, p_session: session.id } });
@@ -153,6 +155,32 @@ async function agencyFeatureCheckout(req, res, auth, stripe, deps) {
   }
 }
 
+async function sellerLeadCheckout(req, res, auth, stripe, deps) {
+  const body = (await S.readBody(req).catch(() => ({}))) || {};
+  const requestId = String(body.requestId || '');
+  if (!S.UUID_RE.test(requestId)) return S.sendJson(res, 400, { ok: false, error: 'input' });
+  const ctx = await deps.partnerContext(auth.partnerId);
+  if (!ctx) return S.sendJson(res, 404, { ok: false, error: 'partner_not_found' });
+  const r = await S.db('rpc/zfind_order_seller_lead', { method: 'POST', body: {
+    p_partner: auth.partnerId, p_request: requestId,
+    p_amount_ht_cents: cents(core.PRICES.sellerLead), p_qualified_amount_ht_cents: cents(core.PRICES.sellerLeadQualified)
+  } });
+  if (!r || !r.ok) {
+    const code = (r && r.error) || 'unavailable';
+    return S.sendJson(res, code === 'taken' || code === 'already_pending' ? 409 : code === 'partner_not_active' ? 403 : 422, { ok: false, error: code });
+  }
+  const label = r.qualified ? 'Contact vendeur qualifié (exclusif)' : 'Contact vendeur (exclusif)';
+  const description = `${label} : propriétaire${r.place ? ' à ' + String(r.place).replace(/[\r\n<>]/g, '').slice(0, 80) : ''} ayant demandé une estimation sur Z Find et accepté la mise en relation avec une seule agence`;
+  try {
+    const x = await checkoutFor(deps, stripe, ctx, auth, { orderId: r.order_id, kind: r.kind, amountCents: Number(r.amount_ht_cents), label, description, purpose: 'seller_lead' });
+    if (x.status !== 200) await S.db('rpc/zfind_order_released', { method: 'POST', body: { p_order: r.order_id, p_status: 'canceled' } }).catch(() => null);
+    return S.sendJson(res, x.status, x.body);
+  } catch (e) {
+    await S.db('rpc/zfind_order_released', { method: 'POST', body: { p_order: r.order_id, p_status: 'canceled' } }).catch(() => null);
+    throw e;
+  }
+}
+
 /** Événements Stripe des achats ponctuels. Renvoie true si l'événement a été traité ici. */
 async function handleOrderEvent(event) {
   const obj = event && event.data && event.data.object;
@@ -182,4 +210,4 @@ async function handleOrderEvent(event) {
   }
 }
 
-module.exports = { PRODUCTS, highlightCheckout, packCheckout, agencyFeatureCheckout, handleOrderEvent, frDate, frMonth };
+module.exports = { PRODUCTS, highlightCheckout, packCheckout, agencyFeatureCheckout, sellerLeadCheckout, handleOrderEvent, frDate, frMonth };

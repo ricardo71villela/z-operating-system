@@ -51,6 +51,7 @@ function build() {
   const teamJs = readPartner('team.js'); // « Équipe » (invitations, membres)
   const statsJs = readPartner('stats.js'); // « Statistiques » (vues, contacts, visites)
   const highlightsJs = readPartner('highlights.js'); // « Mises en avant » (À la une, Agence à la une)
+  const sellerLeadsJs = readPartner('seller-leads.js'); // « Contacts vendeurs » (estimation, exclusifs)
   const profileJs = readPartner('profile.js'); // « Ma page agence » (zfind.online/fr/agence/…)
   const appsJs = readPartner('apps.js'); // « Z Desk » / « Z Studio » (lien de connexion à usage unique)
 
@@ -111,6 +112,7 @@ function build() {
     + profileJs + '\n'
     + statsJs + '\n'
     + highlightsJs + '\n'
+    + sellerLeadsJs + '\n'
     + teamJs + '\n'
     + appsJs + '\n'
     + appJs

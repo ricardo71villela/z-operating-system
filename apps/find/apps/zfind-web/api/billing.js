@@ -18,6 +18,7 @@
      POST highlight-checkout     mise en avant « À la une » 7 / 30 jours
      POST highlight-pack-checkout pack de 5 mises en avant
      POST agency-feature-checkout « Agence à la une » (commune, mois)
+     POST seller-lead-checkout   contact vendeur exclusif (49 / 79 € HT)
                                  (_lib/highlights-checkout.js)
    Depuis Stripe :
      POST webhook                événements signés (STRIPE_WEBHOOK_SECRET)
@@ -350,7 +351,7 @@ async function handler(req, res) {
       if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); return S.sendJson(res, 405, { ok: false, error: 'method' }); }
       return await webhook(req, res, cfg, stripe);
     }
-    const routes = { status: 'GET', 'subscription-checkout': 'POST', portal: 'POST', 'highlight-checkout': 'POST', 'highlight-pack-checkout': 'POST', 'agency-feature-checkout': 'POST', 'app-link': 'POST' };
+    const routes = { status: 'GET', 'subscription-checkout': 'POST', portal: 'POST', 'highlight-checkout': 'POST', 'highlight-pack-checkout': 'POST', 'agency-feature-checkout': 'POST', 'app-link': 'POST', 'seller-lead-checkout': 'POST' };
     if (!routes[route]) return S.sendJson(res, 404, { ok: false, error: 'not_found' });
     if (req.method !== routes[route]) { res.setHeader('Allow', routes[route]); return S.sendJson(res, 405, { ok: false, error: 'method' }); }
     if (S.limited(req, 30, 600000)) return S.sendJson(res, 429, { ok: false, error: 'rate_limited' });
@@ -366,6 +367,7 @@ async function handler(req, res) {
     if (route === 'highlight-checkout') return await orders.highlightCheckout(req, res, auth, stripe, deps);
     if (route === 'highlight-pack-checkout') return await orders.packCheckout(req, res, auth, stripe, deps);
     if (route === 'agency-feature-checkout') return await orders.agencyFeatureCheckout(req, res, auth, stripe, deps);
+    if (route === 'seller-lead-checkout') return await orders.sellerLeadCheckout(req, res, auth, stripe, deps);
     return await portal(req, res, auth, stripe);
   } catch (e) {
     console.error('billing:', route, e.code || e.message, e.stripeMessage || '');
