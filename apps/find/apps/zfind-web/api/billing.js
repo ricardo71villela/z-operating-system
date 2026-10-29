@@ -13,6 +13,8 @@
                                  prélèvement à la fin des mois offerts)
      POST portal                 portail client Stripe (moyen de paiement,
                                  factures, résiliation)
+     POST app-link               ouvrir Z Desk / Z Studio avec le même compte,
+                                 sans nouvelle connexion (_lib/app-link.js)
    Depuis Stripe :
      POST webhook                événements signés (STRIPE_WEBHOOK_SECRET)
 
@@ -27,6 +29,7 @@
 const S = require('./_lib/server');
 const core = require('./_lib/billing-core');
 const stripeLib = require('./_lib/stripe');
+const appLinkLib = require('./_lib/app-link');
 
 const PARTNER_ORIGINS = ['https://partner.zfind.online'];
 const PREVIEW_ORIGIN_RE = /^https:\/\/zfind-partner-[a-z0-9-]+-zoperatingsystem\.vercel\.app$/;
@@ -331,7 +334,7 @@ async function handler(req, res) {
   const cfg = stripeLib.loadStripeConfig();
   if (route !== 'webhook') cors(req, res);
   if (req.method === 'OPTIONS') { res.statusCode = 204; return res.end(); }
-  if (!S.configured(['db']) || (!cfg.secretKey && route !== 'status')) {
+  if (!S.configured(['db']) || (!cfg.secretKey && route !== 'status' && route !== 'app-link')) {
     console.error('billing: not configured (ZFIND_SUPABASE_SERVICE_KEY, STRIPE_SECRET_KEY)');
     return S.sendJson(res, 503, { ok: false, error: 'not_configured' });
   }
@@ -341,7 +344,7 @@ async function handler(req, res) {
       if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); return S.sendJson(res, 405, { ok: false, error: 'method' }); }
       return await webhook(req, res, cfg, stripe);
     }
-    const routes = { status: 'GET', 'subscription-checkout': 'POST', portal: 'POST' };
+    const routes = { status: 'GET', 'subscription-checkout': 'POST', portal: 'POST', 'app-link': 'POST' };
     if (!routes[route]) return S.sendJson(res, 404, { ok: false, error: 'not_found' });
     if (req.method !== routes[route]) { res.setHeader('Allow', routes[route]); return S.sendJson(res, 405, { ok: false, error: 'method' }); }
     if (S.limited(req, 30, 600000)) return S.sendJson(res, 429, { ok: false, error: 'rate_limited' });
@@ -351,6 +354,7 @@ async function handler(req, res) {
       const ctx = await partnerContext(auth.partnerId);
       return ctx ? S.sendJson(res, 200, Object.assign(statusPayload(ctx), { paymentsReady: !!cfg.secretKey, testMode: !!cfg.secretKey && !cfg.livemode })) : S.sendJson(res, 404, { ok: false, error: 'partner_not_found' });
     }
+    if (route === 'app-link') return await appLinkLib.appLink(req, res, auth);
     if (route === 'subscription-checkout') return await subscriptionCheckout(req, res, auth, stripe);
     return await portal(req, res, auth, stripe);
   } catch (e) {

@@ -51,6 +51,7 @@ function build() {
   const teamJs = readPartner('team.js'); // « Équipe » (invitations, membres)
   const statsJs = readPartner('stats.js'); // « Statistiques » (vues, contacts, visites)
   const profileJs = readPartner('profile.js'); // « Ma page agence » (zfind.online/fr/agence/…)
+  const appsJs = readPartner('apps.js'); // « Z Desk » / « Z Studio » (lien de connexion à usage unique)
 
   // Genuinely reused, not copied:
   const vendorSupabase = readWeb('vendor-supabase.js');
@@ -109,6 +110,7 @@ function build() {
     + profileJs + '\n'
     + statsJs + '\n'
     + teamJs + '\n'
+    + appsJs + '\n'
     + appJs
     + '\n</script>\n</body>\n</html>\n';
 

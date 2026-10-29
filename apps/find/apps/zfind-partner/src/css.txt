@@ -431,3 +431,21 @@ input, select, textarea{ font-family:'DM Sans', sans-serif; }
 .pr-link:hover{ color:var(--gold-dark); }
 .pr-panel .heading-sub{ margin-bottom:24px; }
 .login-error.pr-ok{ background:#EEF6F1; color:#24643F; }
+/* « Z Desk » / « Z Studio » (apps.js) */
+.papps{ display:inline-flex; gap:8px; margin-right:14px; vertical-align:middle; }
+.papps-btn{ font-size:0.78rem; letter-spacing:0.02em; padding:6px 11px; border:1px solid var(--gray-200); border-radius:var(--radius); background:var(--white); color:var(--gray-900); cursor:pointer; white-space:nowrap; transition:border-color .15s, color .15s; }
+.papps-btn:hover{ border-color:var(--gold); color:var(--gold-dark); }
+.papps-btn:disabled{ opacity:.5; cursor:default; }
+.papps-toast{ position:fixed; left:50%; bottom:28px; transform:translate(-50%,20px); opacity:0; pointer-events:none; max-width:min(520px,calc(100% - 32px)); padding:12px 16px; background:var(--gray-900); color:var(--white); border-radius:var(--radius); font-size:0.88rem; line-height:1.45; transition:opacity .2s, transform .2s; z-index:200; }
+.papps-toast.show{ opacity:1; transform:translate(-50%,0); }
+@media (max-width:700px){ .papps{ margin:0 0 6px; } }
+/* En-tête : logo, Z Desk / Z Studio et compte sur une ligne, la navigation en dessous (8 rubriques). */
+.dash-header{ flex-wrap:wrap; row-gap:14px; padding-bottom:0; }
+.dash-header .dash-nav{ order:3; width:100%; flex-wrap:wrap; gap:6px 26px; white-space:nowrap; }
+.dash-header .dash-nav a{ padding-bottom:12px; }
+.dash-header .who{ white-space:nowrap; }
+@media (max-width:860px){
+  .dash-header .who{ white-space:normal; flex-wrap:wrap; gap:8px 14px; }
+  .dash-header .dash-nav{ gap:4px 18px; }
+  .dash-header .dash-nav a{ padding-bottom:8px; }
+}

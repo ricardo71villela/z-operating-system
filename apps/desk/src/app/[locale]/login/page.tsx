@@ -1,7 +1,7 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { LoginClient } from './login-client';
 
-const KEYS = ['title', 'subtitle', 'email', 'sendCode', 'sending', 'codeSent', 'code', 'verify', 'verifying', 'changeEmail', 'resend', 'invalidEmail', 'invalidCode', 'sendFailed', 'tooMany', 'notConfigured'] as const;
+const KEYS = ['title', 'subtitle', 'email', 'sendCode', 'sending', 'codeSent', 'code', 'verify', 'verifying', 'changeEmail', 'resend', 'invalidEmail', 'invalidCode', 'sendFailed', 'tooMany', 'notConfigured', 'opening', 'linkExpired'] as const;
 
 export default async function LoginPage({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Promise<{ next?: string }> }) {
   const { locale } = await params;
