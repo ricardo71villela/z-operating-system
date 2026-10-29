@@ -421,6 +421,25 @@ async function main() {
     check('(salaire moyen) código desconhecido → 404 noindex', avgBad.status === 404 && (avgBad.headers.get('x-robots-tag') ?? '').includes('noindex'));
     const avgMap = await (await fetch(`${BASE}/public/sitemap-salaires-villes.xml`)).text();
     check('(salaire moyen) sitemap: hub, departamentos, comunas FR+EN', avgMap.includes('<loc>https://zjobs.online/salaire-moyen</loc>') && avgMap.includes('/salaire-moyen/departement/haute-savoie-74') && avgMap.includes('/salaire-moyen/thonon-les-bains-74281?lang=en') && (avgMap.match(/<url>/g) ?? []).length > 5000);
+    // --- Páginas « salaire par métier » (Insee, BTS 2023) ---
+    const metPath = '/salaire/techniciens-d-etude-et-de-developpement-en-informatique-478a';
+    const met = await fetch(`${BASE}/public/salaire-metier${metPath.slice('/salaire'.length)}`);
+    const metHtml = (await met.text()).replace(/[\u202f\u00a0]/g, ' ');
+    check('(métier) profissão: 200, indexável, canonical, mediana Insee, Occupation',
+      met.status === 200 && metHtml.includes('content="index,follow"') && metHtml.includes(`<link rel="canonical" href="https://zjobs.online${metPath}" />`)
+        && metHtml.includes('3 220 €') && metHtml.includes('"@type":"Occupation"') && metHtml.includes('Base Tous salariés 2023') && metHtml.includes(`${metPath}/rhone-69`));
+    const metCell = (await (await fetch(`${BASE}/public/salaire-metier${metPath.slice('/salaire'.length)}/rhone-69`)).text()).replace(/[\u202f\u00a0]/g, ' ');
+    check('(métier) profissão × departamento', metCell.includes('— Rhône (69)') && metCell.includes('3 280 €'));
+    const metCode = await fetch(`${BASE}/public/salaire-metier/x-478a`, { redirect: 'manual' });
+    check('(métier) slug errado → 301 canónico', metCode.status === 301 && metCode.headers.get('location') === metPath);
+    const metDep = await (await fetch(`${BASE}/public/salaire-metier/departement/haute-savoie-74`)).text();
+    check('(métier) departamento: profissões ligadas', metDep.includes('Salaire par métier — Haute-Savoie (74)') && metDep.includes('/haute-savoie-74"'));
+    const metHub = await (await fetch(`${BASE}/public/salaire-metier`)).text();
+    check('(métier) hub: profissões e departamentos', metHub.includes(metPath) && metHub.includes('/salaire/departement/paris-75'));
+    const metBad = await fetch(`${BASE}/public/salaire-metier/inconnu-999z`);
+    check('(métier) PCS desconhecida → 404', metBad.status === 404);
+    const metMap = await (await fetch(`${BASE}/public/sitemap-salaires-metiers.xml`)).text();
+    check('(métier) sitemap', metMap.includes(`<loc>https://zjobs.online${metPath}</loc>`) && metMap.includes(`${metPath}/rhone-69</loc>`) && (metMap.match(/<url>/g) ?? []).length > 5000);
     const lyonCity = await (await fetch(`${BASE}/public/emploi/lyon-69123`)).text();
     check('(salaire moyen) página /emploi liga ao salário médio Insee', lyonCity.includes('href="/salaire-moyen/lyon-69123"'));
 
