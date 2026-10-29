@@ -54,7 +54,7 @@ import { computeCandidateScore, explainCandidateScore } from '../../../packages/
 import type { MessageLocale } from '../../../packages/domain/src/i18n/messages';
 import type { JobOfferDraft } from '../../../packages/domain/src/types/jobOffer';
 import { validateScreeningQuestions, validateScreeningAnswers } from '../../../packages/domain/src/rules/screeningQuestions';
-import { offerIdFromSlug, offerPath, pageLocale, renderGonePage, renderOfferPage, renderOffersSitemap } from './publicPages';
+import { offerIdFromSlug, offerPath, pageLocale, renderGonePage, renderOfferPage, renderOffersSitemap, cityPath, officialCodeFromCitySlug, renderCityPage, renderCitySitemap, TIER1_CITIES, MIN_CITY_OFFERS } from './publicPages';
 
 // Versão atual dos Termos de Serviço / Política de Privacidade — muda
 // sempre que docs/legal/*.md tiver uma alteração material, para que
@@ -1133,6 +1133,40 @@ export function createServer() {
         return sendText(res, 200, 'text/html; charset=utf-8', renderOfferPage(offer, similar, locale, await (store as PgStore).getOfferQuestions(offer.id)), {
           'Cache-Control': 'public, max-age=0, s-maxage=600, stale-while-revalidate=3600',
         });
+      }
+
+      // City pages: zjobs.online/emploi/<ville>-<code> (rewrite from the public site).
+      if (method === 'GET' && path.startsWith('/public/emploi/')) {
+        const locale = pageLocale(url.searchParams.get('lang'));
+        const slug = decodeURIComponent(path.slice('/public/emploi/'.length)).replace(/\/+$/, '');
+        const code = officialCodeFromCitySlug(slug);
+        const pg = store as PgStore;
+        const city = code && usingPostgres ? await pg.getPublicCity(code) : null;
+        if (!city) {
+          return sendText(res, 404, 'text/html; charset=utf-8', renderGonePage(locale, slug), { 'X-Robots-Tag': 'noindex, follow' });
+        }
+        if ('/emploi/' + slug !== cityPath(city)) {
+          return sendText(res, 301, 'text/html; charset=utf-8', '', { Location: cityPath(city) + (locale === 'en' ? '?lang=en' : ''), 'Cache-Control': 'public, max-age=0, s-maxage=300' });
+        }
+        const result = await pg.searchPublishedJobOffers({ officialCode: city.officialCode, limit: 50 });
+        const others = [];
+        for (const c of TIER1_CITIES) {
+          if (c === city.officialCode) continue;
+          const o = await pg.getPublicCity(c);
+          if (o) others.push(o);
+        }
+        const page = renderCityPage(city, result.offers, others, locale);
+        return sendText(res, 200, 'text/html; charset=utf-8', page.html, { 'Cache-Control': 'public, max-age=0, s-maxage=1800, stale-while-revalidate=86400' });
+      }
+
+      if (method === 'GET' && path === '/public/sitemap-emploi.xml') {
+        const pg = store as PgStore;
+        const cities: { officialCode: string; city: string }[] = [];
+        if (usingPostgres) {
+          for (const c of TIER1_CITIES) { const o = await pg.getPublicCity(c); if (o) cities.push(o); }
+          for (const c of await pg.listCitiesWithOffers(MIN_CITY_OFFERS)) if (!cities.some((x) => x.officialCode === c.officialCode)) cities.push(c);
+        }
+        return sendText(res, 200, 'application/xml; charset=utf-8', renderCitySitemap(cities), { 'Cache-Control': 'public, max-age=0, s-maxage=3600' });
       }
 
       if (method === 'GET' && path === '/public/sitemap-offres.xml') {

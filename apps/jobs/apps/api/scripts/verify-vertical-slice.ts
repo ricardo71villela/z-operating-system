@@ -181,6 +181,7 @@ async function main() {
     );
 
     // Passo 6: empresa cria oferta VÁLIDA com salário fixo obrigatório
+    const lyonLoc = (await (await fetch(`${BASE}/locations?q=lyon&country=FR`)).json())[0];
     const offer = await (await fetch(`${BASE}/job-offers`, {
       method: 'POST',
       headers: recruiterHeaders,
@@ -199,6 +200,7 @@ async function main() {
         workRegime: 'hybrid',
         employerIdentified: true,
         pillar: 'first_jobs',
+        locationId: lyonLoc?.id,
       }),
     })).json();
     check('6. oferta criada em draft', offer.status === 'draft' && offer.hasFixedSalary === true);
@@ -364,6 +366,22 @@ async function main() {
       body: JSON.stringify({ organizationId: org.id, title: 'x', description: 'x', contractType: 'permanent', salaryMin: 1, salaryCurrency: 'EUR', salaryPeriod: 'monthly', hasFixedSalary: true, workRegime: 'on_site', employerIdentified: true, pillar: 'first_jobs', locationId: '00000000-0000-0000-0000-000000000000' }),
     });
     check('(localidades) localidade inexistente recusada (400)', badLocation.status === 400);
+
+    // --- Páginas « Emploi à {ville} » ---
+    const cityRes = await fetch(`${BASE}/public/emploi/lyon-69123`);
+    const cityHtml = await cityRes.text();
+    check('(cidade) Lyon: 200, indexada (nível 1), canonical, oferta listada',
+      cityRes.status === 200 && cityHtml.includes('content="index,follow"') && cityHtml.includes('/emploi/lyon-69123"')
+        && cityHtml.includes(offer.title) && cityHtml.includes('"CollectionPage"'),
+      { status: cityRes.status });
+    check('(cidade) liga ao alojamento Z Find e ao simulador', cityHtml.includes('https://zfind.online/fr/immobilier/lyon-69123') && cityHtml.includes('/outils'));
+    check('(cidade) sem « undefined » nem « NaN »', !/undefined|NaN/.test(cityHtml));
+    const cityWrong = await fetch(`${BASE}/public/emploi/ancien-nom-69123`, { redirect: 'manual' });
+    check('(cidade) slug errado → 301 para o canónico', cityWrong.status === 301 && /\/emploi\/lyon-69123$/.test(cityWrong.headers.get('location') ?? ''), { status: cityWrong.status, loc: cityWrong.headers.get('location') });
+    const cityUnknown = await fetch(`${BASE}/public/emploi/nulle-part-99999`);
+    check('(cidade) cidade desconhecida → 404 noindex', cityUnknown.status === 404 && (await cityUnknown.text()).includes('noindex'));
+    const citySitemap = await (await fetch(`${BASE}/public/sitemap-emploi.xml`)).text();
+    check('(cidade) sitemap contém Lyon e as 6 grandes cidades', citySitemap.includes('/emploi/lyon-69123') && citySitemap.includes('/emploi/paris-75056'), citySitemap.slice(0, 400));
 
     // --- Painéis: leituras de que o portal precisa depois de recarregar ---
     const myOrgs = await (await fetch(`${BASE}/me/organizations`, { headers: recruiterHeaders })).json();

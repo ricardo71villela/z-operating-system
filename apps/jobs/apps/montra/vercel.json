@@ -16,6 +16,14 @@
       "destination": "https://z-jobs-api-zoperatingsystem.vercel.app/public/sitemap-offres.xml"
     },
     {
+      "source": "/emploi/:slug",
+      "destination": "https://z-jobs-api-zoperatingsystem.vercel.app/public/emploi/:slug"
+    },
+    {
+      "source": "/sitemap-emploi.xml",
+      "destination": "https://z-jobs-api-zoperatingsystem.vercel.app/public/sitemap-emploi.xml"
+    },
+    {
       "source": "/candidats",
       "destination": "/candidats.html"
     },

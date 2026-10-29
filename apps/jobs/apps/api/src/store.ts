@@ -51,6 +51,8 @@ export interface PublicOfferSearch {
   /** NACE Rev. 2 section letter of the employer, e.g. 'J'. */
   naceSection?: string;
   organizationId?: string;
+  /** Official commune code of the offer's place, e.g. 'FR-69123' (Lyon). */
+  officialCode?: string;
   /** first_jobs | professional_careers | senior_careers */
   pillar?: string;
   /** Only offers published after this ISO date-time. */
