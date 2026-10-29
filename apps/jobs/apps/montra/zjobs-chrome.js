@@ -112,7 +112,7 @@
           '<a href="mailto:hello@zjobs.online">hello@zjobs.online</a></div>' +
         col(c.candidates, [['/#recherche', c.search], ['/candidats#cvstudio', c.cv], ['/candidats#coverletter', c.letter], [APP_URL, c.alerts], [APP_URL, c.profile]]) +
         col(c.employers, [['/employeurs', c.post], ['/employeurs#pricing', c.pricing], ['/employeurs#badges', c.labels], ['/employeurs#scoring', c.scoring], [APP_URL, c.employerSpace]]) +
-        col(c.tools, [['/outils#simulateur', c.net], ['/outils#grilles', c.grids], ['/outils#legislation', c.law], ['/outils#economie', c.econ]]) +
+        col(c.tools, [[lang() === 'en' ? '/en/gross-to-net-salary-france' : '/salaire-brut-net', c.net], ['/outils#grilles', c.grids], ['/outils#legislation', c.law], ['/outils#economie', c.econ]]) +
         col(c.about2, [['/employeurs#badges', c.trust], ['/candidats', c.free], ['mailto:hello@zjobs.online', c.contact]]) +
       '</div>' +
       '<nav class="zj-foot-cities" aria-label="' + esc(c.cities) + '"><h2 class="zj-foot-h">' + esc(c.cities) + '</h2>' + CITIES.map(function (v) {

@@ -54,6 +54,8 @@ import { computeCandidateScore, explainCandidateScore } from '../../../packages/
 import type { MessageLocale } from '../../../packages/domain/src/i18n/messages';
 import type { JobOfferDraft } from '../../../packages/domain/src/types/jobOffer';
 import { validateScreeningQuestions, validateScreeningAnswers } from '../../../packages/domain/src/rules/screeningQuestions';
+import { parseSalaryRoute, renderSalaryPage, renderSalarySitemap } from './salaryPages';
+import { offerIdFromSlug, offerPath, pageLocale, renderGonePage, renderOfferPage, renderOffersSitemap, cityPath, officialCodeFromCitySlug, renderCityPage, renderCitySitemap, TIER1_CITIES, MIN_CITY_OFFERS, companyIdFromSlug, companyPath, isVerifiedCompany, renderCompanyPage, renderCompanySitemap, type PublicCompany } from './publicPages';
 import { offerIdFromSlug, offerPath, pageLocale, renderGonePage, renderOfferPage, renderOffersSitemap, cityPath, officialCodeFromCitySlug, renderCityPage, renderCitySitemap, TIER1_CITIES, MIN_CITY_OFFERS, companyIdFromSlug, companyPath, isVerifiedCompany, isDemoCompanyName, renderCompanyPage, renderCompanySitemap, type PublicCompany } from './publicPages';
 
 // Versão atual dos Termos de Serviço / Política de Privacidade — muda
@@ -1133,6 +1135,19 @@ export function createServer() {
         return sendText(res, 200, 'text/html; charset=utf-8', renderOfferPage(offer, similar, locale, await (store as PgStore).getOfferQuestions(offer.id)), {
           'Cache-Control': 'public, max-age=0, s-maxage=600, stale-while-revalidate=3600',
         });
+      }
+
+      // Gross-to-net salary pages: zjobs.online/salaire-brut-net… (rewrites from the public site).
+      if (method === 'GET' && path.startsWith('/public/salaire/')) {
+        const locale = pageLocale(url.searchParams.get('lang'));
+        const route = parseSalaryRoute(decodeURIComponent(path.slice('/public/salaire/'.length)));
+        if (!route || (route.amount != null && locale === 'en')) {
+          return sendText(res, 404, 'text/html; charset=utf-8', renderGonePage(locale, path), { 'X-Robots-Tag': 'noindex, follow' });
+        }
+        return sendText(res, 200, 'text/html; charset=utf-8', renderSalaryPage(route, locale), { 'Cache-Control': 'public, max-age=0, s-maxage=86400, stale-while-revalidate=604800' });
+      }
+      if (method === 'GET' && path === '/public/sitemap-salaires.xml') {
+        return sendText(res, 200, 'application/xml; charset=utf-8', renderSalarySitemap(), { 'Cache-Control': 'public, max-age=0, s-maxage=86400' });
       }
 
       // Company pages: zjobs.online/entreprise/<nom>-<id> (rewrite from the public site).
