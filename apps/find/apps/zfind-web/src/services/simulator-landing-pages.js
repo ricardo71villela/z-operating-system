@@ -81,12 +81,12 @@ const STYLE = `<style id="zfind-sim-styles">.zs-calc{margin-top:28px;padding:32p
 
 function ld(o) { return `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, '\\u003c')}</script>`; }
 
-function shell({ base, pathName, title, description, crumb, eyebrow, h1, lead, body, faq, scripts, ctaHref, ctaLabel }) {
+function shell({ base, pathName, title, description, crumb, parent, eyebrow, h1, lead, body, faq, scripts, ctaHref, ctaLabel }) {
   const canonical = base + pathName;
   const desc = seo.buildMetaDescription(description, 158);
   const breadcrumbs = pathName === PAGES.hub
     ? [{ name: 'Z Find', path: '/' }, { name: 'Simulateurs immobiliers', path: PAGES.hub }]
-    : [{ name: 'Z Find', path: '/' }, { name: 'Simulateurs immobiliers', path: PAGES.hub }, { name: crumb, path: pathName }];
+    : [{ name: 'Z Find', path: '/' }, { name: 'Simulateurs immobiliers', path: PAGES.hub }].concat(parent ? [parent] : [], [{ name: crumb, path: pathName }]);
   const lds = [
     { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: breadcrumbs.map((b, i) => ({ '@type': 'ListItem', position: i + 1, name: b.name, item: base + b.path })) },
     { '@context': 'https://schema.org', '@type': pathName === PAGES.hub ? 'CollectionPage' : 'WebApplication', name: h1, url: canonical, inLanguage: 'fr', ...(pathName === PAGES.hub ? {} : { applicationCategory: 'FinanceApplication', operatingSystem: 'Web', offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' } }) }
@@ -183,7 +183,7 @@ function rateNote(ref) {
 
 /* ---------- pages ---------- */
 
-function pageNotaire(base) {
+function pageNotaire(base, departments) {
   const prices = [100000, 150000, 200000, 250000, 300000, 400000, 500000, 750000, 1000000];
   const rows = prices.map(p => {
     const a = costs.estimate({ country: 'FR', price: p });
@@ -193,7 +193,7 @@ function pageNotaire(base) {
   });
   const ex = costs.estimate({ country: 'FR', price: 250000 });
   const faq = [
-    { q: 'Comment calculer les frais de notaire ?', a: `Pour un logement ancien, ils comprennent les droits de mutation (${pct(0.063185, 4)} du prix dans la plupart des départements), les émoluments du notaire selon le barème officiel, la contribution de sécurité immobilière (0,1 %) et environ 1 200 € de débours. Pour 250 000 €, le total est d’environ ${eur(ex.costs)}, soit ${pct(ex.costsRate, 1)}.` },
+    { q: 'Comment calculer les frais de notaire ?', a: `Pour un logement ancien, ils comprennent les droits de mutation (${pct(0.063185, 4)} du prix dans 89 départements, ${pct(0.0580665, 4)} ou ${pct(0.0509006, 4)} dans les autres), les émoluments du notaire selon le barème officiel, la contribution de sécurité immobilière (0,1 %) et environ 1 200 € de débours. Pour 250 000 €, le total est d’environ ${eur(ex.costs)}, soit ${pct(ex.costsRate, 1)}.` },
     { q: 'Quels sont les frais de notaire dans le neuf ?', a: 'Dans le neuf (VEFA), les droits de mutation sont remplacés par la taxe de publicité foncière de 0,715 % : les frais tombent à environ 2 à 3 % du prix.' },
     { q: 'Les primo-accédants paient-ils moins de frais de notaire ?', a: `Oui depuis la réforme de 2025 : un primo-accédant qui achète sa résidence principale reste au taux de ${pct(0.0580665, 4)} au lieu de ${pct(0.063185, 4)} dans les départements qui ont relevé leur taux.` },
     { q: 'Les frais de notaire peuvent-ils être financés par le prêt ?', a: 'Certaines banques les financent, mais la plupart demandent que l’apport couvre au moins les frais de notaire et de garantie.' }
@@ -202,10 +202,12 @@ function pageNotaire(base) {
       <h2>Calculer mes frais de notaire</h2>
       <div class="zs-grid">${field('price', 'Prix du bien (€)', '250000')}
         <div class="zs-field"><label for="f-type">Type de bien</label><select id="f-type" name="type"><option value="old">Ancien</option><option value="new">Neuf (VEFA)</option></select></div></div>
+      ${departmentSelect(departments, null)}
       <p class="zs-check" style="margin-top:14px"><input type="checkbox" id="f-first" name="first"><label for="f-first">Primo-accédant, résidence principale</label></p>
       <div class="zs-out" data-out aria-live="polite"></div>
       <div class="zs-ctas"><a class="zf-seo-primary" href="${base}${SPA.pret}">Simuler le prêt avec ces frais →</a></div>
     </form>
+    ${departments.length ? `<section class="zs-section"><h2>Frais de notaire par département</h2><p>Les droits de mutation ne sont pas les mêmes partout : ${esc(lowerList(departments))} ont gardé un taux départemental plus bas. Choisissez votre département :</p><ul class="zs-links">${departments.map(d => `<li><a href="${base}${notaryDepartmentPath(d)}">${esc(d.name)} (${esc(d.code)})</a></li>`).join('')}</ul></section>` : ''}
     <section class="zs-section"><h2>Frais de notaire selon le prix</h2>
       ${table(['Prix', 'Ancien', 'Ancien, primo-accédant', 'Neuf'], rows)}
       <p class="zs-small">Barèmes 2026 appliqués par les simulateurs Z Find (droits de mutation après la réforme 2025, émoluments réglementés + TVA 20 %, CSI 0,1 %, débours forfaitaires).</p>
@@ -214,7 +216,7 @@ function pageNotaire(base) {
       <p>Près de 80 % des frais de notaire sont des taxes reversées à l’État et aux collectivités : les droits de mutation. Le notaire perçoit des émoluments fixés par un barème national dégressif (3,870 % jusqu’à 6 500 €, puis 1,596 %, 1,064 % et 0,799 % au-delà de 60 000 €), auxquels s’ajoutent la TVA, la contribution de sécurité immobilière et les débours (cadastre, état hypothécaire, formalités).</p>
       <p>Pour connaître le prix des biens d’une commune avant de calculer, consultez les <a href="${base}${PRICE_HUB}">prix de l’immobilier par commune</a>.</p>
     </section>`;
-  const script = `${engineScript()}<script>ZS.bind('calc-notaire',function(f){var p=ZS.num(f,'price');var r=ZS.c.estimate({country:'FR',price:p,newBuild:ZS.val(f,'type')==='new',firstBuyer:ZS.on(f,'first')});if(r.error)return '<p>Indiquez un prix.</p>';var L=${LABELS_JS};return '<p class="zs-big">'+ZS.eur(r.costs)+'</p><p>soit '+(r.costsRate*100).toFixed(2).replace('.',',')+' % du prix — coût total '+ZS.eur(r.total)+'</p>'+ZS.lines(r.lines.map(function(l){return [L[l.key]||l.key,ZS.eur(l.amount)];}));});</script>`;
+  const script = `${engineScript()}<script>ZS.bind('calc-notaire',function(f){var p=ZS.num(f,'price');var r=ZS.c.estimate({country:'FR',price:p,department:ZS.val(f,'dep')||null,newBuild:ZS.val(f,'type')==='new',firstBuyer:ZS.on(f,'first')});if(r.error)return '<p>Indiquez un prix.</p>';var L=${LABELS_JS};return '<p class="zs-big">'+ZS.eur(r.costs)+'</p><p>soit '+(r.costsRate*100).toFixed(2).replace('.',',')+' % du prix — coût total '+ZS.eur(r.total)+'</p>'+ZS.lines(r.lines.map(function(l){return [L[l.key]||l.key,ZS.eur(l.amount)];}));});</script>`;
   return { path: PAGES.notaire, html: shell({
     base, pathName: PAGES.notaire, crumb: 'Frais de notaire', eyebrow: 'Simulateur gratuit · France 2026',
     title: 'Frais de notaire 2026 : calcul gratuit (ancien, neuf, primo-accédant) | Z Find',
@@ -413,6 +415,93 @@ function pageEstimation(base) {
   }) };
 }
 
+/* ---------- frais de notaire par département ---------- */
+
+const DEP_EXAMPLE_M2 = 60;
+
+/* [{ code, name, aptMedian }] depuis public/market-data/fr/index.json. */
+function departmentsFromIndex(index) {
+  const deps = (index && index.departments) || {};
+  return Object.keys(deps).map(code => {
+    const a = deps[code].A && deps[code].A['2024-2025'];
+    return { code, name: deps[code].name, aptMedian: Array.isArray(a) && a[0] >= 5 ? a[2] : null };
+  }).sort((x, y) => x.code.localeCompare(y.code, 'fr', { numeric: true }));
+}
+
+function depSlug(name) {
+  return String(name).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+function notaryDepartmentPath(d) { return `${PAGES.notaire}/${depSlug(d.name)}-${d.code.toLowerCase()}`; }
+function priceDepartmentPath(d) { return `${PRICE_HUB}/${depSlug(d.name)}-${d.code.toLowerCase()}`; }
+
+function lowerList(departments) {
+  const low = departments.filter(d => costs.frTransferRates(d.code).share < 0.05).map(d => d.name);
+  return low.length > 1 ? `${low.slice(0, -1).join(', ')} et ${low[low.length - 1]}` : (low[0] || '');
+}
+
+function departmentSelect(departments, selected) {
+  if (!departments || !departments.length) return '';
+  return `<div class="zs-grid" style="margin-top:14px"><div class="zs-field"><label for="f-dep">Département</label><select id="f-dep" name="dep"><option value="">France (taux de 5 %)</option>${departments.map(d => `<option value="${esc(d.code)}"${d.code === selected ? ' selected' : ''}>${esc(d.code)} — ${esc(d.name)}</option>`).join('')}</select></div></div>`;
+}
+
+function pageNotaireDepartment(base, d, departments) {
+  const r = costs.frTransferRates(d.code);
+  const label = `${d.name} (${d.code})`;
+  const prices = [100000, 150000, 200000, 250000, 300000, 400000, 500000, 750000];
+  const rows = prices.map(p => {
+    const a = costs.estimate({ country: 'FR', price: p, department: d.code });
+    const f = costs.estimate({ country: 'FR', price: p, department: d.code, firstBuyer: true });
+    const n = costs.estimate({ country: 'FR', price: p, department: d.code, newBuild: true });
+    return [eur(p), `${eur(a.costs)} <span class="zs-small">(${pct(a.costsRate, 1)})</span>`, eur(f.costs), eur(n.costs)];
+  });
+  const examplePrice = d.aptMedian ? Math.round((d.aptMedian * DEP_EXAMPLE_M2) / 1000) * 1000 : 250000;
+  const ex = costs.estimate({ country: 'FR', price: examplePrice, department: d.code });
+  const exFirst = costs.estimate({ country: 'FR', price: examplePrice, department: d.code, firstBuyer: true });
+  const lower = r.share < 0.05;
+  const rateSentence = lower
+    ? `Le département ${label} n’a pas relevé sa part des droits de mutation en 2025 : elle reste à ${pct(r.share, 2)}, soit ${pct(r.standard, 4)} au total avec la part communale et les frais d’assiette — moins que les ${pct(0.063185, 4)} de la plupart des départements.`
+    : `Comme 88 autres départements, ${label} applique une part départementale de 5 % depuis 2025 : les droits de mutation atteignent ${pct(r.standard, 4)} du prix dans l’ancien, ${pct(r.firstBuyer, 4)} pour un primo-accédant qui achète sa résidence principale.`;
+  const exSentence = d.aptMedian
+    ? `Pour un appartement de ${DEP_EXAMPLE_M2} m² au prix médian du département (${nf.format(d.aptMedian)} €/m², DVF 2024-2025), soit ${eur(examplePrice)}, les frais de notaire sont d’environ ${eur(ex.costs)} (${pct(ex.costsRate, 1)})${exFirst.costs !== ex.costs ? `, ${eur(exFirst.costs)} pour un primo-accédant` : ''}.`
+    : `Pour un bien de ${eur(examplePrice)}, les frais de notaire sont d’environ ${eur(ex.costs)} (${pct(ex.costsRate, 1)}).`;
+  const faq = [
+    { q: `Quel est le taux des droits de mutation ${d.code === '75' ? 'à Paris' : `dans le département ${label}`} en 2026 ?`, a: `${pct(r.standard, 4)} du prix pour un logement ancien (part départementale ${pct(r.share, 2)}, part communale 1,20 %, frais d’assiette 2,37 %)${lower ? '' : `, ${pct(r.firstBuyer, 4)} pour un primo-accédant`}. Source : DGFiP, taux applicables au 1er mai 2026.` },
+    { q: `Combien de frais de notaire pour un achat de ${eur(examplePrice)} ?`, a: `Environ ${eur(ex.costs)} dans l’ancien : ${ex.lines.map(l => `${(LABELS[l.key] || l.key).toLowerCase()} ${eur(l.amount)}`).join(', ')}.` },
+    { q: 'Et dans le neuf ?', a: 'Dans le neuf (VEFA), la taxe de publicité foncière de 0,715 % remplace les droits de mutation : les frais tombent à environ 2 à 3 % du prix, partout en France.' }
+  ];
+  const others = departments.filter(x => x.code !== d.code);
+  const body = `    <form class="zs-calc" id="calc-notaire" novalidate>
+      <h2>Calculer mes frais de notaire — ${esc(label)}</h2>
+      <div class="zs-grid">${field('price', 'Prix du bien (€)', String(examplePrice))}
+        <div class="zs-field"><label for="f-type">Type de bien</label><select id="f-type" name="type"><option value="old">Ancien</option><option value="new">Neuf (VEFA)</option></select></div></div>
+      ${departmentSelect(departments, d.code)}
+      <p class="zs-check" style="margin-top:14px"><input type="checkbox" id="f-first" name="first"><label for="f-first">Primo-accédant, résidence principale</label></p>
+      <div class="zs-out" data-out aria-live="polite"></div>
+      <div class="zs-ctas"><a class="zf-seo-primary" href="${base}${SPA.pret}&amp;price=${examplePrice}">Simuler le prêt avec ces frais →</a></div>
+    </form>
+    <section class="zs-section"><h2>Droits de mutation ${esc(d.code === '75' ? 'à Paris' : `dans le département ${label}`)}</h2>
+      <p>${esc(rateSentence)}</p>
+      <p>${esc(exSentence)}</p>
+    </section>
+    <section class="zs-section"><h2>Frais de notaire selon le prix — ${esc(label)}</h2>
+      ${table(['Prix', 'Ancien', 'Ancien, primo-accédant', 'Neuf'], rows)}
+      <p class="zs-small">Taux des droits de mutation applicables au 1er mai 2026 (DGFiP) ; émoluments réglementés + TVA 20 %, contribution de sécurité immobilière 0,1 %, débours forfaitaires.</p>
+    </section>
+    ${d.aptMedian ? `<section class="zs-section"><h2>Prix de l’immobilier — ${esc(label)}</h2><p>Avant de calculer, consultez le <a href="${base}${priceDepartmentPath(d)}">prix au m² de chaque commune du département</a> (ventes DVF), puis votre <a href="${base}${PAGES.capacite}">capacité d’emprunt</a>.</p></section>` : ''}
+    <section class="zs-section"><h2>Les autres départements</h2><ul class="zs-links">${others.map(x => `<li><a href="${base}${notaryDepartmentPath(x)}">${esc(x.name)} (${esc(x.code)})</a></li>`).join('')}</ul></section>`;
+  const pathName = notaryDepartmentPath(d);
+  const script = `${engineScript()}<script>ZS.bind('calc-notaire',function(f){var p=ZS.num(f,'price');var r=ZS.c.estimate({country:'FR',price:p,department:ZS.val(f,'dep')||null,newBuild:ZS.val(f,'type')==='new',firstBuyer:ZS.on(f,'first')});if(r.error)return '<p>Indiquez un prix.</p>';var L=${LABELS_JS};return '<p class="zs-big">'+ZS.eur(r.costs)+'</p><p>soit '+(r.costsRate*100).toFixed(2).replace('.',',')+' % du prix — coût total '+ZS.eur(r.total)+'</p>'+ZS.lines(r.lines.map(function(l){return [L[l.key]||l.key,ZS.eur(l.amount)];}));});</script>`;
+  return { path: pathName, html: shell({
+    base, pathName, crumb: label, parent: { name: 'Frais de notaire', path: PAGES.notaire },
+    eyebrow: `Simulateur gratuit · ${label} · 2026`,
+    title: `Frais de notaire ${d.name} (${d.code}) 2026 : calcul et taux | Z Find`,
+    description: `Frais de notaire ${label} en 2026 : droits de mutation de ${pct(r.standard, 2)}${lower ? ' (taux réduit)' : ''}. ${exSentence}`,
+    h1: `Frais de notaire ${d.code === '75' ? 'à Paris' : `— ${label}`} en 2026`,
+    lead: `${rateSentence}`,
+    body, faq, scripts: script
+  }) };
+}
+
 function pageHub(base) {
   const cards = [
     [PAGES.estimation, 'Estimation immobilière', 'La valeur de votre bien à partir des ventes réelles de la commune.'],
@@ -435,11 +524,17 @@ function pageHub(base) {
 }
 
 /* Toutes les pages : [{ path, html }]. today fixe la date des taux. */
-function buildSimulatorPages(baseUrl, today) {
+function buildSimulatorPages(baseUrl, today, priceIndex) {
   const base = String(baseUrl || '').replace(/\/+$/, '');
   if (!/^https?:\/\//.test(base)) throw new Error('Simulator pages require a real SITE_BASE_URL.');
   const t = today || new Date();
-  return [pageHub(base), pageNotaire(base), pageBelgique(base), pageLuxembourg(base, t), pagePret(base, t), pageCapacite(base, t), pageRentabilite(base), pageEstimation(base)];
+  const departments = departmentsFromIndex(priceIndex || loadPriceIndex());
+  return [pageHub(base), pageNotaire(base, departments), pageBelgique(base), pageLuxembourg(base, t), pagePret(base, t), pageCapacite(base, t), pageRentabilite(base), pageEstimation(base)]
+    .concat(departments.map(d => pageNotaireDepartment(base, d, departments)));
 }
 
-module.exports = { PAGES, buildSimulatorPages };
+function loadPriceIndex() {
+  try { return JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'public', 'market-data', 'fr', 'index.json'), 'utf8')); } catch (_) { return null; }
+}
+
+module.exports = { PAGES, buildSimulatorPages, departmentsFromIndex, notaryDepartmentPath };
