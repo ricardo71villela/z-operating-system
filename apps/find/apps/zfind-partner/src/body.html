@@ -128,6 +128,7 @@
     <nav class="dash-nav">
       <a class="active" onclick="showPortfolioView()">Portefeuille</a>
       <a onclick="showLeadsView()">Demandes</a>
+      <a onclick="showProfileView()">Ma page agence</a>
       <a onclick="showImportView()">Importer</a>
       <a onclick="showFeedView()">Flux automatique</a>
       <a onclick="showBillingView()">Abonnement</a>
@@ -170,6 +171,7 @@
     <nav class="dash-nav">
       <a onclick="showPortfolioView()">Portefeuille</a>
       <a class="active" onclick="showLeadsView()">Demandes</a>
+      <a onclick="showProfileView()">Ma page agence</a>
       <a onclick="showImportView()">Importer</a>
       <a onclick="showFeedView()">Flux automatique</a>
       <a onclick="showBillingView()">Abonnement</a>
@@ -195,6 +197,7 @@
     <nav class="dash-nav">
       <a class="active" onclick="showPortfolioView()">Portefeuille</a>
       <a onclick="showLeadsView()">Demandes</a>
+      <a onclick="showProfileView()">Ma page agence</a>
       <a onclick="showImportView()">Importer</a>
       <a onclick="showFeedView()">Flux automatique</a>
       <a onclick="showBillingView()">Abonnement</a>
@@ -231,6 +234,7 @@
     <nav class="dash-nav">
       <a onclick="showPortfolioView()">Portefeuille</a>
       <a onclick="showLeadsView()">Demandes</a>
+      <a onclick="showProfileView()">Ma page agence</a>
       <a class="active" onclick="showImportView()">Importer</a>
       <a onclick="showFeedView()">Flux automatique</a>
       <a onclick="showBillingView()">Abonnement</a>
@@ -254,6 +258,7 @@
     <nav class="dash-nav">
       <a onclick="showPortfolioView()">Portefeuille</a>
       <a onclick="showLeadsView()">Demandes</a>
+      <a onclick="showProfileView()">Ma page agence</a>
       <a onclick="showImportView()">Importer</a>
       <a class="active" onclick="showFeedView()">Flux automatique</a>
       <a onclick="showBillingView()">Abonnement</a>
@@ -277,6 +282,7 @@
     <nav class="dash-nav">
       <a onclick="showPortfolioView()">Portefeuille</a>
       <a onclick="showLeadsView()">Demandes</a>
+      <a onclick="showProfileView()">Ma page agence</a>
       <a onclick="showImportView()">Importer</a>
       <a onclick="showFeedView()">Flux automatique</a>
       <a class="active" onclick="showBillingView()">Abonnement</a>
@@ -291,6 +297,30 @@
     <h2 style="margin-bottom:8px;">Votre abonnement, <em>sans surprise.</em></h2>
     <p class="sub" style="margin:0 0 24px; max-width:none;">Un prix public selon vos annonces publiées, sans engagement de durée. Carte bancaire ou prélèvement SEPA, factures téléchargeables.</p>
     <div id="pbill-root"></div>
+  </div>
+</section>
+
+<section id="view-profile" class="dash-shell" style="display:none;">
+  <div class="dash-header">
+    <div class="logo">Z <em>Find</em> Partenaires</div>
+    <nav class="dash-nav">
+      <a onclick="showPortfolioView()">Portefeuille</a>
+      <a onclick="showLeadsView()">Demandes</a>
+      <a class="active" onclick="showProfileView()">Ma page agence</a>
+      <a onclick="showImportView()">Importer</a>
+      <a onclick="showFeedView()">Flux automatique</a>
+      <a onclick="showBillingView()">Abonnement</a>
+    </nav>
+    <div class="who">
+      <span id="dash-partner-name-7" class="partner-name-copy"></span>
+      <a class="signout" onclick="handlePartnerSignOut()">Déconnexion</a>
+    </div>
+  </div>
+  <div class="dash-body wide">
+    <div class="eyebrow">Ma page agence</div>
+    <h2 style="margin-bottom:8px;">Votre agence, <em>en vitrine.</em></h2>
+    <p class="sub" style="margin:0 0 24px; max-width:none;">Votre page publique sur zfind.online : logo, présentation, coordonnées, horaires et toutes vos annonces publiées.</p>
+    <div id="pprof-root"></div>
   </div>
 </section>
 

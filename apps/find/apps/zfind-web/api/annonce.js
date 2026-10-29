@@ -45,19 +45,22 @@ function withTimeout(promise, ms) {
 
 const SELECT = 'id,subtype,typology,area_sqm,plot_area_sqm,floor,bedrooms,bathrooms,year_built,condition,energy_rating,condo_fee_monthly,agency_reference,postal_code,removed_at,'
   + 'zones_lite(name,city,commune_code,country_iso),'
-  + 'representations(target_type,status,partners(name,status),'
+  + 'representations(target_type,status,partners(name,status,zfind_partner_profiles(slug,public_page)),'
   + 'listings(id,transaction_type,rental_period,price_current,currency_iso,price_is_from,status,created_at,listing_content(locale,title,description),listing_media(position,is_cover,media_assets(original_storage_path))))';
 
-const SELECT_NO_MEDIA = SELECT.replace(',listing_media(position,is_cover,media_assets(original_storage_path))', '');
+const SELECT_NO_PROFILE = SELECT.replace(',zfind_partner_profiles(slug,public_page)', '');
+const SELECT_NO_MEDIA = SELECT_NO_PROFILE.replace(',listing_media(position,is_cover,media_assets(original_storage_path))', '');
 
-/* Un refus de PostgREST (4xx : droit manquant, colonne renommée) ne doit
-   jamais rendre la page indisponible : on relit l'annonce sans les photos. */
+/* Un refus de PostgREST (4xx : droit manquant, table pas encore créée,
+   colonne renommée) ne doit jamais rendre la page indisponible : on relit
+   l'annonce sans la fiche de l'agence, puis sans les photos. */
 async function fetchProperty(id) {
   const get = sel => withTimeout(S.db(`properties?id=eq.${id}&select=${encodeURIComponent(sel)}&limit=1`), 3000);
   let rows;
-  try { rows = await get(SELECT); } catch (e) {
-    if (!(e && e.status >= 400 && e.status < 500)) throw e;
-    rows = await get(SELECT_NO_MEDIA);
+  for (const sel of [SELECT, SELECT_NO_PROFILE, SELECT_NO_MEDIA]) {
+    try { rows = await get(sel); break; } catch (e) {
+      if (!(e && e.status >= 400 && e.status < 500) || sel === SELECT_NO_MEDIA) throw e;
+    }
   }
   return Array.isArray(rows) && rows[0] ? rows[0] : null;
 }
@@ -84,6 +87,13 @@ async function signImages(paths) {
   }
 }
 
+/* Adresse de la page publique de l'agence (fiche « Ma page agence »), ou null. */
+function agencySlug(partner) {
+  const raw = partner && partner.zfind_partner_profiles;
+  const pr = Array.isArray(raw) ? raw[0] : raw;
+  return pr && pr.slug && pr.public_page !== false && partner.status === 'active' ? pr.slug : null;
+}
+
 /* Ligne PostgREST → annonce normalisée, ou { gone: true } si non publiée. */
 function normalize(row) {
   const rep = (row.representations || []).find(r => r.target_type === 'property' && (r.listings || []).some(l => l.status === 'published'));
@@ -107,7 +117,7 @@ function normalize(row) {
     energy: row.energy_rating, condoFee: num(row.condo_fee_monthly), reference: row.agency_reference,
     postalCode: row.postal_code, locality: zone.city || zone.name || null, country: zone.country_iso,
     createdAt: listing.created_at, published: true,
-    agency: rep.partners && rep.partners.status !== 'suspended' ? { name: rep.partners.name } : null,
+    agency: rep.partners && rep.partners.status !== 'suspended' ? { name: rep.partners.name, slug: agencySlug(rep.partners) } : null,
     zoneCommune: zone.commune_code || null,
     mediaPaths: media.map(m => m.media_assets && m.media_assets.original_storage_path).filter(Boolean).slice(0, 12)
   };
@@ -201,4 +211,4 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-module.exports._internals = { normalize, placeOf };
+module.exports._internals = { normalize, placeOf, signImages, SELECT };
