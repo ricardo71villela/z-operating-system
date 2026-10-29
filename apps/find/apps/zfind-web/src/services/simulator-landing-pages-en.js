@@ -74,6 +74,8 @@ function shell({ base, pathName, title, description, crumb, eyebrow, h1, lead, b
   const others = [
     [EN_PAGES.notaire, 'French notary fees'], [EN_PAGES.pret, 'Mortgage calculator'], [EN_PAGES.capacite, 'Borrowing capacity'],
     [EN_PAGES.rentabilite, 'Rental yield'], [EN_PAGES.belgique, 'Buying costs in Belgium'], [EN_PAGES.luxembourg, 'Buying costs in Luxembourg'],
+    [EN_PAGES.pretBe, 'Mortgage in Belgium'], [EN_PAGES.pretLu, 'Mortgage in Luxembourg'], [EN_PAGES.courte, 'Short-term rental yield'],
+    [EN_PAGES.rentBe, 'Rental yield in Belgium'], [EN_PAGES.rentLu, 'Rental yield in Luxembourg'], [EN_PAGES.estimation, 'Property valuation'],
     ['/en/guides/buying-property-in-france', 'Buying property in France: the guide'], ['/en/real-estate-glossary', 'French property glossary']
   ].filter(([p]) => p !== pathName);
   return `<!DOCTYPE html>
@@ -323,6 +325,12 @@ function pageHub(base) {
     [EN_PAGES.rentabilite, 'Rental yield', 'Gross and net yield of a buy-to-let.'],
     [EN_PAGES.belgique, 'Buying costs in Belgium', 'Registration duties in Wallonia, Flanders and Brussels.'],
     [EN_PAGES.luxembourg, 'Buying costs in Luxembourg', '7% duties and the Bëllegen Akt tax credit.'],
+    [EN_PAGES.pretBe, 'Mortgage in Belgium', 'Monthly payment and loan cost, with your region’s buying costs.'],
+    [EN_PAGES.pretLu, 'Mortgage in Luxembourg', 'Monthly payment at the BCL average rate, duties included.'],
+    [EN_PAGES.courte, 'Short-term rental', 'Yield of a holiday let in France: nightly rate, occupancy, fees.'],
+    [EN_PAGES.rentBe, 'Rental yield in Belgium', 'Gross and net yield with regional buying costs.'],
+    [EN_PAGES.rentLu, 'Rental yield in Luxembourg', 'Yield and the legal rent ceiling (5% of the capital invested).'],
+    [EN_PAGES.estimation, 'Property valuation', 'The value of a home from official sales in its commune.'],
     ['/en/guides/buying-property-in-france', 'Buying in France as a foreigner', 'The guide: steps, costs, mortgage, taxes and inheritance.']
   ];
   return { path: EN_PAGES.hub, html: shell({
@@ -338,7 +346,8 @@ function buildSimulatorPagesEn(baseUrl, today) {
   const base = String(baseUrl || '').replace(/\/+$/, '');
   if (!/^https?:\/\//.test(base)) throw new Error('Simulator pages require a real SITE_BASE_URL.');
   const t = today || new Date();
-  return [pageHub(base), pageNotaire(base), pageBelgique(base), pageLuxembourg(base), pagePret(base, t), pageCapacite(base, t), pageRentabilite(base)];
+  return [pageHub(base), pageNotaire(base), pageBelgique(base), pageLuxembourg(base), pagePret(base, t), pageCapacite(base, t), pageRentabilite(base)]
+    .concat(require('./simulator-landing-pages-markets.js').buildMarketPages(base, t, 'en'));
 }
 
-module.exports = { EN_PAGES, buildSimulatorPagesEn };
+module.exports = { EN_PAGES, buildSimulatorPagesEn, _shared: { shell, field, EN_ENGINE, LABELS_JS } };
