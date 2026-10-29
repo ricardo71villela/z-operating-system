@@ -20,7 +20,6 @@
 <meta name="twitter:card" content="summary" />
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebSite", "name": "Z Jobs", "url": "https://zjobs.online/", "inLanguage": ["fr", "en"]}</script>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Organization", "name": "Z Jobs", "url": "https://zjobs.online/", "areaServed": ["FR", "BE", "LU"]}</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500;600&display=swap');
 
@@ -185,7 +184,7 @@
   .section-kicker{ font-family:'DM Sans',sans-serif; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--gold); }
   .legal h2, .simulator h2, .employers h2{ font-size:clamp(24px,3.4vw,32px); max-width:640px; margin:14px 0 12px; }
   .section-sub{ color:var(--ash); font-size:15px; max-width:600px; margin:0 0 30px; }
-  .legal, .simulator{ padding:72px 0; border-top:1px solid var(--line); }
+  .legal, .econ, .simulator{ padding:72px 0; border-top:1px solid var(--line); }
   .employers{ padding:72px 0; border-top:1px solid var(--line); }
 
   .legal-grid{ display:flex; flex-direction:column; border:1px solid var(--line); border-radius:2px; overflow:hidden; max-width:640px; }
@@ -198,7 +197,14 @@
   .econ-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:24px; }
   .econ-card{ background:var(--surface); border:1px solid var(--line); border-radius:2px; padding:22px; }
   .econ-card h3{ font-size:15px; margin-bottom:16px; }
-  .econ-card .legal-cite{ margin-top:12px; }
+  .econ-card{ display:flex; flex-direction:column; }
+  .econ-card .legal-cite{ margin-top:auto; padding-top:16px; }
+  .econ-bars{ list-style:none; margin:0; padding:0; display:grid; gap:14px; }
+  .econ-bars li{ display:grid; grid-template-columns:92px 1fr 56px; align-items:center; gap:10px; font-size:14px; }
+  .econ-label{ color:inherit; }
+  .econ-track{ height:12px; background:rgba(127,140,160,.22); border-radius:2px; overflow:hidden; }
+  .econ-fill{ display:block; height:100%; background:var(--gold); border-radius:2px; }
+  .econ-val{ text-align:right; font-variant-numeric:tabular-nums; color:var(--gold-bright); font-weight:600; }
   @media (max-width:900px){ .econ-grid{ grid-template-columns:1fr; } }
 
   .sim-card{ background:var(--surface); border:1px solid var(--line); border-radius:2px; padding:28px; max-width:560px; }
@@ -486,17 +492,17 @@
     <div class="econ-grid">
       <div class="econ-card">
         <h3 data-i18n="econ_inflation_title">Inflation (IPCH, sur un an)</h3>
-        <canvas id="chartInflation" height="220"></canvas>
+        <ul class="econ-bars" id="chartInflation"><li><span class="econ-label" data-i18n="flag_fr">France</span><span class="econ-track"><span class="econ-fill" style="width:65%"></span></span><b class="econ-val" data-v="3.4">3,4 %</b></li><li><span class="econ-label" data-i18n="flag_be">Belgique</span><span class="econ-track"><span class="econ-fill" style="width:87%"></span></span><b class="econ-val" data-v="4.5">4,5 %</b></li><li><span class="econ-label" data-i18n="flag_lu">Luxembourg</span><span class="econ-track"><span class="econ-fill" style="width:100%"></span></span><b class="econ-val" data-v="5.2">5,2 %</b></li></ul>
         <span class="legal-cite" data-i18n="econ_inflation_cite">Eurostat, communiqué du 16 octobre 2026 · septembre 2026</span>
       </div>
       <div class="econ-card">
         <h3 data-i18n="econ_unemployment_title">Taux de chômage</h3>
-        <canvas id="chartUnemployment" height="220"></canvas>
+        <ul class="econ-bars" id="chartUnemployment"><li><span class="econ-label" data-i18n="flag_fr">France</span><span class="econ-track"><span class="econ-fill" style="width:100%"></span></span><b class="econ-val" data-v="8.2">8,2 %</b></li><li><span class="econ-label" data-i18n="flag_be">Belgique</span><span class="econ-track"><span class="econ-fill" style="width:72%"></span></span><b class="econ-val" data-v="5.9">5,9 %</b></li><li><span class="econ-label" data-i18n="flag_lu">Luxembourg</span><span class="econ-track"><span class="econ-fill" style="width:89%"></span></span><b class="econ-val" data-v="7.3">7,3 %</b></li></ul>
         <span class="legal-cite" data-i18n="econ_unemployment_cite">Eurostat (une_rt_m), corrigé des variations saisonnières · août 2026</span>
       </div>
       <div class="econ-card">
         <h3 data-i18n="econ_wages_title">Hausse du salaire minimum sur un an</h3>
-        <canvas id="chartWages" height="220"></canvas>
+        <ul class="econ-bars" id="chartWages"><li><span class="econ-label" data-i18n="flag_fr">France</span><span class="econ-track"><span class="econ-fill" style="width:62%"></span></span><b class="econ-val" data-v="3.6">3,6 %</b></li><li><span class="econ-label" data-i18n="flag_be">Belgique</span><span class="econ-track"><span class="econ-fill" style="width:100%"></span></span><b class="econ-val" data-v="5.8">5,8 %</b></li><li><span class="econ-label" data-i18n="flag_lu">Luxembourg</span><span class="econ-track"><span class="econ-fill" style="width:43%"></span></span><b class="econ-val" data-v="2.5">2,5 %</b></li></ul>
         <span class="legal-cite" data-i18n="econ_wages_cite">Eurostat (earn_mw_cur) · juillet 2025 → juillet 2026</span>
       </div>
     </div>
@@ -1062,48 +1068,11 @@
     unemployment: [8.2, 5.9, 7.3],
     wages:        [3.6, 5.8, 2.5],
   };
-  var econCharts = {};
-
-  function buildBarConfig(values, labels, highlightIndex) {
-    var goldBright = '#1E4A8A';
-    var ash = '#A9B4C2';
-    var colors = labels.map(function (l, i) { return i === highlightIndex ? goldBright : ash; });
-    return {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [{ data: values, backgroundColor: colors, borderRadius: 4, maxBarThickness: 42 }],
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: {
-          y: { beginAtZero: true, ticks: { color: '#5F6773', font: { family: 'DM Sans' } }, grid: { color: 'rgba(58,66,80,0.10)' } },
-          x: { ticks: { color: '#2F3540', font: { family: 'Inter', size: 11 } }, grid: { display: false } },
-        },
-      },
-    };
-  }
-
+  // Valeurs en barres HTML (lisibles sans script, indexables).
   function renderEconCharts(locale) {
-    if (typeof Chart === 'undefined') return; // rede indisponível — a página continua a funcionar sem o gráfico
-    var dict = TRANSLATIONS[locale] || TRANSLATIONS.fr;
-    var labels = ECON_DATA.countryKeys.map(function (k) { return dict[k]; });
-    var highlightKey = ECON_DATA.localeToCountryKey[locale] || null; // aucun pays mis en avant
-    var highlightIndex = ECON_DATA.countryKeys.indexOf(highlightKey);
-    var specs = [
-      { id: 'chartInflation', values: ECON_DATA.inflation },
-      { id: 'chartUnemployment', values: ECON_DATA.unemployment },
-      { id: 'chartWages', values: ECON_DATA.wages },
-    ];
-    specs.forEach(function (spec) {
-      var canvas = document.getElementById(spec.id);
-      if (!canvas) return;
-      if (econCharts[spec.id]) econCharts[spec.id].destroy();
-      var config = buildBarConfig(spec.values, labels, highlightIndex);
-      // Country names take the text colour of the card (dark or light section).
-      config.options.scales.x.ticks.color = getComputedStyle(canvas.parentElement).color;
-      econCharts[spec.id] = new Chart(canvas.getContext('2d'), config);
+    document.querySelectorAll('.econ-val').forEach(function (el) {
+      var v = Number(el.getAttribute('data-v'));
+      el.textContent = locale === 'en' ? v.toFixed(1) + '%' : v.toFixed(1).replace('.', ',') + ' %';
     });
   }
 
