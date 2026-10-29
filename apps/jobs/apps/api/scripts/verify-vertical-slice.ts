@@ -383,6 +383,22 @@ async function main() {
     const citySitemap = await (await fetch(`${BASE}/public/sitemap-emploi.xml`)).text();
     check('(cidade) sitemap contém Lyon e as 6 grandes cidades', citySitemap.includes('/emploi/lyon-69123') && citySitemap.includes('/emploi/paris-75056'), citySitemap.slice(0, 400));
 
+    // --- Páginas de empresa (zjobs.online/entreprise/<nome>-<id>) ---
+    const coRes = await fetch(`${BASE}/public/entreprise/x-${org.id}`, { redirect: 'manual' });
+    const coLoc = coRes.headers.get('location') ?? '';
+    check('(empresa) slug errado → 301 para /entreprise/<nome>-<id>', coRes.status === 301 && coLoc.startsWith('/entreprise/') && coLoc.endsWith(org.id), { status: coRes.status, coLoc });
+    const coPage = await fetch(`${BASE}/public${coLoc}`);
+    const coHtml = await coPage.text();
+    check('(empresa) página verificada: 200, indexada, oferta e JSON-LD Organization',
+      coPage.status === 200 && coHtml.includes('content="index,follow"') && coHtml.includes(offer.title) && coHtml.includes('"@type":"Organization"') && !/undefined|NaN/.test(coHtml),
+      { status: coPage.status });
+    const coUnknown = await fetch(`${BASE}/public/entreprise/x-00000000-0000-0000-0000-000000000000`);
+    check('(empresa) desconhecida → 404 noindex', coUnknown.status === 404 && (coUnknown.headers.get('x-robots-tag') ?? '').includes('noindex'));
+    const coSitemap = await (await fetch(`${BASE}/public/sitemap-entreprises.xml`)).text();
+    check('(empresa) sitemap contém a empresa verificada', coSitemap.includes(coLoc), coSitemap.slice(0, 300));
+    const offerHtmlForLink = await (await fetch(`${BASE}/public${found?.publicPath}`)).text();
+    check('(empresa) página da oferta liga à página da empresa', offerHtmlForLink.includes(`href="${coLoc}"`));
+
     // --- Painéis: leituras de que o portal precisa depois de recarregar ---
     const myOrgs = await (await fetch(`${BASE}/me/organizations`, { headers: recruiterHeaders })).json();
     check('(painel) empresa vê as suas organizações', Array.isArray(myOrgs) && myOrgs.some((o: any) => o.id === org.id && o.role === 'owner'), myOrgs);

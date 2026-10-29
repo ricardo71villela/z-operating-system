@@ -5,3 +5,4 @@ Disallow: /api/
 Sitemap: https://zjobs.online/sitemap.xml
 Sitemap: https://zjobs.online/sitemap-offres.xml
 Sitemap: https://zjobs.online/sitemap-emploi.xml
+Sitemap: https://zjobs.online/sitemap-entreprises.xml
