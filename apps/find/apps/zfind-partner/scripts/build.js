@@ -58,6 +58,7 @@ function build() {
   const supabaseClient = readWeb('services/supabaseClient.js');
   const propertyTaxonomyService = readWeb('services/property-taxonomy.js');
   const authService = readWeb('services/auth.js');
+  const passwordResetService = readWeb('services/password-reset.js'); // « Mot de passe oublié » (shared with Admin)
   const identityService = readWeb('services/identity.js');
   const partnerDashboardService = readWeb('services/partner-dashboard.js');
   const adminService = readWeb('services/admin.js');
@@ -87,6 +88,7 @@ function build() {
     + supabaseClient + '\n'
     + propertyTaxonomyService + '\n'
     + authService + '\n'
+    + passwordResetService + '\n'
     + identityService + '\n'
     + partnerDashboardService + '\n'
     + imageOptimizeService + '\n'

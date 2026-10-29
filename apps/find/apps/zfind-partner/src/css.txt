@@ -423,3 +423,11 @@ input, select, textarea{ font-family:'DM Sans', sans-serif; }
 .team-invite-box .btn-login{ margin-top:6px; }
 @media (max-width:620px){ .pteam-list li{ flex-direction:column; align-items:flex-start; } }
 
+
+/* « Mot de passe oublié » (services/password-reset.js) */
+.pr-forgot{ margin:-6px 0 18px; font-size:0.85rem; text-align:right; }
+.pr-panel .pr-forgot{ margin:18px 0 0; text-align:left; }
+.pr-link{ color:var(--gray-500); text-decoration:underline; cursor:pointer; }
+.pr-link:hover{ color:var(--gold-dark); }
+.pr-panel .heading-sub{ margin-bottom:24px; }
+.login-error.pr-ok{ background:#EEF6F1; color:#24643F; }

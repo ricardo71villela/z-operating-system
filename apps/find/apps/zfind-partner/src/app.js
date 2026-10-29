@@ -9,6 +9,14 @@
 async function boot() {
   pteamOnBoot(); // team.js: #invitation=… (an agency colleague's invitation)
   const hash = window.location.hash || '';
+  // « Mot de passe oublié » (services/password-reset.js). A recovery link
+  // shows « Nouveau mot de passe » first; the space opens once it is saved.
+  const reset = await window.ZFindServices.passwordReset.mount({
+    card: document.querySelector('#view-login .login-form-card'),
+    classes: { field: 'field', button: 'btn-login', error: 'login-error', note: 'heading-sub', link: 'pr-link', title: 'heading' },
+    onPasswordSet: () => tryEnterDashboard()
+  });
+  if (reset) return;
   const { data: sessionData } = await window.ZFindServices.auth.getSession();
   const session = sessionData && sessionData.session;
   // The confirmation link lands with tokens (or an error) in the URL:
