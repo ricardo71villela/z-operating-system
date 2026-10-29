@@ -80,7 +80,13 @@ const EVIAN = [
   const realDb = S.db; const calls = [];
   S.db = async q => {
     calls.push(q);
-    if (q.startsWith('zfind_agency_commune_counts')) return [{ commune_code: '74119', n: 4 }, { commune_code: '74281', n: 7 }, { commune_code: '74010', n: 1 }];
+    if (q.startsWith('zfind_agency_commune_counts')) {
+      // 1 000 lignes au plus par page, comme PostgREST : 74281 n'est qu'en deuxième page.
+      const offset = Number((q.match(/offset=(\d+)/) || [])[1] || 0);
+      if (offset === 0) return [{ commune_code: '74119', n: 4 }, { commune_code: '74010', n: 1 }].concat(Array.from({ length: 998 }, (_, i) => ({ commune_code: `99${String(i).padStart(3, '0')}`, n: 0 })));
+      if (offset === 1000) return [{ commune_code: '74281', n: 7 }];
+      return [];
+    }
     if (q.startsWith('zfind_agency_directory')) { const e = new Error('db 404'); e.status = 404; throw e; }
     if (q.startsWith('zfind_agencias')) return EVIAN.map(a => ({ id: a.id, commune_code: a.commune_code, postcode: a.postcode, city: a.city, name: a.legal_name, trade_name: a.display_name, type: a.type, network: a.network, address: a.address, registry_created: a.registry_created }));
     return [];

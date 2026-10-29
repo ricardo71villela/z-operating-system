@@ -42,8 +42,14 @@ async function counts() {
   if (!S.configured(['db'])) return null;
   if (cache.counts && Date.now() - cache.countsAt < 3600e3) return cache.counts;
   try {
-    const rows = await withTimeout(S.db('zfind_agency_commune_counts?select=commune_code,n&limit=20000'), 4000);
-    cache.counts = new Map((rows || []).map(r => [r.commune_code, Number(r.n) || 0]));
+    // PostgREST renvoie au plus 1 000 lignes par requête : on pagine.
+    const all = [];
+    for (let offset = 0; offset < 20000; offset += 1000) {
+      const rows = await withTimeout(S.db(`zfind_agency_commune_counts?select=commune_code,n&order=commune_code&limit=1000&offset=${offset}`), 4000) || [];
+      all.push(...rows);
+      if (rows.length < 1000) break;
+    }
+    cache.counts = new Map(all.map(r => [r.commune_code, Number(r.n) || 0]));
     cache.countsAt = Date.now();
     return cache.counts;
   } catch (_) { return null; }
