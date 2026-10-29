@@ -23,6 +23,7 @@ const prixPages = require('../api/_lib/prix-pages.js');
 const immobilierPages = require('../api/_lib/immobilier-pages.js');
 const prixPagesBeLu = require('../api/_lib/prix-pages-be-lu.js');
 const simulatorPages = require('../src/services/simulator-landing-pages.js');
+const simulatorPagesEn = require('../src/services/simulator-landing-pages-en.js');
 const guidePages = require('./guide-pages.js');
 const lexiconPages = require('./lexicon-pages.js');
 const GUIDE_PATH = Object.freeze(Object.fromEntries(guidePages.GUIDES.map(g => [g.view, g.path])));
@@ -248,8 +249,8 @@ async function main() {
     written++;
   }
 
-  // Pages publiques des simulateurs (statiques, indexables).
-  for (const page of simulatorPages.buildSimulatorPages(baseUrl)) {
+  // Pages publiques des simulateurs (statiques, indexables), FR puis EN.
+  for (const page of simulatorPages.buildSimulatorPages(baseUrl).concat(simulatorPagesEn.buildSimulatorPagesEn(baseUrl))) {
     const outPath = path.join(DIST_SEO_DIR, `${page.path.replace(/^\//, '')}.html`);
     fs.mkdirSync(path.dirname(outPath), { recursive: true });
     fs.writeFileSync(outPath, page.html);

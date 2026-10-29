@@ -50,6 +50,18 @@ const PAGES = Object.freeze({
   rentabilite: '/fr/rentabilite-locative',
   estimation: '/fr/estimation-immobiliere'
 });
+/* Pages anglaises (simulator-landing-pages-en.js), liées par hreflang. */
+const EN_PAGES = Object.freeze({
+  hub: '/en/property-calculators',
+  notaire: '/en/french-notary-fees-calculator',
+  belgique: '/en/belgium-property-buying-costs',
+  luxembourg: '/en/luxembourg-property-buying-costs',
+  pret: '/en/france-mortgage-calculator',
+  capacite: '/en/france-borrowing-capacity-calculator',
+  rentabilite: '/en/rental-yield-calculator'
+});
+const EN_ALTERNATE = Object.freeze(Object.fromEntries(Object.keys(EN_PAGES).map(k => [PAGES[k], EN_PAGES[k]])));
+
 const SPA = Object.freeze({
   pret: '/#/fr/simulator?market=FR&mode=payment',
   capacite: '/#/fr/simulator?market=FR&mode=capacity',
@@ -106,7 +118,7 @@ function shell({ base, pathName, title, description, crumb, parent, eyebrow, h1,
 <meta name="description" content="${esc(desc)}">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="${esc(canonical)}">
-<meta property="og:type" content="website">
+${EN_ALTERNATE[pathName] ? `<link rel="alternate" hreflang="fr" href="${esc(canonical)}">\n<link rel="alternate" hreflang="en" href="${esc(base + EN_ALTERNATE[pathName])}">\n<link rel="alternate" hreflang="x-default" href="${esc(canonical)}">\n` : ''}<meta property="og:type" content="website">
 <meta property="og:site_name" content="Z Find">
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(desc)}">
@@ -537,4 +549,4 @@ function loadPriceIndex() {
   try { return JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'public', 'market-data', 'fr', 'index.json'), 'utf8')); } catch (_) { return null; }
 }
 
-module.exports = { PAGES, buildSimulatorPages, departmentsFromIndex, notaryDepartmentPath };
+module.exports = { PAGES, EN_PAGES, EN_ALTERNATE, buildSimulatorPages, departmentsFromIndex, notaryDepartmentPath, _shared: { STYLE, engineScript, table } };
