@@ -54,7 +54,7 @@ function xmlEscape(value) {
 
 function buildRobotsTxt(baseUrl) {
   const base = normalizeBaseUrl(baseUrl);
-  return ['User-agent: *', 'Allow: /', '', `Sitemap: ${base}/sitemap.xml`, `Sitemap: ${base}/${PRICE_SITEMAP}`, ''].join('\n');
+  return ['User-agent: *', 'Allow: /', '', `Sitemap: ${base}/sitemap.xml`, `Sitemap: ${base}/${PRICE_SITEMAP}`, `Sitemap: ${base}/sitemap-immobilier.xml`, ''].join('\n');
 }
 
 function buildSitemapXml(baseUrl, urls) {
