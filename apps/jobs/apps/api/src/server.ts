@@ -54,7 +54,7 @@ import { computeCandidateScore, explainCandidateScore } from '../../../packages/
 import type { MessageLocale } from '../../../packages/domain/src/i18n/messages';
 import type { JobOfferDraft } from '../../../packages/domain/src/types/jobOffer';
 import { validateScreeningQuestions, validateScreeningAnswers } from '../../../packages/domain/src/rules/screeningQuestions';
-import { offerIdFromSlug, offerPath, pageLocale, renderGonePage, renderOfferPage, renderOffersSitemap, cityPath, officialCodeFromCitySlug, renderCityPage, renderCitySitemap, TIER1_CITIES, MIN_CITY_OFFERS, companyIdFromSlug, companyPath, isVerifiedCompany, renderCompanyPage, renderCompanySitemap, type PublicCompany } from './publicPages';
+import { offerIdFromSlug, offerPath, pageLocale, renderGonePage, renderOfferPage, renderOffersSitemap, cityPath, officialCodeFromCitySlug, renderCityPage, renderCitySitemap, TIER1_CITIES, MIN_CITY_OFFERS, companyIdFromSlug, companyPath, isVerifiedCompany, isDemoCompanyName, renderCompanyPage, renderCompanySitemap, type PublicCompany } from './publicPages';
 
 // Versão atual dos Termos de Serviço / Política de Privacidade — muda
 // sempre que docs/legal/*.md tiver uma alteração material, para que
@@ -1175,7 +1175,7 @@ export function createServer() {
       }
 
       if (method === 'GET' && path === '/public/sitemap-entreprises.xml') {
-        const companies = usingPostgres ? await (store as PgStore).listPublicCompanies() : [];
+        const companies = (usingPostgres ? await (store as PgStore).listPublicCompanies() : []).filter((c) => !isDemoCompanyName(c.displayName));
         return sendText(res, 200, 'application/xml; charset=utf-8', renderCompanySitemap(companies), { 'Cache-Control': 'public, max-age=0, s-maxage=3600' });
       }
 
