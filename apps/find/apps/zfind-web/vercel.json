@@ -78,6 +78,14 @@
       "destination": "/api/annonce?sitemap=1"
     },
     {
+      "source": "/fr/agences-immobilieres/:path*",
+      "destination": "/api/agences?p=:path*"
+    },
+    {
+      "source": "/sitemap-agences.xml",
+      "destination": "/api/agences?sitemap=1"
+    },
+    {
       "source": "/fr/immobilier/:path*",
       "destination": "/api/immobilier?p=:path*"
     },
@@ -135,6 +143,10 @@
     },
     "api/annonce.js": {
       "includeFiles": "{public/market-data/fr/**,src/services/seo-page-generator.js,src/services/acquisition-costs.js,src/services/credit-rates.js,src/services/credit-simulator.js,src/services/listing-quality.js}",
+      "maxDuration": 15
+    },
+    "api/agences.js": {
+      "includeFiles": "{public/market-data/fr/**,src/services/seo-page-generator.js,src/services/acquisition-costs.js,src/services/credit-rates.js,src/services/credit-simulator.js}",
       "maxDuration": 15
     }
   },
