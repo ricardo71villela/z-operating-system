@@ -108,6 +108,7 @@ async function tryEnterDashboard() {
   document.getElementById('dash-partner-name').textContent = partnerResult.data ? partnerResult.data.name : '';
   if (window.location.hash === '#inscription') history.replaceState(null, '', window.location.pathname + window.location.search);
   renderSignupBanner();
+  if (/^#abonnement/.test(window.location.hash || '')) { showBillingView(); return; }
   loadPortfolio();
 }
 
@@ -1738,7 +1739,7 @@ async function handlePartnerSignOut() {
 
 /* ---------------- Navigation between Portfolio / Detail / Leads / Import / Feed ---------------- */
 function hideExtraPartnerViews() {
-  ['view-import', 'view-feed'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+  ['view-import', 'view-feed', 'view-billing'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
 }
 /** Shows one dashboard section (import.js, feed.js), the agency name in its header. */
 function partnerShowView(id) {

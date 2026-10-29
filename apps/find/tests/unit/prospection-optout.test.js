@@ -30,7 +30,7 @@ function req(method, { body, query, headers } = {}) {
   r.method = method;
   r.headers = Object.assign({ 'x-forwarded-for': `10.2.0.${Math.floor(Math.random() * 250)}` }, headers || {});
   r.body = body;
-  r.query = query || {};
+  r.query = Object.assign({ route: 'prospection-optout' }, query || {});
   r.url = '/api/prospection-optout';
   return r;
 }
@@ -44,7 +44,7 @@ const TOKEN = '11111111-2222-4333-8444-555555555555';
   console.log('\n=== Z FIND PROSPECTION OPT-OUT ===');
 
   delete process.env.ZFIND_SUPABASE_SERVICE_KEY;
-  const handler = require(path.join(WEB, 'api', 'prospection-optout.js'));
+  const handler = require(path.join(WEB, 'api', 'alerts.js'));
   let r = res();
   await handler(req('GET', { query: { t: TOKEN } }), r);
   check('sans clé serveur : page 503, rien n’est appelé', r.statusCode === 503 && calls.length === 0);
@@ -88,7 +88,7 @@ const TOKEN = '11111111-2222-4333-8444-555555555555';
   check('autres méthodes refusées', r.statusCode === 405);
 
   const vercel = JSON.parse(fs.readFileSync(path.join(WEB, 'vercel.json'), 'utf8'));
-  check('route déclarée dans vercel.json', vercel.rewrites.some(x => x.source === '/api/prospection-optout'));
+  check('route déclarée dans vercel.json', vercel.rewrites.some(x => x.source === '/api/prospection-optout' && x.destination === '/api/alerts?route=prospection-optout'));
 
   const migration = fs.readFileSync(path.join(ROOT, 'infrastructure', 'supabase', 'migrations', '20261024100000_zos_prospection_outreach_v1.sql'), 'utf8');
   check('la fonction n’est exécutable que par le rôle serveur',

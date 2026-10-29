@@ -1,5 +1,6 @@
 /* ============================================================
-   Z FIND — /api/prospection-optout (Vercel serverless function)
+   Z FIND — /api/prospection-optout (servi par api/alerts.js, route=prospection-optout :
+   le plan Vercel limite le nombre de fonctions)
 
    Lien « ne plus recevoir nos messages » des e-mails de prospection ZOS
    (apps/find/outreach). Chaque envoi a son jeton (zos_outreach_sends.token).
@@ -15,7 +16,7 @@
    ============================================================ */
 'use strict';
 
-const S = require('./_lib/server');
+const S = require('./server');
 
 const PAGE = {
   askTitle: 'Ne plus recevoir nos messages',

@@ -16,6 +16,7 @@
 
 const S = require('./_lib/server');
 const core = require('./_lib/alerts-core');
+const prospectionOptout = require('./_lib/prospection-optout');
 
 const PAGE = {
   fr: {
@@ -71,6 +72,8 @@ async function subscribe(req, res) {
 }
 
 async function handler(req, res) {
+  // /api/prospection-optout est réécrit ici (vercel.json) : une fonction de moins.
+  if (S.queryOf(req).route === 'prospection-optout') return prospectionOptout(req, res);
   const query = S.queryOf(req);
   const action = query.action || '';
   if (!S.configured(['db', 'mail'])) {

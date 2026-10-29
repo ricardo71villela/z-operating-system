@@ -130,6 +130,7 @@
       <a onclick="showLeadsView()">Demandes</a>
       <a onclick="showImportView()">Importer</a>
       <a onclick="showFeedView()">Flux automatique</a>
+      <a onclick="showBillingView()">Abonnement</a>
     </nav>
     <div class="who">
       <span id="dash-partner-name"></span>
@@ -171,6 +172,7 @@
       <a class="active" onclick="showLeadsView()">Demandes</a>
       <a onclick="showImportView()">Importer</a>
       <a onclick="showFeedView()">Flux automatique</a>
+      <a onclick="showBillingView()">Abonnement</a>
     </nav>
     <div class="who">
       <span id="dash-partner-name-3"></span>
@@ -195,6 +197,7 @@
       <a onclick="showLeadsView()">Demandes</a>
       <a onclick="showImportView()">Importer</a>
       <a onclick="showFeedView()">Flux automatique</a>
+      <a onclick="showBillingView()">Abonnement</a>
     </nav>
     <div class="who">
       <span id="dash-partner-name-2"></span>
@@ -230,6 +233,7 @@
       <a onclick="showLeadsView()">Demandes</a>
       <a class="active" onclick="showImportView()">Importer</a>
       <a onclick="showFeedView()">Flux automatique</a>
+      <a onclick="showBillingView()">Abonnement</a>
     </nav>
     <div class="who">
       <span id="dash-partner-name-4" class="partner-name-copy"></span>
@@ -252,6 +256,7 @@
       <a onclick="showLeadsView()">Demandes</a>
       <a onclick="showImportView()">Importer</a>
       <a class="active" onclick="showFeedView()">Flux automatique</a>
+      <a onclick="showBillingView()">Abonnement</a>
     </nav>
     <div class="who">
       <span id="dash-partner-name-5" class="partner-name-copy"></span>
@@ -263,6 +268,29 @@
     <h2 style="margin-bottom:8px;">Vos annonces à jour, <em>chaque nuit.</em></h2>
     <p class="sub" style="margin:0 0 24px; max-width:none;">Z Find lit chaque nuit l’export de votre logiciel et met vos annonces à jour comme un import : mêmes règles, même aperçu, aucune publication automatique.</p>
     <div id="pfeed-root"></div>
+  </div>
+</section>
+
+<section id="view-billing" class="dash-shell" style="display:none;">
+  <div class="dash-header">
+    <div class="logo">Z <em>Find</em> Partenaires</div>
+    <nav class="dash-nav">
+      <a onclick="showPortfolioView()">Portefeuille</a>
+      <a onclick="showLeadsView()">Demandes</a>
+      <a onclick="showImportView()">Importer</a>
+      <a onclick="showFeedView()">Flux automatique</a>
+      <a class="active" onclick="showBillingView()">Abonnement</a>
+    </nav>
+    <div class="who">
+      <span id="dash-partner-name-6" class="partner-name-copy"></span>
+      <a class="signout" onclick="handlePartnerSignOut()">Déconnexion</a>
+    </div>
+  </div>
+  <div class="dash-body wide">
+    <div class="eyebrow">Abonnement</div>
+    <h2 style="margin-bottom:8px;">Votre abonnement, <em>sans surprise.</em></h2>
+    <p class="sub" style="margin:0 0 24px; max-width:none;">Un prix public selon vos annonces publiées, sans engagement de durée. Carte bancaire ou prélèvement SEPA, factures téléchargeables.</p>
+    <div id="pbill-root"></div>
   </div>
 </section>
 
