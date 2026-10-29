@@ -97,6 +97,7 @@ function render() {
     inscricoes: renderSignupsList,
     importar: renderImport,
     flux: renderFeeds, // feeds.js
+    facturation: renderBilling, // billing.js
     estimacoes: renderEstimationsList,
     avaliacoes: renderReviewsList,
     conformite: adminState.id ? renderComplianceDetail : renderComplianceQueue, // compliance.js
