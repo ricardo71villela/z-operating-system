@@ -710,6 +710,10 @@ export function companyIdFromSlug(slug: string): string | null {
   const m = String(slug ?? '').toLowerCase().match(/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/);
   return m ? m[1] : null;
 }
+/** Comptes de démonstration et de test : jamais indexés (nom « démo », « test », « [QA »). */
+export function isDemoCompanyName(name: string | null | undefined): boolean {
+  return /\b(d[ée]mo|test|qa)\b|\[\s*(test|qa)/i.test(String(name ?? ''));
+}
 export function isVerifiedCompany(status: string | null | undefined): boolean {
   return status === 'verified' || status === 'enhanced_verified';
 }
@@ -723,7 +727,7 @@ export function renderCompanyPage(c: PublicCompany, locale: PageLocale): { index
   const p = c.profile;
   const n = c.offersTotal;
   const description = String(p.description ?? '').trim();
-  const indexable = isVerifiedCompany(c.verificationStatus) && (n > 0 || description.length >= 80);
+  const indexable = isVerifiedCompany(c.verificationStatus) && !isDemoCompanyName(c.displayName) && (n > 0 || description.length >= 80);
   const hq = p.headquarters ? [p.headquarters.city, p.headquarters.postalCode].filter(Boolean).join(' ') : null;
   const size = p.employeeCount ? (en ? `${p.employeeCount} employees` : `${p.employeeCount} salariés`) : null;
   const t = en

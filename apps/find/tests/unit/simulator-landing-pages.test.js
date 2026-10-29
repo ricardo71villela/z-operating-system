@@ -17,7 +17,7 @@ const stale = S.buildSimulatorPages(BASE, new Date('2027-06-01'));
 const byPath = Object.fromEntries(fresh.map(p => [p.path, p.html]));
 
 console.log('\n=== 1. inventaire ===');
-check('8 pages + 101 départements, toutes sous /fr/', fresh.length === 8 + 101 && fresh.every(p => /^\/fr\/[a-z0-9-]+(\/[a-z0-9-]+)?$/.test(p.path)));
+check('13 pages + 101 départements, toutes sous /fr/', fresh.length === 13 + 101 && fresh.every(p => /^\/fr\/[a-z0-9-]+(\/[a-z0-9-]+)?$/.test(p.path)));
 for (const p of fresh) {
   const title = (p.html.match(/<title>(.*?)<\/title>/) || [])[1] || '';
   const desc = (p.html.match(/<meta name="description" content="(.*?)">/) || [])[1] || '';
