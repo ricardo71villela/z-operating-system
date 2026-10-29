@@ -104,6 +104,7 @@ function build() {
     + readWeb('services/listing-submission.js') + '\n' // statuses, bulk plans / runner / summary (shared with Partner)
     + readAdmin('bulk.js') + '\n' // actions groupées: approuver, publier, renvoyer en brouillon, valider
     + readAdmin('feeds.js') + '\n' // « Flux automatiques des agences »: nightly feeds, run now, disable
+    + readAdmin('billing.js') + '\n' // « Facturation »: abonnements, commandes (Stripe)
     + appJs
     + '\n</script>\n</body>\n</html>\n';
 

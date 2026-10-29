@@ -240,9 +240,17 @@ async function syncSubscription(stripe, subscriptionId) {
     trial_end: unix(sub.trial_end), current_period_end: unix((item && item.current_period_end) || sub.current_period_end),
     cancel_at_period_end: !!sub.cancel_at_period_end,
     payment_method_type: pm && typeof pm === 'object' ? pm.type : null,
+    livemode: typeof sub.livemode === 'boolean' ? sub.livemode : null,
     updated_at: new Date().toISOString()
   };
-  await S.db('zfind_billing_subscriptions?on_conflict=partner_id', { method: 'POST', body: row, prefer: 'resolution=merge-duplicates,return=minimal' });
+  try {
+    await S.db('zfind_billing_subscriptions?on_conflict=partner_id', { method: 'POST', body: row, prefer: 'resolution=merge-duplicates,return=minimal' });
+  } catch (e) {
+    // livemode arrive avec la migration 20261029200000 : sans elle, enregistrer le reste.
+    if (!/livemode/.test(String(e.message))) throw e;
+    const { livemode, ...rest } = row;
+    await S.db('zfind_billing_subscriptions?on_conflict=partner_id', { method: 'POST', body: rest, prefer: 'resolution=merge-duplicates,return=minimal' });
+  }
   return { sub, row, item };
 }
 
