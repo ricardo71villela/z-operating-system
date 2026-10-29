@@ -48,8 +48,17 @@ const SELECT = 'id,subtype,typology,area_sqm,plot_area_sqm,floor,bedrooms,bathro
   + 'representations(target_type,status,partners(name,status),'
   + 'listings(id,transaction_type,rental_period,price_current,currency_iso,price_is_from,status,created_at,listing_content(locale,title,description),listing_media(position,is_cover,media_assets(original_storage_path))))';
 
+const SELECT_NO_MEDIA = SELECT.replace(',listing_media(position,is_cover,media_assets(original_storage_path))', '');
+
+/* Un refus de PostgREST (4xx : droit manquant, colonne renommée) ne doit
+   jamais rendre la page indisponible : on relit l'annonce sans les photos. */
 async function fetchProperty(id) {
-  const rows = await withTimeout(S.db(`properties?id=eq.${id}&select=${encodeURIComponent(SELECT)}&limit=1`), 3000);
+  const get = sel => withTimeout(S.db(`properties?id=eq.${id}&select=${encodeURIComponent(sel)}&limit=1`), 3000);
+  let rows;
+  try { rows = await get(SELECT); } catch (e) {
+    if (!(e && e.status >= 400 && e.status < 500)) throw e;
+    rows = await get(SELECT_NO_MEDIA);
+  }
   return Array.isArray(rows) && rows[0] ? rows[0] : null;
 }
 

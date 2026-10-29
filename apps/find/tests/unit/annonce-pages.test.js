@@ -92,6 +92,17 @@ function row(overrides) {
   const sm = await run({ sitemap: '1' });
   check('sitemap valide même vide', sm.status === 200 && sm.body.includes('<urlset'));
 
+  const S = require(path.join(WEB, 'api', '_lib', 'server.js'));
+  const realDb = S.db; const calls = [];
+  process.env.ZFIND_SUPABASE_SERVICE_KEY = 'test-key';
+  S.db = async q => { calls.push(q); if (/listing_media/.test(decodeURIComponent(q))) { const e = new Error('db 403'); e.status = 403; throw e; } return [Object.assign(row(), { representations: [Object.assign({}, row().representations[0], { listings: [Object.assign({}, row().representations[0].listings[0], { listing_media: undefined })] })] })]; };
+  const noMedia = await run({ p: `appartement-t3-foch-${ID}` });
+  check('droit refusé sur les photos (403) : page servie sans photos, jamais 503', noMedia.status === 200 && calls.length >= 2 && noMedia.body.includes('<h1>Appartement T3 Foch</h1>'), { status: noMedia.status, calls: calls.length });
+  S.db = async () => { const e = new Error('db 500'); e.status = 500; throw e; };
+  const down = await run({ p: `appartement-t3-foch-${ID}` });
+  check('base en panne (500) : 503 avec Retry-After', down.status === 503 && down.headers['Retry-After'] === '120');
+  S.db = realDb; delete process.env.ZFIND_SUPABASE_SERVICE_KEY;
+
   console.log('\n=== 5. intégration ===');
   const rw = vercel.rewrites;
   check('vercel.json : /fr/annonce, /fr/property et sitemap-annonces réécrits vers la fonction', rw.some(r => r.source === '/fr/annonce/:path*' && r.destination === '/api/annonce?p=:path*') && rw.some(r => r.source === '/fr/property/:id' && r.destination === '/api/annonce?p=:id') && rw.some(r => r.source === '/sitemap-annonces.xml' && r.destination === '/api/annonce?sitemap=1'));
