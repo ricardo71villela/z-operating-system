@@ -26,7 +26,14 @@
      and applies only once the law is voted — not used here). Never for a
      rental investment. Notary fees are not included (shown as such).
 
-   Sources: notaires / service-public (France, 2025 DMTO reform),
+     By department (input.department): the departmental share is 5 % in
+     89 departments; 4.50 % in Hautes-Alpes, Alpes-Maritimes, Ardèche,
+     Charente, Drôme, Lozère, Oise, Hautes-Pyrénées, Saône-et-Loire and
+     Guadeloupe, 3.80 % in Indre and Mayotte (DGFiP table of the rates
+     applicable from 1 May 2026). Total = share × 1.0237 (assessment fee)
+     + 1.20 % (communal share). Without a department, the 5 % share applies.
+   Sources: DGFiP « Taux des droits d'enregistrement » (impots.gouv.fr,
+   dmto_2026-05), notaires / service-public (France, 2025 DMTO reform),
    housing-service.be (June 2026, regional duties and notary scale),
    guichet.public.lu and chd.lu (Bëllegen Akt, checked October 2026). Every result says it is an estimate.
    ============================================================ */
@@ -40,6 +47,26 @@
   }
 })(typeof window !== 'undefined' ? window : this, function () {
   'use strict';
+
+  /* Departmental share of the transfer duties when it is not 5 % (DGFiP,
+     rates applicable from 1 May 2026). */
+  const FR_DEPARTMENT_SHARE = Object.freeze({
+    '05': 0.045, '06': 0.045, '07': 0.045, '16': 0.045, '26': 0.045, '48': 0.045,
+    '60': 0.045, '65': 0.045, '71': 0.045, '971': 0.045, '36': 0.038, '976': 0.038
+  });
+  const FR_ASSESSMENT = 1.0237;
+  const FR_COMMUNAL = 0.012;
+  const round6 = v => Math.round(v * 1e7) / 1e7;
+
+  /* { share, standard, firstBuyer } for a department code ('69', '2A', '971'). */
+  function frTransferRates(department) {
+    const code = String(department || '').toUpperCase();
+    const share = Object.prototype.hasOwnProperty.call(FR_DEPARTMENT_SHARE, code) ? FR_DEPARTMENT_SHARE[code] : 0.05;
+    const standard = round6(share * FR_ASSESSMENT + FR_COMMUNAL);
+    // The 2025 raise does not apply to a first-time buyer's main home: 4.50 % at most.
+    const firstBuyer = round6(Math.min(share, 0.045) * FR_ASSESSMENT + FR_COMMUNAL);
+    return { share, standard, firstBuyer };
+  }
 
   const FR = Object.freeze({
     DMTO_STANDARD: 0.063185,
@@ -93,7 +120,8 @@
     const country = input.country;
     const lines = [];
     if (country === 'FR') {
-      const duties = input.newBuild ? price * FR.NEW_BUILD_TAX : price * (input.firstBuyer ? FR.DMTO_FIRST_BUYER : FR.DMTO_STANDARD);
+      const dmto = input.department ? frTransferRates(input.department) : { standard: FR.DMTO_STANDARD, firstBuyer: FR.DMTO_FIRST_BUYER };
+      const duties = input.newBuild ? price * FR.NEW_BUILD_TAX : price * (input.firstBuyer ? dmto.firstBuyer : dmto.standard);
       const emoluments = scale(price, FR.EMOLUMENT_SCALE) * (1 + FR.VAT);
       lines.push({ key: input.newBuild ? 'publicityTax' : 'transferDuties', amount: round(duties) });
       lines.push({ key: 'notaryFees', amount: round(emoluments) });
@@ -188,5 +216,5 @@
     })
   });
 
-  return Object.freeze({ estimate, financing, monthlyPayment, belgianRegionFromRefnis, COPY, _internals: Object.freeze({ scale, FR, BE, LU }) });
+  return Object.freeze({ estimate, financing, monthlyPayment, belgianRegionFromRefnis, frTransferRates, FR_DEPARTMENT_SHARE, COPY, _internals: Object.freeze({ scale, FR, BE, LU }) });
 });

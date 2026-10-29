@@ -84,6 +84,8 @@ const ROOT_PATH = '/fr/prix-immobilier/france';
 function depPath(code, name) { return `${ROOT_PATH}/${slugify(name)}-${code.toLowerCase()}`; }
 function communePath(c) { return `${ROOT_PATH}/${slugify(c.n)}-${c.c.toLowerCase()}`; }
 function regionPath(name) { return `${ROOT_PATH}/region-${slugify(name)}`; }
+/* Simulateur de frais de notaire du département (simulator-landing-pages.js). */
+function notaryPath(d) { return `/fr/frais-de-notaire/${slugify(d.name)}-${String(d.code).toLowerCase()}`; }
 
 /* « en Bretagne », « dans les Hauts-de-France », « dans le Grand Est ». */
 const REGION_IN = Object.freeze({ 'Hauts-de-France': 'dans les Hauts-de-France', 'Grand Est': 'dans le Grand Est', 'Pays de la Loire': 'dans les Pays de la Loire' });
@@ -222,10 +224,10 @@ function trend(block) {
 const TYPICAL = Object.freeze({ A: { m2: 60, label: 'Appartement de 60 m²' }, M: { m2: 100, label: 'Maison de 100 m²' } });
 const LOAN_YEARS = 20;
 const DEPOSIT_SHARE = 0.1;
-function budget(kind, s, today) {
+function budget(kind, s, today, depCode) {
   if (!s) return null;
   const price = Math.round((s.med * TYPICAL[kind].m2) / 1000) * 1000;
-  const c = costs.estimate({ country: 'FR', price });
+  const c = costs.estimate({ country: 'FR', price, department: depCode || null });
   if (!c || c.error) return null;
   const ref = rates.reference('FR', LOAN_YEARS, today || new Date());
   const deposit = Math.round(price * DEPOSIT_SHARE / 1000) * 1000;
@@ -234,8 +236,9 @@ function budget(kind, s, today) {
   return { kind, label: TYPICAL[kind].label, price, costs: c.costs, total: c.total, deposit, loan, ref, monthly: pay && !pay.error ? pay.monthly : null };
 }
 
-function budgetSection(base, name, a, m, today) {
-  const rows = [budget('A', a, today), budget('M', m, today)].filter(Boolean);
+function budgetSection(base, name, a, m, today, department) {
+  const depCode = department && department.code;
+  const rows = [budget('A', a, today, depCode), budget('M', m, today, depCode)].filter(Boolean);
   if (!rows.length) return '';
   const ref = rows[0].ref;
   return `<section class="zp-section">
@@ -244,7 +247,7 @@ function budgetSection(base, name, a, m, today) {
       <div class="zp-table-wrap"><table class="zp-table"><thead><tr><th>Bien type</th><th>Prix</th><th>Frais d’achat (notaire)</th><th>Emprunt</th><th>Mensualité</th></tr></thead><tbody>${rows.map(r =>
         `<tr><td>${esc(r.label)}</td><td>${eur(r.price)}</td><td>${eur(r.costs)}</td><td>${eur(r.loan)}</td><td>${r.monthly != null ? `${eur(r.monthly)} / mois` : '—'}</td></tr>`).join('')}</tbody></table></div>
       <div class="zp-ctas">${rows.map(r => `<a class="zp-secondary" href="${base}/#/fr/simulator?market=FR&amp;mode=payment&amp;price=${r.price}">Simuler le crédit — ${esc(r.label.toLowerCase())}</a>`).join('')}<a class="zp-secondary" href="${base}/#/fr/simulator?market=FR&amp;mode=capacity">Calculer ma capacité d’emprunt</a><a class="zp-secondary" href="${base}/#/fr/yield?market=FR&amp;mode=long&amp;price=${rows[0].price}">Calculer la rentabilité locative</a></div>
-      <p class="zp-small">Simulation indicative : ni offre de prêt ni conseil. Frais d’achat calculés pour un logement ancien (droits de mutation, émoluments du notaire, débours) — <a href="${base}/fr/frais-de-notaire">détail des frais de notaire</a>, <a href="${base}/fr/capacite-emprunt">capacité d’emprunt</a>.</p>
+      <p class="zp-small">Simulation indicative : ni offre de prêt ni conseil. Frais d’achat calculés pour un logement ancien (droits de mutation${department ? ` au taux ${department.code === '75' ? 'de Paris' : `du département ${esc(department.name)}`}` : ''}, émoluments du notaire, débours) — <a href="${base}${department ? notaryPath(department) : '/fr/frais-de-notaire'}">frais de notaire ${department ? (department.code === '75' ? 'à Paris' : `— ${esc(department.name)} (${esc(department.code)})`) : 'en détail'}</a>, <a href="${base}/fr/capacite-emprunt">capacité d’emprunt</a>.</p>
     </section>`;
 }
 
@@ -339,7 +342,7 @@ ${comparisonTable(base, `Prix ${aCommune(name)} comparés ${joinFr([city ? `à $
       { label: 'France', href: ROOT_PATH, A: combined(national, 'A'), M: combined(national, 'M') }
     ].filter(Boolean), COMPARE_NOTE)}
 ${communes ? arrondissementsSection(base, commune, communes) : ''}
-    ${budgetSection(base, name, a, m, today)}
+    ${budgetSection(base, name, a, m, today, department)}
     <section class="zp-section">
       <h2>Vendre ou acheter ${esc(aCommune(name))}</h2>
       <p>Une médiane décrit le marché, pas votre bien : l’étage, l’état, la vue ou le terrain font varier le prix. L’<a href="${base}/fr/estimation-immobiliere">estimation Z Find</a> tient compte de ces critères et vous donne une fourchette immédiatement, puis un rapport détaillé par e-mail.</p>
@@ -367,7 +370,7 @@ function renderDepartment({ base, department, communes, national, region }) {
       <p class="zf-seo-eyebrow">Prix de l’immobilier · ${region ? `<a href="${base}${regionPath(region.name)}">${esc(region.name)}</a>` : esc(department.regionName || 'France')}</p>
       <h1>Prix de l’immobilier : ${esc(department.name)} (${esc(department.code)})</h1>
       <p class="zf-seo-lead">${a ? `Prix médian d’un appartement : ${eurM2(a.med)} ${periodLabel(a.period)}${nationalA ? ` (France : ${eurM2(nationalA.med)})` : ''}. ` : ''}${m ? `Maison : ${eurM2(m.med)}${nationalM ? ` (France : ${eurM2(nationalM.med)})` : ''}.` : ''} Retrouvez ci-dessous le prix au m² de chaque commune.</p>
-      <div class="zp-ctas"><a class="zf-seo-primary" href="${base}/#/fr/estimation?market=FR&amp;mode=owner">Estimer mon bien →</a></div>
+      <div class="zp-ctas"><a class="zf-seo-primary" href="${base}/#/fr/estimation?market=FR&amp;mode=owner">Estimer mon bien →</a><a class="zp-secondary" href="${base}${notaryPath(department)}">Frais de notaire — ${esc(department.name)}</a></div>
     </header>
     <div class="zp-stats">${statCard('Appartements', a)}${statCard('Maisons', m)}</div>
 ${comparisonTable(base, `Prix dans le département comparés ${joinFr([region ? `à la région ${region.name}` : null, 'à la France'])}`, [
@@ -500,7 +503,7 @@ function sitemapPaths(index, depFiles) {
 }
 
 module.exports = {
-  page, esc, eur, eurM2, pct, signed, aCommune, deCommune, MIN_SALES, ROOT_PATH, BIG_CITY_PREFIX, slugify, parsePath, depOfCommune, depPath, communePath, latest, isIndexable,
+  notaryPath, page, esc, eur, eurM2, pct, signed, aCommune, deCommune, MIN_SALES, ROOT_PATH, BIG_CITY_PREFIX, slugify, parsePath, depOfCommune, depPath, communePath, latest, isIndexable,
   salesCount, neighboursOf, renderCommune, renderDepartment, renderCountry, renderRegion, sitemapPaths,
   regionsOf, regionOfDepartment, regionPath, regionLatest, cityOfArrondissement, enRegion
 };

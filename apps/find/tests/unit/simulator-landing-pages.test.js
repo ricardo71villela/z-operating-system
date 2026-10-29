@@ -17,7 +17,7 @@ const stale = S.buildSimulatorPages(BASE, new Date('2027-06-01'));
 const byPath = Object.fromEntries(fresh.map(p => [p.path, p.html]));
 
 console.log('\n=== 1. inventaire ===');
-check('8 pages, toutes sous /fr/', fresh.length === 8 && fresh.every(p => /^\/fr\/[a-z-]+$/.test(p.path)));
+check('8 pages + 101 départements, toutes sous /fr/', fresh.length === 8 + 101 && fresh.every(p => /^\/fr\/[a-z0-9-]+(\/[a-z0-9-]+)?$/.test(p.path)));
 for (const p of fresh) {
   const title = (p.html.match(/<title>(.*?)<\/title>/) || [])[1] || '';
   const desc = (p.html.match(/<meta name="description" content="(.*?)">/) || [])[1] || '';
@@ -70,5 +70,19 @@ check('les pages sont écrites au build et ajoutées au sitemap', gen.includes('
 const body = fs.readFileSync(path.join(WEB, 'src', 'body.html'), 'utf8');
 check('pied de page : liens explorables vers les simulateurs', body.includes('<a href="/fr/simulateurs-immobiliers"') && body.includes('<a href="/fr/frais-de-notaire"'));
 
+
+console.log('\n=== frais de notaire par département ===');
+const C = require(path.join(__dirname, '..', '..', 'apps', 'zfind-web', 'src', 'services', 'acquisition-costs.js'));
+check('taux DGFiP 1er mai 2026 : Rhône 6,3185 %, Alpes-Maritimes 5,80665 %, Indre 5,09006 %',
+  C.frTransferRates('69').standard === 0.063185 && C.frTransferRates('06').standard === 0.0580665 && C.frTransferRates('36').standard === 0.0509006);
+check('primo-accédant : 5,80665 % dans un département à 5 %, inchangé ailleurs', C.frTransferRates('75').firstBuyer === 0.0580665 && C.frTransferRates('36').firstBuyer === 0.0509006);
+check('sans département : taux à 5 % (comportement inchangé)', C.estimate({ country: 'FR', price: 300000 }).costs === C.estimate({ country: 'FR', price: 300000, department: '69' }).costs);
+check('Nice (06) paie moins que Lyon (69) pour 300 000 €', C.estimate({ country: 'FR', price: 300000, department: '06' }).costs < C.estimate({ country: 'FR', price: 300000, department: '69' }).costs);
+const rh = byPath['/fr/frais-de-notaire/rhone-69'];
+check('page Rhône : titre, H1, exemple au prix médian DVF, lien prix du département', !!rh && rh.includes('<title>Frais de notaire Rhône (69) 2026') && rh.includes('Frais de notaire — Rhône (69) en 2026') && /prix médian du département \(\d/.test(rh) && rh.includes('/fr/prix-immobilier/france/rhone-69'));
+check('page Paris : « à Paris »', !!byPath['/fr/frais-de-notaire/paris-75'] && byPath['/fr/frais-de-notaire/paris-75'].includes('Frais de notaire à Paris en 2026'));
+check('Alpes-Maritimes : taux réduit expliqué', byPath['/fr/frais-de-notaire/alpes-maritimes-06'].includes('n’a pas relevé sa part'));
+check('page nationale : liste des 101 départements et sélecteur', (byPath['/fr/frais-de-notaire'].match(/\/fr\/frais-de-notaire\/[a-z0-9-]+"/g) || []).length >= 101 && byPath['/fr/frais-de-notaire'].includes('name="dep"'));
+check('fil d’Ariane département : Simulateurs › Frais de notaire › Rhône', /"position":3,"name":"Frais de notaire"/.test(rh) && /"position":4,"name":"Rhône \(69\)"/.test(rh));
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
