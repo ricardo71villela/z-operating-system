@@ -197,7 +197,16 @@ async function handler(req, res) {
   const pool = (file.communes || []).filter(c => !(P.BIG_CITY_PREFIX[c.c]) && !(cityCode && c.c.startsWith(P.BIG_CITY_PREFIX[cityCode])));
   let neighbours = P.neighboursOf(commune, pool, 40);
   if (n) neighbours = neighbours.filter(c => (n.get(c.c) || 0) >= AG.MIN_AGENCIES);
-  const out = AG.render({ base, commune, department, region: P.regionOfDepartment(idx, depCode), city, agencies, total, arrondissements, neighbours: neighbours.slice(0, 12), today: new Date() });
+  // « Agence à la une » du mois (zone au niveau de la ville pour un arrondissement).
+  let featuredAgency = null;
+  if (S.configured(['db'])) {
+    const rows = await Promise.race([
+      S.db('rpc/zfind_public_agency_feature', { method: 'POST', body: { p_commune: cityCode || commune.c } }),
+      new Promise(resolve => setTimeout(() => resolve([]), 2000))
+    ]).catch(() => []);
+    featuredAgency = Array.isArray(rows) && rows[0] ? rows[0] : null;
+  }
+  const out = AG.render({ base, commune, department, region: P.regionOfDepartment(idx, depCode), city, agencies, total, arrondissements, neighbours: neighbours.slice(0, 12), today: new Date(), featuredAgency });
   if (!out.indexable) res.setHeader('X-Robots-Tag', 'noindex');
   return send(res, 200, out.html, null, true);
 }

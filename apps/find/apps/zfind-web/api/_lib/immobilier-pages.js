@@ -129,14 +129,29 @@ function rentControlSection(base, code) {
 /* Même adresse que _lib/agences-pages.js (pas de require : dépendance circulaire). */
 function agencesPath(c) { return `/fr/agences-immobilieres/${P.slugify(displayName(c.n))}-${c.c.toLowerCase()}`; }
 
-const STYLE = `<style id="zfind-hub-styles">.zh-list{list-style:none;padding:0;margin:18px 0 0;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}.zh-card a{display:block;height:100%;padding:20px;border:1px solid var(--zf-200);background:#fff;color:inherit}.zh-card a:hover{border-color:var(--zf-gold)}.zh-card strong{display:block;font-family:'Cormorant Garamond',Georgia,serif;font-size:1.3rem;font-weight:500;line-height:1.25}.zh-card span{display:block;margin-top:6px;color:var(--zf-500);font-size:.86rem}.zh-card em{display:block;margin-top:10px;font-style:normal;color:var(--zf-gold-dark);font-weight:600}.zh-empty{padding:24px;border:1px dashed var(--zf-200);background:var(--zf-50);color:var(--zf-700);line-height:1.7}.zh-sims{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-top:12px}.zh-sim{display:block;padding:18px;border:1px solid var(--zf-200);background:#fff;color:inherit}.zh-sim:hover{border-color:var(--zf-gold)}.zh-sim span{display:block;color:var(--zf-500);font-size:.8rem;letter-spacing:.08em;text-transform:uppercase}.zh-sim strong{display:block;margin:6px 0 4px;color:var(--zf-gold-dark);font-family:'Cormorant Garamond',Georgia,serif;font-size:1.7rem;font-weight:400}.zh-sim small{color:var(--zf-500);font-size:.8rem}.zh-types{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}.zs-faq details{padding:14px 0;border-bottom:1px solid var(--zf-200)}.zs-faq summary{cursor:pointer;font-weight:500}.zs-faq p{margin:10px 0 0}</style>`;
+const STYLE = `<style id="zfind-hub-styles">.zh-list{list-style:none;padding:0;margin:18px 0 0;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}.zh-card a{display:block;height:100%;padding:20px;border:1px solid var(--zf-200);background:#fff;color:inherit}.zh-card a:hover{border-color:var(--zf-gold)}.zh-card strong{display:block;font-family:'Cormorant Garamond',Georgia,serif;font-size:1.3rem;font-weight:500;line-height:1.25}.zh-card span{display:block;margin-top:6px;color:var(--zf-500);font-size:.86rem}.zh-card em{display:block;margin-top:10px;font-style:normal;color:var(--zf-gold-dark);font-weight:600}.zh-empty{padding:24px;border:1px dashed var(--zf-200);background:var(--zf-50);color:var(--zf-700);line-height:1.7}.zh-sims{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-top:12px}.zh-sim{display:block;padding:18px;border:1px solid var(--zf-200);background:#fff;color:inherit}.zh-sim:hover{border-color:var(--zf-gold)}.zh-sim span{display:block;color:var(--zf-500);font-size:.8rem;letter-spacing:.08em;text-transform:uppercase}.zh-sim strong{display:block;margin:6px 0 4px;color:var(--zf-gold-dark);font-family:'Cormorant Garamond',Georgia,serif;font-size:1.7rem;font-weight:400}.zh-sim small{color:var(--zf-500);font-size:.8rem}.zh-types{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}.zs-faq details{padding:14px 0;border-bottom:1px solid var(--zf-200)}.zs-faq summary{cursor:pointer;font-weight:500}.zs-faq p{margin:10px 0 0}.zh-featured{margin-top:28px;padding:22px;border:1px solid var(--zf-200);border-top:3px solid var(--zf-gold);background:var(--zf-50)}.zh-featured h2{margin-top:0}.zh-badge{display:inline-block;margin-bottom:8px;padding:3px 9px;border-radius:2px;background:var(--zf-gold-dark);color:#fff;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase}.zh-featured .zh-list{margin-top:12px}.zh-agency{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}.zh-agency strong{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.5rem;font-weight:500}.zh-note{margin:12px 0 0;color:var(--zf-500);font-size:.8rem}</style>`;
 
 const SOURCE = 'Annonces publiées sur Z Find par des agences et promoteurs professionnels. Prix médians au m² : DVF — Demandes de valeurs foncières (DGFiP), ventes de logements anciens 2024-2025, sous licence ouverte. Frais de notaire au taux DGFiP du département (1er mai 2026). Ces chiffres ne remplacent pas une estimation de votre bien.';
 
+/* « À la une » (mises en avant payées, migration 20261029220000) : un bloc
+   séparé, signalé, jamais mêlé à la liste des annonces dont l'ordre reste
+   neutre. featured : annonces de la page mises en avant ; agency :
+   l'agence à la une de la commune ce mois-ci. */
+function featuredBlock(base, name, featured) {
+  if (!featured || !featured.length) return '';
+  return `<section class="zh-featured" aria-label="Annonces à la une"><span class="zh-badge">À la une</span><h2>Annonces à la une ${P.esc(P.aCommune(name))}</h2><ul class="zh-list">${featured.slice(0, 6).map(l => listingCard(base, l)).join('')}</ul><p class="zh-note">Emplacements payés par les agences, distincts de la liste des annonces ci-dessous dont l’ordre n’est jamais modifié.</p></section>`;
+}
+function featuredAgencyBlock(base, name, agency) {
+  if (!agency || !agency.name) return '';
+  const link = agency.slug ? `<a class="zp-secondary" href="${base}/fr/agence/${P.esc(agency.slug)}">Voir l’agence →</a>` : '';
+  return `<section class="zh-featured" aria-label="Agence à la une"><span class="zh-badge">Agence à la une</span><div class="zh-agency"><div><strong>${P.esc(agency.name)}</strong><p style="margin:6px 0 0">Agence partenaire de Z Find ${P.esc(P.aCommune(name))}${agency.city && agency.city !== name ? ` (${P.esc(agency.city)})` : ''}.</p></div>${link}</div><p class="zh-note">Emplacement payé par l’agence pour ce mois.</p></section>`;
+}
+
 /* La page d'une commune, ou d'un type d'annonces de la commune.
-   ctx: { base, commune, department, region, city, arrondissements, neighbours, listings, agencies, type, today } */
+   ctx: { base, commune, department, region, city, arrondissements, neighbours, listings, agencies, type, today,
+          featuredIds (ids des biens à la une), featuredAgency } */
 function render(ctx) {
-  const { base, commune, department, region, city, arrondissements, neighbours, agencies, type, today } = ctx;
+  const { base, commune, department, region, city, arrondissements, neighbours, agencies, type, today, featuredIds, featuredAgency } = ctx;
   const all = ctx.listings || [];
   const t = type ? TYPES[type] : null;
   const listings = t ? all.filter(t.test) : all;
@@ -191,6 +206,8 @@ function render(ctx) {
       <div class="zp-ctas"><a class="zf-seo-primary" href="${searchHref}">${listings.length ? 'Voir les annonces et filtrer' : 'Créer une alerte'} →</a><a class="zp-secondary" href="${base}${P.communePath(commune)}">Prix au m² ${P.esc(P.deCommune(name))}</a><a class="zp-secondary" href="${base}/#/fr/estimation?market=FR&amp;mode=owner">Estimer mon bien</a></div>
       ${typeLinks}
     </header>
+    ${t ? '' : featuredAgencyBlock(base, name, featuredAgency)}
+    ${featuredBlock(base, name, (featuredIds || []).map(id => listings.find(l => l.id === id)).filter(Boolean))}
     <section class="zp-section"><h2>${P.esc(t ? `${t.label} ${P.aCommune(name)}` : `Annonces ${P.aCommune(name)}`)}</h2>${listingsBlock}</section>
     ${t && t.kind === null ? rentControlSection(base, commune.c) : ''}
     ${a || m ? `<div class="zp-stats">${a ? `<section class="zp-stat"><h2>Appartements</h2><p class="zp-big">${P.eurM2(a.med)}</p><p class="zp-small">Prix médian DVF · <a href="${base}${P.communePath(commune)}">évolution et détail</a></p></section>` : ''}${m ? `<section class="zp-stat"><h2>Maisons</h2><p class="zp-big">${P.eurM2(m.med)}</p><p class="zp-small">Prix médian DVF · <a href="${base}${P.communePath(commune)}">évolution et détail</a></p></section>` : ''}</div>` : ''}
@@ -219,4 +236,5 @@ function tier1Communes(depFiles) {
   return out;
 }
 
-module.exports = { ROOT, MIN_LISTINGS, listingPath, STYLE, TIER1, TYPES, isTier1, tier1City, rentControlFor, displayName, hubPath, typePath, parsePath, render, tier1Communes };
+module.exports = {
+  featuredBlock, featuredAgencyBlock, ROOT, MIN_LISTINGS, listingPath, STYLE, TIER1, TYPES, isTier1, tier1City, rentControlFor, displayName, hubPath, typePath, parsePath, render, tier1Communes };

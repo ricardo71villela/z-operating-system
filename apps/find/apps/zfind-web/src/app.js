@@ -961,8 +961,10 @@ async function renderMarketFeatured(market) {
       )
       .join('');
 
-  const result =
-    await loadFeaturedCandidateCards(state.lang);
+  const [result, paidHighlights] = await Promise.all([
+    loadFeaturedCandidateCards(state.lang),
+    loadActiveHighlights(market)
+  ]);
 
   // Ignore an obsolete async response if the visitor moved away while
   // the read was in flight.
@@ -995,10 +997,12 @@ async function renderMarketFeatured(market) {
     return;
   }
 
+  // Paid highlights only (« mises en avant »), rotating order.
   const selected =
-    FEATURED_MARKET_SERVICE.selectPreviewCards(
+    FEATURED_MARKET_SERVICE.selectPaidCards(
       result.cards,
-      market
+      market,
+      paidHighlights
     );
 
   const slots =
@@ -1149,8 +1153,8 @@ function renderMarket(marketKey) {
         <div
           id="market-featured-root"
           data-featured-slot-capacity="6"
-          data-featured-commercial-model="pending-dedicated-phase"
-          data-featured-selection-mode="source-backed-market-preview"
+          data-featured-commercial-model="paid-highlights"
+          data-featured-selection-mode="paid-highlights-rotation"
         ></div>
       </section>
 
@@ -1678,8 +1682,10 @@ async function renderSearchFeaturedRail(marketKey) {
         .join('')
     );
 
-  const result =
-    await loadFeaturedCandidateCards(state.lang);
+  const [result, paidHighlights] = await Promise.all([
+    loadFeaturedCandidateCards(state.lang),
+    loadActiveHighlights(market)
+  ]);
 
   // Ignore a stale async response after navigation or market change.
   if (
@@ -1721,10 +1727,12 @@ async function renderSearchFeaturedRail(marketKey) {
     return;
   }
 
+  // Paid highlights only (« mises en avant »), rotating order.
   const selected =
-    FEATURED_MARKET_SERVICE.selectPreviewCards(
+    FEATURED_MARKET_SERVICE.selectPaidCards(
       result.cards,
-      market
+      market,
+      paidHighlights
     );
 
   const slots =

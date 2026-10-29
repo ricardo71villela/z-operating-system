@@ -449,3 +449,25 @@ input, select, textarea{ font-family:'DM Sans', sans-serif; }
   .dash-header .dash-nav{ gap:4px 18px; }
   .dash-header .dash-nav a{ padding-bottom:8px; }
 }
+/* « Mises en avant » (highlights.js) */
+.phl-form{ display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1.4fr) minmax(0,1fr) auto; gap:12px 14px; align-items:end; margin:16px 0 4px; }
+.phl-form .form-field{ margin:0; }
+.phl-go .btn{ white-space:nowrap; }
+.phl-answer{ display:flex; gap:12px 18px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-top:14px; padding:14px 16px; border:1px solid var(--gray-200); border-left:3px solid var(--gold); border-radius:8px; font-size:0.9rem; line-height:1.5; }
+.phl-answer.ok{ border-left-color:#2E7D62; background:#F3FAF6; }
+.phl-answer.full{ border-left-color:#B7791F; background:#FFFAF0; }
+.phl-answer strong{ font-weight:600; }
+.phl-pack{ display:flex; gap:12px 18px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-top:20px; padding-top:16px; border-top:1px solid var(--gray-200); font-size:0.9rem; line-height:1.5; }
+.phl-pack strong{ font-weight:600; }
+.phl-notice{ border-left:3px solid #B7791F; font-size:0.9rem; line-height:1.5; }
+.phl-notice.ok{ border-left-color:#2E7D62; }
+#phl-error:empty, #phl-agency-error:empty{ display:none; }
+#phl-error, #phl-agency-error{ margin-top:12px; font-size:0.88rem; }
+.phl-state{ display:inline-block; padding:2px 8px; border-radius:20px; font-size:0.75rem; background:var(--gray-100, #F2F2F0); color:var(--gray-700); white-space:nowrap; }
+.phl-state.live{ background:#E6F2EC; color:#24643F; }
+.phl-state.upcoming{ background:#EAF1FA; color:#1E4A8A; }
+.phl-state.payment{ background:#FFF4DE; color:#8A5A0B; }
+.phl-table-wrap{ overflow-x:auto; }
+.phl-table-wrap .pstats-table th, .phl-table-wrap .pstats-table td{ text-align:left; }
+.phl-list{ margin:0; padding-left:18px; font-size:0.88rem; line-height:1.8; }
+@media (max-width:860px){ .phl-form{ grid-template-columns:1fr; } }

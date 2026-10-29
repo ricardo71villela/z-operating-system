@@ -88,6 +88,20 @@ const MOCK_UNITS = [
 let searchLogRequests = 0;
 
 async function mockSupabaseRoutes(page) {
+  // Paid « À la une » highlights (zfind_public_highlights): every mock
+  // published asset of the requested country is « paid » here, so the
+  // six-slot contract below stays exercised with paid placements.
+  await page.route('**/rest/v1/rpc/zfind_public_highlights**', route => {
+    let payload = {};
+    try { payload = route.request().postDataJSON() || {}; } catch (_) { payload = {}; }
+    const country = payload.p_country || null;
+    const zoneCountry = id => (MOCK_ZONES.find(z => z.id === id) || {}).country_iso;
+    const rows = []
+      .concat(MOCK_PROPERTIES.filter(p => !country || (p.zones_lite ? p.zones_lite.country_iso : zoneCountry(p.zone_lite_id)) === country).map(p => ({ property_id: p.id, development_id: null })))
+      .concat(MOCK_DEVELOPMENTS.filter(d => !country || (d.zones_lite ? d.zones_lite.country_iso : zoneCountry(d.zone_lite_id)) === country).map(d => ({ property_id: null, development_id: d.id })));
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) });
+  });
+
   await page.route(
     '**/rest/v1/rpc/zfind_public_exact_market_scope**',
     route => {

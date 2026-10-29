@@ -288,10 +288,11 @@ check(
 );
 
 check(
-  'B3/B4 rail reuses deterministic Country Market preview selection',
+  'B3/B4 rail reuses the paid Country Market selection',
   b34RailBlock.includes(
-    'FEATURED_MARKET_SERVICE.selectPreviewCards('
+    'FEATURED_MARKET_SERVICE.selectPaidCards('
   ) &&
+  b34RailBlock.includes('loadActiveHighlights(market)') &&
   b34RailBlock.includes('result.cards') &&
   b34RailBlock.includes('market')
 );
@@ -299,7 +300,7 @@ check(
 check(
   'B3/B4 passive rail uses existing non-Search candidate loader',
   b34RailBlock.includes(
-    'await loadFeaturedCandidateCards(state.lang)'
+    'loadFeaturedCandidateCards(state.lang)'
   ) &&
   !b34RailBlock.includes('loadSearchResults(')
 );
@@ -336,10 +337,14 @@ check(
 );
 
 check(
-  'B3/B4 introduces no unauthorized paid-placement claim in Search Featured implementation',
-  !/\b(sponsored|promoted|paid|advertisement)\b/i.test(
+  // Since 2026-10-29 the rail shows PAID « mises en avant » only
+  // (zfind_public_highlights), always labelled « À la une »: no
+  // « sponsored / promoted / advertisement » wording, no ranking change.
+  'B3/B4 Search Featured shows paid highlights only, labelled « À la une », never sponsored wording',
+  !/\b(sponsored|promoted|advertisement)\b/i.test(
     b34FeaturedBlock
   ) &&
+  b34FeaturedBlock.includes('selectPaidCards(') &&
   !/commercial\s+(assignment|ranking|placement)/i.test(
     b34FeaturedBlock
   )

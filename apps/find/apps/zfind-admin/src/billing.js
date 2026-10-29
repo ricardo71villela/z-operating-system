@@ -16,7 +16,7 @@ const BILL_ORDER_KIND = {
   highlight_7d: 'Mise en avant 7 jours', highlight_30d: 'Mise en avant 30 jours', highlight_pack: 'Pack de mises en avant',
   agency_featured_month: 'Agence à la une (1 mois)', seller_lead: 'Contact vendeur', seller_lead_qualified: 'Contact vendeur qualifié'
 };
-const BILL_ORDER_STATUS = { pending: ['En attente', 'draft'], paid: ['Payée', 'active'], failed: ['Échouée', 'late'], canceled: ['Annulée', 'inactive'], refunded: ['Remboursée', 'inactive'] };
+const BILL_ORDER_STATUS = { pending: ['En attente', 'draft'], processing: ['Prélèvement SEPA en cours', 'review'], paid: ['Payée', 'active'], failed: ['Échouée', 'late'], canceled: ['Annulée', 'inactive'], refunded: ['Remboursée', 'inactive'] };
 const BILL_PM = { card: 'Carte', sepa_debit: 'Prélèvement SEPA' };
 const BILL_TIER = { essentiel: 'Essentiel', plus: 'Plus', pro: 'Pro', premium: 'Premium' };
 let billingCache = null;

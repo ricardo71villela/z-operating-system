@@ -65,9 +65,9 @@ if (featured && registry) {
   check('weekly featured capacity is exactly six',
     featured.FEATURED_CAPACITY === 6);
 
-  check('selection mode is explicit source-backed preview only',
+  check('selection mode is explicit: paid highlights only, rotating',
     featured.FEATURED_SELECTION_MODE ===
-      'source-backed-market-preview');
+      'paid-highlights-rotation');
 
   const cards = [
     { assetId:'z', countryIso:'PT', kind:'Property' },
@@ -169,15 +169,30 @@ check('market registry exposes full featured UI copy 6/6',
     ].every(value => typeof value === 'string' && value.trim());
   }));
 
-check('runtime asynchronously renders source-backed featured slots',
+check('runtime asynchronously renders paid featured slots only',
   app.includes('async function renderMarketFeatured(market)') &&
-  app.includes('FEATURED_MARKET_SERVICE.selectPreviewCards') &&
+  app.includes('FEATURED_MARKET_SERVICE.selectPaidCards') &&
+  !app.includes('FEATURED_MARKET_SERVICE.selectPreviewCards') &&
+  app.includes('loadActiveHighlights(market)') &&
   app.includes('FEATURED_MARKET_SERVICE.buildSlots') &&
   app.includes('renderMarketFeatured(market);'));
 
-check('runtime keeps commercial model explicitly pending',
-  app.includes('data-featured-commercial-model="pending-dedicated-phase"') &&
-  app.includes('data-featured-selection-mode="source-backed-market-preview"'));
+check('runtime declares the paid highlights model',
+  app.includes('data-featured-commercial-model="paid-highlights"') &&
+  app.includes('data-featured-selection-mode="paid-highlights-rotation"'));
+
+{
+  const pt = { searchScope: { kind: 'country_iso', value: 'PT' } };
+  const cards = [
+    { assetId: 'a', countryIso: 'PT' }, { assetId: 'b', countryIso: 'PT' },
+    { assetId: 'c', countryIso: 'PT' }, { assetId: 'd', countryIso: 'ES' }
+  ];
+  const paid = featured.selectPaidCards(cards, pt, [{ property_id: 'c' }, { development_id: 'a' }, { property_id: 'd' }, { property_id: 'zz' }]);
+  check('paid selection: only paid assets of the market, in the paid (rotation) order',
+    paid.map(c => c.assetId).join(',') === 'c,a');
+  check('paid selection: nothing paid → nothing featured',
+    featured.selectPaidCards(cards, pt, []).length === 0 && featured.selectPaidCards(cards, pt, null).length === 0);
+}
 
 check('featured cards reuse canonical shared card navigation',
   app.includes('${cardHTML(slot.card)}'));

@@ -135,6 +135,7 @@ function render(ctx) {
       <p class="zf-seo-lead">${total ? `${nf.format(total)} agence${total > 1 ? 's' : ''} immobilière${total > 1 ? 's' : ''} ${P.esc(where)}${nets.length ? `, dont ${nets.reduce((s, n) => s + n.n, 0)} sous enseigne de réseau` : ''}. ` : ''}Pour vendre, acheter ou louer ${P.esc(where)} : comparez les agences, les prix du marché et vos frais.</p>
       <div class="zp-ctas"><a class="zf-seo-primary" href="${base}/#/fr/estimation?market=FR&amp;mode=owner">Estimer mon bien →</a><a class="zp-secondary" href="${base}${H.hubPath(commune)}">Annonces ${P.esc(where)}</a><a class="zp-secondary" href="${base}${P.communePath(commune)}">Prix au m²</a></div>
     </header>
+    ${H.featuredAgencyBlock(base, name, ctx.featuredAgency)}
     ${nets.length ? `<section class="zp-section"><h2>Réseaux présents</h2><ul class="za-nets">${nets.slice(0, 12).map(n => `<li>${P.esc(n.name)} <b>${n.n}</b></li>`).join('')}</ul></section>` : ''}
     <section class="zp-section"><h2>${P.esc(isCity ? `Agences par arrondissement` : `Les agences ${where}`)}</h2>${listHtml}</section>
     ${a || m ? `<div class="zp-stats">${a ? `<section class="zp-stat"><h2>Appartements</h2><p class="zp-big">${P.eurM2(a.med)}</p><p class="zp-small">Prix médian DVF · <a href="${base}${P.communePath(commune)}">détail</a></p></section>` : ''}${m ? `<section class="zp-stat"><h2>Maisons</h2><p class="zp-big">${P.eurM2(m.med)}</p><p class="zp-small">Prix médian DVF · <a href="${base}${P.communePath(commune)}">détail</a></p></section>` : ''}</div>` : ''}
