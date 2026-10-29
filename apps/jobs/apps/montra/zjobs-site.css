@@ -59,6 +59,12 @@ section{ border-color:var(--zj-line) !important; }
   --paper-surface:#FFFFFF;
 }
 .section-light :focus-visible{ outline-color:var(--zj-blue) !important; }
+/* Les pages écrivent certains textes en var(--ink), qui est blanc : sur ces
+   bandes devenues claires, ils redeviennent ardoise pour rester lisibles. */
+.section-light .ai-notice li b,
+.section-light .tool-card textarea{ color:var(--zj-text) !important; }
+.ai-notice ul{ margin-top:0 !important; }
+.ai-notice li:last-child{ margin-bottom:0; }
 
 /* Cartes : blanches à filet fin, ombre discrète (comme les cartes Z Find). */
 .proof-grid{ background:var(--zj-line) !important; border-color:var(--zj-line) !important; }
