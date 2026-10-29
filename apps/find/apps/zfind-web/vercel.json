@@ -42,8 +42,12 @@
       "destination": "/api/alerts"
     },
     {
+      "source": "/api/billing/:route",
+      "destination": "/api/billing?route=:route"
+    },
+    {
       "source": "/api/prospection-optout",
-      "destination": "/api/prospection-optout"
+      "destination": "/api/alerts?route=prospection-optout"
     },
     {
       "source": "/api/reviews",
@@ -115,6 +119,10 @@
     "api/alerts.js": {
       "includeFiles": "{public/geo/search/**,src/services/search-filters.js,src/services/listing-quality.js,src/services/place-search.js}",
       "maxDuration": 15
+    },
+    "api/billing.js": {
+      "includeFiles": "src/services/pro-offer.js",
+      "maxDuration": 30
     },
     "api/reviews.js": {
       "maxDuration": 15

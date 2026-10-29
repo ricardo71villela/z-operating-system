@@ -47,6 +47,7 @@ function build() {
   const submissionJs = readPartner('submission.js'); // « Soumettre à validation »
   const importJs = readPartner('import.js'); // « Importer mes annonces »
   const feedJs = readPartner('feed.js'); // « Flux automatique »
+  const billingJs = readPartner('billing.js'); // « Abonnement » (Stripe, /api/billing)
 
   // Genuinely reused, not copied:
   const vendorSupabase = readWeb('vendor-supabase.js');
@@ -99,6 +100,7 @@ function build() {
     + submissionJs + '\n'
     + importJs + '\n'
     + feedJs + '\n'
+    + billingJs + '\n'
     + appJs
     + '\n</script>\n</body>\n</html>\n';
 
