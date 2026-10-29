@@ -84,5 +84,7 @@ const pr = require(path.join(WEB, 'src', 'services', 'password-reset.js'));
   check('Admin : le lien de réinitialisation passe avant le contrôle admin',
     aInit.indexOf('passwordReset.mount') > -1 && aInit.indexOf('passwordReset.mount') < aInit.indexOf('checkAdminAccess'));
 
+  check('Admin : tout lien expiré est expliqué (anyExpiredLink)', /anyExpiredLink: true/.test(adminApp) && /opts\.anyExpiredLink/.test(fs.readFileSync(path.join(WEB, 'src', 'services', 'password-reset.js'), 'utf8')));
+
   console.log(`\n${passed} checks passed.`);
 })().catch(err => { console.error('FAIL:', err.message); process.exit(1); });
