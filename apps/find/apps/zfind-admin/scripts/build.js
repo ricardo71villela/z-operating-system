@@ -87,6 +87,7 @@ function build() {
     + supabaseClient + '\n'
     + propertyTaxonomyService + '\n'
     + authService + '\n'
+    + readWeb('services/password-reset.js') + '\n' // « Mot de passe oublié » (shared with Partner)
     + identityService + '\n'
     + registryService + '\n'
     + verificationService + '\n'

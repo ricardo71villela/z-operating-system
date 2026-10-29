@@ -73,6 +73,14 @@ async function checkAdminAccess() {
   return true;
 }
 async function initAdmin() {
+  // « Mot de passe oublié » (services/password-reset.js): a recovery link
+  // shows « Nouveau mot de passe » first, then the usual admin check.
+  const reset = await window.ZFindServices.passwordReset.mount({
+    card: document.getElementById('login-view'),
+    classes: { error: 'pr-msg', link: 'pr-link' },
+    onPasswordSet: () => checkAdminAccess()
+  });
+  if (reset) return;
   const session = await window.ZFindServices.auth.getSession();
   if (session.data && session.data.session) await checkAdminAccess();
 }

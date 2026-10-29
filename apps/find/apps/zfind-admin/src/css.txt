@@ -189,3 +189,14 @@ td.nowrap{white-space:nowrap;}
 .btn.btn-sm:disabled{opacity:.45;cursor:default;}
 #feeds-table td{vertical-align:top;}
 #feeds-table .tag{white-space:nowrap;}
+
+/* « Mot de passe oublié » (services/password-reset.js) */
+#login-view .pr-forgot{ margin:-4px 0 14px; font-size:13px; text-align:right; }
+#login-view .pr-panel .pr-forgot{ margin:14px 0 0; text-align:left; }
+#login-view .pr-link{ color:#555; text-decoration:underline; cursor:pointer; }
+#login-view .pr-title{ font-size:1.3rem; font-weight:600; margin-bottom:10px; }
+#login-view .pr-note{ font-size:13px; color:#555; margin-bottom:14px; line-height:1.5; }
+#login-view label{ display:block; font-size:12px; color:#555; margin-bottom:4px; }
+#login-view .pr-msg{ margin-top:12px; font-size:13px; color:#A33; line-height:1.5; }
+#login-view .pr-msg:empty{ display:none; }
+#login-view .pr-msg.pr-ok{ color:#24643F; }
