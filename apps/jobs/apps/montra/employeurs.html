@@ -8,7 +8,7 @@
 <meta name="robots" content="index,follow" />
 <link rel="canonical" href="https://zjobs.online/employeurs" />
 <link rel="alternate" hreflang="fr" href="https://zjobs.online/employeurs" />
-<link rel="alternate" hreflang="en" href="https://zjobs.online/employeurs?lang=en" />
+<link rel="alternate" hreflang="en" href="https://zjobs.online/en/employeurs" />
 <link rel="alternate" hreflang="x-default" href="https://zjobs.online/employeurs" />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Z Jobs" />
@@ -310,7 +310,7 @@
       var asked = new URLSearchParams(window.location.search).get('lang');
       var saved = window.localStorage.getItem('zjobs_locale');
       var browser = (navigator.language || '').slice(0, 2).toLowerCase();
-      locale = asked || saved || (browser === 'en' ? 'en' : 'fr');
+      locale = asked === 'en' ? 'en' : 'fr';
     } catch (e) { /* stockage indisponible : français */ }
     if (!TRANSLATIONS[locale]) locale = 'fr';
     setLocale(locale);

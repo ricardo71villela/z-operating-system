@@ -87,13 +87,22 @@
   function lang() { return document.documentElement.lang === 'en' ? 'en' : 'fr'; }
   function esc(v) { return String(v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
+  /* Adresse d'une page dans la langue courante : les pages statiques ont
+     leur version anglaise sous /en/… ; les pages de l'API prennent ?lang=en. */
+  var STATIC = /^\/(candidats|employeurs|outils|mentions-legales)?(?=$|#)/;
+  function href(p) {
+    if (lang() !== 'en' || !/^\//.test(p)) return p;
+    if (STATIC.test(p)) return p === '/' ? '/en' : p.charAt(1) === '#' ? '/en' + p.slice(1) : '/en' + p;
+    return p + (p.indexOf('?') < 0 ? '?lang=en' : '&lang=en');
+  }
+
   /* Pages « Emploi à {ville} » des 6 grandes villes (rendues par l'API, /emploi/<slug>-<insee>). */
   var CITIES = [['paris-75056', 'Paris'], ['marseille-13055', 'Marseille'], ['lyon-69123', 'Lyon'], ['toulouse-31555', 'Toulouse'], ['nice-06088', 'Nice'], ['nantes-44109', 'Nantes']];
 
   function footerHtml(c) {
     var col = function (title, links) {
       return '<nav aria-label="' + esc(title) + '"><h2 class="zj-foot-h">' + esc(title) + '</h2>' +
-        links.map(function (l) { return '<a href="' + esc(l[0]) + '"' + (/^https?:/.test(l[0]) && l[0].indexOf('zjobs.online') < 0 ? ' rel="noopener"' : '') + '>' + esc(l[1]) + '</a>'; }).join('') + '</nav>';
+        links.map(function (l) { return '<a href="' + esc(href(l[0])) + '"' + (/^https?:/.test(l[0]) && l[0].indexOf('zjobs.online') < 0 ? ' rel="noopener"' : '') + '>' + esc(l[1]) + '</a>'; }).join('') + '</nav>';
     };
     return '<div class="wrap">' +
       '<div class="zj-foot-cols">' +
@@ -107,12 +116,12 @@
         col(c.about2, [['/employeurs#badges', c.trust], ['/candidats', c.free], ['mailto:hello@zjobs.online', c.contact]]) +
       '</div>' +
       '<nav class="zj-foot-cities" aria-label="' + esc(c.cities) + '"><h2 class="zj-foot-h">' + esc(c.cities) + '</h2>' + CITIES.map(function (v) {
-        return '<a href="/emploi/' + v[0] + (lang() === 'en' ? '?lang=en' : '') + '">' + esc(v[1]) + '</a>';
+        return '<a href="' + href('/emploi/' + v[0]) + '">' + esc(v[1]) + '</a>';
       }).join('') + '</nav>' +
       '<nav class="zj-foot-zos" aria-label="Z Operating System">' + ZOS.map(function (a) {
         return a.href ? '<a href="' + a.href + '" target="_blank" rel="noopener">' + esc(a.label) + '</a>' : '<span>' + esc(a.label) + '<span class="soon">' + esc(c.soon) + '</span></span>';
       }).join('') + '</nav>' +
-      '<div class="zj-foot-bottom"><span>' + esc(c.rights) + '</span><span class="zj-foot-legal"><a href="/mentions-legales' + (lang() === 'en' ? '?lang=en' : '') + '">' + esc(c.legal) + '</a><span>' + esc(c.place) + '</span></span></div>' +
+      '<div class="zj-foot-bottom"><span>' + esc(c.rights) + '</span><span class="zj-foot-legal"><a href="' + href('/mentions-legales') + '">' + esc(c.legal) + '</a><span>' + esc(c.place) + '</span></span></div>' +
     '</div>';
   }
 
@@ -133,7 +142,20 @@
     });
   }
 
+  /* Boutons FR / EN : chaque langue a sa propre adresse (hreflang de la page). */
+  function onLocaleClick(e) {
+    var btn = e.target && e.target.closest ? e.target.closest('.locales button[data-locale]') : null;
+    if (!btn) return;
+    var alt = document.querySelector('link[rel="alternate"][hreflang="' + btn.getAttribute('data-locale') + '"]');
+    if (!alt) return;
+    var u = new URL(alt.getAttribute('href'), location.href);
+    if (u.pathname.replace(/\/$/, '') === location.pathname.replace(/\.html$/, '').replace(/\/$/, '')) return;
+    try { localStorage.setItem('zjobs_locale', btn.getAttribute('data-locale')); } catch (err) { /* sans stockage */ }
+    location.href = u.pathname + u.search + location.hash;
+  }
+
   function start() {
+    document.addEventListener('click', onLocaleClick, true);
     render();
     new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
   }
