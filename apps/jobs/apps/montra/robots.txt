@@ -7,3 +7,4 @@ Sitemap: https://zjobs.online/sitemap-offres.xml
 Sitemap: https://zjobs.online/sitemap-emploi.xml
 Sitemap: https://zjobs.online/sitemap-entreprises.xml
 Sitemap: https://zjobs.online/sitemap-salaires.xml
+Sitemap: https://zjobs.online/sitemap-salaires-villes.xml
