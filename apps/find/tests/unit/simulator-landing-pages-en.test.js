@@ -28,5 +28,14 @@ check('no French leftovers in headings', pages.every(p => !/Questions fréquente
 check('no undefined / NaN', pages.every(p => !/undefined|NaN/.test(p.html.replace(/<script[\s\S]*?<\/script>/g, ''))));
 check('written at build with the French pages', gen.includes('simulatorPagesEn.buildSimulatorPagesEn(baseUrl)'));
 
+const GE = require(path.join(WEB, 'src', 'services', 'guide-pages-en.js'));
+const lexicon = require(path.join(WEB, 'scripts', 'lexicon-pages.js'));
+const guide = GE.buildGuidePagesEn(BASE)[0];
+check('guide: /en/guides/buying-property-in-france, Article + FAQ JSON-LD', guide.path === '/en/guides/buying-property-in-france' && guide.html.includes('"@type":"Article"') && guide.html.includes('"FAQPage"') && guide.html.includes('<html lang="en">'));
+const lexPaths = new Set(lexicon.buildLexiconPages(BASE).map(p => p.path));
+const glossaryLinks = [...guide.html.matchAll(/href="https:\/\/zfind\.online(\/en\/real-estate-glossary\/[a-z-]+)"/g)].map(m => m[1]);
+check('guide: every glossary link exists', glossaryLinks.length >= 8 && glossaryLinks.every(p => lexPaths.has(p)), glossaryLinks.filter(p => !lexPaths.has(p)));
+check('guide: links to the calculators, written at build', guide.html.includes(BASE + '/en/french-notary-fees-calculator') && gen.includes('guidePagesEn.buildGuidePagesEn(baseUrl)') && by['/en/property-calculators'].includes('/en/guides/buying-property-in-france'));
+
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

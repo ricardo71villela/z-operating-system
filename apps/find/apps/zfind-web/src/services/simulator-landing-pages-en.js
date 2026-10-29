@@ -74,7 +74,7 @@ function shell({ base, pathName, title, description, crumb, eyebrow, h1, lead, b
   const others = [
     [EN_PAGES.notaire, 'French notary fees'], [EN_PAGES.pret, 'Mortgage calculator'], [EN_PAGES.capacite, 'Borrowing capacity'],
     [EN_PAGES.rentabilite, 'Rental yield'], [EN_PAGES.belgique, 'Buying costs in Belgium'], [EN_PAGES.luxembourg, 'Buying costs in Luxembourg'],
-    ['/en/real-estate-glossary', 'French property glossary']
+    ['/en/guides/buying-property-in-france', 'Buying property in France: the guide'], ['/en/real-estate-glossary', 'French property glossary']
   ].filter(([p]) => p !== pathName);
   return `<!DOCTYPE html>
 <html lang="en">
@@ -322,7 +322,8 @@ function pageHub(base) {
     [EN_PAGES.capacite, 'Borrowing capacity', 'How much you can borrow, and for what price.'],
     [EN_PAGES.rentabilite, 'Rental yield', 'Gross and net yield of a buy-to-let.'],
     [EN_PAGES.belgique, 'Buying costs in Belgium', 'Registration duties in Wallonia, Flanders and Brussels.'],
-    [EN_PAGES.luxembourg, 'Buying costs in Luxembourg', '7% duties and the Bëllegen Akt tax credit.']
+    [EN_PAGES.luxembourg, 'Buying costs in Luxembourg', '7% duties and the Bëllegen Akt tax credit.'],
+    ['/en/guides/buying-property-in-france', 'Buying in France as a foreigner', 'The guide: steps, costs, mortgage, taxes and inheritance.']
   ];
   return { path: EN_PAGES.hub, html: shell({
     base, pathName: EN_PAGES.hub, crumb: 'Property calculators', eyebrow: 'Free tools · France, Belgium, Luxembourg',
