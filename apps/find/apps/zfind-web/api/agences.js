@@ -16,6 +16,8 @@ const S = require('./_lib/server');
 const P = require('./_lib/prix-pages');
 const H = require('./_lib/immobilier-pages');
 const AG = require('./_lib/agences-pages');
+const AP = require('./_lib/agence-page');
+const annonce = require('./annonce');
 
 const DATA_DIR = path.join(__dirname, '..', 'public', 'market-data', 'fr');
 const cache = { index: null, deps: new Map(), counts: null, countsAt: 0 };
@@ -89,6 +91,58 @@ function allCommunes() {
   return out;
 }
 
+/* ---------------- Page d'une agence partenaire ---------------- */
+async function partnerPages() {
+  if (!S.configured(['db'])) return [];
+  try {
+    const rows = await withTimeout(S.db('zfind_partner_profiles?public_page=is.true&select=slug,description,updated_at,partners!inner(status)&partners.status=eq.active&limit=5000'), 4000) || [];
+    return rows;
+  } catch (_) { return []; }
+}
+
+async function partnerListings(partnerId) {
+  const sel = String(annonce._internals.SELECT).replace('representations(', 'representations!inner(').replace('listings(id,', 'listings!inner(id,');
+  const rows = await withTimeout(S.db(`properties?select=${encodeURIComponent(sel)}&representations.partner_id=eq.${partnerId}&representations.target_type=eq.property&representations.listings.status=eq.published&removed_at=is.null&order=created_at.desc&limit=80`), 4000) || [];
+  return rows.map(r => annonce._internals.normalize(r)).filter(l => !l.gone);
+}
+
+async function agencyPage(res, base, slug) {
+  if (!S.configured(['db'])) return notFound(res, base);
+  let row;
+  try {
+    const rows = await withTimeout(S.db(`zfind_partner_profiles?slug=eq.${encodeURIComponent(slug)}&select=*,partners!inner(id,name,status,logo_storage_path)&limit=1`), 3000);
+    row = rows && rows[0];
+  } catch (_) {
+    res.setHeader('Retry-After', '120');
+    return send(res, 503, '<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex"><title>Z Find</title><p>Service momentanément indisponible.</p>', null, false);
+  }
+  const partner = row && row.partners;
+  if (!row || !partner || partner.status !== 'active' || row.public_page === false) return notFound(res, base);
+  let listings = [];
+  try { listings = await partnerListings(partner.id); } catch (_) { listings = []; }
+  const covers = listings.map(l => (l.mediaPaths || [])[0] || null);
+  const toSign = covers.filter(Boolean).concat(partner.logo_storage_path ? [partner.logo_storage_path] : []);
+  const signed = toSign.length ? await annonce._internals.signImages(toSign) : [];
+  const byPath = new Map(toSign.map((p, i) => [p, signed[i] || null]));
+  listings.forEach((l, i) => { l.image = covers[i] ? byPath.get(covers[i]) : null; });
+  // Pages locales : les communes des annonces (prix au m², annonces de la commune).
+  const local = [];
+  const seen = new Set();
+  for (const l of listings) {
+    const place = annonce._internals.placeOf(l.zoneCommune, l.postalCode);
+    if (!place.commune || seen.has(place.commune.c)) continue;
+    seen.add(place.commune.c);
+    const n = H.displayName(place.commune.n);
+    local.push({ name: `Immobilier ${P.aCommune(n)}`, path: H.hubPath(place.commune) }, { name: `Prix au m² ${P.deCommune(n)}`, path: P.communePath(place.commune) });
+  }
+  const out = AP.render({ base, partner, profile: row, logoUrl: partner.logo_storage_path ? byPath.get(partner.logo_storage_path) : null, listings, localPages: local });
+  if (!out.indexable) res.setHeader('X-Robots-Tag', 'noindex');
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400');
+  return res.end(out.html);
+}
+
 async function sitemap(res, base) {
   const byCode = allCommunes();
   const keep = new Map();
@@ -96,6 +150,10 @@ async function sitemap(res, base) {
   const n = await counts();
   if (n) for (const [code, v] of n) if (v >= AG.MIN_AGENCIES && byCode.has(code)) keep.set(code, byCode.get(code));
   const urls = [...keep.values()].sort((x, y) => x.c.localeCompare(y.c)).map(c => `  <url><loc>${P.esc(base + AG.agencesPath(c))}</loc></url>`);
+  // Pages des agences partenaires qui ont une présentation (les autres sont noindex tant qu'elles n'ont pas d'annonce).
+  for (const p of await partnerPages()) {
+    if (p.description && String(p.description).trim().length >= AP.MIN_DESCRIPTION) urls.push(`  <url><loc>${P.esc(base + AP.agencyPath(p.slug))}</loc>${p.updated_at ? `<lastmod>${String(p.updated_at).slice(0, 10)}</lastmod>` : ''}</url>`);
+  }
   return send(res, 200, `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`, 'application/xml; charset=utf-8', true);
 }
 
@@ -104,6 +162,10 @@ async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'HEAD') { res.statusCode = 405; res.setHeader('Allow', 'GET, HEAD'); return res.end(); }
   const q = S.queryOf(req);
   if (q.sitemap) return sitemap(res, base);
+  if (q.agence !== undefined) {
+    const slug = AP.slugFromQuery(q.agence);
+    return slug ? agencyPage(res, base, slug) : notFound(res, base);
+  }
   const route = AG.parsePath(q.p);
   if (!route) return notFound(res, base);
   const idx = index();
@@ -141,4 +203,4 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-module.exports._internals = { counts, agenciesOf };
+module.exports._internals = { counts, agenciesOf, partnerListings, partnerPages };

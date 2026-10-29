@@ -156,7 +156,8 @@ function render(ctx) {
   const rcHtml = rc ? `<section class="zp-section"><h2>Encadrement des loyers</h2><p>Les loyers sont encadrés à ${P.esc(rc.area)} depuis le ${P.esc(rc.since)} : l’annonce doit indiquer le loyer de référence et le loyer de référence majoré. <a href="https://www.service-public.fr/particuliers/vosdroits/F1314" rel="noopener">Règles officielles</a>.</p></section>` : '';
 
   const agencyName = l.agency && l.agency.name ? l.agency.name : null;
-  const aside = `<aside class="za-aside"><h2>${agencyName ? P.esc(agencyName) : 'Professionnel vérifié'}</h2><p>${agencyName ? 'Agence immobilière vérifiée par Z Find. ' : ''}Posez vos questions ou demandez une visite : l’agence vous répond directement.</p><a class="zf-seo-primary" href="${contactHref}">Contacter l’agence →</a><p style="margin:14px 0 0" class="zp-small">Réponse moyenne sous 48 h. Gratuit et sans engagement.</p></aside>`;
+  const agencyLink = l.agency && l.agency.slug ? `<p style="margin:12px 0 0"><a href="${base}/fr/agence/${P.esc(l.agency.slug)}">Voir la page de l’agence →</a></p>` : '';
+  const aside = `<aside class="za-aside"><h2>${agencyName ? P.esc(agencyName) : 'Professionnel vérifié'}</h2><p>${agencyName ? 'Agence immobilière vérifiée par Z Find. ' : ''}Posez vos questions ou demandez une visite : l’agence vous répond directement.</p><a class="zf-seo-primary" href="${contactHref}">Contacter l’agence →</a>${agencyLink}<p style="margin:14px 0 0" class="zp-small">Réponse moyenne sous 48 h. Gratuit et sans engagement.</p></aside>`;
 
   const similarHtml = similar.length
     ? `<section class="zp-section"><h2>Autres annonces${P.esc(where)}</h2><ul class="zh-list">${similar.map(s => `<li class="zh-card"><a href="${base}${listingPath(s)}"><strong>${P.esc(s.title)}</strong><span>${P.esc([SUBTYPE[s.subtype] || null, s.typology || null, s.area ? `${nf.format(s.area)} m²` : null].filter(Boolean).join(' · '))}</span><em>${P.esc(priceText(s))}</em></a></li>`).join('')}</ul></section>`
@@ -205,7 +206,7 @@ function render(ctx) {
     offers: {
       '@type': 'Offer', price: Number(l.price), priceCurrency: l.currency || 'EUR', availability: 'https://schema.org/InStock',
       businessFunction: l.transaction === 'rent' ? 'http://purl.org/goodrelations/v1#LeaseOut' : 'http://purl.org/goodrelations/v1#Sell',
-      ...(agencyName ? { seller: { '@type': 'RealEstateAgent', name: agencyName } } : {})
+      ...(agencyName ? { seller: Object.assign({ '@type': 'RealEstateAgent', name: agencyName }, l.agency.slug ? { url: `${base}/fr/agence/${l.agency.slug}` } : {}) } : {})
     }
   }];
 

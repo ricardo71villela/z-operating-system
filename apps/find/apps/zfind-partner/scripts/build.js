@@ -48,6 +48,7 @@ function build() {
   const importJs = readPartner('import.js'); // « Importer mes annonces »
   const feedJs = readPartner('feed.js'); // « Flux automatique »
   const billingJs = readPartner('billing.js'); // « Abonnement » (Stripe, /api/billing)
+  const profileJs = readPartner('profile.js'); // « Ma page agence » (zfind.online/fr/agence/…)
 
   // Genuinely reused, not copied:
   const vendorSupabase = readWeb('vendor-supabase.js');
@@ -101,6 +102,7 @@ function build() {
     + importJs + '\n'
     + feedJs + '\n'
     + billingJs + '\n'
+    + profileJs + '\n'
     + appJs
     + '\n</script>\n</body>\n</html>\n';
 
