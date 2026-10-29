@@ -11900,10 +11900,26 @@ window.ZStudioAuth = Object.freeze({
   }),
 });
 
+// Opened from a ZOS marketplace space (Z Find Partner): #zos_link=<one-time
+// token hash>. Exchanged for a Z Studio session of the same account; the
+// Partner session is never shared and the fragment never reaches a server.
+function zstudioReadHandoff() {
+  const params = new URLSearchParams(String(window.location.hash || '').replace(/^#/, ''));
+  const tokenHash = params.get('zos_link') || '';
+  if (!/^[A-Za-z0-9_-]{20,200}$/.test(tokenHash)) return null;
+  try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch (_error) { /* keep going */ }
+  return { tokenHash, type: params.get('zos_type') === 'email' ? 'email' : 'magiclink' };
+}
+
 function zstudioAuthBootstrap() {
   zstudioBuildAuthUi();
+  const handoff = zstudioReadHandoff();
   zstudioGetAuthClient()
     .then(async (client) => {
+      if (handoff) {
+        const { error: linkError } = await client.auth.verifyOtp({ token_hash: handoff.tokenHash, type: handoff.type });
+        if (linkError) { zstudioOpenAuth(); zstudioSetAuthStatus(zstudioAuthT('authSessionExpired'), true); }
+      }
       const { data, error } = await client.auth.getSession();
       if (error) throw error;
       zstudioAuthSession = data?.session || null;

@@ -117,6 +117,7 @@ async function tryEnterDashboard() {
   document.getElementById('view-signup').style.display = 'none';
   document.getElementById('view-dashboard').style.display = '';
   document.getElementById('dash-partner-name').textContent = partnerResult.data ? partnerResult.data.name : '';
+  pappsMount(); // apps.js: « Z Desk » / « Z Studio », déjà connectés avec le même compte
   if (window.location.hash === '#inscription') history.replaceState(null, '', window.location.pathname + window.location.search);
   renderSignupBanner();
   if (/^#abonnement/.test(window.location.hash || '')) { showBillingView(); return; }
