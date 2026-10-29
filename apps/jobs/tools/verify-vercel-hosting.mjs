@@ -43,6 +43,15 @@ const apiOrigin = web.rewrites[0].destination.replace('/:path*', '');
 for (const [source, dest] of [['/offres/:slug', '/public/offres/:slug'], ['/sitemap-offres.xml', '/public/sitemap-offres.xml'], ['/emploi/:slug', '/public/emploi/:slug'], ['/sitemap-emploi.xml', '/public/sitemap-emploi.xml']]) {
   assert.ok(montra.rewrites.some((r) => r.source === source && r.destination === apiOrigin + dest), source);
 }
+// Pages anglaises : générées, à jour, servies sous /en/… ; ?lang=en y redirige.
+for (const page of ['index', 'candidats', 'employeurs', 'outils', 'mentions-legales']) {
+  assert.ok(existsSync(`apps/jobs/apps/montra/en/${page}.html`), `en/${page}.html`);
+  const src = page === 'index' ? '/' : `/${page}`;
+  const dest = page === 'index' ? '/en' : `/en/${page}`;
+  assert.ok(montra.redirects.some((r) => r.source === src && r.destination === dest && r.permanent && (r.has || []).some((h) => h.type === 'query' && h.key === 'lang' && h.value === 'en')), `?lang=en → ${dest}`);
+}
+const sitemapXml = readFileSync('apps/jobs/apps/montra/sitemap.xml', 'utf8');
+assert.ok(sitemapXml.includes('<loc>https://zjobs.online/en/outils</loc>') && sitemapXml.includes('hreflang="en" href="https://zjobs.online/en"'), 'sitemap EN');
 const robots = readFileSync('apps/jobs/apps/montra/robots.txt', 'utf8');
 for (const map of ['sitemap.xml', 'sitemap-offres.xml', 'sitemap-emploi.xml']) assert.ok(robots.includes(`Sitemap: https://zjobs.online/${map}`), map);
 

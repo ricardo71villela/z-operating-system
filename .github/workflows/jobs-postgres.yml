@@ -49,6 +49,9 @@ jobs:
       - name: Verify Vercel hosting contract
         run: node apps/jobs/tools/verify-vercel-hosting.mjs
 
+      - name: Montra English pages are up to date
+        run: node apps/jobs/tools/build-montra-en.mjs --check
+
       - name: Create database
         env:
           PGPASSWORD: zjobs_dev_pw

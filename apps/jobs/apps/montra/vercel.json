@@ -65,6 +65,66 @@
   ],
   "redirects": [
     {
+      "source": "/",
+      "has": [
+        {
+          "type": "query",
+          "key": "lang",
+          "value": "en"
+        }
+      ],
+      "destination": "/en",
+      "permanent": true
+    },
+    {
+      "source": "/candidats",
+      "has": [
+        {
+          "type": "query",
+          "key": "lang",
+          "value": "en"
+        }
+      ],
+      "destination": "/en/candidats",
+      "permanent": true
+    },
+    {
+      "source": "/employeurs",
+      "has": [
+        {
+          "type": "query",
+          "key": "lang",
+          "value": "en"
+        }
+      ],
+      "destination": "/en/employeurs",
+      "permanent": true
+    },
+    {
+      "source": "/outils",
+      "has": [
+        {
+          "type": "query",
+          "key": "lang",
+          "value": "en"
+        }
+      ],
+      "destination": "/en/outils",
+      "permanent": true
+    },
+    {
+      "source": "/mentions-legales",
+      "has": [
+        {
+          "type": "query",
+          "key": "lang",
+          "value": "en"
+        }
+      ],
+      "destination": "/en/mentions-legales",
+      "permanent": true
+    },
+    {
       "source": "/candidatos",
       "destination": "/candidats",
       "permanent": true

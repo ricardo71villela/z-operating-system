@@ -8,7 +8,7 @@
 <meta name="robots" content="index,follow" />
 <link rel="canonical" href="https://zjobs.online/mentions-legales" />
 <link rel="alternate" hreflang="fr" href="https://zjobs.online/mentions-legales" />
-<link rel="alternate" hreflang="en" href="https://zjobs.online/mentions-legales?lang=en" />
+<link rel="alternate" hreflang="en" href="https://zjobs.online/en/mentions-legales" />
 <link rel="alternate" hreflang="x-default" href="https://zjobs.online/mentions-legales" />
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500;600&display=swap');
@@ -153,7 +153,7 @@
       var asked = new URLSearchParams(window.location.search).get('lang');
       var saved = window.localStorage.getItem('zjobs_locale');
       var browser = (navigator.language || '').slice(0, 2).toLowerCase();
-      locale = asked || saved || (browser === 'en' ? 'en' : 'fr');
+      locale = asked === 'en' ? 'en' : 'fr';
     } catch (e) { /* français */ }
     if (!TRANSLATIONS[locale]) locale = 'fr';
     setLocale(locale);

@@ -339,6 +339,12 @@ const PAGE_STYLE = `
   @media (max-width:520px){ .wrap{ padding:0 18px; } .offer-hero{ padding:30px 0 24px; } }
 `;
 
+/* Pages statiques de la montra : la version anglaise vit sous /en/… (q = '?lang=en'). */
+function sitePath(path: string, q: string): string {
+  if (!q) return path;
+  return path === '/' ? '/en' : `/en${path}`;
+}
+
 function head(opts: { locale: PageLocale; title: string; description: string; canonical: string; alternates?: { fr: string; en: string }; robots: string; jsonLd: unknown[] }): string {
   const { locale } = opts;
   return `<!DOCTYPE html>
@@ -375,15 +381,15 @@ function navHtml(locale: PageLocale, frHref: string, enHref: string): string {
   const q = locale === 'en' ? '?lang=en' : '';
   return `<nav>
   <div class="wrap nav-top">
-    <a class="brand" href="/${q}" aria-label="Z Jobs"><img src="/zjobs-logo.png" alt="Z Jobs" width="46" height="46" /><span>Z Jobs</span></a>
-    <div class="navlinks"><a href="/${q}#recherche" aria-current="page">${L.offers}</a>
-    <a href="/candidats${q}">${L.cand}</a>
-    <a href="/employeurs${q}">${L.emp}</a>
-    <a href="/outils${q}">${L.tools}</a>
+    <a class="brand" href="${sitePath('/', q)}" aria-label="Z Jobs"><img src="/zjobs-logo.png" alt="Z Jobs" width="46" height="46" /><span>Z Jobs</span></a>
+    <div class="navlinks"><a href="${sitePath('/', q)}#recherche" aria-current="page">${L.offers}</a>
+    <a href="${sitePath('/candidats', q)}">${L.cand}</a>
+    <a href="${sitePath('/employeurs', q)}">${L.emp}</a>
+    <a href="${sitePath('/outils', q)}">${L.tools}</a>
     </div>
     <div class="zj-nav-actions">
       <div class="locales"><a href="${esc(frHref)}" lang="fr" hreflang="fr" aria-current="${locale === 'fr'}">FR</a><a href="${esc(enHref)}" lang="en" hreflang="en" aria-current="${locale === 'en'}">EN</a></div>
-      <a class="zj-nav-publish" href="/employeurs${q}" data-zj="publish">${L.publish}</a>
+      <a class="zj-nav-publish" href="${sitePath('/employeurs', q)}" data-zj="publish">${L.publish}</a>
       <a class="nav-cta" href="${PORTAL_URL}" data-zj-app data-zj="signin">${L.signin}</a>
     </div>
   </div>
@@ -465,7 +471,7 @@ ${navHtml(locale, path, path + '?lang=en')}
 <main id="contenu">
 <header class="offer-hero hero">
   <div class="wrap">
-    <p class="crumbs"><a href="/${q}">Z Jobs</a><span>›</span><a href="/${q}#recherche">${esc(c.offers)}</a><span>›</span>${esc(o.title)}</p>
+    <p class="crumbs"><a href="${sitePath('/', q)}">Z Jobs</a><span>›</span><a href="${sitePath('/', q)}#recherche">${esc(c.offers)}</a><span>›</span>${esc(o.title)}</p>
     <h1>${esc(o.title)}</h1>
     <p class="offer-employer"><a href="${esc(employerUrl)}">${esc(o.employer.displayName)}</a>${verified ? `<span class="seal">${esc(c.verified)}</span>` : `<span class="seal pending">${esc(c.unverified)}</span>`}${place ? `<span>${esc(place)}</span>` : ''}<span>${esc(contract)}</span></p>
     <p class="offer-salary">${esc(salary)}</p>
@@ -510,7 +516,7 @@ ${navHtml(locale, path, path + '?lang=en')}
   <div class="wrap gone">
     <h1>${esc(c.goneTitle)}</h1>
     <p>${esc(c.goneBody)}</p>
-    <a class="apply" href="/${q}#recherche">${esc(c.goneCta)}</a>
+    <a class="apply" href="${sitePath('/', q)}#recherche">${esc(c.goneCta)}</a>
   </div>
 </main>
 <footer></footer>
@@ -639,7 +645,7 @@ export function renderCityPage(city: PublicCity, offers: PublicOfferRecord[], ot
     { '@context': 'https://schema.org', '@type': 'CollectionPage', name: t.title, url: en ? enUrl : frUrl, inLanguage: locale, about: { '@type': 'City', name, ...(city.adminArea ? { containedInPlace: { '@type': 'AdministrativeArea', name: city.adminArea } } : {}) } },
   ];
   if (indexable) ld.push({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faq.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) });
-  const searchHref = `/${q}#recherche`;
+  const searchHref = `${sitePath('/', q)}#recherche`;
   const offersHtml = n
     ? `<ul class="city-offers">${offers.slice(0, 30).map((o) => `<li><a href="${esc(offerPath(o) + q)}"><b>${esc(o.title)}</b><span>${esc(o.employer?.displayName ?? '')} · ${esc(CONTRACT[locale][o.contractType] ?? '')}</span><em>${esc(salaryText(o, locale))}</em></a></li>`).join('')}</ul>`
     : `<div class="city-empty"><p style="margin:0">${esc(t.empty)}</p></div>`;
@@ -649,16 +655,16 @@ export function renderCityPage(city: PublicCity, offers: PublicOfferRecord[], ot
 ${navHtml(locale, path, path + '?lang=en')}
 <main id="contenu">
 <header class="city-hero hero"><div class="wrap">
-  <p class="crumbs"><a href="/${q}">Z Jobs</a><span>›</span>${esc(t.h1)}</p>
+  <p class="crumbs"><a href="${sitePath('/', q)}">Z Jobs</a><span>›</span>${esc(t.h1)}</p>
   <h1>${esc(t.h1)}</h1>
   <p>${esc(t.lead)}</p>
-  <div class="city-ctas"><a class="primary" href="${PORTAL_URL}?lang=${locale}">${esc(t.alert)}</a><a href="${esc(searchHref)}">${esc(t.all)}</a><a href="/employeurs${q}">${esc(t.post)}</a></div>
+  <div class="city-ctas"><a class="primary" href="${PORTAL_URL}?lang=${locale}">${esc(t.alert)}</a><a href="${esc(searchHref)}">${esc(t.all)}</a><a href="${sitePath('/employeurs', q)}">${esc(t.post)}</a></div>
 </div></header>
 <div class="wrap">
   <section class="city-section"><h2>${esc(t.offers)}</h2>${offersHtml}</section>
-  <section class="city-section"><h2>${esc(t.salary)}</h2><p>${esc(t.salaryP)}</p><ul class="city-links"><li><a href="/outils${q}#simulateur">${esc(t.sim)}</a></li><li><a href="/outils${q}#legislation">${esc(t.law)}</a></li></ul></section>
+  <section class="city-section"><h2>${esc(t.salary)}</h2><p>${esc(t.salaryP)}</p><ul class="city-links"><li><a href="${sitePath('/outils', q)}#simulateur">${esc(t.sim)}</a></li><li><a href="${sitePath('/outils', q)}#legislation">${esc(t.law)}</a></li></ul></section>
   ${zfindHousing ? `<section class="city-section"><h2>${esc(t.housing)}</h2><p>${esc(t.housingP)}</p><ul class="city-links"><li><a href="${esc(zfindHousing)}">${esc(t.housingCta)} →</a></li></ul></section>` : ''}
-  <section class="city-section"><h2>${esc(t.employers)}</h2><p>${esc(t.employersP)}</p><ul class="city-links"><li><a href="/employeurs${q}">${esc(t.post)} →</a></li></ul></section>
+  <section class="city-section"><h2>${esc(t.employers)}</h2><p>${esc(t.employersP)}</p><ul class="city-links"><li><a href="${sitePath('/employeurs', q)}">${esc(t.post)} →</a></li></ul></section>
   ${others.length ? `<section class="city-section"><h2>${esc(t.othersH)}</h2><ul class="city-links">${others.map((o) => `<li><a href="${esc(cityPath(o) + q)}">${esc(o.city)}</a></li>`).join('')}</ul></section>` : ''}
   <section class="city-section city-faq"><h2>${esc(t.faqH)}</h2>${faq.map((f) => `<details><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join('')}</section>
 </div>

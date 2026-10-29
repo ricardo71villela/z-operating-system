@@ -1,0 +1,496 @@
+<!-- Généré par apps/jobs/tools/build-montra-en.mjs à partir de ../candidats.html — ne pas modifier à la main. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title data-i18n="page_title">Free CV and cover letter check | Z Jobs</title>
+<meta name="description" content="Check your CV and cover letter for free: the impact of your experience, a letter written for the job. Free tools for candidates, no sign-up." />
+<meta name="robots" content="index,follow" />
+<link rel="canonical" href="https://zjobs.online/en/candidats" />
+<link rel="alternate" hreflang="fr" href="https://zjobs.online/candidats" />
+<link rel="alternate" hreflang="en" href="https://zjobs.online/en/candidats" />
+<link rel="alternate" hreflang="x-default" href="https://zjobs.online/candidats" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Z Jobs" />
+<meta property="og:title" content="Free CV and cover letter check | Z Jobs" />
+<meta property="og:description" content="Check your CV and cover letter for free: the impact of your experience, a letter written for the job. Free tools for candidates, no sign-up." />
+<meta property="og:url" content="https://zjobs.online/en/candidats" />
+<meta property="og:locale" content="en_GB" />
+<meta property="og:locale:alternate" content="fr_FR" />
+<meta name="twitter:card" content="summary" />
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Z Jobs", "item": "https://zjobs.online/en"}, {"@type": "ListItem", "position": 2, "name": "Analyse de CV et lettre de motivation gratuite", "item": "https://zjobs.online/en/candidats"}]}</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500;600&display=swap');
+  :root{
+    --ink:#FFFFFF; --surface:#F6F7F9; --surface-2:#EEF1F5; --gold:#2B5EA7; --gold-bright:#1E4A8A;
+    --paper:#3A4250; --paper-surface:#4A5261; --trust:#2E7D62; --trust-soft:#E6F2EC; --ash:#5F6773;
+    --redact:#DDE2E8; --line: rgba(43,94,167,0.22);
+    --gold-on-light:#A9C6EC; --ash-on-light:#D3D9E1; --trust-on-light:#8FD3B6; --line-on-light: rgba(255,255,255,0.22);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{ margin:0; background:var(--ink); color:var(--paper); font-family:'DM Sans',sans-serif; font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased; }
+  h1,h2,h3{ font-family:'Cormorant Garamond',Georgia,serif; font-weight:600; margin:0; letter-spacing:-0.01em; }
+  a{color:inherit;} .wrap{ max-width:1120px; margin:0 auto; padding:0 28px; }
+
+  nav{ position:sticky; top:0; z-index:20; background:#FFFFFF; border-bottom:1px solid var(--line); }
+  nav .nav-top{ display:flex; align-items:center; justify-content:space-between; height:72px; }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand img{ width:46px; height:46px; }
+  .brand span{ font-family:'Cormorant Garamond',Georgia,serif; font-weight:600; font-size:20px; }
+  .locales{ display:flex; gap:6px; font-family:'DM Sans',sans-serif; font-size:11px; letter-spacing:0.06em; }
+  .locales button{ font:inherit; background:none;  padding:5px 9px; border:1px solid var(--line); border-radius:2px; color:var(--ash); cursor:pointer; }
+  .locales button:hover{ border-color:var(--gold); color:var(--gold-bright); }
+  .locales button.is-active{ color:var(--ink); background:var(--gold); border-color:var(--gold); font-weight:600; }
+  .nav-cta{ font-size:14px; font-weight:600; color:var(--paper); border:1px solid var(--line); padding:9px 18px; border-radius:2px; text-decoration:none; white-space:nowrap; }
+  .nav-cta:hover{ border-color:var(--gold); color:var(--gold-bright); }
+  .navlinks{ display:flex; gap:24px; height:44px; align-items:center; border-top:1px solid rgba(43,94,167,0.12); font-size:13.5px; }
+  .navlinks a{ color:var(--ash); text-decoration:none; }
+  .navlinks a:hover, .navlinks a.is-current{ color:var(--gold-bright); }
+  @media (max-width:640px){ .navlinks{ gap:14px; overflow-x:auto; white-space:nowrap; } }
+
+  header.pagehero{ padding:72px 0 56px; position:relative; overflow:hidden; }
+  header.pagehero::before{ content:""; position:absolute; inset:-20% -10% auto -10%; height:420px; background:radial-gradient(ellipse at 50% 0%, rgba(43,94,167,0.14), transparent 65%); pointer-events:none; }
+  .eyebrow{ font-family:'DM Sans',sans-serif; font-size:12px; letter-spacing:0.14em; text-transform:uppercase; color:var(--gold); display:inline-flex; align-items:center; gap:10px; margin-bottom:20px; }
+  .eyebrow::before{ content:""; width:22px; height:1px; background:var(--gold); }
+  h1.headline{ font-size:clamp(32px,4.6vw,48px); line-height:1.08; max-width:760px; }
+  .sub{ font-size:17px; color:var(--ash); max-width:620px; margin:20px 0 0; }
+
+  section{ padding:64px 0; }
+  .section-light{ background:var(--paper); color:var(--ink); --gold:var(--gold-on-light); --gold-bright:var(--gold-on-light); --ash:var(--ash-on-light); --trust:var(--trust-on-light); --surface:var(--paper-surface); --surface-2:var(--paper-surface); --line:var(--line-on-light); }
+  .section-kicker{ font-family:'DM Sans',sans-serif; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--gold); }
+  h2.section-title{ font-size:clamp(24px,3.4vw,32px); max-width:680px; margin:14px 0 12px; }
+  .section-sub{ color:var(--ash); font-size:15px; max-width:600px; margin:0 0 32px; }
+
+  .tool-card{ background:var(--surface); border:1px solid var(--line); border-radius:2px; padding:28px; max-width:760px; }
+  .tool-card textarea{
+    width:100%; min-height:140px; background:var(--ink); border:1px solid var(--line); border-radius:2px; padding:14px;
+    color:var(--paper); font-family:'DM Sans',sans-serif; font-size:14.5px; line-height:1.6; resize:vertical;
+  }
+  .section-light .tool-card textarea{ background:#fff; color:var(--ink); }
+  .tool-card textarea:focus{ outline:none; border-color:var(--gold); }
+  .tool-btn{ margin-top:14px; padding:12px 26px; border-radius:2px; border:1px solid var(--gold); background:var(--gold); color:var(--ink); font-weight:600; font-size:14.5px; cursor:pointer; }
+  .tool-btn:hover{ background:var(--gold-bright); }
+  .tool-result{ margin-top:22px; padding-top:20px; border-top:1px solid rgba(58,66,80,0.13); display:none; }
+  .section-light .tool-result{ border-top:1px solid rgba(0,0,0,0.08); }
+  .tool-result.is-visible{ display:block; }
+  .score-row{ display:flex; align-items:baseline; gap:12px; margin-bottom:16px; }
+  .score-num{ font-family:'Cormorant Garamond',Georgia,serif; font-size:40px; font-weight:600; color:var(--gold-bright); }
+  .score-label{ font-family:'DM Sans',sans-serif; font-size:12px; color:var(--ash); }
+  .signal-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; }
+  .signal-list li{ font-size:14px; padding:10px 14px; border-radius:2px; background:rgba(43,94,167,0.08); border-left:3px solid var(--gold); }
+  .signal-list li.is-ok{ background:rgba(46,125,98,0.1); border-left-color:var(--trust); }
+  .signal-empty{ font-size:14px; color:var(--trust); font-family:'DM Sans',sans-serif; }
+
+  .matching-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:2px; overflow:hidden; }
+  .matching-cell{ background:var(--surface); padding:26px 22px; }
+  .matching-cell .weight{ font-family:'DM Sans',sans-serif; font-size:11px; color:var(--gold); letter-spacing:0.06em; margin-bottom:10px; }
+  .matching-cell h3{ font-size:16px; margin-bottom:8px; }
+  .matching-cell p{ font-size:13.5px; color:var(--ash); margin:0; }
+  @media (max-width:820px){ .matching-grid{ grid-template-columns:1fr; } }
+
+  footer{ border-top:1px solid var(--line); padding:44px 0; }
+  footer .wrap{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; }
+  .flags{ display:flex; gap:10px; font-family:'DM Sans',sans-serif; font-size:11px; color:var(--ash); }
+  footer .fine{ font-family:'DM Sans',sans-serif; font-size:11.5px; color:var(--ash); }
+  :focus-visible{ outline:2px solid var(--gold-bright); outline-offset:3px; }
+  .skip-link{ position:absolute; left:16px; top:-60px; z-index:100; background:var(--gold-bright); color:var(--ink); padding:10px 16px; border-radius:2px; font-weight:600; text-decoration:none; }
+  .skip-link:focus{ top:12px; }
+  .section-light .tool-btn{ color:#fff; }
+</style>
+<link rel="stylesheet" href="/zjobs-site.css" />
+<link rel="icon" type="image/png" href="/zjobs-logo.png" />
+<script src="/zjobs-chrome.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#contenu" data-i18n="skip_link">Skip to content</a>
+
+<nav>
+  <div class="wrap nav-top">
+    <a class="brand" href="/en" aria-label="Z Jobs"><img src="/zjobs-logo.png" alt="Z Jobs" /><span>Z Jobs</span></a>
+    <div class="navlinks"><a href="/en" data-i18n="nav_home">Home</a>
+    <a href="/en/candidats" class="is-current" data-i18n="nav_candidates">For candidates</a>
+    <a href="/en/employeurs" data-i18n="nav_employers">For employers</a>
+    <a href="/en/outils" data-i18n="nav_tools">Legislation &amp; tools</a>
+    </div>
+    <div class="zj-nav-actions">
+      <div class="locales">
+      <button type="button" class="is-active" data-locale="fr" lang="fr" aria-label="Français" aria-pressed="true">FR</button><button type="button" data-locale="en" lang="en" aria-label="English" aria-pressed="false">EN</button>
+    </div>
+      <a class="zj-nav-publish" href="/en/employeurs" data-zj="publish">Publier une offre</a>
+      <a class="nav-cta" href="https://z-jobs-app.vercel.app/" data-zj-app data-zj="signin">Se connecter</a>
+    </div>
+  </div>
+</nav>
+
+<main id="contenu">
+<header class="pagehero">
+  <div class="wrap">
+    <div class="eyebrow" data-i18n="eyebrow">For candidates · always free</div>
+    <h1 class="headline" data-i18n="headline">Your tools, not our promises.</h1>
+    <p class="sub" data-i18n="sub">Two real tools, already working on this page — not a demo. Paste your text and see the result.</p>
+  </div>
+</header>
+
+<section class="section-light" id="cvstudio">
+  <div class="wrap">
+    <span class="section-kicker" data-i18n="cv_kicker">CV Studio</span>
+    <h2 class="section-title" data-i18n="cv_title">Does your experience show impact, or just duties?</h2>
+    <p class="section-sub" data-i18n="cv_sub">Paste a professional experience description. We check the same signals the platform uses — never whether you're a "good" or "bad" candidate, only whether the text communicates real impact.</p>
+    <div class="tool-card">
+      <textarea id="cvInput" data-i18n-placeholder="ex : Responsable de l&#x27;équipe commerciale, gestion des comptes clients, augmentation du chiffre d&#x27;affaires de 18 % la première année." placeholder="ex : Responsable de l&#x27;équipe commerciale, gestion des comptes clients, augmentation du chiffre d&#x27;affaires de 18 % la première année."></textarea>
+      <label class="cv-check-row" style="display:flex; align-items:center; gap:8px; margin-top:14px; font-size:13.5px; color:var(--ash);">
+        <input type="checkbox" id="cvHasCert" style="width:16px; height:16px;" /> <span data-i18n="cv_has_cert">I have at least one certification linked to my profile</span>
+      </label>
+      <label class="cv-check-row" style="display:flex; align-items:center; gap:8px; margin-top:8px; font-size:13.5px; color:var(--ash);">
+        <input type="checkbox" id="cvHasPortfolio" style="width:16px; height:16px;" /> <span data-i18n="cv_has_portfolio">I have a portfolio or external link linked to my profile</span>
+      </label>
+      <button class="tool-btn" id="cvBtn" data-i18n="cv_btn">Analyse</button>
+      <div class="tool-result" id="cvResult" aria-live="polite">
+        <div class="score-row"><span class="score-num" id="cvScore">—</span><span class="score-label" data-i18n="cv_score_label">/ 100 — text quality</span></div>
+        <ul class="signal-list" id="cvSignals"></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="coverletter">
+  <div class="wrap">
+    <span class="section-kicker" data-i18n="cl_kicker">Cover letter</span>
+    <h2 class="section-title" data-i18n="cl_title">Written for this job, or copied from another one?</h2>
+    <p class="section-sub" data-i18n="cl_sub">Enter the employer name and job title, paste your letter, and see if it actually speaks to this specific listing.</p>
+    <div class="tool-card">
+      <div style="display:flex; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
+        <input type="text" id="clEmployer" data-i18n-placeholder="Nom de l&#x27;employeur" placeholder="Nom de l&#x27;employeur" style="flex:1; min-width:180px; background:var(--ink); border:1px solid var(--line); border-radius:2px; padding:11px 14px; color:var(--paper); font-size:14px;" />
+        <input type="text" id="clTitle" data-i18n-placeholder="Intitulé du poste" placeholder="Intitulé du poste" style="flex:1; min-width:180px; background:var(--ink); border:1px solid var(--line); border-radius:2px; padding:11px 14px; color:var(--paper); font-size:14px;" />
+      </div>
+      <textarea id="clInput" data-i18n-placeholder="Collez ici votre lettre de motivation…" placeholder="Collez ici votre lettre de motivation…"></textarea>
+      <button class="tool-btn" id="clBtn" data-i18n="cl_btn">Check</button>
+      <div class="tool-result" id="clResult" aria-live="polite">
+        <ul class="signal-list" id="clSignals"></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section-light" id="relevancia">
+  <div class="wrap">
+    <span class="section-kicker" data-i18n="rel_kicker">Relevance</span>
+    <h2 class="section-title" data-i18n="rel_title">Listings rank for you — nothing ever hidden.</h2>
+    <p class="section-sub" data-i18n="rel_sub">Six factors, all visible, never a black box. A listing never disappears for scoring low — it just sits lower on the list.</p>
+    <div class="matching-grid">
+      <div class="matching-cell"><div class="weight">35%</div><h3 data-i18n="rel_f1_title">Skills</h3><p data-i18n="rel_f1_body">Your declared skills against the listing description.</p></div>
+      <div class="matching-cell"><div class="weight">15%</div><h3 data-i18n="rel_f2_title">Contract type</h3><p data-i18n="rel_f2_body">Permanent, fixed-term, interim — based on your preference.</p></div>
+      <div class="matching-cell"><div class="weight">15%</div><h3 data-i18n="rel_f3_title">Work arrangement</h3><p data-i18n="rel_f3_body">Remote, hybrid or on-site — remote and hybrid count toward each other.</p></div>
+      <div class="matching-cell"><div class="weight">15%</div><h3 data-i18n="rel_f4_title">Salary fit</h3><p data-i18n="rel_f4_body">Does the listing meet the minimum you said you wanted?</p></div>
+      <div class="matching-cell"><div class="weight">10%</div><h3 data-i18n="rel_f5_title">Career stage</h3><p data-i18n="rel_f5_body">First job, senior career, or neutral — never disqualifies on its own.</p></div>
+      <div class="matching-cell"><div class="weight">10%</div><h3 data-i18n="rel_f6_title">Location</h3><p data-i18n="rel_f6_body">A remote listing always counts as compatible.</p></div>
+    </div>
+  </div>
+</section>
+
+</main>
+<footer>
+  <div class="wrap">
+    <div class="flags"><span data-i18n="flag_fr">France</span><span data-i18n="flag_be">Belgium</span><span data-i18n="flag_lu">Luxembourg</span></div>
+    <div class="fine" data-i18n="footer_fine">Z Jobs — always free for candidates.</div>
+  </div>
+</footer>
+
+<script>
+// ---------- motor real de qualidade de CV, portado de packages/domain/src/rules/cvStudio.ts ----------
+var QUANTIFICATION_PATTERN = /\d+([.,]\d+)?\s*%?/;
+var ACTION_VERBS = {
+  pt: ['liderei','aumentei','reduzi','implementei','criei','geri','lancei','otimizei'],
+  it: ['ho guidato','ho aumentato','ho ridotto','ho implementato','ho creato','ho gestito','ho lanciato'],
+  es: ['lideré','aumenté','reduje','implementé','creé','gestioné','lancé','optimicé'],
+  fr: ['dirigé','piloté','encadré','géré','augmenté','réduit','créé','conçu','développé','lancé','mis en place','mis en œuvre','mise en place','mise en œuvre','optimisé','négocié','coordonné','organisé','déployé','amélioré','recruté'],
+  de: ['leitete','steigerte','reduzierte','implementierte','erstellte','verwaltete','startete'],
+  en: ['led','increased','reduced','implemented','created','managed','launched','optimized'],
+};
+var GENERIC_OPENING_PHRASES = [
+  'venho por este meio candidatar-me a uma vaga',
+  'to whom it may concern',
+  'i am writing to apply for a position',
+  'je me permets de vous adresser ma candidature',
+  'veuillez trouver ci-joint mon cv',
+  'suite a votre annonce parue',
+];
+
+// Same matching as packages/domain/src/rules/cvStudio.ts: accents folded,
+// whole words only ("lancé" does not match "balance").
+function fold(text) {
+  return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[’‘]/g, "'").replace(/œ/g, 'oe');
+}
+function containsTerm(foldedText, term) {
+  var escaped = fold(term).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp('(^|[^\\p{L}])' + escaped + '($|[^\\p{L}])', 'u').test(foldedText);
+}
+
+function computeCVQuality(text, locale, hasCert, hasPortfolio) {
+  var signals = [];
+  var score = 100;
+  var lower = text.toLowerCase();
+  var hasText = text.trim().length > 0;
+
+  if (hasText && !QUANTIFICATION_PATTERN.test(text)) {
+    signals.push({ ok:false, key:'sig_no_quant' });
+    score -= 25;
+  } else if (hasText) {
+    signals.push({ ok:true, key:'sig_has_quant' });
+  }
+
+  var verbs = ACTION_VERBS[locale] || ACTION_VERBS.en;
+  var folded = fold(text);
+  var hasVerb = verbs.some(function (v) { return containsTerm(folded, v); });
+  if (hasText && !hasVerb) {
+    signals.push({ ok:false, key:'sig_weak_verbs' });
+    score -= 15;
+  } else if (hasText) {
+    signals.push({ ok:true, key:'sig_has_verbs' });
+  }
+
+  if (hasText && text.trim().length < 30) {
+    signals.push({ ok:false, key:'sig_too_short' });
+    score -= 15;
+  }
+
+  // Paridade com packages/domain/src/rules/cvStudio.ts (computeCVQuality) —
+  // sem estes dois sinais, um "bom" texto dava 100 na montra e só 80 no
+  // domínio real, para o mesmo caso. Verificado por execução direta do
+  // domínio, não por suposição.
+  if (!hasCert) {
+    signals.push({ ok:false, key:'sig_no_cert' });
+    score -= 10;
+  } else {
+    signals.push({ ok:true, key:'sig_has_cert' });
+  }
+  if (!hasPortfolio) {
+    signals.push({ ok:false, key:'sig_no_portfolio' });
+    score -= 10;
+  } else {
+    signals.push({ ok:true, key:'sig_has_portfolio' });
+  }
+
+  return { score: Math.max(0, score), signals: signals };
+}
+
+function validateCoverLetter(body, employer, title) {
+  var checks = [];
+  var lower = body.toLowerCase();
+  if (employer && lower.indexOf(employer.toLowerCase()) === -1) checks.push('cl_missing_employer');
+  if (title && lower.indexOf(title.toLowerCase()) === -1) checks.push('cl_missing_title');
+  if (body.trim().length < 200) checks.push('cl_too_short');
+  if (GENERIC_OPENING_PHRASES.some(function (p) { return fold(lower).indexOf(fold(p)) !== -1; })) checks.push('cl_generic_opening');
+  return checks;
+}
+
+  var TRANSLATIONS = {
+    "fr": {
+      "skip_link": "Aller au contenu",
+      "cv_has_cert": "J'ai au moins une certification associée à mon profil",
+      "cv_has_portfolio": "J'ai un portfolio ou un lien externe associé",
+      "sig_has_cert": "Vous avez au moins une certification — bon signe.",
+      "sig_no_cert": "Aucune certification associée au profil.",
+      "sig_has_portfolio": "Vous avez un portfolio ou un lien externe — bon signe.",
+      "sig_no_portfolio": "Aucun portfolio ni lien externe associé.",
+      "nav_home": "Accueil",
+      "nav_candidates": "Pour les candidats",
+      "nav_employers": "Pour les employeurs",
+      "nav_tools": "Législation et outils",
+      "eyebrow": "Pour les candidats · toujours gratuit",
+      "headline": "Vos outils, pas nos promesses.",
+      "sub": "Deux outils réels, déjà fonctionnels sur cette page — pas une démo. Collez votre texte et regardez le résultat.",
+      "cv_kicker": "Atelier CV",
+      "cv_title": "Votre expérience montre-t-elle un impact, ou seulement des tâches ?",
+      "cv_sub": "Collez une description d'expérience professionnelle. Nous vérifions les mêmes signaux que la plateforme — jamais si vous êtes un « bon » ou un « mauvais » candidat, seulement si le texte communique un impact réel.",
+      "cv_placeholder": "ex : Responsable de l'équipe commerciale, gestion des comptes clients, augmentation du chiffre d'affaires de 18 % la première année.",
+      "cv_btn": "Analyser",
+      "cv_score_label": "/ 100 — qualité du texte",
+      "cl_kicker": "Lettre de motivation",
+      "cl_title": "Écrite pour ce poste, ou copiée d'une autre ?",
+      "cl_sub": "Indiquez le nom de l'employeur et l'intitulé du poste, collez votre lettre, et vérifiez qu'elle s'adresse vraiment à cette offre précise.",
+      "cl_employer_placeholder": "Nom de l'employeur",
+      "cl_title_placeholder": "Intitulé du poste",
+      "cl_placeholder": "Collez ici votre lettre de motivation…",
+      "cl_btn": "Vérifier",
+      "rel_kicker": "Pertinence",
+      "rel_title": "Les offres se classent pour vous, rien n’est jamais caché.",
+      "rel_sub": "Six facteurs, tous visibles, jamais une boîte noire. Une offre ne disparaît jamais pour un score bas — elle descend juste dans la liste.",
+      "rel_f1_title": "Compétences",
+      "rel_f1_body": "Vos compétences déclarées face à la description de l'offre.",
+      "rel_f2_title": "Type de contrat",
+      "rel_f2_body": "CDI, CDD, intérim — selon votre préférence.",
+      "rel_f3_title": "Régime de travail",
+      "rel_f3_body": "Télétravail, hybride ou présentiel — télétravail et hybride comptent l'un pour l'autre.",
+      "rel_f4_title": "Adéquation salariale",
+      "rel_f4_body": "L'offre atteint-elle le minimum que vous avez indiqué ?",
+      "rel_f5_title": "Étape de carrière",
+      "rel_f5_body": "Premier emploi, carrière senior, ou neutre — ne disqualifie jamais à elle seule.",
+      "rel_f6_title": "Localisation",
+      "rel_f6_body": "Une offre à distance compte toujours comme compatible.",
+      "flag_fr": "France",
+      "footer_fine": "Z Jobs — toujours gratuit pour les candidats.",
+      "sig_has_quant": "Bonne nouvelle : nous avons trouvé un chiffre ou un pourcentage — cela communique un impact réel.",
+      "sig_no_quant": "Aucun chiffre ni pourcentage trouvé. Les descriptions avec impact chiffré (ex : \"réduit les coûts de 18 %\") se démarquent plus que les listes de tâches.",
+      "sig_has_verbs": "Utilise des verbes d'action forts — bon signe.",
+      "sig_weak_verbs": "Nous n'avons pas trouvé de verbes d'action forts (ex : \"dirigé\", \"augmenté\", \"créé\") en début de phrase.",
+      "sig_too_short": "Le texte est trop court pour être évalué — ajoutez davantage de détails.",
+      "cl_missing_employer": "La lettre ne mentionne pas le nom de l'employeur que vous avez indiqué.",
+      "cl_missing_title": "La lettre ne mentionne pas l'intitulé du poste que vous avez indiqué.",
+      "cl_too_short": "La lettre est trop courte pour transmettre un contexte réel sur la candidature.",
+      "cl_generic_opening": "La lettre commence par une formule générique associée aux lettres non personnalisées.",
+      "cl_all_good": "La lettre semble écrite pour cette offre précise — aucun signal générique trouvé.",
+      "flag_be": "Belgique",
+      "flag_lu": "Luxembourg",
+      "nav_offers": "Offres",
+      "page_title": "Analyse de CV et lettre de motivation gratuite | Z Jobs"
+    },
+    "en": {
+      "skip_link": "Skip to content",
+      "cv_has_cert": "I have at least one certification linked to my profile",
+      "cv_has_portfolio": "I have a portfolio or external link linked to my profile",
+      "sig_has_cert": "You have at least one certification — good sign.",
+      "sig_no_cert": "No certification linked to the profile.",
+      "sig_has_portfolio": "You have a portfolio or external link — good sign.",
+      "sig_no_portfolio": "No portfolio or external link linked.",
+      "nav_home": "Home",
+      "nav_candidates": "For candidates",
+      "nav_employers": "For employers",
+      "nav_tools": "Legislation & tools",
+      "eyebrow": "For candidates · always free",
+      "headline": "Your tools, not our promises.",
+      "sub": "Two real tools, already working on this page — not a demo. Paste your text and see the result.",
+      "cv_kicker": "CV Studio",
+      "cv_title": "Does your experience show impact, or just duties?",
+      "cv_sub": "Paste a professional experience description. We check the same signals the platform uses — never whether you're a \"good\" or \"bad\" candidate, only whether the text communicates real impact.",
+      "cv_placeholder": "e.g. Responsible for the sales team, managed client accounts and increased revenue by 18% in the first year.",
+      "cv_btn": "Analyse",
+      "cv_score_label": "/ 100 — text quality",
+      "cl_kicker": "Cover letter",
+      "cl_title": "Written for this job, or copied from another one?",
+      "cl_sub": "Enter the employer name and job title, paste your letter, and see if it actually speaks to this specific listing.",
+      "cl_employer_placeholder": "Employer name",
+      "cl_title_placeholder": "Job title",
+      "cl_placeholder": "Paste your cover letter here...",
+      "cl_btn": "Check",
+      "rel_kicker": "Relevance",
+      "rel_title": "Listings rank for you — nothing ever hidden.",
+      "rel_sub": "Six factors, all visible, never a black box. A listing never disappears for scoring low — it just sits lower on the list.",
+      "rel_f1_title": "Skills",
+      "rel_f1_body": "Your declared skills against the listing description.",
+      "rel_f2_title": "Contract type",
+      "rel_f2_body": "Permanent, fixed-term, interim — based on your preference.",
+      "rel_f3_title": "Work arrangement",
+      "rel_f3_body": "Remote, hybrid or on-site — remote and hybrid count toward each other.",
+      "rel_f4_title": "Salary fit",
+      "rel_f4_body": "Does the listing meet the minimum you said you wanted?",
+      "rel_f5_title": "Career stage",
+      "rel_f5_body": "First job, senior career, or neutral — never disqualifies on its own.",
+      "rel_f6_title": "Location",
+      "rel_f6_body": "A remote listing always counts as compatible.",
+      "flag_fr": "France",
+      "footer_fine": "Z Jobs — always free for candidates.",
+      "sig_has_quant": "Good news: we found a number or percentage — that communicates real impact.",
+      "sig_no_quant": "No number or percentage found. Descriptions with quantified impact (e.g. \"cut costs by 18%\") stand out more than lists of duties.",
+      "sig_has_verbs": "Uses strong action verbs — good sign.",
+      "sig_weak_verbs": "We didn't find strong action verbs (e.g. \"led\", \"increased\", \"created\") at the start of sentences.",
+      "sig_too_short": "The text is too short to assess — try adding more detail.",
+      "cl_missing_employer": "The letter doesn't mention the employer name you entered.",
+      "cl_missing_title": "The letter doesn't mention the job title you entered.",
+      "cl_too_short": "The letter is too short to convey real context about the application.",
+      "cl_generic_opening": "The letter opens with a generic formula associated with non-personalised letters.",
+      "cl_all_good": "The letter looks written for this specific listing — no generic signal found.",
+      "flag_be": "Belgium",
+      "flag_lu": "Luxembourg",
+      "nav_offers": "Listings",
+      "page_title": "Free CV and cover letter check | Z Jobs"
+    }
+  };
+
+  function setLocale(locale) {
+    var dict = TRANSLATIONS[locale] || TRANSLATIONS.fr;
+    document.querySelectorAll('[data-i18n]').forEach(function (el) {
+      var key = el.getAttribute('data-i18n');
+      if (dict[key]) el.textContent = dict[key];
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+      var key = el.getAttribute('data-i18n-placeholder');
+      if (dict[key]) el.setAttribute('placeholder', dict[key]);
+    });
+    document.documentElement.lang = locale;
+    try { window.localStorage.setItem('zjobs_locale', locale); } catch (e) { /* sans stockage */ }
+    document.querySelectorAll('.locales button').forEach(function (el) {
+      el.classList.toggle('is-active', el.getAttribute('data-locale') === locale);
+      el.setAttribute('aria-pressed', String(el.getAttribute('data-locale') === locale));
+    });
+    window.CURRENT_LOCALE = locale;
+  }
+  document.querySelectorAll('.locales button').forEach(function (el) {
+    el.addEventListener('click', function () { setLocale(el.getAttribute('data-locale')); });
+  });
+  window.CURRENT_LOCALE = 'fr';
+
+  function t(key) {
+    var dict = TRANSLATIONS[window.CURRENT_LOCALE] || TRANSLATIONS.fr;
+    return dict[key] || key;
+  }
+
+  document.getElementById('cvBtn').addEventListener('click', function () {
+    var text = document.getElementById('cvInput').value;
+    var hasCert = document.getElementById('cvHasCert').checked;
+    var hasPortfolio = document.getElementById('cvHasPortfolio').checked;
+    var result = computeCVQuality(text, window.CURRENT_LOCALE, hasCert, hasPortfolio);
+    var list = document.getElementById('cvSignals');
+    list.innerHTML = '';
+    if (text.trim().length === 0) return;
+    result.signals.forEach(function (s) {
+      var li = document.createElement('li');
+      li.className = s.ok ? 'is-ok' : '';
+      li.textContent = t(s.key);
+      list.appendChild(li);
+    });
+    document.getElementById('cvScore').textContent = result.score;
+    document.getElementById('cvResult').classList.add('is-visible');
+  });
+
+  document.getElementById('clBtn').addEventListener('click', function () {
+    var body = document.getElementById('clInput').value;
+    var employer = document.getElementById('clEmployer').value;
+    var title = document.getElementById('clTitle').value;
+    var checks = validateCoverLetter(body, employer, title);
+    var list = document.getElementById('clSignals');
+    list.innerHTML = '';
+    if (body.trim().length === 0) return;
+    if (checks.length === 0) {
+      var li = document.createElement('li');
+      li.className = 'is-ok';
+      li.textContent = t('cl_all_good');
+      list.appendChild(li);
+    } else {
+      checks.forEach(function (key) {
+        var li = document.createElement('li');
+        li.textContent = t(key);
+        list.appendChild(li);
+      });
+    }
+    document.getElementById('clResult').classList.add('is-visible');
+  });
+
+
+  // Langue : ?lang=, puis le dernier choix, puis la langue du navigateur ; français par défaut.
+  (function () {
+    var locale = 'fr';
+    try {
+      var asked = new URLSearchParams(window.location.search).get('lang');
+      var saved = window.localStorage.getItem('zjobs_locale');
+      var browser = (navigator.language || '').slice(0, 2).toLowerCase();
+      locale = 'en';
+    } catch (e) { /* stockage indisponible : français */ }
+    if (!TRANSLATIONS[locale]) locale = 'fr';
+    setLocale(locale);
+  })();
+</script>
+</body>
+</html>
