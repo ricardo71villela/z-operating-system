@@ -123,6 +123,7 @@ async function tryEnterDashboard() {
   if (/^#abonnement/.test(window.location.hash || '')) { showBillingView(); return; }
   if (/^#statistiques/.test(window.location.hash || '')) { showStatsView(); return; }
   if (/^#mises-en-avant/.test(window.location.hash || '')) { showHighlightsView(); return; }
+  if (/^#contacts-vendeurs/.test(window.location.hash || '')) { showSellerLeadsView(); return; }
   if (/^#equipe/.test(window.location.hash || '')) { showTeamView(); return; }
   if (/^#page-agence/.test(window.location.hash || '')) { showProfileView(); return; }
   loadPortfolio();
@@ -1755,7 +1756,7 @@ async function handlePartnerSignOut() {
 
 /* ---------------- Navigation between Portfolio / Detail / Leads / Import / Feed ---------------- */
 function hideExtraPartnerViews() {
-  ['view-import', 'view-feed', 'view-billing', 'view-profile', 'view-stats', 'view-team', 'view-highlights'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+  ['view-import', 'view-feed', 'view-billing', 'view-profile', 'view-stats', 'view-team', 'view-highlights', 'view-seller-leads'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
 }
 /** Shows one dashboard section (import.js, feed.js), the agency name in its header. */
 function partnerShowView(id) {
