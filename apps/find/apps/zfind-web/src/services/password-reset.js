@@ -201,7 +201,10 @@ async function mount(opts) {
     try { await supabaseClientModule.getSupabaseClient().auth.getSession(); } catch (_) { /* form still shown */ }
   }
   if (state === 'recovery') { clearHash(); showNewPassword(); return 'recovery'; }
-  if (state === 'expired' && /reinitialiser=1/.test(initialSearch)) {
+  // Partner : seulement un lien de réinitialisation (ses liens de confirmation
+  // d'inscription ont leur propre message). Admin (opts.anyExpiredLink) : tout
+  // lien expiré, y compris ceux envoyés depuis le tableau Supabase.
+  if (state === 'expired' && (/reinitialiser=1/.test(initialSearch) || opts.anyExpiredLink)) {
     clearHash();
     showRequest('', 'Ce lien a expiré ou a déjà servi. Demandez un nouveau lien ci-dessous.');
     return 'expired';

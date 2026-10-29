@@ -78,6 +78,7 @@ async function initAdmin() {
   const reset = await window.ZFindServices.passwordReset.mount({
     card: document.getElementById('login-view'),
     classes: { error: 'pr-msg', link: 'pr-link' },
+    anyExpiredLink: true,
     onPasswordSet: () => checkAdminAccess()
   });
   if (reset) return;
