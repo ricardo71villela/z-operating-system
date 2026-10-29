@@ -118,6 +118,8 @@ export function buildEnglish(page, frHtml) {
     if (p === '/') return `href="/en${hash}"`;
     return STATIC.includes(p) ? `href="/en${p}${hash}"` : all;
   });
+  // Pages « salaire brut en net » : leur version anglaise.
+  h = h.replace(/href="\/salaire-brut-net(-belgique|-luxembourg)?"/g, (all, c) => `href="/en/gross-to-net-salary-${c === '-belgique' ? 'belgium' : c === '-luxembourg' ? 'luxembourg' : 'france'}"`);
   // Langue : toujours l'anglais sur cette adresse.
   h = h.replace(/locale = asked \|\| saved \|\| \(browser === 'en' \? 'en' : 'fr'\);/, "locale = 'en';");
   h = h.replace(/locale = asked === 'en' \? 'en' : 'fr';/, "locale = 'en';");

@@ -383,6 +383,26 @@ async function main() {
     const citySitemap = await (await fetch(`${BASE}/public/sitemap-emploi.xml`)).text();
     check('(cidade) sitemap contém Lyon e as 6 grandes cidades', citySitemap.includes('/emploi/lyon-69123') && citySitemap.includes('/emploi/paris-75056'), citySitemap.slice(0, 400));
 
+    // --- Páginas « salaire brut en net » ---
+    const salFr = await fetch(`${BASE}/public/salaire/france`);
+    const salFrHtml = (await salFr.text()).replace(/[\u202f\u00a0]/g, ' ');
+    check('(salário) França: 200, indexada, canonical, tabela e calculadora',
+      salFr.status === 200 && salFrHtml.includes('content="index,follow"') && salFrHtml.includes('<link rel="canonical" href="https://zjobs.online/salaire-brut-net" />')
+        && salFrHtml.includes('id="sal-fr"') && salFrHtml.includes('1 950 €') && salFrHtml.includes('/salaire-brut-net/2500-euros') && salFrHtml.includes('hreflang="en" href="https://zjobs.online/en/gross-to-net-salary-france"'),
+      { status: salFr.status });
+    const sal2500 = (await (await fetch(`${BASE}/public/salaire/france/2500-euros`)).text()).replace(/[\u202f\u00a0]/g, ' ');
+    check('(salário) 2 500 € brut: net non-cadre 1 950 €, cadre 1 875 €, BE e LU', sal2500.includes('<h1>2 500 € brut en net : combien en 2026 ?</h1>') && sal2500.includes('1 950 €') && sal2500.includes('1 875 €') && sal2500.includes('Luxembourg') && !/undefined|NaN/.test(sal2500));
+    const salSmic = (await (await fetch(`${BASE}/public/salaire/france/smic`)).text()).replace(/[\u202f\u00a0]/g, ' ');
+    check('(salário) SMIC: 1 867,06 € brut', salSmic.includes('1 867,06 €') && salSmic.includes('SMIC net 2026'));
+    const salBeEn = await (await fetch(`${BASE}/public/salaire/belgique?lang=en`)).text();
+    check('(salário) Bélgica EN: canonical /en/…, lang en', salBeEn.includes('<html lang="en">') && salBeEn.includes('href="https://zjobs.online/en/gross-to-net-salary-belgium"') && salBeEn.includes('id="sal-be"'));
+    const salLu = (await (await fetch(`${BASE}/public/salaire/luxembourg`)).text()).replace(/[\u202f\u00a0]/g, ' ');
+    check('(salário) Luxemburgo: SSM 2 771,33 € e tabela', salLu.includes('2 771,33 €') && salLu.includes('id="sal-lu"'));
+    const salBad = await fetch(`${BASE}/public/salaire/france/1234-euros`);
+    check('(salário) montante fora da lista → 404 noindex', salBad.status === 404);
+    const salMap = await (await fetch(`${BASE}/public/sitemap-salaires.xml`)).text();
+    check('(salário) sitemap: 3 países FR+EN, SMIC e montantes', salMap.includes('/salaire-brut-net-luxembourg') && salMap.includes('/en/gross-to-net-salary-france') && salMap.includes('/salaire-brut-net/smic') && salMap.includes('/salaire-brut-net/10000-euros'));
+
     // --- Páginas de empresa (zjobs.online/entreprise/<nome>-<id>) ---
     const coRes = await fetch(`${BASE}/public/entreprise/x-${org.id}`, { redirect: 'manual' });
     const coLoc = coRes.headers.get('location') ?? '';

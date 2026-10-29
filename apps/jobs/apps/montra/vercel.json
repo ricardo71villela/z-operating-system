@@ -32,6 +32,38 @@
       "destination": "https://z-jobs-api-zoperatingsystem.vercel.app/public/sitemap-entreprises.xml"
     },
     {
+      "source": "/salaire-brut-net",
+      "destination": "https://z-jobs-api-zoperatingsystem.vercel.app/public/salaire/france"
+    },
+    {
+      "source": "/salaire-brut-net/:amount",
+      "destination": "https://z-jobs-api-zoperatingsystem.vercel.app/public/salaire/france/:amount"
+    },
+    {
+      "source": "/salaire-brut-net-belgique",
+      "destination": "https://z-jobs-api-zoperatingsystem.vercel.app/public/salaire/belgique"
+    },
+    {
+      "source": "/salaire-brut-net-luxembourg",
+      "destination": "https://z-jobs-api-zoperatingsystem.vercel.app/public/salaire/luxembourg"
+    },
+    {
+      "source": "/en/gross-to-net-salary-france",
+      "destination": "https://z-jobs-api-zoperatingsystem.vercel.app/public/salaire/france?lang=en"
+    },
+    {
+      "source": "/en/gross-to-net-salary-belgium",
+      "destination": "https://z-jobs-api-zoperatingsystem.vercel.app/public/salaire/belgique?lang=en"
+    },
+    {
+      "source": "/en/gross-to-net-salary-luxembourg",
+      "destination": "https://z-jobs-api-zoperatingsystem.vercel.app/public/salaire/luxembourg?lang=en"
+    },
+    {
+      "source": "/sitemap-salaires.xml",
+      "destination": "https://z-jobs-api-zoperatingsystem.vercel.app/public/sitemap-salaires.xml"
+    },
+    {
       "source": "/candidats",
       "destination": "/candidats.html"
     },

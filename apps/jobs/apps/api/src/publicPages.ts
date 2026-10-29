@@ -340,12 +340,12 @@ const PAGE_STYLE = `
 `;
 
 /* Pages statiques de la montra : la version anglaise vit sous /en/… (q = '?lang=en'). */
-function sitePath(path: string, q: string): string {
+export function sitePath(path: string, q: string): string {
   if (!q) return path;
   return path === '/' ? '/en' : `/en${path}`;
 }
 
-function head(opts: { locale: PageLocale; title: string; description: string; canonical: string; alternates?: { fr: string; en: string }; robots: string; jsonLd: unknown[] }): string {
+export function head(opts: { locale: PageLocale; title: string; description: string; canonical: string; alternates?: { fr: string; en: string }; robots: string; jsonLd: unknown[] }): string {
   const { locale } = opts;
   return `<!DOCTYPE html>
 <html lang="${locale}">
@@ -374,7 +374,7 @@ ${opts.jsonLd.map((ld) => `<script type="application/ld+json">${ldJson(ld)}</scr
 </head>`;
 }
 
-function navHtml(locale: PageLocale, frHref: string, enHref: string): string {
+export function navHtml(locale: PageLocale, frHref: string, enHref: string): string {
   const L = locale === 'en'
     ? { home: 'Home', offers: 'Jobs', cand: 'For candidates', emp: 'For employers', tools: 'Legislation & tools', publish: 'Post a job', signin: 'Sign in' }
     : { home: 'Accueil', offers: 'Offres', cand: 'Pour les candidats', emp: 'Pour les employeurs', tools: 'Législation et outils', publish: 'Publier une offre', signin: 'Se connecter' };
@@ -396,7 +396,7 @@ function navHtml(locale: PageLocale, frHref: string, enHref: string): string {
 </nav>`;
 }
 
-function shortText(text: string, max: number): string {
+export function shortText(text: string, max: number): string {
   const clean = String(text ?? '').replace(/\s+/g, ' ').trim();
   if (clean.length <= max) return clean;
   const cut = clean.slice(0, max - 1);
@@ -568,7 +568,7 @@ function aVille(name: string): string {
   return `à ${name}`;
 }
 
-const CITY_STYLE = `
+export const CITY_STYLE = `
   .city-hero{ padding:44px 0 30px; }
   .city-hero h1{ font-size:clamp(34px,4.6vw,50px); line-height:1.06; margin:0 0 14px; }
   .city-hero p{ color:var(--zj-muted); max-width:760px; margin:0; }
