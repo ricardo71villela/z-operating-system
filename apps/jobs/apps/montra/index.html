@@ -241,7 +241,10 @@
   footer .fine{ font-family:'DM Sans',sans-serif; font-size:11.5px; color:var(--ash); }
 
   /* ---------- barra de pesquisa ---------- */
-  .search-bar{ padding:0 0 56px; }
+  .search-bar{ padding:56px 0 64px; }
+  @media (max-width:640px){ .search-bar{ padding:40px 0 56px; } }
+  .search-status:empty{ display:none; }
+  .search-bar .legal-cite{ margin-top:18px; }
   .search-card{
     display:flex; align-items:end; gap:16px; flex-wrap:wrap;
     background:var(--surface); border:1px solid var(--line); border-radius:2px; padding:24px 28px;
