@@ -15,6 +15,10 @@
                                  factures, résiliation)
      POST app-link               ouvrir Z Desk / Z Studio avec le même compte,
                                  sans nouvelle connexion (_lib/app-link.js)
+     POST highlight-checkout     mise en avant « À la une » 7 / 30 jours
+     POST highlight-pack-checkout pack de 5 mises en avant
+     POST agency-feature-checkout « Agence à la une » (commune, mois)
+                                 (_lib/highlights-checkout.js)
    Depuis Stripe :
      POST webhook                événements signés (STRIPE_WEBHOOK_SECRET)
 
@@ -30,6 +34,7 @@ const S = require('./_lib/server');
 const core = require('./_lib/billing-core');
 const stripeLib = require('./_lib/stripe');
 const appLinkLib = require('./_lib/app-link');
+const orders = require('./_lib/highlights-checkout');
 
 const PARTNER_ORIGINS = ['https://partner.zfind.online'];
 const PREVIEW_ORIGIN_RE = /^https:\/\/zfind-partner-[a-z0-9-]+-zoperatingsystem\.vercel\.app$/;
@@ -276,6 +281,7 @@ async function retier(stripe, subscriptionId) {
 async function handleEvent(stripe, event) {
   const obj = event.data && event.data.object;
   if (!obj) return;
+  if (await orders.handleOrderEvent(event)) return; // achats ponctuels (mises en avant)
   switch (event.type) {
     case 'checkout.session.completed':
       if (obj.mode === 'subscription' && obj.subscription && obj.metadata && obj.metadata.platform === 'zfind') await syncSubscription(stripe, obj.subscription);
@@ -344,7 +350,7 @@ async function handler(req, res) {
       if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); return S.sendJson(res, 405, { ok: false, error: 'method' }); }
       return await webhook(req, res, cfg, stripe);
     }
-    const routes = { status: 'GET', 'subscription-checkout': 'POST', portal: 'POST', 'app-link': 'POST' };
+    const routes = { status: 'GET', 'subscription-checkout': 'POST', portal: 'POST', 'highlight-checkout': 'POST', 'highlight-pack-checkout': 'POST', 'agency-feature-checkout': 'POST', 'app-link': 'POST' };
     if (!routes[route]) return S.sendJson(res, 404, { ok: false, error: 'not_found' });
     if (req.method !== routes[route]) { res.setHeader('Allow', routes[route]); return S.sendJson(res, 405, { ok: false, error: 'method' }); }
     if (S.limited(req, 30, 600000)) return S.sendJson(res, 429, { ok: false, error: 'rate_limited' });
@@ -356,6 +362,10 @@ async function handler(req, res) {
     }
     if (route === 'app-link') return await appLinkLib.appLink(req, res, auth);
     if (route === 'subscription-checkout') return await subscriptionCheckout(req, res, auth, stripe);
+    const deps = { partnerContext, billingInput, ensureCustomer, ensureFrVatRate, partnerUrl };
+    if (route === 'highlight-checkout') return await orders.highlightCheckout(req, res, auth, stripe, deps);
+    if (route === 'highlight-pack-checkout') return await orders.packCheckout(req, res, auth, stripe, deps);
+    if (route === 'agency-feature-checkout') return await orders.agencyFeatureCheckout(req, res, auth, stripe, deps);
     return await portal(req, res, auth, stripe);
   } catch (e) {
     console.error('billing:', route, e.code || e.message, e.stripeMessage || '');

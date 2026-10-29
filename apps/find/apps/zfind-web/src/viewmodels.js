@@ -755,6 +755,27 @@ async function loadFeaturedCandidateCards(lang) {
 }
 
 
+/**
+ * Paid « À la une » highlights active today for a market (rotating
+ * order). Read-only, anonymous; any failure means « nothing to
+ * feature » (the block hides itself), never unpaid listings.
+ */
+async function loadActiveHighlights(market) {
+  try {
+    const services = window.ZFindServices;
+    const client = services && services.supabaseClient && services.supabaseClient.getSupabaseClient();
+    if (!client) return [];
+    const scope = market && market.searchScope;
+    const country = scope && scope.kind === 'country_iso' ? scope.value : null;
+    if (!country) return [];
+    const { data, error } = await client.rpc('zfind_public_highlights', { p_country: country, p_scope: null, p_limit: 60 });
+    return error || !Array.isArray(data) ? [] : data;
+  } catch (_) {
+    return [];
+  }
+}
+
+
 /** Loads real Home page data from Supabase: published Property
     listings (apartment/villa/land) and published Development
     listings, fetched concurrently (Promise.all — never sequential

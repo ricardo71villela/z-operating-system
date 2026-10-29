@@ -111,6 +111,23 @@ async function listingsFor(code) {
   }
 }
 
+/* « À la une » de la commune (migration 20261029220000) : ids des biens mis
+   en avant aujourd'hui et agence à la une du mois. Les zones Z Find sont au
+   niveau de la ville (Lyon = 69123) : un arrondissement lit celles de sa
+   ville, filtrées ensuite par les annonces de la page. Sans base ou en cas
+   d'erreur : rien (la page s'affiche sans ces blocs). */
+async function featuredFor(zoneCode) {
+  if (!S.configured(['db'])) return { ids: [], agency: null };
+  const [hl, ag] = await Promise.all([
+    withTimeout(S.db('rpc/zfind_public_highlights', { method: 'POST', body: { p_country: 'FR', p_scope: `FR:${zoneCode}`, p_limit: 12 } }), 2000).catch(() => []),
+    withTimeout(S.db('rpc/zfind_public_agency_feature', { method: 'POST', body: { p_commune: zoneCode } }), 2000).catch(() => [])
+  ]);
+  return {
+    ids: (Array.isArray(hl) ? hl : []).map(r => r && r.property_id).filter(Boolean),
+    agency: Array.isArray(ag) && ag[0] ? ag[0] : null
+  };
+}
+
 /* Communes avec au moins MIN_LISTINGS annonces publiées (sitemap). */
 async function communesWithListings() {
   if (!S.configured(['db'])) return new Map();
@@ -191,13 +208,15 @@ async function handler(req, res) {
     ? (file.communes || []).filter(c => c.c !== parentCode && c.c.startsWith(P.BIG_CITY_PREFIX[parentCode])).sort((x, y) => x.c.localeCompare(y.c))
     : [];
   const neighbours = P.neighboursOf(commune, (file.communes || []).filter(c => !(parentCode && c.c.startsWith(P.BIG_CITY_PREFIX[parentCode]))), 12);
-  const [listings, agencies] = await Promise.all([listingsFor(commune.c), agencyCount(commune.c)]);
+  const [listings, agencies, featured] = await Promise.all([listingsFor(commune.c), agencyCount(commune.c), featuredFor(cityCode || commune.c)]);
   const out = H.render({
     base, commune, department, region: P.regionOfDepartment(idx, depCode), city, arrondissements, neighbours,
-    listings, agencies, type: route.type, today: new Date()
+    listings, agencies, type: route.type, today: new Date(),
+    featuredIds: featured.ids, featuredAgency: featured.agency
   });
   return send(res, 200, out.html, null, true);
 }
 
 module.exports = handler;
+module.exports.featuredFor = featuredFor;
 module.exports._internals = { arrondissementPostcodes, listingsFor };

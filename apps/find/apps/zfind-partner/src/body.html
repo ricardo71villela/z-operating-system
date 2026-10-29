@@ -129,6 +129,7 @@
       <a class="active" onclick="showPortfolioView()">Portefeuille</a>
       <a onclick="showLeadsView()">Demandes</a>
       <a onclick="showStatsView()">Statistiques</a>
+      <a onclick="showHighlightsView()">Mises en avant</a>
       <a onclick="showProfileView()">Ma page agence</a>
       <a onclick="showImportView()">Importer</a>
       <a onclick="showFeedView()">Flux automatique</a>
@@ -174,6 +175,7 @@
       <a onclick="showPortfolioView()">Portefeuille</a>
       <a class="active" onclick="showLeadsView()">Demandes</a>
       <a onclick="showStatsView()">Statistiques</a>
+      <a onclick="showHighlightsView()">Mises en avant</a>
       <a onclick="showProfileView()">Ma page agence</a>
       <a onclick="showImportView()">Importer</a>
       <a onclick="showFeedView()">Flux automatique</a>
@@ -202,6 +204,7 @@
       <a class="active" onclick="showPortfolioView()">Portefeuille</a>
       <a onclick="showLeadsView()">Demandes</a>
       <a onclick="showStatsView()">Statistiques</a>
+      <a onclick="showHighlightsView()">Mises en avant</a>
       <a onclick="showProfileView()">Ma page agence</a>
       <a onclick="showImportView()">Importer</a>
       <a onclick="showFeedView()">Flux automatique</a>
@@ -241,6 +244,7 @@
       <a onclick="showPortfolioView()">Portefeuille</a>
       <a onclick="showLeadsView()">Demandes</a>
       <a onclick="showStatsView()">Statistiques</a>
+      <a onclick="showHighlightsView()">Mises en avant</a>
       <a onclick="showProfileView()">Ma page agence</a>
       <a class="active" onclick="showImportView()">Importer</a>
       <a onclick="showFeedView()">Flux automatique</a>
@@ -267,6 +271,7 @@
       <a onclick="showPortfolioView()">Portefeuille</a>
       <a onclick="showLeadsView()">Demandes</a>
       <a onclick="showStatsView()">Statistiques</a>
+      <a onclick="showHighlightsView()">Mises en avant</a>
       <a onclick="showProfileView()">Ma page agence</a>
       <a onclick="showImportView()">Importer</a>
       <a class="active" onclick="showFeedView()">Flux automatique</a>
@@ -293,6 +298,7 @@
       <a onclick="showPortfolioView()">Portefeuille</a>
       <a onclick="showLeadsView()">Demandes</a>
       <a onclick="showStatsView()">Statistiques</a>
+      <a onclick="showHighlightsView()">Mises en avant</a>
       <a onclick="showProfileView()">Ma page agence</a>
       <a onclick="showImportView()">Importer</a>
       <a onclick="showFeedView()">Flux automatique</a>
@@ -319,6 +325,7 @@
       <a onclick="showPortfolioView()">Portefeuille</a>
       <a onclick="showLeadsView()">Demandes</a>
       <a onclick="showStatsView()">Statistiques</a>
+      <a onclick="showHighlightsView()">Mises en avant</a>
       <a class="active" onclick="showProfileView()">Ma page agence</a>
       <a onclick="showImportView()">Importer</a>
       <a onclick="showFeedView()">Flux automatique</a>
@@ -345,6 +352,7 @@
       <a onclick="showPortfolioView()">Portefeuille</a>
       <a onclick="showLeadsView()">Demandes</a>
       <a class="active" onclick="showStatsView()">Statistiques</a>
+      <a onclick="showHighlightsView()">Mises en avant</a>
       <a onclick="showProfileView()">Ma page agence</a>
       <a onclick="showImportView()">Importer</a>
       <a onclick="showFeedView()">Flux automatique</a>
@@ -364,6 +372,33 @@
   </div>
 </section>
 
+<section id="view-highlights" class="dash-shell" style="display:none;">
+  <div class="dash-header">
+    <div class="logo">Z <em>Find</em> Partenaires</div>
+    <nav class="dash-nav">
+      <a onclick="showPortfolioView()">Portefeuille</a>
+      <a onclick="showLeadsView()">Demandes</a>
+      <a onclick="showStatsView()">Statistiques</a>
+      <a class="active" onclick="showHighlightsView()">Mises en avant</a>
+      <a onclick="showProfileView()">Ma page agence</a>
+      <a onclick="showImportView()">Importer</a>
+      <a onclick="showFeedView()">Flux automatique</a>
+      <a onclick="showTeamView()">Équipe</a>
+      <a onclick="showBillingView()">Abonnement</a>
+    </nav>
+    <div class="who">
+      <span id="dash-partner-name-hl" class="partner-name-copy"></span>
+      <a class="signout" onclick="handlePartnerSignOut()">Déconnexion</a>
+    </div>
+  </div>
+  <div class="dash-body wide">
+    <div class="eyebrow">Mises en avant</div>
+    <h2 style="margin-bottom:8px;">Vos annonces <em>à la une.</em></h2>
+    <p class="sub" style="margin:0 0 24px; max-width:none;">Plus de visibilité pour une annonce ou pour votre agence, dans des emplacements dédiés et toujours signalés « À la une » : jamais dans les résultats de recherche, dont l’ordre reste neutre.</p>
+    <div id="phl-root"></div>
+  </div>
+</section>
+
 <section id="view-team" class="dash-shell" style="display:none;">
   <div class="dash-header">
     <div class="logo">Z <em>Find</em> Partenaires</div>
@@ -371,6 +406,7 @@
       <a onclick="showPortfolioView()">Portefeuille</a>
       <a onclick="showLeadsView()">Demandes</a>
       <a onclick="showStatsView()">Statistiques</a>
+      <a onclick="showHighlightsView()">Mises en avant</a>
       <a onclick="showProfileView()">Ma page agence</a>
       <a onclick="showImportView()">Importer</a>
       <a onclick="showFeedView()">Flux automatique</a>
