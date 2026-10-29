@@ -221,6 +221,22 @@ export function createServer() {
       }
 
       // Painel da empresa: organizações da pessoa autenticada.
+      // Back-office da plataforma: todas as organizações e as ofertas a moderar (só staff).
+      if (method === 'GET' && path === '/admin/organizations') {
+        if (!usingPostgres) return json(res, 501, { error: 'disponível só com Postgres' });
+        const staffCheck = await requireStaff();
+        if (!staffCheck.ok) return json(res, staffCheck.status, { error: staffCheck.error });
+        return json(res, 200, await (store as PgStore).listOrganizationsForStaff());
+      }
+      if (method === 'GET' && path === '/admin/job-offers') {
+        if (!usingPostgres) return json(res, 501, { error: 'disponível só com Postgres' });
+        const staffCheck = await requireStaff();
+        if (!staffCheck.ok) return json(res, staffCheck.status, { error: staffCheck.error });
+        const allowed = ['draft', 'pending_review', 'needs_changes', 'approved', 'published', 'paused', 'closed', 'archived', 'rejected'];
+        const statuses = String(url.searchParams.get('status') || 'pending_review,approved').split(',').map((x) => x.trim()).filter((x) => allowed.includes(x));
+        return json(res, 200, await (store as PgStore).listJobOffersForStaff(statuses.length ? statuses : ['pending_review', 'approved']));
+      }
+
       if (method === 'GET' && path === '/me/organizations') {
         if (!usingPostgres) return json(res, 501, { error: 'disponível só com Postgres' });
         if (!currentUserId) return json(res, 401, { error: 'não autenticado' });
@@ -252,7 +268,8 @@ export function createServer() {
 
       if (method === 'GET' && path === '/auth/me') {
         if (!currentUserId) return json(res, 401, { error: 'não autenticado' });
-        return json(res, 200, { userId: currentUserId });
+        const isPlatformStaff = usingPostgres ? await (store as PgStore).isPlatformStaff(currentUserId) : false;
+        return json(res, 200, { userId: currentUserId, isPlatformStaff });
       }
 
       // Bootstrap seguro de staff: só concede platform_superadmin se AINDA NÃO existir
@@ -263,6 +280,12 @@ export function createServer() {
           return json(res, 501, { error: 'só disponível com Postgres real ligado' });
         }
         if (!currentUserId) return json(res, 401, { error: 'não autenticado' });
+        // Em produção (Vercel) o primeiro administrador é nomeado na base de dados,
+        // nunca por quem chega primeiro: o bootstrap só existe em desenvolvimento,
+        // ou se ZJOBS_ALLOW_BOOTSTRAP_ADMIN=1 for definido de propósito.
+        if (process.env.VERCEL && process.env.ZJOBS_ALLOW_BOOTSTRAP_ADMIN !== '1') {
+          return json(res, 403, { error: 'bootstrap desativado em produção' });
+        }
         const staffCount = await (store as PgStore).countPlatformStaff();
         if (staffCount > 0) {
           return json(res, 403, { error: 'já existe staff da plataforma — bootstrap só funciona uma vez' });
@@ -674,6 +697,10 @@ export function createServer() {
       }
 
       if (method === 'GET' && path === '/reports') {
+        if (usingPostgres) {
+          const staffCheck = await requireStaff();
+          if (!staffCheck.ok) return json(res, staffCheck.status, { error: staffCheck.error });
+        }
         return json(res, 200, await store.listReports());
       }
 
@@ -704,6 +731,10 @@ export function createServer() {
       }
 
       if (method === 'GET' && path === '/audit-logs') {
+        if (usingPostgres) {
+          const staffCheck = await requireStaff();
+          if (!staffCheck.ok) return json(res, staffCheck.status, { error: staffCheck.error });
+        }
         return json(res, 200, await store.listAuditLogs());
       }
 
@@ -856,6 +887,14 @@ export function createServer() {
         const { questions: rawQuestions, ...draft } = (await readBody(req)) as Omit<JobOfferDraft, 'status'> & { questions?: unknown };
         if (draft.locationId && usingPostgres && !(await (store as PgStore).locationExists(draft.locationId))) {
           return json(res, 400, { error: 'localidade desconhecida' });
+        }
+        // Só uma empresa verificada cria ofertas (RLS job_offers_insert_verified_employers):
+        // responder claramente em vez de um erro interno.
+        if (usingPostgres && draft.organizationId) {
+          const org = await store.mustGetOrg(draft.organizationId);
+          if (!['verified', 'enhanced_verified'].includes(org.verificationStatus)) {
+            return json(res, 403, { error: 'a empresa tem de estar verificada para criar uma oferta' });
+          }
         }
         // Screening questions are checked before the offer exists, so a
         // refused question never leaves a half-created draft behind.

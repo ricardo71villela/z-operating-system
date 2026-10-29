@@ -92,6 +92,8 @@ export const ERROR_CATALOG: ErrorEntry[] = [
   { code: 'answer_number_invalid', match: 'answer_number_invalid', fr: 'Indiquez un nombre.', en: 'Enter a number.' },
   { code: 'answer_too_long', match: 'answer_too_long', fr: 'Réponse trop longue (1 000 caractères maximum).', en: 'Answer too long (1,000 characters maximum).' },
   { code: 'cover_note_too_long', match: 'cover_note_too_long', fr: 'Message trop long (2 000 caractères maximum).', en: 'Message too long (2,000 characters maximum).' },
+  { code: 'bootstrap_disabled', match: 'bootstrap desativado em produção', fr: 'Désactivé en production : les administrateurs de la plateforme sont nommés par l’équipe ZOS.', en: 'Disabled in production: platform administrators are appointed by the ZOS team.' },
+  { code: 'organization_not_verified', match: 'a empresa tem de estar verificada para criar uma oferta', fr: 'Votre entreprise doit être vérifiée avant de créer une offre.', en: 'Your company must be verified before you can create a listing.' },
   { code: 'internal_error', match: 'internal error', fr: 'Une erreur interne est survenue. Réessayez plus tard.', en: 'An internal error occurred. Please try again later.' },
 ];
 

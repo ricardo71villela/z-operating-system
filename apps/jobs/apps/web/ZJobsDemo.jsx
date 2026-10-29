@@ -101,6 +101,11 @@ const api = {
   getCandidatePoolInsight: (offerId) => apiFetch(`/job-offers/${offerId}/candidate-pool-insight`),
   // platform
   bootstrapAdmin: () => post("/auth/bootstrap-admin"),
+  getMe: () => apiFetch("/auth/me"),
+  adminOrganizations: () => apiFetch("/admin/organizations"),
+  adminJobOffers: (statuses) => apiFetch(`/admin/job-offers?status=${statuses.join(",")}`),
+  listReports: () => apiFetch("/reports"),
+  listAuditLogs: () => apiFetch("/audit-logs"),
   createReport: (payload) => post("/reports", payload),
   resolveReport: (reportId, resolution, actorId) => post(`/reports/${reportId}/resolve`, { resolution, actorId }),
 };
@@ -170,7 +175,9 @@ export default function ZJobsDemo() {
   const [orgOffers, setOrgOffers] = useState([]);
 
   // platform
-  const [staffToken, setStaffToken] = useState(null);
+  const [isStaff, setIsStaff] = useState(false);
+  const [adminOrgs, setAdminOrgs] = useState([]);
+  const [adminOffers, setAdminOffers] = useState([]);
   const [reports, setReports] = useState([]);
   const [auditLog, setAuditLog] = useState([]);
 
@@ -255,6 +262,19 @@ export default function ZJobsDemo() {
     } catch { setOrgs([]); }
   }, []);
 
+  /* Back-office: every organisation and every listing awaiting moderation (staff only, server-side). */
+  const loadAdmin = useCallback(async () => {
+    const [o, f, r, a] = await Promise.all([
+      api.adminOrganizations().catch(() => []),
+      api.adminJobOffers(["pending_review", "approved"]).catch(() => []),
+      api.listReports().catch(() => []),
+      api.listAuditLogs().catch(() => []),
+    ]);
+    setAdminOrgs(o || []); setAdminOffers(f || []); setReports(r || []);
+    setAuditLog((a || []).map((x) => ({ ...x, createdAt: x.createdAt ? new Date(x.createdAt).toLocaleString() : "" })));
+  }, []);
+  useEffect(() => { if (role === "admin" && isStaff) loadAdmin(); }, [isStaff]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const loadOrgOffers = useCallback(async (orgId) => {
     if (!orgId) { setOrgOffers([]); return; }
     try { setOrgOffers(await api.listOrganizationOffers(orgId)); } catch { setOrgOffers([]); }
@@ -263,18 +283,21 @@ export default function ZJobsDemo() {
   useEffect(() => {
     if (!userId) {
       setProfile(EMPTY_PROFILE); setApplications([]); setSavedOfferIds([]); setAlerts([]);
-      setOrgs([]); setCurrentOrgId(null); setOrgOffers([]); setStaffToken(null);
+      setOrgs([]); setCurrentOrgId(null); setOrgOffers([]); setIsStaff(false);
       return;
     }
     loadCandidate(userId);
     loadOrgs();
+    // Platform staff is a server fact (organization_memberships), read at every sign-in and reload.
+    api.getMe().then((me) => setIsStaff(!!(me && me.isPlatformStaff))).catch(() => setIsStaff(false));
   }, [userId, loadCandidate, loadOrgs]);
   useEffect(() => { loadOrgOffers(currentOrgId); }, [currentOrgId, loadOrgOffers]);
   // Coming back to a space shows what changed meanwhile (e.g. an employer moved an application).
   useEffect(() => {
     if (!userId) return;
     if (role === "candidate") loadCandidate(userId);
-    if (role === "company" || role === "admin") { loadOrgs(); loadOrgOffers(currentOrgId); }
+    if (role === "company") { loadOrgs(); loadOrgOffers(currentOrgId); }
+    if (role === "admin" && isStaff) loadAdmin();
     if (role === "public") loadPublicOffers();
   }, [role]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -417,37 +440,31 @@ export default function ZJobsDemo() {
   }
 
   /* ---- Platform administration ---- */
-  async function bootstrapStaff() {
-    const ok = await run(() => api.bootstrapAdmin(), "toast_staff_failed");
-    if (ok) { setStaffToken(session.token); notify(t("toast_staff_granted"), "success"); }
-  }
-
-  function addAudit(actorId, entityType, entityId, action) {
-    setAuditLog((prev) => [...prev, { id: `${Date.now()}-${prev.length}`, actorId, entityType, entityId, action, createdAt: new Date().toLocaleTimeString() }]);
-  }
+  /* The audit log comes from the server (audit_logs): reload it after each action. */
+  function addAudit() { if (isStaff) loadAdmin(); }
 
   async function approveVerification(orgId) {
     const ok = await run(() => api.approveOrganizationVerification(orgId), "toast_org_verify_failed");
-    if (ok) { await loadOrgs(); notify(t("toast_org_verified"), "success"); addAudit("admin", "organization", orgId, "verify"); }
+    if (ok) { await Promise.all([loadOrgs(), loadAdmin()]); notify(t("toast_org_verified"), "success"); }
   }
 
   async function reviewOffer(offerId) {
     const result = await run(() => api.reviewOffer(offerId), "toast_offer_review_failed");
     if (!result) return;
-    await loadOrgOffers(currentOrgId);
+    await Promise.all([loadOrgOffers(currentOrgId), loadAdmin()]);
     if (result.status === "needs_changes") {
       setOrgOffers((prev) => prev.map((o) => (o.id === offerId ? { ...o, issues: result.issues || [] } : o)));
       notify(t("toast_offer_needs_changes"), "warn");
-      addAudit("admin", "job_offer", offerId, "reject");
+
     } else {
       notify(t("toast_offer_approved"), "success");
-      addAudit("admin", "job_offer", offerId, "approve");
+
     }
   }
 
   async function publishOffer(offerId) {
     const ok = await run(() => api.publishOffer(offerId), "toast_offer_publish_failed");
-    if (ok) { await Promise.all([loadOrgOffers(currentOrgId), loadPublicOffers()]); notify(t("toast_offer_published"), "success"); addAudit("admin", "job_offer", offerId, "publish"); }
+    if (ok) { await Promise.all([loadOrgOffers(currentOrgId), loadPublicOffers(), loadAdmin()]); notify(t("toast_offer_published"), "success"); }
   }
 
   async function reportTarget(targetType, targetId, reason) {
@@ -466,6 +483,7 @@ export default function ZJobsDemo() {
     const result = await run(() => api.resolveReport(reportId, resolution, userId || "admin"), "toast_report_resolve_failed");
     if (!result) return;
     setReports((prev) => prev.map((r) => (r.id === reportId ? { ...r, status: result.status, resolution: result.resolution } : r)));
+    addAudit();
     if (resolution === "confirmed" && report.targetType === "job_offer") {
       await Promise.all([loadOrgOffers(currentOrgId), loadPublicOffers()]);
       notify(t("toast_report_confirmed"), "warn");
@@ -488,7 +506,8 @@ export default function ZJobsDemo() {
     { key: "public", label: t("role_public"), icon: <Search size={14} aria-hidden="true" /> },
     { key: "candidate", label: t("role_candidate"), icon: <User size={14} aria-hidden="true" /> },
     { key: "company", label: t("role_company"), icon: <Building2 size={14} aria-hidden="true" /> },
-    { key: "admin", label: t("role_admin"), icon: <Landmark size={14} aria-hidden="true" /> },
+    // Only platform staff see the back-office tab.
+    ...(isStaff ? [{ key: "admin", label: t("role_admin"), icon: <Landmark size={14} aria-hidden="true" /> }] : []),
   ];
 
   return (
@@ -604,8 +623,8 @@ export default function ZJobsDemo() {
 
         {role === "admin" && (
           <AdminView
-            orgs={orgs}
-            offers={orgOffers}
+            orgs={adminOrgs}
+            offers={adminOffers}
             onApproveVerification={approveVerification}
             onReviewOffer={reviewOffer}
             onPublishOffer={publishOffer}
@@ -613,9 +632,8 @@ export default function ZJobsDemo() {
             reports={reports}
             onResolveReport={resolveReportAction}
             auditLog={auditLog}
-            staffToken={staffToken}
-            onBootstrapStaff={bootstrapStaff}
-            sessionToken={session?.token}
+            isStaff={isStaff}
+            onRefresh={loadAdmin}
           />
         )}
       </main>
@@ -736,7 +754,7 @@ function useDialog(onClose) {
   return ref;
 }
 
-function AdminView({ orgs, offers, onApproveVerification, onReviewOffer, onPublishOffer, onViewResponsibility, reports, onResolveReport, auditLog, staffToken, onBootstrapStaff, sessionToken }) {
+function AdminView({ orgs, offers, onApproveVerification, onReviewOffer, onPublishOffer, onViewResponsibility, reports, onResolveReport, auditLog, isStaff, onRefresh }) {
   const pendingOrgs = orgs.filter((o) => o.verificationStatus === "pending");
   const pendingOffers = offers.filter((o) => o.status === "pending_review");
   const approvedOffers = offers.filter((o) => o.status === "approved");
@@ -744,26 +762,27 @@ function AdminView({ orgs, offers, onApproveVerification, onReviewOffer, onPubli
   const openReports = reports.filter((r) => r.status === "open" || r.status === "reviewing");
   const resolvedReports = reports.filter((r) => r.status === "resolved");
 
-  if (!staffToken) {
+  if (!isStaff) {
     return (
       <section className="zj-panel">
-        <h1 className="zj-view-title">{t("staff_needed_title")}</h1>
-        <p className="zj-panel-hint">{t("staff_needed_hint")}</p>
-        <button type="button" className="zj-btn is-primary" disabled={!sessionToken} onClick={onBootstrapStaff}>
-          {sessionToken ? t("become_staff") : t("toast_create_candidate_first")}
-        </button>
+        <h1 className="zj-view-title">{t("staff_only_title")}</h1>
+        <p className="zj-panel-hint">{t("staff_only_hint")}</p>
       </section>
     );
   }
 
   return (
     <section className="zj-panel">
-      <h1 className="zj-view-title">{t("role_admin")}</h1>
+      <div className="zj-list-row-top">
+        <h1 className="zj-view-title">{t("role_admin")}</h1>
+        <button type="button" className="zj-btn is-ghost is-small" onClick={onRefresh}>{t("admin_refresh")}</button>
+      </div>
       <h2 className="zj-section-title">{t("verification_queue")}</h2>
       <div className="zj-list">
         {pendingOrgs.map((o) => (
           <div key={o.id} className="zj-list-row">
-            <strong>{o.legalName}</strong>
+            <div><strong>{o.legalName}</strong>{o.displayName && o.displayName !== o.legalName ? ` (${o.displayName})` : ""}
+              <span className="zj-hint-inline"> {[o.taxId, o.countryCode, o.website, o.verificationRequestedAt ? t("admin_org_meta", { date: new Date(o.verificationRequestedAt).toLocaleDateString() }) : null].filter(Boolean).join(" · ")}</span></div>
             <button type="button" className="zj-btn is-primary" onClick={() => onApproveVerification(o.id)}>{t("verify")}</button>
           </div>
         ))}
@@ -789,6 +808,8 @@ function AdminView({ orgs, offers, onApproveVerification, onReviewOffer, onPubli
               <strong>{o.title}</strong>
               <span className="zj-status status-pending_review">{offerStatusLabel("pending_review")}</span>
             </div>
+            {o.organizationName && <span className="zj-hint-inline">{t("admin_offer_org", { name: o.organizationName })}</span>}
+            <p className="zj-card-desc">{String(o.description || "").slice(0, 400)}</p>
             <SalaryLedger min={o.salaryMin} max={o.salaryMax} currencyCode={o.salaryCurrency} period={o.salaryPeriod} fixed={o.hasFixedSalary} />
             <button type="button" className="zj-btn is-primary" onClick={() => onReviewOffer(o.id)}>{t("validate")}</button>
           </div>
@@ -800,7 +821,7 @@ function AdminView({ orgs, offers, onApproveVerification, onReviewOffer, onPubli
       <div className="zj-list">
         {approvedOffers.map((o) => (
           <div key={o.id} className="zj-list-row">
-            <strong>{o.title}</strong>
+            <div><strong>{o.title}</strong>{o.organizationName ? <span className="zj-hint-inline"> — {o.organizationName}</span> : null}</div>
             <button type="button" className="zj-btn is-primary" onClick={() => onPublishOffer(o.id)}>{t("publish")}</button>
           </div>
         ))}
