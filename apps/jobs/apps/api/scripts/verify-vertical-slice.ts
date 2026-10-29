@@ -55,6 +55,20 @@ async function main() {
 
       const unauthApprove = await fetch(`${BASE}/organizations/qualquer-id/approve-verification`, { method: 'POST', headers: impostorHeaders });
       check('(negativo) não-staff não consegue aprovar verificação (403)', unauthApprove.status === 403);
+
+      // Back-office: o estado de staff vem do servidor (sobrevive a um reload) e as listas são só para staff.
+      const meStaff = await (await fetch(`${BASE}/auth/me`, { headers: adminHeaders })).json();
+      const meImpostor = await (await fetch(`${BASE}/auth/me`, { headers: impostorHeaders })).json();
+      check('(admin) /auth/me diz quem é staff da plataforma', meStaff.isPlatformStaff === true && meImpostor.isPlatformStaff === false);
+      const adminOrgsDenied = await fetch(`${BASE}/admin/organizations`, { headers: impostorHeaders });
+      const adminOffersDenied = await fetch(`${BASE}/admin/job-offers`, { headers: impostorHeaders });
+      const auditDenied = await fetch(`${BASE}/audit-logs`, { headers: impostorHeaders });
+      const reportsDenied = await fetch(`${BASE}/reports`, { headers: impostorHeaders });
+      check('(negativo) back-office, journal et signalements refusés à un non-staff (403)', [adminOrgsDenied, adminOffersDenied, auditDenied, reportsDenied].every((r) => r.status === 403));
+      process.env.VERCEL = '1';
+      const prodBootstrap = await fetch(`${BASE}/auth/bootstrap-admin`, { method: 'POST', headers: impostorHeaders });
+      delete process.env.VERCEL;
+      const prodBody = await prodBootstrap.json(); check('(negativo) bootstrap de staff desativado em produção (Vercel)', prodBootstrap.status === 403 && prodBody.code === 'bootstrap_disabled', prodBody);
     }
 
     // Passo 1: candidato cria conta (com password, quando ligado a Postgres real -> token de sessão)
@@ -118,6 +132,15 @@ async function main() {
       headers: recruiterHeaders,
     })).json();
     check('4. verificação solicitada', pendingOrg.verificationStatus === 'pending', pendingOrg);
+
+    // Empresa ainda não verificada: a criação de oferta é recusada com uma mensagem clara (não um erro 500).
+    const unverifiedOffer = await fetch(`${BASE}/job-offers`, {
+      method: 'POST', headers: recruiterHeaders,
+      body: JSON.stringify({ organizationId: org.id, title: 'Rascunho antes da verificação', description: 'Descrição suficientemente longa para o controlo de qualidade da oferta.', pillar: 'first_jobs', contractType: 'cdi', workRegime: 'onsite', salaryMin: 2000, salaryCurrency: 'EUR', salaryPeriod: 'monthly', hasFixedSalary: true }),
+    });
+    const unvBody = await unverifiedOffer.json(); check('(negativo) empresa não verificada não cria oferta (403 organization_not_verified)', unverifiedOffer.status === 403 && unvBody.code === 'organization_not_verified', { status: unverifiedOffer.status, unvBody });
+    const staffQueue = await (await fetch(`${BASE}/admin/organizations`, { headers: adminHeaders })).json();
+    check('(admin) o staff vê o pedido de verificação de outra empresa', Array.isArray(staffQueue) && staffQueue.some((o: any) => o.id === org.id && o.verificationStatus === 'pending'));
 
     // Passo 5: admin verifica a empresa
     const verifiedOrg = await (await fetch(`${BASE}/organizations/${org.id}/approve-verification`, {
@@ -228,6 +251,8 @@ async function main() {
 
     // Passo 7: sistema valida a oferta (submissão + review)
     await fetch(`${BASE}/job-offers/${offer.id}/submit-for-review`, { method: 'POST', headers: recruiterHeaders });
+    const staffOffers = await (await fetch(`${BASE}/admin/job-offers?status=pending_review`, { headers: adminHeaders })).json();
+    check('(admin) a oferta enviada para revisão aparece na fila do staff, com a empresa', Array.isArray(staffOffers) && staffOffers.some((o: any) => o.id === offer.id && o.organizationName));
     const reviewed = await (await fetch(`${BASE}/job-offers/${offer.id}/review`, { method: 'POST', headers: adminHeaders })).json();
     check('7. oferta válida aprovada automaticamente', reviewed.status === 'approved');
 

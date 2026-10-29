@@ -97,10 +97,16 @@ export function PartnerDashboard(props) {
       {section === "new" && (
         <div className="zj-dash-section" aria-labelledby="org-new-h">
           <h2 id="org-new-h" className="zj-section-title">{t("create_offer")}</h2>
-          {org.verificationStatus !== "verified" && org.verificationStatus !== "enhanced_verified" && (
-            <p className="zj-notice">{t("offer_needs_verification")}</p>
+          {org.verificationStatus !== "verified" && org.verificationStatus !== "enhanced_verified" ? (
+            <div className="zj-notice">
+              <p>{t(org.verificationStatus === "pending" ? "offer_needs_verification_pending" : "offer_needs_verification")}</p>
+              {org.verificationStatus !== "pending" && props.onRequestVerification && (
+                <button type="button" className="zj-btn is-primary" onClick={() => props.onRequestVerification(org.id)}>{t("request_verification")}</button>
+              )}
+            </div>
+          ) : (
+            <OfferForm onSearchLocations={props.onSearchLocations} onCreate={async (draft, questions) => { const ok = await props.onCreateOffer(org.id, draft, questions); if (ok) setSection("offers"); }} />
           )}
-          <OfferForm onSearchLocations={props.onSearchLocations} onCreate={async (draft, questions) => { const ok = await props.onCreateOffer(org.id, draft, questions); if (ok) setSection("offers"); }} />
         </div>
       )}
     </section>

@@ -1507,6 +1507,49 @@ export class PgStore {
     }));
   }
 
+  /** Back-office: todas as organizações (exceto a da plataforma), pedidos de verificação primeiro. */
+  async listOrganizationsForStaff() {
+    const { rows } = await this.query(
+      `select o.id, o.type, o.legal_name, o.display_name, o.tax_id, o.country_code, o.website, o.created_at,
+              cp.verification_status, cp.verification_requested_at,
+              (select count(*)::int from job_offers j where j.organization_id = o.id and j.status = 'published') as published_offers
+       from organizations o
+       left join company_profiles cp on cp.organization_id = o.id
+       where o.type <> 'platform_admin'
+       order by (cp.verification_status = 'pending') desc nulls last, cp.verification_requested_at desc nulls last, o.created_at desc
+       limit 500`,
+    );
+    return rows.map((r) => ({
+      id: r.id as string,
+      type: r.type as string,
+      legalName: r.legal_name as string,
+      displayName: r.display_name as string,
+      taxId: (r.tax_id ?? null) as string | null,
+      countryCode: (r.country_code ?? null) as string | null,
+      website: (r.website ?? null) as string | null,
+      createdAt: r.created_at ? new Date(r.created_at).toISOString() : null,
+      verificationStatus: (r.verification_status ?? 'unverified') as VerificationStatus,
+      verificationRequestedAt: r.verification_requested_at ? new Date(r.verification_requested_at).toISOString() : null,
+      publishedOffers: Number(r.published_offers) || 0,
+    }));
+  }
+
+  /** Back-office: ofertas de todas as organizações com um dos estados pedidos. */
+  async listJobOffersForStaff(statuses: string[]) {
+    const { rows } = await this.query(
+      `select o.*, g.display_name as org_display_name,
+              l.country_code as loc_country, l.city as loc_city, l.postal_code as loc_postal, l.admin_area as loc_admin
+       from job_offers o
+       join organizations g on g.id = o.organization_id
+       left join locations l on l.id = o.location_id
+       where o.status::text = any($1::text[])
+       order by o.created_at desc
+       limit 300`,
+      [statuses],
+    );
+    return rows.map((r) => ({ ...this.rowToJobOffer(r), organizationName: r.org_display_name as string }));
+  }
+
   async isOrganizationMember(orgId: string, userId: string): Promise<boolean> {
     const { rows } = await this.query(
       `select 1 from organization_memberships where organization_id = $1 and user_id = $2`,
