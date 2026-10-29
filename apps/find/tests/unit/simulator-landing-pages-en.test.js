@@ -14,7 +14,7 @@ const pages = EN.buildSimulatorPagesEn(BASE, new Date('2026-10-24'));
 const by = Object.fromEntries(pages.map(p => [p.path, p.html]));
 const fr = Object.fromEntries(FR.buildSimulatorPages(BASE, new Date('2026-10-24')).map(p => [p.path, p.html]));
 
-check('7 English pages under /en/', pages.length === 7 && pages.every(p => p.path.startsWith('/en/')));
+check('13 English pages under /en/', pages.length === 13 && pages.every(p => p.path.startsWith('/en/')));
 check('every page: lang en, canonical, indexable, og:locale en_GB', pages.every(p => p.html.includes('<html lang="en">') && p.html.includes(`<link rel="canonical" href="${BASE}${p.path}">`) && p.html.includes('content="index,follow"') && p.html.includes('content="en_GB"')));
 check('hreflang both ways with the French page', Object.entries(FR.EN_ALTERNATE).every(([f, e]) => by[e].includes(`hreflang="fr" href="${BASE}${f}"`) && by[e].includes(`hreflang="en" href="${BASE}${e}"`) && fr[f].includes(`hreflang="en" href="${BASE}${e}"`) && fr[f].includes(`hreflang="fr" href="${BASE}${f}"`)));
 const notary = by['/en/french-notary-fees-calculator'];
@@ -36,6 +36,15 @@ const lexPaths = new Set(lexicon.buildLexiconPages(BASE).map(p => p.path));
 const glossaryLinks = [...guide.html.matchAll(/href="https:\/\/zfind\.online(\/en\/real-estate-glossary\/[a-z-]+)"/g)].map(m => m[1]);
 check('guide: every glossary link exists', glossaryLinks.length >= 8 && glossaryLinks.every(p => lexPaths.has(p)), glossaryLinks.filter(p => !lexPaths.has(p)));
 check('guide: links to the calculators, written at build', guide.html.includes(BASE + '/en/french-notary-fees-calculator') && gen.includes('guidePagesEn.buildGuidePagesEn(baseUrl)') && by['/en/property-calculators'].includes('/en/guides/buying-property-in-france'));
+
+const be = by['/en/belgium-mortgage-calculator'], lu = by['/en/luxembourg-mortgage-calculator'];
+check('mortgage BE: no official rate → empty rate field, no payment table', be.includes('No recent official average rate is published for Belgium') && !be.includes('Monthly payments by loan amount') && be.includes('name="rate" inputmode="decimal" value=""'));
+check('mortgage LU: BCL rates table (15–30 years)', lu.includes('Monthly payments by loan amount') && lu.includes('30 years (3.91%)'));
+const shortLet = by['/en/short-term-rental-yield-calculator-france'];
+check('short-term let: French rules (registration, 120 days) and calculator', shortLet.includes('120') && shortLet.includes('id="calc-court"') && shortLet.includes('hreflang="fr" href="https://zfind.online/fr/rentabilite-location-courte-duree"'));
+check('rental yield LU: rent ceiling in the calculator', by['/en/rental-yield-calculator-luxembourg'].includes('Legal rent ceiling'));
+check('valuation EN paired with the French estimation page', by['/en/property-valuation'].includes('hreflang="fr" href="https://zfind.online/fr/estimation-immobiliere"') && fr['/fr/estimation-immobiliere'].includes('hreflang="en" href="https://zfind.online/en/property-valuation"'));
+check('French market pages: BE loan, short-term, LU yield', !!fr['/fr/simulateur-pret-immobilier-belgique'] && fr['/fr/rentabilite-location-courte-duree'].includes('120 jours') && fr['/fr/rentabilite-locative-luxembourg'].includes('Plafond légal du loyer'));
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

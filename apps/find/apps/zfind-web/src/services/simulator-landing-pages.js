@@ -48,7 +48,12 @@ const PAGES = Object.freeze({
   pret: '/fr/simulateur-pret-immobilier',
   capacite: '/fr/capacite-emprunt',
   rentabilite: '/fr/rentabilite-locative',
-  estimation: '/fr/estimation-immobiliere'
+  estimation: '/fr/estimation-immobiliere',
+  pretBe: '/fr/simulateur-pret-immobilier-belgique',
+  pretLu: '/fr/simulateur-pret-immobilier-luxembourg',
+  courte: '/fr/rentabilite-location-courte-duree',
+  rentBe: '/fr/rentabilite-locative-belgique',
+  rentLu: '/fr/rentabilite-locative-luxembourg'
 });
 /* Pages anglaises (simulator-landing-pages-en.js), liées par hreflang. */
 const EN_PAGES = Object.freeze({
@@ -58,7 +63,13 @@ const EN_PAGES = Object.freeze({
   luxembourg: '/en/luxembourg-property-buying-costs',
   pret: '/en/france-mortgage-calculator',
   capacite: '/en/france-borrowing-capacity-calculator',
-  rentabilite: '/en/rental-yield-calculator'
+  rentabilite: '/en/rental-yield-calculator',
+  estimation: '/en/property-valuation',
+  pretBe: '/en/belgium-mortgage-calculator',
+  pretLu: '/en/luxembourg-mortgage-calculator',
+  courte: '/en/short-term-rental-yield-calculator-france',
+  rentBe: '/en/rental-yield-calculator-belgium',
+  rentLu: '/en/rental-yield-calculator-luxembourg'
 });
 const EN_ALTERNATE = Object.freeze(Object.fromEntries(Object.keys(EN_PAGES).map(k => [PAGES[k], EN_PAGES[k]])));
 
@@ -107,7 +118,9 @@ function shell({ base, pathName, title, description, crumb, parent, eyebrow, h1,
   const others = [
     [PAGES.notaire, 'Frais de notaire'], [PAGES.pret, 'Simulateur de prêt'], [PAGES.capacite, 'Capacité d’emprunt'],
     [PAGES.rentabilite, 'Rentabilité locative'], [PAGES.estimation, 'Estimation gratuite'], [PAGES.belgique, 'Frais d’achat en Belgique'],
-    [PAGES.luxembourg, 'Frais d’achat au Luxembourg'], [PRICE_HUB, 'Prix au m² par commune'], ['/fr/guides', 'Guides juridiques (France, Belgique)']
+    [PAGES.luxembourg, 'Frais d’achat au Luxembourg'], [PAGES.pretBe, 'Prêt immobilier en Belgique'], [PAGES.pretLu, 'Prêt immobilier au Luxembourg'],
+    [PAGES.courte, 'Rentabilité location courte durée'], [PAGES.rentBe, 'Rentabilité locative en Belgique'], [PAGES.rentLu, 'Rentabilité locative au Luxembourg'],
+    [PRICE_HUB, 'Prix au m² par commune'], ['/fr/guides', 'Guides juridiques (France, Belgique)']
   ].filter(([p]) => p !== pathName);
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -523,6 +536,11 @@ function pageHub(base) {
     [PAGES.rentabilite, 'Rentabilité locative', 'Rendement brut et net d’un investissement.'],
     [PAGES.belgique, 'Frais d’achat en Belgique', 'Droits d’enregistrement en Wallonie, Flandre et Bruxelles.'],
     [PAGES.luxembourg, 'Frais d’achat au Luxembourg', 'Droits de 7 % et crédit d’impôt Bëllegen Akt.'],
+    [PAGES.pretBe, 'Prêt immobilier en Belgique', 'Mensualité et coût du crédit, frais d’achat de votre région inclus.'],
+    [PAGES.pretLu, 'Prêt immobilier au Luxembourg', 'Mensualité au taux moyen publié par la BCL, droits d’enregistrement inclus.'],
+    [PAGES.courte, 'Location courte durée', 'Rentabilité d’un meublé de tourisme : nuitées, occupation, commissions.'],
+    [PAGES.rentBe, 'Rentabilité locative en Belgique', 'Rendement brut et net, frais d’achat de la région.'],
+    [PAGES.rentLu, 'Rentabilité locative au Luxembourg', 'Rendement et plafond légal du loyer (5 % du capital investi).'],
     [PRICE_HUB, 'Prix au m² par commune', 'Les prix médians de près de 26 000 communes.']
   ];
   const body = `    <section class="zs-cards">${cards.map(([p, t, d]) => `<a class="zs-card" href="${base}${p}"><h2>${esc(t)} →</h2><p>${esc(d)}</p></a>`).join('')}</section>`;
@@ -542,6 +560,7 @@ function buildSimulatorPages(baseUrl, today, priceIndex) {
   const t = today || new Date();
   const departments = departmentsFromIndex(priceIndex || loadPriceIndex());
   return [pageHub(base), pageNotaire(base, departments), pageBelgique(base), pageLuxembourg(base, t), pagePret(base, t), pageCapacite(base, t), pageRentabilite(base), pageEstimation(base)]
+    .concat(require('./simulator-landing-pages-markets.js').buildMarketPages(base, t, 'fr'))
     .concat(departments.map(d => pageNotaireDepartment(base, d, departments)));
 }
 
@@ -549,4 +568,4 @@ function loadPriceIndex() {
   try { return JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'public', 'market-data', 'fr', 'index.json'), 'utf8')); } catch (_) { return null; }
 }
 
-module.exports = { PAGES, EN_PAGES, EN_ALTERNATE, buildSimulatorPages, departmentsFromIndex, notaryDepartmentPath, _shared: { STYLE, engineScript, table } };
+module.exports = { PAGES, EN_PAGES, EN_ALTERNATE, buildSimulatorPages, departmentsFromIndex, notaryDepartmentPath, _shared: { STYLE, engineScript, table, shell, field, LABELS_JS, SPA } };
