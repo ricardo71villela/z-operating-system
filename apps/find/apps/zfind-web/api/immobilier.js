@@ -49,10 +49,18 @@ async function agencyCount(code) {
   if (!S.configured(['db'])) return 0;
   if (cache.agencies.has(code)) return cache.agencies.get(code);
   let n = 0;
+  // Vue serveur (migration 20261029120000) : le décompte exact, sans la
+  // limite de lignes de PostgREST ; sinon la table, plafonnée.
+  const prefix = P.BIG_CITY_PREFIX[code];
   try {
-    const rows = await withTimeout(S.db(`zfind_agencias?select=id&${communeFilter(code)}&active=is.true&type=in.(agency,network_agency)&limit=3000`), 2500);
-    n = Array.isArray(rows) ? rows.length : 0;
-  } catch (_) { n = 0; }
+    const rows = await withTimeout(S.db(`zfind_agency_commune_counts?select=n&${prefix ? `commune_code=like.${prefix}*` : `commune_code=eq.${code}`}`), 2500);
+    n = (rows || []).reduce((s, r) => s + (Number(r.n) || 0), 0);
+  } catch (_) {
+    try {
+      const rows = await withTimeout(S.db(`zfind_agencias?select=id&${communeFilter(code)}&active=is.true&type=in.(agency,network_agency)&limit=3000`), 2500);
+      n = Array.isArray(rows) ? rows.length : 0;
+    } catch (__) { n = 0; }
+  }
   cache.agencies.set(code, n);
   return n;
 }
