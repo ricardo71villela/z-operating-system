@@ -116,6 +116,7 @@ function normalize(row) {
     bedrooms: row.bedrooms, bathrooms: row.bathrooms, floor: row.floor, yearBuilt: row.year_built, condition: row.condition,
     energy: row.energy_rating, condoFee: num(row.condo_fee_monthly), reference: row.agency_reference,
     postalCode: row.postal_code, locality: zone.city || zone.name || null, country: zone.country_iso,
+    listingId: listing.id || null,
     createdAt: listing.created_at, published: true,
     agency: rep.partners && rep.partners.status !== 'suspended' ? { name: rep.partners.name, slug: agencySlug(rep.partners) } : null,
     zoneCommune: zone.commune_code || null,
@@ -136,6 +137,18 @@ function placeOf(communeCode, postalCode) {
   const cityCode = P.cityOfArrondissement(commune.c);
   const city = cityCode ? (file.communes || []).find(c => c.c === cityCode) || null : null;
   return { commune, city, department: Object.assign({ code: depCode }, d), region: P.regionOfDepartment(idx, depCode) };
+}
+
+/* Statistiques de l'agence : une vue par annonce et par onglet, comptée par le
+   navigateur (la page est en cache : le serveur ne la voit pas à chaque visite).
+   Clé publique Supabase uniquement ; aucun cookie, aucune donnée du visiteur. */
+function withViewBeacon(html, listingId) {
+  const key = String(S.env('SUPABASE_ANON_KEY', '')).trim();
+  if (!key || !S.UUID_RE.test(String(listingId || ''))) return html;
+  const base = S.env('SUPABASE_URL', 'https://dcdggqyazdddrfuzwavw.supabase.co').replace(/\/+$/, '');
+  const js = `(function(){try{if(navigator.webdriver)return;var k='zf-view-${listingId}';if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,'1');}catch(e){}`
+    + `try{fetch(${JSON.stringify(base + '/rest/v1/rpc/zfind_record_listing_view')},{method:'POST',keepalive:true,headers:{'apikey':${JSON.stringify(key)},'Content-Type':'application/json'},body:JSON.stringify({p_listing_id:'${listingId}'})}).catch(function(){});}catch(e){}})();`;
+  return html.replace('</body>', `<script>${js}</script>\n</body>`);
 }
 
 function send(res, status, body, type, cacheable) {
@@ -207,8 +220,8 @@ async function handler(req, res) {
   l.images = images;
   const out = A.render({ base, listing: l, commune: place.commune || null, city: place.city || null, department: place.department || null, region: place.region || null, similar, today: new Date() });
   if (!out.indexable) res.setHeader('X-Robots-Tag', 'noindex');
-  return send(res, 200, out.html, null, true);
+  return send(res, 200, withViewBeacon(out.html, l.listingId), null, true);
 }
 
 module.exports = handler;
-module.exports._internals = { normalize, placeOf, signImages, SELECT };
+module.exports._internals = { normalize, placeOf, signImages, SELECT, withViewBeacon };

@@ -2654,6 +2654,22 @@ async function renderSimilarListings(vm) {
   root.hidden = false;
 }
 
+/* One view per listing and per browser tab, counted by day on the server (no visitor data):
+   the agency's « Statistiques » and monthly report. Robots and demo listings are ignored. */
+function recordListingView(listingId) {
+  try {
+    if (!listingId || (navigator && navigator.webdriver)) return;
+    const key = 'zf-view-' + listingId;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, '1');
+  } catch (_) { /* storage unavailable: still count once */ }
+  try {
+    const sc = window.ZFindServices && window.ZFindServices.supabaseClient;
+    const sb = sc && sc.getSupabaseClient && sc.getSupabaseClient();
+    if (sb) Promise.resolve(sb.rpc('zfind_record_listing_view', { p_listing_id: listingId })).catch(() => null);
+  } catch (_) { /* statistics never break the page */ }
+}
+
 async function renderProperty(assetId) {
   document.getElementById('property-root').innerHTML = propertyStatusHTML('home.loadingTitle', 'home.loadingBody');
 
@@ -2672,6 +2688,7 @@ async function renderProperty(assetId) {
   const vm = result.viewModel;
   const L = state.lang;
   const isRentalListing = vm.listing.transactionType === 'rent';
+  recordListingView(vm.listing.id);
   document.title = vm.content.title ? (vm.content.title + ' — Z Find') : document.title; // minimal SEO hygiene — see report for what this sprint does/doesn't cover
   const repNote = vm.representationNote.multiple
     ? `<div class="rep-history">${t(L,'property.nowRepresented',{partner:vm.representationNote.activePartner, start:vm.representationNote.activeSince})}</div>`
@@ -2762,6 +2779,7 @@ async function renderDevelopment(assetId) {
 
   const vm = result.viewModel;
   const L = state.lang;
+  if (vm.listing) recordListingView(vm.listing.id);
   document.title = vm.content.title ? (vm.content.title + ' — Z Find') : document.title;
   // CTO correction: units no longer carry any status field at all —
   // "published" never proved commercial availability. The table's
