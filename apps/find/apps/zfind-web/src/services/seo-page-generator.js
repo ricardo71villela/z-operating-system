@@ -139,13 +139,14 @@ ${siteHeader(base, interactiveUrl, openInteractive)}
 </html>`;
 }
 
-function buildListingPage({ kind, baseUrl, locale, availableLocales, id, title, description, priceValue, currencyIso, priceIsFrom, zoneLabel, cityLabel, countryIsoCode, imageUrl, imageAlt }) {
+function buildListingPage({ kind, baseUrl, locale, availableLocales, id, title, description, priceValue, currencyIso, priceIsFrom, zoneLabel, cityLabel, countryIsoCode, imageUrl, imageAlt, localePaths }) {
   const base = requireBaseUrl(baseUrl);
   requireLocale(locale);
   const alternates = normalizeAlternates(availableLocales);
   if (!alternates.includes(locale)) throw new Error('Listing locale must have genuine localized content.');
   const copy = COPY[locale];
-  const pathForLocale = l => `/${l}/${kind}/${id}`;
+  // localePaths: adresse d'une langue servie ailleurs (FR : /fr/annonce/…, page dynamique).
+  const pathForLocale = l => (localePaths && localePaths[l]) || `/${l}/${kind}/${id}`;
   const canonical = base + pathForLocale(locale);
   const metaDesc = buildMetaDescription(description);
   const pageTitle = `${title} — ${zoneLabel || cityLabel || ''} | Z Find`;

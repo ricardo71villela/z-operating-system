@@ -192,4 +192,4 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-module.exports._internals = { arrondissementPostcodes };
+module.exports._internals = { arrondissementPostcodes, listingsFor };

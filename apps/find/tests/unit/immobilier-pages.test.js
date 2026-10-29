@@ -59,7 +59,7 @@ function run(query) {
   const ctx = { base: 'https://zfind.online', commune, department: Object.assign({ code: '74' }, idx.departments['74']), region: P.regionOfDepartment(idx, '74'), city: null, arrondissements: [], neighbours: [], listings, agencies: 12, today: new Date('2026-10-29') };
   const hub = H.render(ctx);
   check('3 annonces ou plus : la commune est indexée', hub.indexable && hub.html.includes('content="index,follow"'));
-  check('cartes d’annonces : titre, surface, prix, lien', hub.html.includes('Appartement vue lac 1') && hub.html.includes('70 m²') && /300\s001\s€/.test(hub.html) && hub.html.includes('/#/fr/property/00000000-0000-0000-0000-000000000001'));
+  check('cartes d’annonces : titre, surface, prix, lien', hub.html.includes('Appartement vue lac 1') && hub.html.includes('70 m²') && /300\s001\s€/.test(hub.html) && hub.html.includes('/fr/annonce/appartement-vue-lac-1-00000000-0000-0000-0000-000000000001'));
   check('compteurs par type et FAQ', hub.html.includes('Appartements à vendre (3)') && hub.html.includes('Locations (1)') && hub.html.includes('"FAQPage"'));
   check('agences de la commune', hub.html.includes('12 agences immobilières sont établies à Évian-les-Bains'));
   const apts = H.render(Object.assign({}, ctx, { type: 'appartements-a-vendre' }));
