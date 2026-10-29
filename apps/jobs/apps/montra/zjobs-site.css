@@ -82,7 +82,10 @@ footer a:hover{ color:#fff; }
 .zj-foot-about{ font-size:13.5px; line-height:1.6; color:#C9D0D9; max-width:280px; margin:0 0 14px; }
 .zj-foot-h{ font-family:'DM Sans',sans-serif; font-weight:700; color:#fff; font-size:12px; letter-spacing:.12em; text-transform:uppercase; margin:0 0 16px; }
 .zj-foot-cols a{ display:block; font-size:13.5px; padding:5px 0; }
-.zj-foot-zos{ border-top:1px solid rgba(255,255,255,.14); margin-top:44px; padding-top:18px; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:6px 18px; font-size:12.5px; }
+.zj-foot-cities{ border-top:1px solid rgba(255,255,255,.14); margin-top:36px; padding-top:20px; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 22px; }
+.zj-foot-cities .zj-foot-h{ margin:0 10px 0 0; }
+.zj-foot-cities a{ font-size:13.5px; padding:4px 0; }
+.zj-foot-zos{ border-top:1px solid rgba(255,255,255,.14); margin-top:20px; padding-top:18px; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:6px 18px; font-size:12.5px; }
 .zj-foot-zos a, .zj-foot-zos span{ color:#AEB7C3; }
 .zj-foot-zos a:hover{ color:#fff; }
 .zj-foot-zos .soon{ color:var(--zj-blue-light); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; margin-left:4px; }
@@ -92,6 +95,7 @@ footer .flags, footer .fine{ display:none; }
 @media (max-width:620px){
   .zj-foot-cols{ grid-template-columns:1fr 1fr; gap:22px 16px; }
   .zj-foot-cols a{ padding:8px 0; }
+  .zj-foot-cities .zj-foot-h{ flex-basis:100%; margin:0 0 4px; }
   /* Portails ZOS : grille régulière de 3 colonnes, « bientôt » sous le nom. */
   .zj-foot-zos{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); align-items:start; gap:14px 16px; margin-top:36px; padding-top:22px; font-size:13.5px; }
   .zj-foot-zos a, .zj-foot-zos > span{ display:flex; flex-direction:column; align-items:flex-start; gap:3px; }

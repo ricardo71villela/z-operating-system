@@ -530,3 +530,151 @@ ${urls.join('\n')}
 </urlset>
 `;
 }
+
+// ------------------------------------------------------------------ city pages
+// zjobs.online/emploi/<ville>-<code INSEE> (rewrite → GET /public/emploi/…).
+// Indexées pour les 6 grandes villes de France dès maintenant, et pour toute
+// ville qui a au moins MIN_CITY_OFFERS offres publiées ; sinon noindex.
+
+export const MIN_CITY_OFFERS = 3;
+export const TIER1_CITIES = Object.freeze(['FR-75056', 'FR-13055', 'FR-69123', 'FR-31555', 'FR-06088', 'FR-44109']);
+
+export interface PublicCity { officialCode: string; city: string; countryCode: string; adminArea: string | null; postalCode: string | null; population: number | null }
+
+/** 'FR-69123' + 'Lyon' → '/emploi/lyon-69123' ; 'BE-21004' → '/emploi/bruxelles-be-21004'. */
+export function cityPath(c: { officialCode: string; city: string }): string {
+  const code = c.officialCode.toLowerCase().replace(/^fr-/, '');
+  return `/emploi/${slugify(c.city)}-${code}`;
+}
+
+/** 'lyon-69123' → 'FR-69123' ; 'bruxelles-be-21004' → 'BE-21004'. */
+export function officialCodeFromCitySlug(slug: string): string | null {
+  const s = String(slug ?? '').toLowerCase();
+  const other = s.match(/^.*?-(be|lu)-([a-z0-9-]+)$/);
+  if (other) return `${other[1].toUpperCase()}-${other[2]}`;
+  const fr = s.match(/(?:^|-)((?:2a|2b|\d{2})\d{3}|97[1-6]\d{2})$/);
+  return fr ? `FR-${fr[1].toUpperCase()}` : null;
+}
+
+function aVille(name: string): string {
+  const m = String(name).match(/^(Le|Les) (.*)$/);
+  if (m) return `${m[1] === 'Le' ? 'au' : 'aux'} ${m[2]}`;
+  return `à ${name}`;
+}
+
+const CITY_STYLE = `
+  .city-hero{ padding:44px 0 30px; }
+  .city-hero h1{ font-size:clamp(34px,4.6vw,50px); line-height:1.06; margin:0 0 14px; }
+  .city-hero p{ color:var(--zj-muted); max-width:760px; margin:0; }
+  .city-section{ padding:34px 0; border-top:1px solid var(--zj-line); }
+  .city-section h2{ font-size:28px; margin:0 0 14px; }
+  .city-section p{ color:var(--zj-text); max-width:800px; }
+  .city-offers{ list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; }
+  .city-offers a{ display:block; height:100%; border:1px solid var(--zj-line); background:#fff; padding:20px; text-decoration:none; }
+  .city-offers a:hover{ border-color:var(--zj-blue); }
+  .city-offers b{ display:block; font-family:'Cormorant Garamond',Georgia,serif; font-weight:500; font-size:21px; color:var(--zj-text); line-height:1.25; }
+  .city-offers span{ display:block; font-size:13px; color:var(--zj-muted); margin-top:6px; }
+  .city-offers em{ display:block; font-style:normal; font-size:14px; color:var(--zj-blue); margin-top:8px; font-weight:600; }
+  .city-empty{ padding:22px; border:1px dashed var(--zj-line); background:var(--zj-bg-soft); }
+  .city-ctas{ display:flex; flex-wrap:wrap; gap:12px; margin-top:22px; }
+  .city-ctas a{ display:inline-block; padding:12px 18px; border:1px solid var(--zj-blue); color:var(--zj-blue); text-decoration:none; font-size:12px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; }
+  .city-ctas a.primary{ background:var(--zj-blue); color:#fff; }
+  .city-links{ display:flex; flex-wrap:wrap; gap:8px 20px; padding:0; list-style:none; }
+  .city-links a{ color:var(--zj-blue); }
+  .city-faq details{ padding:12px 0; border-bottom:1px solid var(--zj-line); }
+  .city-faq summary{ cursor:pointer; font-weight:500; }
+`;
+
+export function renderCityPage(city: PublicCity, offers: PublicOfferRecord[], others: { officialCode: string; city: string }[], locale: PageLocale): { indexable: boolean; html: string } {
+  const en = locale === 'en';
+  const q = en ? '?lang=en' : '';
+  const path = cityPath(city);
+  const frUrl = SITE + path;
+  const enUrl = SITE + path + '?lang=en';
+  const name = city.city;
+  const indexable = TIER1_CITIES.includes(city.officialCode) || offers.length >= MIN_CITY_OFFERS;
+  const n = offers.length;
+  const isFr = city.countryCode === 'FR';
+  const insee = city.officialCode.replace(/^FR-/, '');
+  const zfindHousing = isFr ? `https://zfind.online/fr/immobilier/${slugify(name)}-${insee.toLowerCase()}` : null;
+  const t = en
+    ? {
+        h1: `Jobs in ${name}`,
+        lead: n ? `${n} job${n > 1 ? 's' : ''} from verified employers in ${name}, always with the salary shown and an answer expected within 14 days.` : `Z Jobs is opening in ${name}: the first verified employers are arriving. Every job shows its salary and an answer is expected within 14 days.`,
+        offers: `Jobs in ${name}`, empty: `No job published in ${name} yet. Create an alert to be told about the first ones.`,
+        alert: 'Create a job alert', post: 'Post a job', all: 'All jobs',
+        salary: 'Salaries and net pay', salaryP: `Every Z Jobs offer shows its salary, compared with the minimum wage and the collective-agreement scales. Work out your net pay from a gross salary with the free simulator.`,
+        sim: 'Gross → net simulator', law: 'Labour law FR, BE, LU',
+        housing: `Living in ${name}`, housingP: `Prices per m², homes for sale and to rent, notary fees: see the property market of ${name} on Z Find, the property portal of the same Z Operating System.`,
+        housingCta: `Property in ${name} on Z Find`,
+        employers: `Hiring in ${name}?`, employersP: 'Your first offer is free for a verified employer. Screening questions, application sorting and Z Desk and Z Studio included.',
+        othersH: 'Jobs in other cities', faqH: 'Questions',
+        f1q: `How many jobs are there in ${name} on Z Jobs?`, f1a: n ? `${n} published job${n > 1 ? 's' : ''}, all from verified employers with the salary shown.` : `None yet: Z Jobs is opening in ${name}. Create an alert to be told about the first jobs.`,
+        f2q: 'Is the salary always shown?', f2a: 'Yes: a job cannot be published on Z Jobs without a fixed salary, compared with the official collective-agreement scales.',
+        title: `Jobs in ${name}: verified employers, salary shown | Z Jobs`,
+        desc: `${n ? `${n} jobs` : 'Jobs'} in ${name} from verified employers, always with the salary shown and an answer within 14 days. Free for candidates.`,
+      }
+    : {
+        h1: `Emploi ${aVille(name)}`,
+        lead: n ? `${n} offre${n > 1 ? 's' : ''} d’employeurs vérifiés ${aVille(name)}, toujours avec le salaire affiché et une première réponse attendue sous 14 jours.` : `Z Jobs ouvre ${aVille(name)} : les premiers employeurs vérifiés arrivent. Chaque offre affiche son salaire, et une première réponse est attendue sous 14 jours.`,
+        offers: `Offres d’emploi ${aVille(name)}`, empty: `Aucune offre publiée ${aVille(name)} pour le moment. Créez une alerte pour être prévenu des premières.`,
+        alert: 'Créer une alerte emploi', post: 'Publier une offre', all: 'Toutes les offres',
+        salary: 'Salaires et salaire net', salaryP: 'Chaque offre Z Jobs affiche son salaire, comparé au salaire minimum et aux grilles des conventions collectives. Calculez votre salaire net à partir du brut avec le simulateur gratuit.',
+        sim: 'Simulateur brut → net', law: 'Droit du travail FR, BE, LU',
+        housing: `Se loger ${aVille(name)}`, housingP: `Prix au m², biens à vendre et à louer, frais de notaire : le marché immobilier ${aVille(name)} sur Z Find, le portail immobilier du même Z Operating System.`,
+        housingCta: `Immobilier ${aVille(name)} sur Z Find`,
+        employers: `Vous recrutez ${aVille(name)} ?`, employersP: 'La première offre est gratuite pour un employeur vérifié. Questions de pré-sélection, tri des candidatures, Z Desk et Z Studio inclus.',
+        othersH: 'Emploi dans les autres villes', faqH: 'Questions fréquentes',
+        f1q: `Combien d’offres d’emploi ${aVille(name)} sur Z Jobs ?`, f1a: n ? `${n} offre${n > 1 ? 's' : ''} publiée${n > 1 ? 's' : ''}, toutes d’employeurs vérifiés et avec le salaire affiché.` : `Aucune pour le moment : Z Jobs ouvre ${aVille(name)}. Créez une alerte pour être prévenu des premières offres.`,
+        f2q: 'Le salaire est-il toujours affiché ?', f2a: 'Oui : une offre ne peut pas être publiée sur Z Jobs sans salaire fixe, comparé aux grilles officielles des conventions collectives.',
+        title: `Emploi ${aVille(name)} : offres d’employeurs vérifiés, salaire affiché | Z Jobs`,
+        desc: `${n ? `${n} offres d’emploi` : 'Offres d’emploi'} ${aVille(name)} d’employeurs vérifiés, toujours avec le salaire affiché et une réponse sous 14 jours. Gratuit pour les candidats.`,
+      };
+  const faq = [{ q: t.f1q, a: t.f1a }, { q: t.f2q, a: t.f2a }];
+  const ld: unknown[] = [
+    { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Z Jobs', item: SITE + '/' + q },
+      { '@type': 'ListItem', position: 2, name: t.h1, item: en ? enUrl : frUrl },
+    ] },
+    { '@context': 'https://schema.org', '@type': 'CollectionPage', name: t.title, url: en ? enUrl : frUrl, inLanguage: locale, about: { '@type': 'City', name, ...(city.adminArea ? { containedInPlace: { '@type': 'AdministrativeArea', name: city.adminArea } } : {}) } },
+  ];
+  if (indexable) ld.push({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faq.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) });
+  const searchHref = `/${q}#recherche`;
+  const offersHtml = n
+    ? `<ul class="city-offers">${offers.slice(0, 30).map((o) => `<li><a href="${esc(offerPath(o) + q)}"><b>${esc(o.title)}</b><span>${esc(o.employer?.displayName ?? '')} · ${esc(CONTRACT[locale][o.contractType] ?? '')}</span><em>${esc(salaryText(o, locale))}</em></a></li>`).join('')}</ul>`
+    : `<div class="city-empty"><p style="margin:0">${esc(t.empty)}</p></div>`;
+  const html = `${head({ locale, title: t.title, description: shortText(t.desc, 158), canonical: en ? enUrl : frUrl, alternates: { fr: frUrl, en: enUrl }, robots: indexable ? 'index,follow' : 'noindex,follow', jsonLd: ld })
+    .replace('</style>', CITY_STYLE + '</style>')}
+<body>
+${navHtml(locale, path, path + '?lang=en')}
+<main id="contenu">
+<header class="city-hero hero"><div class="wrap">
+  <p class="crumbs"><a href="/${q}">Z Jobs</a><span>›</span>${esc(t.h1)}</p>
+  <h1>${esc(t.h1)}</h1>
+  <p>${esc(t.lead)}</p>
+  <div class="city-ctas"><a class="primary" href="${PORTAL_URL}?lang=${locale}">${esc(t.alert)}</a><a href="${esc(searchHref)}">${esc(t.all)}</a><a href="/employeurs${q}">${esc(t.post)}</a></div>
+</div></header>
+<div class="wrap">
+  <section class="city-section"><h2>${esc(t.offers)}</h2>${offersHtml}</section>
+  <section class="city-section"><h2>${esc(t.salary)}</h2><p>${esc(t.salaryP)}</p><ul class="city-links"><li><a href="/outils${q}#simulateur">${esc(t.sim)}</a></li><li><a href="/outils${q}#legislation">${esc(t.law)}</a></li></ul></section>
+  ${zfindHousing ? `<section class="city-section"><h2>${esc(t.housing)}</h2><p>${esc(t.housingP)}</p><ul class="city-links"><li><a href="${esc(zfindHousing)}">${esc(t.housingCta)} →</a></li></ul></section>` : ''}
+  <section class="city-section"><h2>${esc(t.employers)}</h2><p>${esc(t.employersP)}</p><ul class="city-links"><li><a href="/employeurs${q}">${esc(t.post)} →</a></li></ul></section>
+  ${others.length ? `<section class="city-section"><h2>${esc(t.othersH)}</h2><ul class="city-links">${others.map((o) => `<li><a href="${esc(cityPath(o) + q)}">${esc(o.city)}</a></li>`).join('')}</ul></section>` : ''}
+  <section class="city-section city-faq"><h2>${esc(t.faqH)}</h2>${faq.map((f) => `<details><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join('')}</section>
+</div>
+</main>
+<footer></footer>
+</body>
+</html>
+`;
+  return { indexable, html };
+}
+
+export function renderCitySitemap(cities: { officialCode: string; city: string }[]): string {
+  const urls = cities.map((c) => `  <url><loc>${esc(SITE + cityPath(c))}</loc><xhtml:link rel="alternate" hreflang="fr" href="${esc(SITE + cityPath(c))}"/><xhtml:link rel="alternate" hreflang="en" href="${esc(SITE + cityPath(c) + '?lang=en')}"/></url>`);
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+${urls.join('\n')}
+</urlset>
+`;
+}

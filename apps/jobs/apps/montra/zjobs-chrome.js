@@ -32,6 +32,7 @@
       law: 'Droit du travail FR, BE, LU',
       econ: 'Inflation, chômage, SMIC',
       about2: 'Z Jobs',
+      cities: 'Emploi par ville',
       trust: 'Employeur vérifié',
       free: 'Gratuit pour les candidats',
       contact: 'Nous écrire',
@@ -63,6 +64,7 @@
       law: 'Labour law FR, BE, LU',
       econ: 'Inflation, unemployment, minimum wage',
       about2: 'Z Jobs',
+      cities: 'Jobs by city',
       trust: 'Verified employers',
       free: 'Free for candidates',
       contact: 'Write to us',
@@ -85,6 +87,9 @@
   function lang() { return document.documentElement.lang === 'en' ? 'en' : 'fr'; }
   function esc(v) { return String(v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
+  /* Pages « Emploi à {ville} » des 6 grandes villes (rendues par l'API, /emploi/<slug>-<insee>). */
+  var CITIES = [['paris-75056', 'Paris'], ['marseille-13055', 'Marseille'], ['lyon-69123', 'Lyon'], ['toulouse-31555', 'Toulouse'], ['nice-06088', 'Nice'], ['nantes-44109', 'Nantes']];
+
   function footerHtml(c) {
     var col = function (title, links) {
       return '<nav aria-label="' + esc(title) + '"><h2 class="zj-foot-h">' + esc(title) + '</h2>' +
@@ -101,6 +106,9 @@
         col(c.tools, [['/outils#simulateur', c.net], ['/outils#grilles', c.grids], ['/outils#legislation', c.law], ['/outils#economie', c.econ]]) +
         col(c.about2, [['/employeurs#badges', c.trust], ['/candidats', c.free], ['mailto:hello@zjobs.online', c.contact]]) +
       '</div>' +
+      '<nav class="zj-foot-cities" aria-label="' + esc(c.cities) + '"><h2 class="zj-foot-h">' + esc(c.cities) + '</h2>' + CITIES.map(function (v) {
+        return '<a href="/emploi/' + v[0] + (lang() === 'en' ? '?lang=en' : '') + '">' + esc(v[1]) + '</a>';
+      }).join('') + '</nav>' +
       '<nav class="zj-foot-zos" aria-label="Z Operating System">' + ZOS.map(function (a) {
         return a.href ? '<a href="' + a.href + '" target="_blank" rel="noopener">' + esc(a.label) + '</a>' : '<span>' + esc(a.label) + '<span class="soon">' + esc(c.soon) + '</span></span>';
       }).join('') + '</nav>' +

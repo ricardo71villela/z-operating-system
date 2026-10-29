@@ -38,5 +38,12 @@ for (const [from, to] of [['candidatos', 'candidats'], ['empregadores', 'employe
 // Montra search calls /api/job-offers/search on its own origin: same API as the portal.
 assert.equal(montra.rewrites[0].source, '/api/:path*');
 assert.equal(montra.rewrites[0].destination, web.rewrites[0].destination);
+// Pages publiques rendues par l'API (offres, emploi par ville) et leurs sitemaps.
+const apiOrigin = web.rewrites[0].destination.replace('/:path*', '');
+for (const [source, dest] of [['/offres/:slug', '/public/offres/:slug'], ['/sitemap-offres.xml', '/public/sitemap-offres.xml'], ['/emploi/:slug', '/public/emploi/:slug'], ['/sitemap-emploi.xml', '/public/sitemap-emploi.xml']]) {
+  assert.ok(montra.rewrites.some((r) => r.source === source && r.destination === apiOrigin + dest), source);
+}
+const robots = readFileSync('apps/jobs/apps/montra/robots.txt', 'utf8');
+for (const map of ['sitemap.xml', 'sitemap-offres.xml', 'sitemap-emploi.xml']) assert.ok(robots.includes(`Sitemap: https://zjobs.online/${map}`), map);
 
 console.log('Z Jobs Vercel hosting contract: PASS');

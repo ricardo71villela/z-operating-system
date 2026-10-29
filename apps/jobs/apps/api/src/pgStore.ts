@@ -947,6 +947,10 @@ export class PgStore {
       params.push(filters.naceSection);
       where.push(`n.section_letter = $${params.length}::text`);
     }
+    if (filters.officialCode) {
+      params.push(filters.officialCode);
+      where.push(`l.official_code = $${params.length}::text`);
+    }
     const from = `from job_offers o
        join organizations g on g.id = o.organization_id
        left join company_profiles cp on cp.organization_id = o.organization_id
@@ -1026,6 +1030,33 @@ export class PgStore {
       publishedAt: (r.published_at ?? r.updated_at).toISOString(),
       expiresAt: r.expires_at ? r.expires_at.toISOString() : null,
     };
+  }
+
+  /** A city of the reference locations by official code ('FR-69123'), for /emploi/… pages. */
+  async getPublicCity(officialCode: string): Promise<{ officialCode: string; city: string; countryCode: string; adminArea: string | null; postalCode: string | null; population: number | null } | null> {
+    const { rows } = await this.query(
+      `select official_code, city, country_code, admin_area, postal_code, population
+         from locations where official_code = $1
+        order by postal_code nulls last limit 1`,
+      [officialCode],
+    );
+    const r = rows[0];
+    if (!r) return null;
+    return { officialCode: r.official_code, city: r.city, countryCode: String(r.country_code).trim(), adminArea: r.admin_area ?? null, postalCode: r.postal_code ?? null, population: r.population ?? null };
+  }
+
+  /** Cities with at least `min` live published offers, for sitemap-emploi.xml. */
+  async listCitiesWithOffers(min = 3): Promise<{ officialCode: string; city: string; offers: number }[]> {
+    const { rows } = await this.query(
+      `select l.official_code, min(l.city) as city, count(*)::int as n
+         from job_offers o join locations l on l.id = o.location_id
+        where o.status = 'published' and l.official_code is not null
+          and (o.expires_at is null or o.expires_at > now())
+          and (o.application_deadline is null or o.application_deadline >= current_date)
+        group by l.official_code having count(*) >= $1`,
+      [min],
+    );
+    return rows.map((r) => ({ officialCode: r.official_code, city: r.city, offers: r.n }));
   }
 
   /** Every live published offer, for sitemap-offres.xml (newest first). */
