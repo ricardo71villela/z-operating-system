@@ -85,9 +85,14 @@ function priceText(l) {
   return l.transaction === 'rent' ? `${v} / ${l.rentalPeriod === 'yearly' ? 'an' : l.rentalPeriod === 'seasonal' ? 'saison' : 'mois'}` : v;
 }
 const SUBTYPE = Object.freeze({ apartment: 'Appartement', villa: 'Maison', land: 'Terrain', commercial: 'Local', parking: 'Parking' });
+/* Adresse publique d'une annonce (page servie par api/annonce.js). */
+function listingPath(l) {
+  const slug = P.slugify(l.title || 'annonce').slice(0, 80).replace(/-+$/, '') || 'annonce';
+  return `/fr/annonce/${slug}-${String(l.id).toLowerCase()}`;
+}
 function listingCard(base, l) {
   const facts = [SUBTYPE[l.subtype] || null, l.typology || null, l.area ? `${nf.format(l.area)} m²` : null, l.bedrooms ? `${l.bedrooms} ch.` : null].filter(Boolean).join(' · ');
-  return `<li class="zh-card"><a href="${base}/#/fr/property/${P.esc(l.id)}"><strong>${P.esc(l.title)}</strong><span>${P.esc(facts)}</span><em>${P.esc(priceText(l))}</em></a></li>`;
+  return `<li class="zh-card"><a href="${base}${P.esc(listingPath(l))}"><strong>${P.esc(l.title)}</strong><span>${P.esc(facts)}</span><em>${P.esc(priceText(l))}</em></a></li>`;
 }
 
 /* Frais de notaire et mensualité d'un appartement de 60 m² au prix médian. */
@@ -211,4 +216,4 @@ function tier1Communes(depFiles) {
   return out;
 }
 
-module.exports = { ROOT, MIN_LISTINGS, TIER1, TYPES, isTier1, tier1City, rentControlFor, displayName, hubPath, typePath, parsePath, render, tier1Communes };
+module.exports = { ROOT, MIN_LISTINGS, listingPath, STYLE, TIER1, TYPES, isTier1, tier1City, rentControlFor, displayName, hubPath, typePath, parsePath, render, tier1Communes };

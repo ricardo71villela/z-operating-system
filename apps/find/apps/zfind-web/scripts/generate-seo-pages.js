@@ -20,6 +20,7 @@ const marketRegistry = require('../src/services/market-registry.js');
 const launchScope = require('../src/services/launch-scope.js');
 const seoGenerator = require('../src/services/seo-page-generator.js');
 const prixPages = require('../api/_lib/prix-pages.js');
+const immobilierPages = require('../api/_lib/immobilier-pages.js');
 const prixPagesBeLu = require('../api/_lib/prix-pages-be-lu.js');
 const simulatorPages = require('../src/services/simulator-landing-pages.js');
 const guidePages = require('./guide-pages.js');
@@ -54,7 +55,7 @@ function xmlEscape(value) {
 
 function buildRobotsTxt(baseUrl) {
   const base = normalizeBaseUrl(baseUrl);
-  return ['User-agent: *', 'Allow: /', '', `Sitemap: ${base}/sitemap.xml`, `Sitemap: ${base}/${PRICE_SITEMAP}`, `Sitemap: ${base}/sitemap-immobilier.xml`, ''].join('\n');
+  return ['User-agent: *', 'Allow: /', '', `Sitemap: ${base}/sitemap.xml`, `Sitemap: ${base}/${PRICE_SITEMAP}`, `Sitemap: ${base}/sitemap-immobilier.xml`, `Sitemap: ${base}/sitemap-annonces.xml`, ''].join('\n');
 }
 
 function buildSitemapXml(baseUrl, urls) {
@@ -288,9 +289,16 @@ async function main() {
         ? await supabaseClientModule.resolveMediaUrl(cover.media_assets.original_storage_path, undefined, 60 * 60 * 24 * 30)
         : null;
 
+      // Le français d'une annonce est servi par la page dynamique
+      // /fr/annonce/{titre}-{id} (api/annonce.js) : pas de page statique FR,
+      // et les autres langues la donnent comme alternative.
+      const frContent = kind === 'property' && availableLocales.includes('fr') ? contentForPublicLocale(contentRows, 'fr') : null;
+      const localePaths = frContent ? { fr: immobilierPages.listingPath({ id: row.id, title: frContent.title }) } : null;
       for (const locale of availableLocales) {
+        if (localePaths && locale === 'fr') continue;
         const content = contentForPublicLocale(contentRows, locale);
         const html = seoGenerator.buildListingPage({
+          localePaths,
           kind,
           baseUrl,
           locale,

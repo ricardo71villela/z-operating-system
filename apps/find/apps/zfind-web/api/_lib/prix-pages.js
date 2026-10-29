@@ -150,7 +150,7 @@ function depOfCommune(code) {
 
 const FR_SOURCE = 'Source : DVF — Demandes de valeurs foncières (DGFiP), ventes de logements anciens enregistrées par l’administration fiscale, sous licence ouverte. Prix médians au m² calculés par Z Find ; fourchette = 1er et 3e quartiles. L’Alsace-Moselle et Mayotte ne sont pas couvertes par DVF. Ces chiffres ne remplacent pas une estimation de votre bien.';
 
-function page({ base, title, description, canonicalPath, indexable, breadcrumbs, body, jsonLd, market, source }) {
+function page({ base, title, description, canonicalPath, indexable, breadcrumbs, body, jsonLd, market, source, image }) {
   const mk = market || 'FR';
   const canonical = base + canonicalPath;
   const crumbsLd = {
@@ -173,7 +173,7 @@ function page({ base, title, description, canonicalPath, indexable, breadcrumbs,
 <meta property="og:description" content="${esc(seo.buildMetaDescription(description, 158))}">
 <meta property="og:url" content="${esc(canonical)}">
 <meta property="og:locale" content="fr_FR">
-<meta name="twitter:card" content="summary">
+${image ? `<meta property="og:image" content="${esc(image)}">\n<meta name="twitter:card" content="summary_large_image">` : '<meta name="twitter:card" content="summary">'}
 ${lds}
 ${seo.presentationHead()}
 <style id="zfind-prix-styles">.zp-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;margin-top:28px}.zp-stat{padding:28px;border:1px solid var(--zf-200);background:#fff}.zp-stat h2{margin:0 0 6px;font-family:'Cormorant Garamond',Georgia,serif;font-size:1.6rem;font-weight:400}.zp-big{margin:6px 0 4px;color:var(--zf-gold-dark);font-family:'Cormorant Garamond',Georgia,serif;font-size:2.6rem;line-height:1.1}.zp-small{margin:0;color:var(--zf-500);font-size:.88rem;line-height:1.6}.zp-section{margin-top:34px}.zp-section h2{font-family:'Cormorant Garamond',Georgia,serif;font-size:2rem;font-weight:400;margin:0 0 12px}.zp-section p{color:var(--zf-700);line-height:1.75;max-width:820px}.zp-table-wrap{overflow-x:auto;border:1px solid var(--zf-200)}.zp-table{width:100%;border-collapse:collapse;font-size:.92rem;font-variant-numeric:tabular-nums}.zp-table th,.zp-table td{padding:10px 14px;border-bottom:1px solid var(--zf-100);text-align:right;white-space:nowrap}.zp-table th:first-child,.zp-table td:first-child{text-align:left;white-space:normal}.zp-table thead th{background:var(--zf-50);font-weight:500;color:var(--zf-700)}.zp-table a{color:var(--zf-gold-dark);font-weight:500}.zp-links{display:flex;flex-wrap:wrap;gap:8px 18px;padding:0;list-style:none}.zp-links a{color:var(--zf-gold-dark);font-weight:500}.zp-ctas{display:flex;flex-wrap:wrap;gap:14px;margin-top:28px}.zp-secondary{display:inline-flex;align-items:center;padding:12px 20px;border:1px solid var(--zf-gold);color:var(--zf-gold-dark)!important;font-size:.72rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase}.zp-source{margin-top:34px;color:var(--zf-500);font-size:.8rem;line-height:1.6}@media(max-width:820px){.zp-stats{grid-template-columns:1fr}}</style>
