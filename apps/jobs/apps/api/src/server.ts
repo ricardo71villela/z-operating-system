@@ -54,7 +54,7 @@ import { computeCandidateScore, explainCandidateScore } from '../../../packages/
 import type { MessageLocale } from '../../../packages/domain/src/i18n/messages';
 import type { JobOfferDraft } from '../../../packages/domain/src/types/jobOffer';
 import { validateScreeningQuestions, validateScreeningAnswers } from '../../../packages/domain/src/rules/screeningQuestions';
-import { offerIdFromSlug, offerPath, pageLocale, renderGonePage, renderOfferPage, renderOffersSitemap, cityPath, officialCodeFromCitySlug, renderCityPage, renderCitySitemap, TIER1_CITIES, MIN_CITY_OFFERS } from './publicPages';
+import { offerIdFromSlug, offerPath, pageLocale, renderGonePage, renderOfferPage, renderOffersSitemap, cityPath, officialCodeFromCitySlug, renderCityPage, renderCitySitemap, TIER1_CITIES, MIN_CITY_OFFERS, companyIdFromSlug, companyPath, isVerifiedCompany, renderCompanyPage, renderCompanySitemap, type PublicCompany } from './publicPages';
 
 // Versão atual dos Termos de Serviço / Política de Privacidade — muda
 // sempre que docs/legal/*.md tiver uma alteração material, para que
@@ -1133,6 +1133,50 @@ export function createServer() {
         return sendText(res, 200, 'text/html; charset=utf-8', renderOfferPage(offer, similar, locale, await (store as PgStore).getOfferQuestions(offer.id)), {
           'Cache-Control': 'public, max-age=0, s-maxage=600, stale-while-revalidate=3600',
         });
+      }
+
+      // Company pages: zjobs.online/entreprise/<nom>-<id> (rewrite from the public site).
+      // Only verified employers have a public page; anything else is a 404.
+      if (method === 'GET' && path.startsWith('/public/entreprise/')) {
+        const locale = pageLocale(url.searchParams.get('lang'));
+        const slug = decodeURIComponent(path.slice('/public/entreprise/'.length)).replace(/\/+$/, '');
+        const orgId = companyIdFromSlug(slug);
+        const pg = store as PgStore;
+        let company: PublicCompany | null = null;
+        if (orgId && usingPostgres) {
+          try {
+            const org = await store.mustGetOrg(orgId);
+            const metrics = await pg.getEmployerMetrics(orgId);
+            if (isVerifiedCompany(metrics.verificationStatus)) {
+              const details = await pg.getCompanyPublicDetails(orgId);
+              const open = await pg.searchPublishedJobOffers({ organizationId: orgId, limit: 50 });
+              company = {
+                id: orgId, displayName: org.displayName || org.legalName, verificationStatus: metrics.verificationStatus,
+                badges: computeEligibleBadges(metrics) as unknown as string[],
+                metrics: { publishedOffersCount: metrics.publishedOffersCount, confirmedComplaintsCount: metrics.confirmedComplaintsCount },
+                profile: details as PublicCompany['profile'], offers: open.offers, offersTotal: open.total,
+              };
+            }
+          } catch (e) {
+            if (!(e instanceof NotFoundError)) throw e;
+          }
+        }
+        if (!company) {
+          return sendText(res, 404, 'text/html; charset=utf-8', renderGonePage(locale, slug), { 'X-Robots-Tag': 'noindex, follow' });
+        }
+        if ('/entreprise/' + slug !== companyPath(company)) {
+          return sendText(res, 301, 'text/html; charset=utf-8', '', { Location: companyPath(company) + (locale === 'en' ? '?lang=en' : ''), 'Cache-Control': 'public, max-age=0, s-maxage=300' });
+        }
+        const page = renderCompanyPage(company, locale);
+        return sendText(res, 200, 'text/html; charset=utf-8', page.html, {
+          'Cache-Control': 'public, max-age=0, s-maxage=1800, stale-while-revalidate=86400',
+          ...(page.indexable ? {} : { 'X-Robots-Tag': 'noindex, follow' }),
+        });
+      }
+
+      if (method === 'GET' && path === '/public/sitemap-entreprises.xml') {
+        const companies = usingPostgres ? await (store as PgStore).listPublicCompanies() : [];
+        return sendText(res, 200, 'application/xml; charset=utf-8', renderCompanySitemap(companies), { 'Cache-Control': 'public, max-age=0, s-maxage=3600' });
       }
 
       // City pages: zjobs.online/emploi/<ville>-<code> (rewrite from the public site).

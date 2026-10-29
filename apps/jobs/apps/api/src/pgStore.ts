@@ -1059,6 +1059,26 @@ export class PgStore {
     return rows.map((r) => ({ officialCode: r.official_code, city: r.city, offers: r.n }));
   }
 
+  /** Verified companies with a public page worth indexing: at least one live
+   *  offer or a real description (sitemap-entreprises.xml). */
+  async listPublicCompanies(limit = 5000): Promise<{ id: string; displayName: string; updatedAt: string | null }[]> {
+    const { rows } = await this.query(
+      `select g.id, g.display_name, greatest(max(cp.updated_at), max(o.updated_at)) as updated_at
+         from organizations g
+         join company_profiles cp on cp.organization_id = g.id
+         left join job_offers o on o.organization_id = g.id and o.status = 'published'
+              and (o.expires_at is null or o.expires_at > now())
+              and (o.application_deadline is null or o.application_deadline >= current_date)
+        where cp.verification_status in ('verified', 'enhanced_verified')
+        group by g.id, g.display_name
+       having count(o.id) > 0 or length(coalesce(max(cp.description), '')) >= 80
+        order by g.display_name
+        limit $1`,
+      [limit],
+    );
+    return rows.map((r) => ({ id: r.id, displayName: r.display_name, updatedAt: r.updated_at ? new Date(r.updated_at).toISOString() : null }));
+  }
+
   /** Every live published offer, for sitemap-offres.xml (newest first). */
   async listPublicOfferSitemap(limit = 5000): Promise<{ id: string; title: string; city: string | null; updatedAt: string }[]> {
     const { rows } = await this.query(

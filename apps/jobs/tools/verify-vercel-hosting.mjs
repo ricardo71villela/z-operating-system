@@ -40,7 +40,7 @@ assert.equal(montra.rewrites[0].source, '/api/:path*');
 assert.equal(montra.rewrites[0].destination, web.rewrites[0].destination);
 // Pages publiques rendues par l'API (offres, emploi par ville) et leurs sitemaps.
 const apiOrigin = web.rewrites[0].destination.replace('/:path*', '');
-for (const [source, dest] of [['/offres/:slug', '/public/offres/:slug'], ['/sitemap-offres.xml', '/public/sitemap-offres.xml'], ['/emploi/:slug', '/public/emploi/:slug'], ['/sitemap-emploi.xml', '/public/sitemap-emploi.xml']]) {
+for (const [source, dest] of [['/offres/:slug', '/public/offres/:slug'], ['/sitemap-offres.xml', '/public/sitemap-offres.xml'], ['/emploi/:slug', '/public/emploi/:slug'], ['/sitemap-emploi.xml', '/public/sitemap-emploi.xml'], ['/entreprise/:slug', '/public/entreprise/:slug'], ['/sitemap-entreprises.xml', '/public/sitemap-entreprises.xml']]) {
   assert.ok(montra.rewrites.some((r) => r.source === source && r.destination === apiOrigin + dest), source);
 }
 // Pages anglaises : générées, à jour, servies sous /en/… ; ?lang=en y redirige.
@@ -53,6 +53,6 @@ for (const page of ['index', 'candidats', 'employeurs', 'outils', 'mentions-lega
 const sitemapXml = readFileSync('apps/jobs/apps/montra/sitemap.xml', 'utf8');
 assert.ok(sitemapXml.includes('<loc>https://zjobs.online/en/outils</loc>') && sitemapXml.includes('hreflang="en" href="https://zjobs.online/en"'), 'sitemap EN');
 const robots = readFileSync('apps/jobs/apps/montra/robots.txt', 'utf8');
-for (const map of ['sitemap.xml', 'sitemap-offres.xml', 'sitemap-emploi.xml']) assert.ok(robots.includes(`Sitemap: https://zjobs.online/${map}`), map);
+for (const map of ['sitemap.xml', 'sitemap-offres.xml', 'sitemap-emploi.xml', 'sitemap-entreprises.xml']) assert.ok(robots.includes(`Sitemap: https://zjobs.online/${map}`), map);
 
 console.log('Z Jobs Vercel hosting contract: PASS');

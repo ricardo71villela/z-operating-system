@@ -415,7 +415,7 @@ export function renderOfferPage(o: PublicOfferPage, similar: PublicOfferRecord[]
   const contract = CONTRACT[locale][o.contractType] ?? CONTRACT[locale].other;
   const verified = /verified$/.test(o.employer.verificationStatus);
   const applyUrl = `${PORTAL_URL}?offre=${encodeURIComponent(o.id)}&lang=${locale}`;
-  const employerUrl = `/entreprise?id=${encodeURIComponent(o.organizationId)}${locale === 'en' ? '&lang=en' : ''}`;
+  const employerUrl = companyPath({ id: o.organizationId, displayName: o.employer?.displayName ?? 'entreprise' }) + (locale === 'en' ? '?lang=en' : '');
 
   const title = `${o.title}${o.location?.city ? ' — ' + o.location.city : ''} · ${o.employer.displayName} | ${c.titleSuffix}`;
   const description = shortText(`${contract} · ${salary}${place ? ' · ' + place : ''}. ${o.employer.displayName} — ${o.description}`, 158);
@@ -678,6 +678,116 @@ ${navHtml(locale, path, path + '?lang=en')}
 
 export function renderCitySitemap(cities: { officialCode: string; city: string }[]): string {
   const urls = cities.map((c) => `  <url><loc>${esc(SITE + cityPath(c))}</loc><xhtml:link rel="alternate" hreflang="fr" href="${esc(SITE + cityPath(c))}"/><xhtml:link rel="alternate" hreflang="en" href="${esc(SITE + cityPath(c) + '?lang=en')}"/></url>`);
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+${urls.join('\n')}
+</urlset>
+`;
+}
+
+// ------------------------------------------------------------------ entreprises
+/** Données publiques d'une entreprise (mêmes champs que GET /organizations/:id/public-profile). */
+export interface PublicCompany {
+  id: string;
+  displayName: string;
+  verificationStatus: string;
+  badges: string[];
+  metrics: { publishedOffersCount: number; confirmedComplaintsCount: number };
+  profile: {
+    description: string | null; cultureNotes: string | null; remotePolicyNotes: string | null; inclusionPolicyNotes: string | null;
+    website: string | null; employeeCount: number | null; countryCode: string | null;
+    nace: { code: string; labelEn: string | null } | null;
+    headquarters: { city: string; postalCode: string | null; countryCode: string } | null;
+  };
+  offers: PublicOfferRecord[];
+  offersTotal: number;
+}
+
+export function companyPath(c: { id: string; displayName: string }): string {
+  return `/entreprise/${slugify(c.displayName) || 'entreprise'}-${c.id}`;
+}
+export function companyIdFromSlug(slug: string): string | null {
+  const m = String(slug ?? '').toLowerCase().match(/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/);
+  return m ? m[1] : null;
+}
+export function isVerifiedCompany(status: string | null | undefined): boolean {
+  return status === 'verified' || status === 'enhanced_verified';
+}
+
+export function renderCompanyPage(c: PublicCompany, locale: PageLocale): { indexable: boolean; html: string } {
+  const en = locale === 'en';
+  const q = en ? '?lang=en' : '';
+  const path = companyPath(c);
+  const frUrl = SITE + path;
+  const enUrl = SITE + path + '?lang=en';
+  const p = c.profile;
+  const n = c.offersTotal;
+  const description = String(p.description ?? '').trim();
+  const indexable = isVerifiedCompany(c.verificationStatus) && (n > 0 || description.length >= 80);
+  const hq = p.headquarters ? [p.headquarters.city, p.headquarters.postalCode].filter(Boolean).join(' ') : null;
+  const size = p.employeeCount ? (en ? `${p.employeeCount} employees` : `${p.employeeCount} salariés`) : null;
+  const t = en
+    ? {
+        title: `${c.displayName}: jobs and company profile${hq ? ` (${p.headquarters!.city})` : ''} | Z Jobs`,
+        desc: `${c.displayName} on Z Jobs: ${n ? `${n} open job${n > 1 ? 's' : ''} with the salary shown` : 'company profile'}, verified employer${hq ? `, based in ${p.headquarters!.city}` : ''}.`,
+        verified: 'Verified employer', jobs: `Open jobs at ${c.displayName}`, none: 'No open job right now. Create an alert to be told about the next one.',
+        about: 'About', culture: 'Culture', remote: 'Remote work', inclusion: 'Inclusion', facts: 'Key facts', hq: 'Head office', sizeL: 'Size', sector: 'Sector', site: 'Website',
+        alert: 'Create a job alert', crumbs: 'Employers',
+      }
+    : {
+        title: `${c.displayName} : offres d’emploi et présentation${hq ? ` (${p.headquarters!.city})` : ''} | Z Jobs`,
+        desc: `${c.displayName} sur Z Jobs : ${n ? `${n} offre${n > 1 ? 's' : ''} en cours avec le salaire affiché` : 'présentation de l’entreprise'}, employeur vérifié${hq ? `, basé à ${p.headquarters!.city}` : ''}.`,
+        verified: 'Employeur vérifié', jobs: `Offres de ${c.displayName}`, none: 'Aucune offre en cours. Créez une alerte pour être prévenu de la prochaine.',
+        about: 'Présentation', culture: 'Culture', remote: 'Télétravail', inclusion: 'Inclusion', facts: 'En bref', hq: 'Siège', sizeL: 'Effectif', sector: 'Secteur', site: 'Site',
+        alert: 'Créer une alerte emploi', crumbs: 'Employeurs',
+      };
+  const factsList = [[t.hq, hq], [t.sizeL, size], [t.sector, p.nace ? `NACE ${p.nace.code}${p.nace.labelEn && en ? ` — ${p.nace.labelEn}` : ''}` : null]]
+    .filter((f) => f[1]) as [string, string][];
+  const offersHtml = n
+    ? `<ul class="city-offers">${c.offers.slice(0, 50).map((o) => `<li><a href="${esc(offerPath(o) + q)}"><b>${esc(o.title)}</b><span>${esc([placeText(o, locale), CONTRACT[locale][o.contractType] ?? ''].filter(Boolean).join(' · '))}</span><em>${esc(salaryText(o, locale))}</em></a></li>`).join('')}</ul>`
+    : `<div class="city-empty"><p style="margin:0">${esc(t.none)}</p></div>`;
+  const notes = [[t.about, p.description], [t.culture, p.cultureNotes], [t.remote, p.remotePolicyNotes], [t.inclusion, p.inclusionPolicyNotes]]
+    .filter((x) => String(x[1] ?? '').trim()) as [string, string][];
+  const site = p.website && /^https?:\/\//i.test(p.website) ? p.website : null;
+  const ld: unknown[] = [
+    { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Z Jobs', item: SITE + sitePath('/', q) },
+      { '@type': 'ListItem', position: 2, name: c.displayName, item: en ? enUrl : frUrl },
+    ] },
+    { '@context': 'https://schema.org', '@type': 'Organization', name: c.displayName, url: en ? enUrl : frUrl,
+      ...(site ? { sameAs: [site] } : {}),
+      ...(description ? { description: shortText(description, 300) } : {}),
+      ...(p.employeeCount ? { numberOfEmployees: { '@type': 'QuantitativeValue', value: p.employeeCount } } : {}),
+      ...(p.headquarters ? { address: { '@type': 'PostalAddress', addressLocality: p.headquarters.city, ...(p.headquarters.postalCode ? { postalCode: p.headquarters.postalCode } : {}), addressCountry: p.headquarters.countryCode } } : {}) },
+  ];
+  const html = `${head({ locale, title: t.title, description: shortText(t.desc, 158), canonical: en ? enUrl : frUrl, alternates: { fr: frUrl, en: enUrl }, robots: indexable ? 'index,follow' : 'noindex,follow', jsonLd: ld }).replace('</style>', CITY_STYLE + '.city-facts li{ list-style:none; } .city-facts b{ font-weight:600; }</style>')}
+<body>
+${navHtml(locale, frUrl.replace(SITE, ''), enUrl.replace(SITE, ''))}
+<main id="contenu">
+<header class="city-hero hero"><div class="wrap">
+  <p class="crumbs"><a href="${sitePath('/', q)}">Z Jobs</a><span>›</span>${esc(c.displayName)}</p>
+  <h1>${esc(c.displayName)}</h1>
+  <p>${isVerifiedCompany(c.verificationStatus) ? `<span class="seal">${esc(t.verified)}</span> ` : ''}${esc([hq, size].filter(Boolean).join(' · '))}</p>
+  <div class="city-ctas"><a class="primary" href="${PORTAL_URL}?lang=${locale}">${esc(t.alert)}</a>${site ? `<a href="${esc(site)}" rel="noopener nofollow">${esc(t.site)} ↗</a>` : ''}</div>
+</div></header>
+<div class="wrap">
+  <section class="city-section"><h2>${esc(t.jobs)}${n ? ` (${n})` : ''}</h2>${offersHtml}</section>
+  ${notes.map(([h, txt]) => `<section class="city-section"><h2>${esc(h)}</h2>${String(txt).split(/\n{2,}/).map((para) => `<p>${esc(para.trim())}</p>`).join('')}</section>`).join('\n  ')}
+  ${factsList.length ? `<section class="city-section"><h2>${esc(t.facts)}</h2><ul class="city-links city-facts">${factsList.map(([k, v]) => `<li>${esc(k)} : <b>${esc(v)}</b></li>`).join('')}</ul></section>` : ''}
+</div>
+</main>
+<footer></footer>
+</body>
+</html>
+`;
+  return { indexable, html };
+}
+
+export function renderCompanySitemap(companies: { id: string; displayName: string; updatedAt?: string | null }[]): string {
+  const urls = companies.map((c) => {
+    const loc = SITE + companyPath(c);
+    return `  <url><loc>${esc(loc)}</loc>${c.updatedAt ? `<lastmod>${esc(String(c.updatedAt).slice(0, 10))}</lastmod>` : ''}<xhtml:link rel="alternate" hreflang="fr" href="${esc(loc)}"/><xhtml:link rel="alternate" hreflang="en" href="${esc(loc + '?lang=en')}"/></url>`;
+  });
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
 ${urls.join('\n')}
