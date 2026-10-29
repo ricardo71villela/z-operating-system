@@ -326,7 +326,7 @@ function renderCommune({ base, commune, department, national, neighbours, agenci
       <p class="zf-seo-eyebrow">Prix de l’immobilier · ${esc(depLabel)}</p>
       <h1>Prix de l’immobilier ${esc(aCommune(name))}</h1>
       <p class="zf-seo-lead">${esc(sentences.join(' '))}</p>
-      <div class="zp-ctas"><a class="zf-seo-primary" href="${base}/#/fr/estimation?market=FR&amp;mode=owner">Estimer mon bien ${esc(aCommune(name))} →</a><a class="zp-secondary" href="${base}/#/fr/search?market=FR">Voir les annonces</a></div>
+      <div class="zp-ctas"><a class="zf-seo-primary" href="${base}/#/fr/estimation?market=FR&amp;mode=owner">Estimer mon bien ${esc(aCommune(name))} →</a><a class="zp-secondary" href="${base}/fr/immobilier/${slugify(String(name).replace(/\s+Arrondissement$/i, ''))}-${commune.c.toLowerCase()}">Immobilier ${esc(aCommune(String(name).replace(/\s+Arrondissement$/i, '')))} : annonces</a></div>
     </header>
     <div class="zp-stats">${statCard('Appartements', a)}${statCard('Maisons', m)}</div>
     <section class="zp-section">

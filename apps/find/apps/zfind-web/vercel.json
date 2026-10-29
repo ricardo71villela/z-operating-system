@@ -66,6 +66,14 @@
       "destination": "/api/feed-sync"
     },
     {
+      "source": "/fr/immobilier/:path*",
+      "destination": "/api/immobilier?p=:path*"
+    },
+    {
+      "source": "/sitemap-immobilier.xml",
+      "destination": "/api/immobilier?sitemap=1"
+    },
+    {
       "source": "/fr/prix-immobilier",
       "destination": "/api/prix-immobilier"
     },
@@ -107,6 +115,10 @@
     },
     "api/prix-immobilier.js": {
       "includeFiles": "{public/market-data/fr/**,public/market-data/be/**,public/market-data/lu/**,src/services/seo-page-generator.js,src/services/acquisition-costs.js,src/services/credit-rates.js,src/services/credit-simulator.js}",
+      "maxDuration": 15
+    },
+    "api/immobilier.js": {
+      "includeFiles": "{public/market-data/fr/**,src/services/seo-page-generator.js,src/services/acquisition-costs.js,src/services/credit-rates.js,src/services/credit-simulator.js,src/services/listing-quality.js}",
       "maxDuration": 15
     }
   },
