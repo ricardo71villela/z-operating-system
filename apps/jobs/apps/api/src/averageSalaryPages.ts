@@ -242,7 +242,7 @@ function communePage(c: SalaryArea, L: PageLocale): string {
         title: `Salaire moyen ${aCommune(name)} : ${monthly(c.all, L)} nets par mois (Insee ${YEAR}) | Z Jobs`,
         desc: `Salaire net moyen des salariés qui habitent ${aCommune(name)} : ${hourly(c.all, L)} de l’heure, ${monthly(c.all, L)} par mois à temps plein (${vsFr} vs France). Par catégorie, sexe et âge — chiffres Insee.`,
         h1: `Salaire moyen ${aCommune(name)}`,
-        lead: `Les salariés qui habitent ${aCommune(name)}${d ? ` (${depLabel(d)})` : ''} gagnaient en moyenne ${hourly(c.all, L)} nets de l’heure en ${YEAR} — ${vsFr === 'comme la France' ? 'autant que la moyenne française' : `${vsFr} par rapport à la moyenne française`}. Chiffres officiels de l’Insee.`,
+        lead: `Les salariés qui habitent ${aCommune(name)}${d ? ` (${d.name}, ${d.code})` : ''} gagnaient en moyenne ${hourly(c.all, L)} nets de l’heure en ${YEAR} — ${vsFr === 'comme la France' ? 'autant que la moyenne française' : `${vsFr} par rapport à la moyenne française`}. Chiffres officiels de l’Insee.`,
         cat: 'Selon la catégorie socioprofessionnelle', sex: 'Femmes et hommes', age: 'Selon l’âge', detail: 'Tous les chiffres', rankH: d ? `${name} dans le département` : '',
         rankP: d ? `${name} est ${rank === 1 ? '1re' : `${rank}e`} sur ${same.length} communes publiées dans le département ${depLabel(d)} pour le salaire net horaire moyen (département : ${hourly(d.all, L)}).` : '',
         nearH: d ? `Autres communes — ${depLabel(d)}` : '', depLink: d ? `Salaire moyen — ${depLabel(d)}` : '',
