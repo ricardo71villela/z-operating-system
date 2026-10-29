@@ -29,6 +29,7 @@
       tools: 'Salaires et droit du travail',
       net: 'Salaire brut → net',
       avg: 'Salaire moyen par ville',
+      jobsal: 'Salaire par métier',
       grids: 'Grilles conventionnelles',
       law: 'Droit du travail FR, BE, LU',
       econ: 'Inflation, chômage, SMIC',
@@ -62,6 +63,7 @@
       tools: 'Salaries and labour law',
       net: 'Gross → net salary',
       avg: 'Average salary by city',
+      jobsal: 'Salary by occupation (FR)',
       grids: 'Collective agreement scales',
       law: 'Labour law FR, BE, LU',
       econ: 'Inflation, unemployment, minimum wage',
@@ -114,7 +116,7 @@
           '<a href="mailto:hello@zjobs.online">hello@zjobs.online</a></div>' +
         col(c.candidates, [['/#recherche', c.search], ['/candidats#cvstudio', c.cv], ['/candidats#coverletter', c.letter], [APP_URL, c.alerts], [APP_URL, c.profile]]) +
         col(c.employers, [['/employeurs', c.post], ['/employeurs#pricing', c.pricing], ['/employeurs#badges', c.labels], ['/employeurs#scoring', c.scoring], [APP_URL, c.employerSpace]]) +
-        col(c.tools, [[lang() === 'en' ? '/en/gross-to-net-salary-france' : '/salaire-brut-net', c.net], ['/salaire-moyen', c.avg], ['/outils#grilles', c.grids], ['/outils#legislation', c.law], ['/outils#economie', c.econ]]) +
+        col(c.tools, [[lang() === 'en' ? '/en/gross-to-net-salary-france' : '/salaire-brut-net', c.net], ['/salaire-moyen', c.avg], ['/salaire', c.jobsal], ['/outils#grilles', c.grids], ['/outils#legislation', c.law], ['/outils#economie', c.econ]]) +
         col(c.about2, [['/employeurs#badges', c.trust], ['/candidats', c.free], ['mailto:hello@zjobs.online', c.contact]]) +
       '</div>' +
       '<nav class="zj-foot-cities" aria-label="' + esc(c.cities) + '"><h2 class="zj-foot-h">' + esc(c.cities) + '</h2>' + CITIES.map(function (v) {

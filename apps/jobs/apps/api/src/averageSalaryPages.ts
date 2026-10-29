@@ -16,6 +16,7 @@
 // (× 151,67 heures), et dit ce que ce chiffre mesure.
 
 import { INSEE_COMMUNES_2022, INSEE_DEPARTMENTS_2022, INSEE_FRANCE_2022, type InseeRow } from './data/inseeSalaires2022';
+import { metierDepartmentLink } from './metierSalaryPages';
 import { CITY_STYLE, SITE, esc, head, navHtml, shortText, sitePath, slugify, type PageLocale } from './publicPages';
 
 const HOURS = 151.67;
@@ -241,7 +242,7 @@ function communePage(c: SalaryArea, L: PageLocale): string {
         title: `Salaire moyen ${aCommune(name)} : ${monthly(c.all, L)} nets par mois (Insee ${YEAR}) | Z Jobs`,
         desc: `Salaire net moyen des salariés qui habitent ${aCommune(name)} : ${hourly(c.all, L)} de l’heure, ${monthly(c.all, L)} par mois à temps plein (${vsFr} vs France). Par catégorie, sexe et âge — chiffres Insee.`,
         h1: `Salaire moyen ${aCommune(name)}`,
-        lead: `Les salariés qui habitent ${aCommune(name)}${d ? ` (${depLabel(d)})` : ''} gagnaient en moyenne ${hourly(c.all, L)} nets de l’heure en ${YEAR} — ${vsFr === 'comme la France' ? 'autant que la moyenne française' : `${vsFr} par rapport à la moyenne française`}. Chiffres officiels de l’Insee.`,
+        lead: `Les salariés qui habitent ${aCommune(name)}${d ? ` (${d.name}, ${d.code})` : ''} gagnaient en moyenne ${hourly(c.all, L)} nets de l’heure en ${YEAR} — ${vsFr === 'comme la France' ? 'autant que la moyenne française' : `${vsFr} par rapport à la moyenne française`}. Chiffres officiels de l’Insee.`,
         cat: 'Selon la catégorie socioprofessionnelle', sex: 'Femmes et hommes', age: 'Selon l’âge', detail: 'Tous les chiffres', rankH: d ? `${name} dans le département` : '',
         rankP: d ? `${name} est ${rank === 1 ? '1re' : `${rank}e`} sur ${same.length} communes publiées dans le département ${depLabel(d)} pour le salaire net horaire moyen (département : ${hourly(d.all, L)}).` : '',
         nearH: d ? `Autres communes — ${depLabel(d)}` : '', depLink: d ? `Salaire moyen — ${depLabel(d)}` : '',
@@ -294,7 +295,7 @@ function departmentPage(d: SalaryArea, L: PageLocale): string {
 <section class="city-section"><h2>${en ? `Average salary by municipality (${communes.length})` : `Salaire moyen par commune (${communes.length})`}</h2>
 ${table(en ? ['Municipality', 'Net / hour', 'Net / month FT', 'Executives', 'Clerical', 'Manual'] : ['Commune', 'Net / heure', 'Net / mois TP', 'Cadres', 'Employés', 'Ouvriers'], rows)}
 ${sourceNote(L)}</section>
-${moreLinks(L, [`<li><a href="${HUB_PATH}${q}">${en ? 'All departments' : 'Tous les départements'}</a></li>`])}`;
+${moreLinks(L, [`<li><a href="${HUB_PATH}${q}">${en ? 'All departments' : 'Tous les départements'}</a></li>`, ...(metierDepartmentLink(d.code) ? [`<li><a href="${metierDepartmentLink(d.code)}">${en ? 'Salary by occupation in the department (French)' : 'Salaire par métier dans le département'}</a></li>`] : [])])}`;
   return page({
     locale: L, path,
     title: en ? `Average salary in ${label}: ${monthly(d.all, L)} net a month, by municipality | Z Jobs` : `Salaire moyen ${label} : ${monthly(d.all, L)} nets par mois, par commune | Z Jobs`,
@@ -342,7 +343,7 @@ function hubPage(L: PageLocale): string {
 <section class="city-section"><h2>${en ? `By department (${deps.length})` : `Par département (${deps.length})`}</h2>
 ${table(en ? ['Department', 'Net / hour', 'Net / month FT', 'Executives', 'Clerical', 'Manual'] : ['Département', 'Net / heure', 'Net / mois TP', 'Cadres', 'Employés', 'Ouvriers'], depRows)}
 ${sourceNote(L)}</section>
-${moreLinks(L)}`;
+${moreLinks(L, [`<li><a href="/salaire">${en ? 'Salary by occupation (French)' : 'Salaire par métier'}</a></li>`])}`;
   return page({
     locale: L, path: HUB_PATH,
     title: en ? `Average salary in France by department and city (Insee ${YEAR}) | Z Jobs` : `Salaire moyen en France par département et par ville (Insee ${YEAR}) | Z Jobs`,

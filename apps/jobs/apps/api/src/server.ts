@@ -55,6 +55,7 @@ import type { MessageLocale } from '../../../packages/domain/src/i18n/messages';
 import type { JobOfferDraft } from '../../../packages/domain/src/types/jobOffer';
 import { validateScreeningQuestions, validateScreeningAnswers } from '../../../packages/domain/src/rules/screeningQuestions';
 import { parseSalaryRoute, renderSalaryPage, renderSalarySitemap } from './salaryPages';
+import { parseMetierRoute, renderMetierPage, renderMetierSitemap } from './metierSalaryPages';
 import { averageMonthlyText, communePath, getCommuneSalary, parseAverageSalaryRoute, renderAverageSalaryPage, renderAverageSalarySitemap } from './averageSalaryPages';
 import { offerIdFromSlug, offerPath, pageLocale, renderGonePage, renderOfferPage, renderOffersSitemap, cityPath, officialCodeFromCitySlug, renderCityPage, renderCitySitemap, TIER1_CITIES, MIN_CITY_OFFERS, companyIdFromSlug, companyPath, isVerifiedCompany, isDemoCompanyName, renderCompanyPage, renderCompanySitemap, type PublicCompany } from './publicPages';
 
@@ -1158,6 +1159,21 @@ export function createServer() {
           return sendText(res, 301, 'text/html; charset=utf-8', '', { Location: found.canonical + (locale === 'en' ? '?lang=en' : ''), 'Cache-Control': 'public, max-age=0, s-maxage=86400' });
         }
         return sendText(res, 200, 'text/html; charset=utf-8', renderAverageSalaryPage(found.route, locale), { 'Cache-Control': 'public, max-age=0, s-maxage=86400, stale-while-revalidate=604800' });
+      }
+      // Salary by occupation pages (Insee BTS): zjobs.online/salaire… (rewrites from the public site; French only).
+      if (method === 'GET' && (path === '/public/salaire-metier' || path.startsWith('/public/salaire-metier/'))) {
+        const slug = decodeURIComponent(path.slice('/public/salaire-metier'.length));
+        const found = parseMetierRoute(slug);
+        if (!found) {
+          return sendText(res, 404, 'text/html; charset=utf-8', renderGonePage('fr', slug), { 'X-Robots-Tag': 'noindex, follow' });
+        }
+        if ('/salaire' + slug.replace(/\/+$/, '') !== found.canonical) {
+          return sendText(res, 301, 'text/html; charset=utf-8', '', { Location: found.canonical, 'Cache-Control': 'public, max-age=0, s-maxage=86400' });
+        }
+        return sendText(res, 200, 'text/html; charset=utf-8', renderMetierPage(found.route), { 'Cache-Control': 'public, max-age=0, s-maxage=86400, stale-while-revalidate=604800' });
+      }
+      if (method === 'GET' && path === '/public/sitemap-salaires-metiers.xml') {
+        return sendText(res, 200, 'application/xml; charset=utf-8', renderMetierSitemap(), { 'Cache-Control': 'public, max-age=0, s-maxage=86400' });
       }
       if (method === 'GET' && path === '/public/sitemap-salaires-villes.xml') {
         return sendText(res, 200, 'application/xml; charset=utf-8', renderAverageSalarySitemap(), { 'Cache-Control': 'public, max-age=0, s-maxage=86400' });

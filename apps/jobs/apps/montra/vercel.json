@@ -68,6 +68,18 @@
       "destination": "https://z-jobs-api-zoperatingsystem.vercel.app/public/salaire-moyen/:path*"
     },
     {
+      "source": "/salaire",
+      "destination": "https://z-jobs-api-zoperatingsystem.vercel.app/public/salaire-metier"
+    },
+    {
+      "source": "/salaire/:path*",
+      "destination": "https://z-jobs-api-zoperatingsystem.vercel.app/public/salaire-metier/:path*"
+    },
+    {
+      "source": "/sitemap-salaires-metiers.xml",
+      "destination": "https://z-jobs-api-zoperatingsystem.vercel.app/public/sitemap-salaires-metiers.xml"
+    },
+    {
       "source": "/sitemap-salaires-villes.xml",
       "destination": "https://z-jobs-api-zoperatingsystem.vercel.app/public/sitemap-salaires-villes.xml"
     },
