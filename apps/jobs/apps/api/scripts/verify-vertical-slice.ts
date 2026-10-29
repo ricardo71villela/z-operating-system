@@ -402,6 +402,27 @@ async function main() {
     check('(salário) montante fora da lista → 404 noindex', salBad.status === 404);
     const salMap = await (await fetch(`${BASE}/public/sitemap-salaires.xml`)).text();
     check('(salário) sitemap: 3 países FR+EN, SMIC e montantes', salMap.includes('/salaire-brut-net-luxembourg') && salMap.includes('/en/gross-to-net-salary-france') && salMap.includes('/salaire-brut-net/smic') && salMap.includes('/salaire-brut-net/10000-euros'));
+    // --- Páginas « salaire moyen » (Insee, Base Tous salariés 2022) ---
+    const avgCom = await fetch(`${BASE}/public/salaire-moyen/thonon-les-bains-74281`);
+    const avgComHtml = (await avgCom.text()).replace(/[\u202f\u00a0]/g, ' ');
+    check('(salaire moyen) comuna: 200, indexável, canonical, valor Insee e fonte',
+      avgCom.status === 200 && avgComHtml.includes('content="index,follow"') && avgComHtml.includes('<link rel="canonical" href="https://zjobs.online/salaire-moyen/thonon-les-bains-74281" />')
+        && avgComHtml.includes('14,49 €') && avgComHtml.includes('2 198 €') && avgComHtml.includes('Base Tous salariés 2022') && avgComHtml.includes('/salaire-moyen/departement/haute-savoie-74') && avgComHtml.includes('/emploi/thonon-les-bains-74281'));
+    const avgEn = await (await fetch(`${BASE}/public/salaire-moyen/thonon-les-bains-74281?lang=en`)).text();
+    check('(salaire moyen) EN: lang, canonical ?lang=en', avgEn.includes('<html lang="en">') && avgEn.includes('href="https://zjobs.online/salaire-moyen/thonon-les-bains-74281?lang=en" />') && avgEn.includes('Average salary in Thonon-les-Bains'));
+    const avgSlug = await fetch(`${BASE}/public/salaire-moyen/thonon-74281`, { redirect: 'manual' });
+    check('(salaire moyen) slug errado → 301 canónico', avgSlug.status === 301 && avgSlug.headers.get('location') === '/salaire-moyen/thonon-les-bains-74281');
+    const avgDep = (await (await fetch(`${BASE}/public/salaire-moyen/departement/haute-savoie-74`)).text()).replace(/[\u202f\u00a0]/g, ' ');
+    check('(salaire moyen) departamento: comunas ligadas', avgDep.includes('Salaire moyen : Haute-Savoie (74)') && avgDep.includes('/salaire-moyen/annecy-74010') && avgDep.includes('16,37 €'));
+    const avgHub = await fetch(`${BASE}/public/salaire-moyen`);
+    const avgHubHtml = await avgHub.text();
+    check('(salaire moyen) hub França: departamentos', avgHub.status === 200 && avgHubHtml.includes('/salaire-moyen/departement/paris-75') && avgHubHtml.includes('/salaire-moyen/lyon-69123'));
+    const avgBad = await fetch(`${BASE}/public/salaire-moyen/nulle-part-99999`);
+    check('(salaire moyen) código desconhecido → 404 noindex', avgBad.status === 404 && (avgBad.headers.get('x-robots-tag') ?? '').includes('noindex'));
+    const avgMap = await (await fetch(`${BASE}/public/sitemap-salaires-villes.xml`)).text();
+    check('(salaire moyen) sitemap: hub, departamentos, comunas FR+EN', avgMap.includes('<loc>https://zjobs.online/salaire-moyen</loc>') && avgMap.includes('/salaire-moyen/departement/haute-savoie-74') && avgMap.includes('/salaire-moyen/thonon-les-bains-74281?lang=en') && (avgMap.match(/<url>/g) ?? []).length > 5000);
+    const lyonCity = await (await fetch(`${BASE}/public/emploi/lyon-69123`)).text();
+    check('(salaire moyen) página /emploi liga ao salário médio Insee', lyonCity.includes('href="/salaire-moyen/lyon-69123"'));
 
     // --- Páginas de empresa (zjobs.online/entreprise/<nome>-<id>) ---
     const coRes = await fetch(`${BASE}/public/entreprise/x-${org.id}`, { redirect: 'manual' });

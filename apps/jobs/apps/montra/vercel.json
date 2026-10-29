@@ -60,6 +60,18 @@
       "destination": "https://z-jobs-api-zoperatingsystem.vercel.app/public/salaire/luxembourg?lang=en"
     },
     {
+      "source": "/salaire-moyen",
+      "destination": "https://z-jobs-api-zoperatingsystem.vercel.app/public/salaire-moyen"
+    },
+    {
+      "source": "/salaire-moyen/:path*",
+      "destination": "https://z-jobs-api-zoperatingsystem.vercel.app/public/salaire-moyen/:path*"
+    },
+    {
+      "source": "/sitemap-salaires-villes.xml",
+      "destination": "https://z-jobs-api-zoperatingsystem.vercel.app/public/sitemap-salaires-villes.xml"
+    },
+    {
       "source": "/sitemap-salaires.xml",
       "destination": "https://z-jobs-api-zoperatingsystem.vercel.app/public/sitemap-salaires.xml"
     },

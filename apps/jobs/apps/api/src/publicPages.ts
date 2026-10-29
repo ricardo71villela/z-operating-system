@@ -591,7 +591,7 @@ export const CITY_STYLE = `
   .city-faq summary{ cursor:pointer; font-weight:500; }
 `;
 
-export function renderCityPage(city: PublicCity, offers: PublicOfferRecord[], others: { officialCode: string; city: string }[], locale: PageLocale): { indexable: boolean; html: string } {
+export function renderCityPage(city: PublicCity, offers: PublicOfferRecord[], others: { officialCode: string; city: string }[], locale: PageLocale, averageSalary?: { path: string; monthlyNet: string } | null): { indexable: boolean; html: string } {
   const en = locale === 'en';
   const q = en ? '?lang=en' : '';
   const path = cityPath(city);
@@ -662,7 +662,7 @@ ${navHtml(locale, path, path + '?lang=en')}
 </div></header>
 <div class="wrap">
   <section class="city-section"><h2>${esc(t.offers)}</h2>${offersHtml}</section>
-  <section class="city-section"><h2>${esc(t.salary)}</h2><p>${esc(t.salaryP)}</p><ul class="city-links"><li><a href="${sitePath('/outils', q)}#simulateur">${esc(t.sim)}</a></li><li><a href="${sitePath('/outils', q)}#legislation">${esc(t.law)}</a></li></ul></section>
+  <section class="city-section"><h2>${esc(t.salary)}</h2><p>${esc(t.salaryP)}</p>${averageSalary ? `<p>${esc(en ? `Employees living in ${name} earn on average ${averageSalary.monthlyNet} net a month on a full-time basis (Insee).` : `Les salariés qui habitent ${aVille(name)} gagnent en moyenne ${averageSalary.monthlyNet} nets par mois à temps plein (Insee).`)}</p>` : ''}<ul class="city-links">${averageSalary ? `<li><a href="${esc(averageSalary.path + q)}">${esc(en ? `Average salary in ${name}` : `Salaire moyen ${aVille(name)}`)}</a></li>` : ''}<li><a href="${sitePath('/outils', q)}#simulateur">${esc(t.sim)}</a></li><li><a href="${sitePath('/outils', q)}#legislation">${esc(t.law)}</a></li></ul></section>
   ${zfindHousing ? `<section class="city-section"><h2>${esc(t.housing)}</h2><p>${esc(t.housingP)}</p><ul class="city-links"><li><a href="${esc(zfindHousing)}">${esc(t.housingCta)} →</a></li></ul></section>` : ''}
   <section class="city-section"><h2>${esc(t.employers)}</h2><p>${esc(t.employersP)}</p><ul class="city-links"><li><a href="${sitePath('/employeurs', q)}">${esc(t.post)} →</a></li></ul></section>
   ${others.length ? `<section class="city-section"><h2>${esc(t.othersH)}</h2><ul class="city-links">${others.map((o) => `<li><a href="${esc(cityPath(o) + q)}">${esc(o.city)}</a></li>`).join('')}</ul></section>` : ''}

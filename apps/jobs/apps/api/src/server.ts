@@ -55,7 +55,7 @@ import type { MessageLocale } from '../../../packages/domain/src/i18n/messages';
 import type { JobOfferDraft } from '../../../packages/domain/src/types/jobOffer';
 import { validateScreeningQuestions, validateScreeningAnswers } from '../../../packages/domain/src/rules/screeningQuestions';
 import { parseSalaryRoute, renderSalaryPage, renderSalarySitemap } from './salaryPages';
-import { offerIdFromSlug, offerPath, pageLocale, renderGonePage, renderOfferPage, renderOffersSitemap, cityPath, officialCodeFromCitySlug, renderCityPage, renderCitySitemap, TIER1_CITIES, MIN_CITY_OFFERS, companyIdFromSlug, companyPath, isVerifiedCompany, renderCompanyPage, renderCompanySitemap, type PublicCompany } from './publicPages';
+import { averageMonthlyText, communePath, getCommuneSalary, parseAverageSalaryRoute, renderAverageSalaryPage, renderAverageSalarySitemap } from './averageSalaryPages';
 import { offerIdFromSlug, offerPath, pageLocale, renderGonePage, renderOfferPage, renderOffersSitemap, cityPath, officialCodeFromCitySlug, renderCityPage, renderCitySitemap, TIER1_CITIES, MIN_CITY_OFFERS, companyIdFromSlug, companyPath, isVerifiedCompany, isDemoCompanyName, renderCompanyPage, renderCompanySitemap, type PublicCompany } from './publicPages';
 
 // Versão atual dos Termos de Serviço / Política de Privacidade — muda
@@ -1146,6 +1146,22 @@ export function createServer() {
         }
         return sendText(res, 200, 'text/html; charset=utf-8', renderSalaryPage(route, locale), { 'Cache-Control': 'public, max-age=0, s-maxage=86400, stale-while-revalidate=604800' });
       }
+      // Average salary pages (Insee): zjobs.online/salaire-moyen… (rewrites from the public site).
+      if (method === 'GET' && (path === '/public/salaire-moyen' || path.startsWith('/public/salaire-moyen/'))) {
+        const locale = pageLocale(url.searchParams.get('lang'));
+        const slug = decodeURIComponent(path.slice('/public/salaire-moyen'.length));
+        const found = parseAverageSalaryRoute(slug);
+        if (!found) {
+          return sendText(res, 404, 'text/html; charset=utf-8', renderGonePage(locale, slug), { 'X-Robots-Tag': 'noindex, follow' });
+        }
+        if ('/salaire-moyen' + slug.replace(/\/+$/, '') !== found.canonical) {
+          return sendText(res, 301, 'text/html; charset=utf-8', '', { Location: found.canonical + (locale === 'en' ? '?lang=en' : ''), 'Cache-Control': 'public, max-age=0, s-maxage=86400' });
+        }
+        return sendText(res, 200, 'text/html; charset=utf-8', renderAverageSalaryPage(found.route, locale), { 'Cache-Control': 'public, max-age=0, s-maxage=86400, stale-while-revalidate=604800' });
+      }
+      if (method === 'GET' && path === '/public/sitemap-salaires-villes.xml') {
+        return sendText(res, 200, 'application/xml; charset=utf-8', renderAverageSalarySitemap(), { 'Cache-Control': 'public, max-age=0, s-maxage=86400' });
+      }
       if (method === 'GET' && path === '/public/sitemap-salaires.xml') {
         return sendText(res, 200, 'application/xml; charset=utf-8', renderSalarySitemap(), { 'Cache-Control': 'public, max-age=0, s-maxage=86400' });
       }
@@ -1214,7 +1230,8 @@ export function createServer() {
           const o = await pg.getPublicCity(c);
           if (o) others.push(o);
         }
-        const page = renderCityPage(city, result.offers, others, locale);
+        const insee = city.countryCode === 'FR' ? getCommuneSalary(city.officialCode.replace(/^FR-/, '')) : null;
+        const page = renderCityPage(city, result.offers, others, locale, insee ? { path: communePath(insee), monthlyNet: averageMonthlyText(insee.all, locale) } : null);
         return sendText(res, 200, 'text/html; charset=utf-8', page.html, { 'Cache-Control': 'public, max-age=0, s-maxage=1800, stale-while-revalidate=86400' });
       }
 
