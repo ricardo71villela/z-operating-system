@@ -214,6 +214,7 @@ async function run(options) {
     await step('estimations', () => leadNotify._internals.processEstimations(50));
     await step('reminders', () => leadNotify._internals.processReminders(100));
     await step('reviewNotices', () => leadNotify._internals.processReviewNotices(100));
+    await step('teamInvitations', () => leadNotify._internals.processTeamInvitations(100));
     await step('invitations', () => sendInvitations(now));
     await step('value', () => sendValueAlerts());
     if (new Date(now).getUTCDate() === 1 || (options && options.force === 'monthly')) {

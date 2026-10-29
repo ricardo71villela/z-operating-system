@@ -7,6 +7,7 @@
    ============================================================ */
 
 async function boot() {
+  pteamOnBoot(); // team.js: #invitation=… (an agency colleague's invitation)
   const hash = window.location.hash || '';
   const { data: sessionData } = await window.ZFindServices.auth.getSession();
   const session = sessionData && sessionData.session;
@@ -73,6 +74,8 @@ async function handlePartnerLogin() {
     through to a dashboard that isn't theirs to use. */
 async function tryEnterDashboard() {
   const errorEl = document.getElementById('login-error');
+  // team.js: an invitation to join an agency is accepted before anything else.
+  const teamError = await pteamAcceptPending();
   let profileResult = await window.ZFindServices.auth.getCurrentProfile();
   let profile = profileResult.data;
 
@@ -83,7 +86,7 @@ async function tryEnterDashboard() {
     if (done.error) {
       await window.ZFindServices.auth.signOut();
       showLoginView();
-      if (errorEl) errorEl.textContent = signupCompletionError(done.error);
+      if (errorEl) errorEl.textContent = teamError || signupCompletionError(done.error);
       return;
     }
     if (done.data && (done.data.status === 'created' || done.data.status === 'existing')) {
@@ -95,7 +98,7 @@ async function tryEnterDashboard() {
   if (profileResult.error || !profile || profile.role !== 'partner_user' || !profile.partner_id) {
     await window.ZFindServices.auth.signOut();
     showLoginView();
-    if (errorEl) errorEl.textContent = 'Ce compte n’est pas un compte partenaire Z Find. Pour inscrire votre agence, utilisez « Inscrire mon agence ».';
+    if (errorEl) errorEl.textContent = teamError || 'Ce compte n’est pas un compte partenaire Z Find. Pour inscrire votre agence, utilisez « Inscrire mon agence ».';
     return;
   }
 
@@ -110,6 +113,7 @@ async function tryEnterDashboard() {
   renderSignupBanner();
   if (/^#abonnement/.test(window.location.hash || '')) { showBillingView(); return; }
   if (/^#statistiques/.test(window.location.hash || '')) { showStatsView(); return; }
+  if (/^#equipe/.test(window.location.hash || '')) { showTeamView(); return; }
   if (/^#page-agence/.test(window.location.hash || '')) { showProfileView(); return; }
   loadPortfolio();
 }
@@ -1741,7 +1745,7 @@ async function handlePartnerSignOut() {
 
 /* ---------------- Navigation between Portfolio / Detail / Leads / Import / Feed ---------------- */
 function hideExtraPartnerViews() {
-  ['view-import', 'view-feed', 'view-billing', 'view-profile', 'view-stats'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+  ['view-import', 'view-feed', 'view-billing', 'view-profile', 'view-stats', 'view-team'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
 }
 /** Shows one dashboard section (import.js, feed.js), the agency name in its header. */
 function partnerShowView(id) {

@@ -48,6 +48,7 @@ function build() {
   const importJs = readPartner('import.js'); // « Importer mes annonces »
   const feedJs = readPartner('feed.js'); // « Flux automatique »
   const billingJs = readPartner('billing.js'); // « Abonnement » (Stripe, /api/billing)
+  const teamJs = readPartner('team.js'); // « Équipe » (invitations, membres)
   const statsJs = readPartner('stats.js'); // « Statistiques » (vues, contacts, visites)
   const profileJs = readPartner('profile.js'); // « Ma page agence » (zfind.online/fr/agence/…)
 
@@ -105,6 +106,7 @@ function build() {
     + billingJs + '\n'
     + profileJs + '\n'
     + statsJs + '\n'
+    + teamJs + '\n'
     + appJs
     + '\n</script>\n</body>\n</html>\n';
 

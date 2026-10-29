@@ -132,6 +132,7 @@
       <a onclick="showProfileView()">Ma page agence</a>
       <a onclick="showImportView()">Importer</a>
       <a onclick="showFeedView()">Flux automatique</a>
+      <a onclick="showTeamView()">Équipe</a>
       <a onclick="showBillingView()">Abonnement</a>
     </nav>
     <div class="who">
@@ -176,6 +177,7 @@
       <a onclick="showProfileView()">Ma page agence</a>
       <a onclick="showImportView()">Importer</a>
       <a onclick="showFeedView()">Flux automatique</a>
+      <a onclick="showTeamView()">Équipe</a>
       <a onclick="showBillingView()">Abonnement</a>
     </nav>
     <div class="who">
@@ -203,6 +205,7 @@
       <a onclick="showProfileView()">Ma page agence</a>
       <a onclick="showImportView()">Importer</a>
       <a onclick="showFeedView()">Flux automatique</a>
+      <a onclick="showTeamView()">Équipe</a>
       <a onclick="showBillingView()">Abonnement</a>
     </nav>
     <div class="who">
@@ -241,6 +244,7 @@
       <a onclick="showProfileView()">Ma page agence</a>
       <a class="active" onclick="showImportView()">Importer</a>
       <a onclick="showFeedView()">Flux automatique</a>
+      <a onclick="showTeamView()">Équipe</a>
       <a onclick="showBillingView()">Abonnement</a>
     </nav>
     <div class="who">
@@ -266,6 +270,7 @@
       <a onclick="showProfileView()">Ma page agence</a>
       <a onclick="showImportView()">Importer</a>
       <a class="active" onclick="showFeedView()">Flux automatique</a>
+      <a onclick="showTeamView()">Équipe</a>
       <a onclick="showBillingView()">Abonnement</a>
     </nav>
     <div class="who">
@@ -291,6 +296,7 @@
       <a onclick="showProfileView()">Ma page agence</a>
       <a onclick="showImportView()">Importer</a>
       <a onclick="showFeedView()">Flux automatique</a>
+      <a onclick="showTeamView()">Équipe</a>
       <a class="active" onclick="showBillingView()">Abonnement</a>
     </nav>
     <div class="who">
@@ -316,6 +322,7 @@
       <a class="active" onclick="showProfileView()">Ma page agence</a>
       <a onclick="showImportView()">Importer</a>
       <a onclick="showFeedView()">Flux automatique</a>
+      <a onclick="showTeamView()">Équipe</a>
       <a onclick="showBillingView()">Abonnement</a>
     </nav>
     <div class="who">
@@ -341,6 +348,7 @@
       <a onclick="showProfileView()">Ma page agence</a>
       <a onclick="showImportView()">Importer</a>
       <a onclick="showFeedView()">Flux automatique</a>
+      <a onclick="showTeamView()">Équipe</a>
       <a onclick="showBillingView()">Abonnement</a>
     </nav>
     <div class="who">
@@ -353,6 +361,32 @@
     <h2 style="margin-bottom:8px;">Vos annonces, <em>en chiffres.</em></h2>
     <p class="sub" style="margin:0 0 24px; max-width:none;">Combien de personnes voient vos annonces et combien vous contactent, mois par mois et annonce par annonce.</p>
     <div id="pstats-root"></div>
+  </div>
+</section>
+
+<section id="view-team" class="dash-shell" style="display:none;">
+  <div class="dash-header">
+    <div class="logo">Z <em>Find</em> Partenaires</div>
+    <nav class="dash-nav">
+      <a onclick="showPortfolioView()">Portefeuille</a>
+      <a onclick="showLeadsView()">Demandes</a>
+      <a onclick="showStatsView()">Statistiques</a>
+      <a onclick="showProfileView()">Ma page agence</a>
+      <a onclick="showImportView()">Importer</a>
+      <a onclick="showFeedView()">Flux automatique</a>
+      <a class="active" onclick="showTeamView()">Équipe</a>
+      <a onclick="showBillingView()">Abonnement</a>
+    </nav>
+    <div class="who">
+      <span id="dash-partner-name-9" class="partner-name-copy"></span>
+      <a class="signout" onclick="handlePartnerSignOut()">Déconnexion</a>
+    </div>
+  </div>
+  <div class="dash-body wide">
+    <div class="eyebrow">Équipe</div>
+    <h2 style="margin-bottom:8px;">Votre agence, <em>à plusieurs.</em></h2>
+    <p class="sub" style="margin:0 0 24px; max-width:none;">Invitez vos collègues : chacun a son propre accès à l’espace agence, sans partager de mot de passe.</p>
+    <div id="pteam-root"></div>
   </div>
 </section>
 

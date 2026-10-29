@@ -253,6 +253,35 @@ async function processReviewNotices(limit) {
   return report;
 }
 
+/* ---------------- team invitations (migration 20261029190000) ---------------- */
+function teamInviteEmail(row) {
+  const link = `${partnerUrl()}/#invitation=${row.token}`;
+  const agency = row.partner_name || 'votre agence';
+  const who = row.inviter_email ? `${row.inviter_email} vous invite` : 'Vous êtes invité(e)';
+  const until = row.expires_at ? new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' }).format(new Date(row.expires_at)) : null;
+  const heading = `Rejoignez ${agency} sur Z Find`;
+  const body = `${who} à rejoindre l’équipe de ${agency} dans l’espace agence de Z Find : vos annonces, les demandes des acheteurs et des locataires, les statistiques, Z Desk et l’application Z Studio, avec votre propre accès.`;
+  const howto = 'Ouvrez le lien, puis créez votre mot de passe (ou connectez-vous si vous avez déjà un compte Z Find avec cette adresse).';
+  return {
+    to: [row.email],
+    subject: S.oneLine(`Invitation : rejoignez ${agency} sur Z Find`, 150),
+    html: S.mailHtml('fr', heading, `<p style="line-height:1.6">${S.esc(body)}</p><p style="line-height:1.6">${S.esc(howto)}</p>` + S.button(link, 'Accepter l’invitation'),
+      S.esc(`${until ? `Invitation valable jusqu’au ${until}. ` : ''}Si vous ne connaissez pas cette agence, ignorez simplement cet e-mail. Z Find · hello@zfind.online`)),
+    text: `${heading}\n\n${body}\n\n${howto}\n\n${link}\n\n${until ? `Invitation valable jusqu’au ${until}.` : ''}`
+  };
+}
+
+async function processTeamInvitations(limit) {
+  const rows = await S.db('rpc/zfind_pending_team_invitations', { method: 'POST', body: { p_limit: limit || 20 } }) || [];
+  let sent = 0;
+  for (const row of rows) {
+    let ok = false;
+    try { await S.sendMail(teamInviteEmail(row)); ok = true; sent += 1; } catch (e) { console.error('lead-notify: team invitation', row.id, e.message); }
+    await S.db('rpc/zfind_mark_team_invitation', { method: 'POST', body: { p_id: row.id, p_sent: ok }, prefer: 'return=minimal' }).catch(() => null);
+  }
+  return { pending: rows.length, sent };
+}
+
 async function handler(req, res) {
   if (req.method !== 'POST' && req.method !== 'GET') return S.sendJson(res, 405, { ok: false });
   if (!S.configured(['db', 'mail'])) return S.sendJson(res, 503, { ok: false, error: 'not_configured' });
@@ -263,6 +292,8 @@ async function handler(req, res) {
     await processEstimations(10).catch(e => console.error('lead-notify: estimations', e.message));
     // Also called by the Admin right after returning a listing to draft or refusing its mentions.
     await processReviewNotices(20).catch(e => console.error('lead-notify: review notices', e.message));
+    // Also called by the Partner « Équipe » page right after an invitation.
+    await processTeamInvitations(10).catch(e => console.error('lead-notify: team invitations', e.message));
     return S.sendJson(res, 200, { ok: true });
   } catch (e) {
     console.error('lead-notify', e.message);
@@ -271,4 +302,4 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-module.exports._internals = { processPending, leadEmail, price, processEstimations, estimationEmail, processReminders, reminderEmail, processReviewNotices, reviewNoticeEmail };
+module.exports._internals = { processPending, leadEmail, price, processEstimations, estimationEmail, processReminders, reminderEmail, processReviewNotices, reviewNoticeEmail, processTeamInvitations, teamInviteEmail };
