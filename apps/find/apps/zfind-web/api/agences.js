@@ -15,6 +15,7 @@ const path = require('path');
 const S = require('./_lib/server');
 const P = require('./_lib/prix-pages');
 const H = require('./_lib/immobilier-pages');
+const F = require('./_lib/focus-places');
 const AG = require('./_lib/agences-pages');
 const AP = require('./_lib/agence-page');
 const annonce = require('./annonce');
@@ -146,7 +147,7 @@ async function agencyPage(res, base, slug) {
 async function sitemap(res, base) {
   const byCode = allCommunes();
   const keep = new Map();
-  for (const [code, c] of byCode) if (H.isTier1(code)) keep.set(code, c);
+  for (const [code, c] of byCode) if (H.isTier1(code) || F.isFocus(code)) keep.set(code, c);
   const n = await counts();
   if (n) for (const [code, v] of n) if (v >= AG.MIN_AGENCIES && byCode.has(code)) keep.set(code, byCode.get(code));
   const urls = [...keep.values()].sort((x, y) => x.c.localeCompare(y.c)).map(c => `  <url><loc>${P.esc(base + AG.agencesPath(c))}</loc></url>`);

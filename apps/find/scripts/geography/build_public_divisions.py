@@ -172,11 +172,13 @@ dump(os.path.join(OUT, "summary.json"), summary)
 # ---------------- Search indexes (estimation autocomplete) ----------------
 # One row per place: [commune code, label, postal codes "a b c", aliases "x|y", parent label]
 fr_rows = []
+# Quartiers et hameaux reconnus par la recherche (zone prioritaire), code INSEE → noms.
+FR_LOCALITIES = {k: v for k, v in json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "fr_localities.json"), encoding="utf-8")).items() if not k.startswith("_")}
 for r in fr["regions"]:
     for d in r["departements"]:
         pool = [c for a in d["arrondissements"] for c in a["communes"]] + d.get("communes_hors_arrondissement", [])
         for c in pool:
-            fr_rows.append([c["code"], c["name"], " ".join(c["postal_codes"]), "", d["code"]])
+            fr_rows.append([c["code"], c["name"], " ".join(c["postal_codes"]), "|".join(sorted(FR_LOCALITIES.get(c["code"], []))), d["code"]])
             for x in c.get("arrondissements_municipaux") or []:
                 fr_rows.append([x["code"], x["name"], " ".join(x["postal_codes"]), "", d["code"]])
 be_rows = []

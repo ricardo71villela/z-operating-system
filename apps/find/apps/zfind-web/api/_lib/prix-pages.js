@@ -19,6 +19,7 @@
    ============================================================ */
 'use strict';
 
+const F = require('./focus-places'); // zone prioritaire : Thonon-les-Bains et le bord du Léman
 const seo = require('../../src/services/seo-page-generator.js');
 const costs = require('../../src/services/acquisition-costs.js');
 const rates = require('../../src/services/credit-rates.js');
@@ -81,6 +82,15 @@ function salesCount(row) {
 function isIndexable(commune) { return salesCount(commune) >= MIN_SALES; }
 
 const ROOT_PATH = '/fr/prix-immobilier/france';
+/* Zone prioritaire : quartiers / hameaux et liens vers le bord du Léman. */
+function focusPriceSection(base, focus) {
+  const others = F.FOCUS.filter(x => x.c !== focus.c);
+  const places = focus.places.length ? `<p>Ces prix valent pour toute la commune, y compris ${esc(F.joinFr(focus.places.map(x => x.n)))} (${focus.places.every(x => x.kind === 'hameau') ? 'hameaux' : focus.places.every(x => x.kind === 'quartier') ? 'quartiers' : 'quartiers et hameaux'} ${esc(deCommune(focus.n))}).</p>` : '';
+  return `    <section class="zp-section">
+      <h2>Prix autour de Thonon et du Léman</h2>
+      ${places}<p>Comparez avec les communes voisines du bord du Léman : ${others.map(x => `<a href="${base}${ROOT_PATH}/${slugify(x.n)}-${x.c.toLowerCase()}">${esc(x.n)}</a>`).join(', ')}, ou consultez la <a href="${base}${F.HUB_PATH}">vue d’ensemble de la zone</a>.</p>
+    </section>`;
+}
 function depPath(code, name) { return `${ROOT_PATH}/${slugify(name)}-${code.toLowerCase()}`; }
 function communePath(c) { return `${ROOT_PATH}/${slugify(c.n)}-${c.c.toLowerCase()}`; }
 function regionPath(name) { return `${ROOT_PATH}/region-${slugify(name)}`; }
@@ -309,7 +319,8 @@ function renderCommune({ base, commune, department, national, neighbours, agenci
   const trends = [];
   if (tA && tA.change != null) trends.push(`appartements ${signed(tA.change)} entre ${tA.from} et ${tA.to}`);
   if (tM && tM.change != null) trends.push(`maisons ${signed(tM.change)} entre ${tM.from} et ${tM.to}`);
-  const indexable = isIndexable(commune);
+  const focus = F.focusOf(commune.c);
+  const indexable = isIndexable(commune) || !!focus;
   const path = communePath(commune);
   const title = `Prix immobilier ${name} (${department.code}) : prix au m² ${a || m ? (a || m).period.slice(-4) : ''} | Z Find`.replace(/\s+\|/, ' |');
   const description = a || m
@@ -343,6 +354,7 @@ ${comparisonTable(base, `Prix ${aCommune(name)} comparés ${joinFr([city ? `à $
     ].filter(Boolean), COMPARE_NOTE)}
 ${communes ? arrondissementsSection(base, commune, communes) : ''}
     ${budgetSection(base, name, a, m, today, department)}
+${focus ? focusPriceSection(base, focus) : ''}
     <section class="zp-section">
       <h2>Vendre ou acheter ${esc(aCommune(name))}</h2>
       <p>Une médiane décrit le marché, pas votre bien : l’étage, l’état, la vue ou le terrain font varier le prix. L’<a href="${base}/fr/estimation-immobiliere">estimation Z Find</a> tient compte de ces critères et vous donne une fourchette immédiatement, puis un rapport détaillé par e-mail.</p>
@@ -497,7 +509,7 @@ function sitemapPaths(index, depFiles) {
   for (const [code, d] of Object.entries(index.departments)) {
     if (skip.has(code) || !depFiles[code]) continue;
     out.push(depPath(code, d.name));
-    for (const c of depFiles[code].communes || []) if (isIndexable(c)) out.push(communePath(c));
+    for (const c of depFiles[code].communes || []) if (isIndexable(c) || F.isFocus(c.c)) out.push(communePath(c));
   }
   return out;
 }

@@ -17,6 +17,7 @@ const path = require('path');
 const S = require('./_lib/server');
 const P = require('./_lib/prix-pages');
 const H = require('./_lib/immobilier-pages');
+const F = require('./_lib/focus-places');
 
 let listingQuality = null;
 try { listingQuality = require('../src/services/listing-quality.js'); } catch (_) { listingQuality = null; }
@@ -179,8 +180,22 @@ async function sitemap(res, base) {
       if (c) byCode.set(target, c);
     }
   }
-  const urls = [...byCode.values()].map(c => `  <url><loc>${P.esc(base + H.hubPath(c))}</loc></url>`);
+  const urls = [`  <url><loc>${P.esc(base + F.HUB_PATH)}</loc></url>`].concat([...byCode.values()].map(c => `  <url><loc>${P.esc(base + H.hubPath(c))}</loc></url>`));
   return send(res, 200, `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`, 'application/xml; charset=utf-8', true);
+}
+
+/* /fr/immobilier/chablais-leman : les communes de la zone prioritaire. */
+async function zonePage(res, base) {
+  const idx = index();
+  const file = depFile('74');
+  const communes = F.focusCodes().map(code => (file && file.communes || []).find(c => c.c === code)).filter(Boolean);
+  const items = await Promise.all(communes.map(async commune => {
+    const [listings, agencies] = await Promise.all([listingsFor(commune.c), agencyCount(commune.c)]);
+    return { commune, listings, agencies };
+  }));
+  const department = Object.assign({ code: '74' }, idx.departments['74']);
+  const out = H.renderZone({ base, items, department, region: P.regionOfDepartment(idx, '74') });
+  return send(res, 200, out.html, null, true);
 }
 
 async function handler(req, res) {
@@ -190,6 +205,7 @@ async function handler(req, res) {
   if (q.sitemap) return sitemap(res, base);
   const route = H.parsePath(q.p);
   if (!route) return notFound(res, base);
+  if (route.zone) return zonePage(res, base);
   const idx = index();
   const depCode = P.depOfCommune(route.code);
   const d = idx.departments[depCode];

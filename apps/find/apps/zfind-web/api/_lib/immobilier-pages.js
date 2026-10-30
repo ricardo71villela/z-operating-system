@@ -23,6 +23,7 @@
 'use strict';
 
 const P = require('./prix-pages');
+const F = require('./focus-places'); // zone prioritaire : Thonon-les-Bains et le bord du Léman
 const costs = require('../../src/services/acquisition-costs.js');
 const rates = require('../../src/services/credit-rates.js');
 const credit = require('../../src/services/credit-simulator.js');
@@ -70,6 +71,7 @@ function parsePath(p) {
   const parts = String(p || '').toLowerCase().split('/').filter(Boolean);
   if (parts[0] === 'fr') parts.shift();
   if (parts[0] === 'immobilier') parts.shift();
+  if (parts.length === 1 && `${ROOT}/${parts[0]}` === F.HUB_PATH) return { zone: 'chablais-leman' };
   if (!parts.length || parts.length > 2) return null;
   const m = parts[0].match(/^(?:(.*)-)?((?:2a|2b|\d{2})\d{3}|97[1-6]\d{2})$/);
   if (!m) return null;
@@ -147,6 +149,80 @@ function featuredAgencyBlock(base, name, agency) {
   return `<section class="zh-featured" aria-label="Agence à la une"><span class="zh-badge">Agence à la une</span><div class="zh-agency"><div><strong>${P.esc(agency.name)}</strong><p style="margin:6px 0 0">Agence partenaire de Z Find ${P.esc(P.aCommune(name))}${agency.city && agency.city !== name ? ` (${P.esc(agency.city)})` : ''}.</p></div>${link}</div><p class="zh-note">Emplacement payé par l’agence pour ce mois.</p></section>`;
 }
 
+/* Zone prioritaire : quartiers / hameaux de la commune et liens vers les
+   autres communes du bord du Léman et la page de zone. */
+function focusPath(code, name) { return `${ROOT}/${P.slugify(name)}-${String(code).toLowerCase()}`; }
+function focusSections(base, focus) {
+  const out = [];
+  const name = focus.n;
+  if (focus.places.length) {
+    const quartiers = focus.places.filter(x => x.kind === 'quartier');
+    const hameaux = focus.places.filter(x => x.kind === 'hameau');
+    const items = focus.places.map(x => `<li id="${P.slugify(x.n)}"><strong>${P.esc(x.n)}</strong> — ${x.kind === 'quartier' ? 'quartier' : 'hameau'} ${P.esc(P.deCommune(name))}${x.about ? ` ${P.esc(x.about)}` : ''}.</li>`).join('');
+    const label = quartiers.length && hameaux.length ? 'Quartiers et hameaux' : quartiers.length ? 'Quartiers' : 'Hameaux';
+    out.push(`<section class="zp-section"><h2>${label} ${P.esc(P.deCommune(name))}</h2><p>Les annonces, les prix DVF et les simulateurs de cette page valent pour toute la commune, y compris ${P.esc(F.joinFr(focus.places.map(x => x.n)))}. Pour être prévenu d’un bien dans un quartier précis, <a href="${base}/#/fr/search?market=FR&amp;q=${encodeURIComponent(name)}">créez une alerte ${P.esc(P.aCommune(name))}</a> et précisez le quartier à l’agence.</p><ul class="zp-links zh-places">${items}</ul></section>`);
+  }
+  const others = F.FOCUS.filter(x => x.c !== focus.c);
+  out.push(`<section class="zp-section"><h2>Immobilier à Thonon et au bord du Léman</h2><p>Les communes du Bas-Chablais suivies par Z Find : <a href="${base}${F.HUB_PATH}">vue d’ensemble, prix et annonces</a>.</p><ul class="zp-links">${others.map(x => `<li><a href="${base}${focusPath(x.c, x.n)}">Immobilier ${P.esc(P.aCommune(x.n))}</a>${x.places.length ? ` <span class="zh-sub">(${P.esc(F.joinFr(x.places.map(y => y.n)))})</span>` : ''}</li>`).join('')}</ul></section>`);
+  return out.join('\n');
+}
+
+/* La page de la zone : /fr/immobilier/chablais-leman.
+   ctx : { base, items: [{ commune, listings, agencies }], department, region } */
+function renderZone(ctx) {
+  const { base, department, region } = ctx;
+  const items = ctx.items || [];
+  const total = items.reduce((n, x) => n + ((x.listings || []).length), 0);
+  const rows = items.map(x => {
+    const c = x.commune;
+    const f = F.focusOf(c.c) || { places: [] };
+    const a = P.latest(c.A); const m = P.latest(c.M);
+    const name = displayName(c.n);
+    return `<section class="zz-card" id="${P.slugify(name)}">
+      <h2><a href="${base}${hubPath(c)}">${P.esc(name)}</a></h2>
+      ${f.places.length ? `<p class="zz-places">${P.esc(F.joinFr(f.places.map(y => y.n)))}</p>` : ''}
+      <dl class="zz-facts">
+        <div><dt>Appartements</dt><dd>${a ? P.esc(P.eurM2(a.med)) : '—'}</dd></div>
+        <div><dt>Maisons</dt><dd>${m ? P.esc(P.eurM2(m.med)) : '—'}</dd></div>
+        <div><dt>Annonces</dt><dd>${nf.format((x.listings || []).length)}</dd></div>
+      </dl>
+      <p class="zz-links"><a href="${base}${hubPath(c)}">Annonces et simulateurs</a> · <a href="${base}${P.communePath(c)}">Prix au m²</a>${x.agencies > 0 ? ` · <a href="${base}${agencesPath(c)}">${nf.format(x.agencies)} agence${x.agencies > 1 ? 's' : ''}</a>` : ''}</p>
+    </section>`;
+  }).join('');
+  const places = F.FOCUS.flatMap(f => f.places.map(p => ({ p, f })));
+  const title = `Immobilier à ${F.HUB_TITLE} : Anthy-sur-Léman, Margencel, Marin, Sciez | Z Find`;
+  const description = `Immobilier à Thonon-les-Bains (Corzent, Morcy), Anthy-sur-Léman, Margencel, Marin (Marinel, Moruel, Sussinges) et Sciez : prix au m² DVF, annonces d’agences vérifiées, frais de notaire.`;
+  const faq = [
+    { q: 'Quelles communes du bord du Léman Z Find couvre-t-il autour de Thonon ?', r: `${F.joinFr(F.FOCUS.map(f => f.n))}, en Haute-Savoie (Bas-Chablais).` },
+    { q: 'Les annonces de Corzent ou de Morcy sont-elles sur Z Find ?', r: 'Corzent et Morcy sont des quartiers de Thonon-les-Bains : leurs annonces figurent sur la page Immobilier à Thonon-les-Bains.' },
+    { q: 'Où sont Marinel, Moruel et Sussinges ?', r: 'Ce sont des hameaux de la commune de Marin : leurs annonces et leurs prix figurent sur la page Immobilier à Marin.' }
+  ];
+  for (const x of items) {
+    const a = P.latest(x.commune.A);
+    if (a) faq.push({ q: `Quel est le prix au m² d’un appartement ${P.aCommune(displayName(x.commune.n))} ?`, r: `${P.eurM2(a.med)} (médiane DVF, ${a.n} ventes).` });
+  }
+  const style = `<style id="zfind-zone-styles">.zz-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-top:18px}.zz-card{padding:20px;border:1px solid var(--zf-200);background:#fff}.zz-card h2{margin:0 0 4px;font-size:1.45rem}.zz-card h2 a{color:inherit;text-decoration:none}.zz-places{margin:0 0 10px;color:var(--zf-500);font-size:.86rem}.zz-facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}.zz-facts dt{color:var(--zf-500);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase}.zz-facts dd{margin:4px 0 0;font-weight:600;color:var(--zf-gold-dark)}.zz-links{margin:0;font-size:.88rem}.zh-sub{color:var(--zf-500);font-size:.86rem}</style>`;
+  const body = `${STYLE}${style}
+    <header class="zf-seo-hero">
+      <p class="zf-seo-eyebrow">Immobilier · ${P.esc(`${department.name} (${department.code})`)}</p>
+      <h1>Immobilier à ${P.esc(F.HUB_TITLE)}</h1>
+      <p class="zf-seo-lead">Thonon-les-Bains, Anthy-sur-Léman, Margencel, Marin et Sciez, sur la rive française du Léman : ${total ? `${nf.format(total)} annonce${total > 1 ? 's' : ''} d’agences vérifiées, ` : ''}prix au m² DVF, frais de notaire et simulateurs pour chaque commune.</p>
+      <div class="zp-ctas"><a class="zf-seo-primary" href="${base}/#/fr/search?market=FR&amp;q=${encodeURIComponent('Thonon-les-Bains')}">Voir les annonces →</a><a class="zp-secondary" href="${base}/#/fr/estimation?market=FR&amp;mode=owner">Estimer mon bien</a></div>
+    </header>
+    <div class="zz-grid">${rows}</div>
+    <section class="zp-section"><h2>Quartiers et hameaux</h2><ul class="zp-links">${places.map(({ p, f }) => `<li><a href="${base}${focusPath(f.c, f.n)}#${P.slugify(p.n)}">${P.esc(p.n)}</a> — ${p.kind} ${P.esc(P.deCommune(f.n))}${p.about ? ` ${P.esc(p.about)}` : ''}</li>`).join('')}</ul></section>
+    <section class="zp-section zs-faq"><h2>Questions fréquentes</h2>${faq.map(f => `<details><summary>${P.esc(f.q)}</summary><p>${P.esc(f.r)}</p></details>`).join('')}</section>`;
+  const jsonLd = [
+    { '@context': 'https://schema.org', '@type': 'CollectionPage', name: title, url: base + F.HUB_PATH, inLanguage: 'fr', about: F.FOCUS.map(f => ({ '@type': 'City', name: f.n, containedInPlace: { '@type': 'AdministrativeArea', name: department.name } })) },
+    { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faq.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.r } })) }
+  ];
+  const crumbs = [{ name: 'Z Find', path: '/' }]
+    .concat(region ? [{ name: region.name, path: P.regionPath(region.name) }] : [])
+    .concat([{ name: department.name, path: P.depPath(department.code, department.name) }])
+    .concat([{ name: `Immobilier à ${F.HUB_TITLE}`, path: F.HUB_PATH }]);
+  return { indexable: true, html: P.page({ base, title, description, canonicalPath: F.HUB_PATH, indexable: true, breadcrumbs: crumbs, body, jsonLd, source: SOURCE }) };
+}
+
 /* La page d'une commune, ou d'un type d'annonces de la commune.
    ctx: { base, commune, department, region, city, arrondissements, neighbours, listings, agencies, type, today,
           featuredIds (ids des biens à la une), featuredAgency } */
@@ -158,7 +234,9 @@ function render(ctx) {
   const name = displayName(commune.n);
   const a = P.latest(commune.A); const m = P.latest(commune.M);
   const path = t ? typePath(commune, type) : hubPath(commune);
-  const indexable = t ? listings.length >= MIN_LISTINGS : (isTier1(commune.c) || all.length >= MIN_LISTINGS);
+  const focus = F.focusOf(commune.c);
+  // Zone prioritaire (Thonon et le Léman) : page de la commune indexée même sans annonce.
+  const indexable = t ? listings.length >= MIN_LISTINGS : (isTier1(commune.c) || !!focus || all.length >= MIN_LISTINGS);
   const depLabel = `${department.name} (${department.code})`;
   const counts = Object.fromEntries(Object.entries(TYPES).map(([k, v]) => [k, all.filter(v.test).length]));
   const searchQ = encodeURIComponent(name);
@@ -174,7 +252,7 @@ function render(ctx) {
     : `Immobilier ${P.aCommune(name)} (${department.code}) : annonces, prix au m², simulateurs | Z Find`;
   const description = t
     ? `${t.label} ${P.aCommune(name)} : annonces d’agences vérifiées${t.kind && (t.kind === 'A' ? a : m) ? `, prix médian ${P.eurM2((t.kind === 'A' ? a : m).med)}` : ''}. Frais de notaire et simulateurs pour ${name}.`
-    : `Immobilier ${P.aCommune(name)} : annonces d’agences vérifiées${priceLine ? `, prix au m² (${priceLine})` : ''}, frais de notaire et simulateurs de prêt pour ${name}.`;
+    : `Immobilier ${P.aCommune(name)}${focus && focus.places.length ? ` (${F.joinFr(focus.places.map(x => x.n))})` : ''} : annonces d’agences vérifiées${priceLine ? `, prix au m² (${priceLine})` : ''}, frais de notaire et simulateurs de prêt pour ${name}.`;
 
   const listingsBlock = listings.length
     ? `<ul class="zh-list">${listings.slice(0, 24).map(l => listingCard(base, l)).join('')}</ul>${listings.length > 24 ? `<p><a href="${searchHref}">Voir les ${listings.length} annonces →</a></p>` : ''}`
@@ -183,6 +261,7 @@ function render(ctx) {
   const typeLinks = t ? '' : `<div class="zh-types">${Object.entries(TYPES).map(([k, v]) => `<a class="zp-secondary" href="${base}${typePath(commune, k)}">${P.esc(v.label)}${counts[k] ? ` (${counts[k]})` : ''}</a>`).join('')}</div>`;
 
   const areaLinks = [];
+  if (focus && !t) areaLinks.push(focusSections(base, focus));
   if (arrondissements && arrondissements.length) areaLinks.push(`<section class="zp-section"><h2>Les arrondissements ${P.esc(P.deCommune(displayName((city || commune).n)))}</h2><ul class="zp-links">${arrondissements.map(c => `<li><a href="${base}${t ? typePath(c, type) : hubPath(c)}">${P.esc(displayName(c.n))}</a></li>`).join('')}</ul></section>`);
   if (neighbours && neighbours.length) areaLinks.push(`<section class="zp-section"><h2>Immobilier dans les communes voisines</h2><ul class="zp-links">${neighbours.map(c => `<li><a href="${base}${hubPath(c)}">${P.esc(displayName(c.n))}</a></li>`).join('')}</ul></section>`);
 
@@ -226,15 +305,17 @@ function render(ctx) {
   return { indexable, html: P.page({ base, title, description, canonicalPath: path, indexable, breadcrumbs: crumbs, body, jsonLd, source: SOURCE }) };
 }
 
-/* Pages commune toujours indexées (6 grandes villes et arrondissements) :
+/* Pages commune toujours indexées (6 grandes villes et arrondissements, et
+   la zone prioritaire de Thonon et du Léman) :
    [{ c, n }] à partir des fichiers département. */
 function tier1Communes(depFiles) {
   const out = [];
   for (const file of Object.values(depFiles)) {
-    for (const c of (file && file.communes) || []) if (isTier1(c.c)) out.push(c);
+    for (const c of (file && file.communes) || []) if (isTier1(c.c) || F.isFocus(c.c)) out.push(c);
   }
   return out;
 }
 
 module.exports = {
+  renderZone, focusSections,
   featuredBlock, featuredAgencyBlock, ROOT, MIN_LISTINGS, listingPath, STYLE, TIER1, TYPES, isTier1, tier1City, rentControlFor, displayName, hubPath, typePath, parsePath, render, tier1Communes };
