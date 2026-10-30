@@ -66,6 +66,10 @@
       "destination": "/api/media-import"
     },
     {
+      "source": "/api/media/photo",
+      "destination": "/api/media-import?route=photo"
+    },
+    {
       "source": "/api/feed-sync",
       "destination": "/api/feed-sync"
     },

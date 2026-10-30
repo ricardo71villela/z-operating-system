@@ -1421,7 +1421,7 @@ async function renderAssetEditShell(main, opts) {
     </div>
     <div class="page-title" style="font-size:1.1rem;">Photos</div>
     <div class="media-grid" id="media-grid" data-owner-id="${mediaOwnerId||''}" data-media-kind="${mediaKind}">Chargement…</div>
-    ${mediaOwnerId ? `<input type="file" id="media-upload-input" accept="image/*" onchange="handleMediaUpload('${mediaOwnerId}','${mediaKind}')">` : '<p style="color:#999;">Les photos sont disponibles une fois l’annonce créée.</p>'}
+    ${mediaOwnerId ? `<input type="file" id="media-upload-input" accept="image/*" onchange="handleMediaUpload('${mediaOwnerId}','${mediaKind}')" multiple>` : '<p style="color:#999;">Les photos sont disponibles une fois l’annonce créée.</p>'}
   `);
   if (mediaOwnerId) loadMediaGrid(mediaOwnerId, mediaKind);
   if (listing) loadAssetComplianceLine(listing);
@@ -1883,13 +1883,21 @@ async function deleteMedia(ownerId, kind, mediaAssetId, storagePath) {
 }
 async function handleMediaUpload(ownerId, kind) {
   const input = document.getElementById('media-upload-input');
-  const file = input.files[0];
-  if (!file) return;
-  showStatus('success', 'Envoi…');
-  const result = await _mediaAdminFns(kind).upload(ownerId, file, {});
-  showStatus(result.error ? 'error' : 'success', result.error ? 'Échec de l’envoi.' : 'Photo envoyée.');
+  const files = input && input.files ? Array.from(input.files) : [];
+  if (!files.length) return;
+  // Chaque photo est traitée par le serveur (WebP 2560 px, vignette, GPS retiré), 20 au maximum.
+  let ok = 0, failed = [];
+  for (let i = 0; i < files.length; i++) {
+    showStatus('success', `Envoi ${i + 1} / ${files.length}…`);
+    const result = await _mediaAdminFns(kind).upload(ownerId, files[i], {});
+    if (result.error) {
+      failed.push(`${files[i].name} : ${result.error.message || 'échec'}`);
+      if (result.error.code === 'media_limit') break;
+    } else ok += 1;
+  }
   input.value = '';
-  if (!result.error) loadMediaGrid(ownerId, kind);
+  showStatus(failed.length ? 'error' : 'success', failed.length ? `${ok} photo(s) ajoutée(s). ${failed.join(' · ')}` : `${ok} photo${ok > 1 ? 's' : ''} ajoutée${ok > 1 ? 's' : ''}.`);
+  if (ok) loadMediaGrid(ownerId, kind);
 }
 
 /* ---------------- Agences (base de prospection) ---------------- */
