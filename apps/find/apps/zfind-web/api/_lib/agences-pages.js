@@ -20,6 +20,7 @@
 
 const P = require('./prix-pages');
 const H = require('./immobilier-pages');
+const F = require('./focus-places');
 
 const ROOT = '/fr/agences-immobilieres';
 const MIN_AGENCIES = 3;
@@ -93,7 +94,8 @@ function render(ctx) {
   const isCity = !!(ctx.arrondissements && ctx.arrondissements.length);
   const all = sortAgencies(ctx.agencies || []);
   const total = ctx.total != null ? ctx.total : (isCity ? ctx.arrondissements.reduce((s, a) => s + (a.n || 0), 0) : all.length);
-  const indexable = H.isTier1(commune.c) || total >= MIN_AGENCIES;
+  const focus = F.focusOf(commune.c);
+  const indexable = H.isTier1(commune.c) || !!focus || total >= MIN_AGENCIES;
   const path = agencesPath(commune);
   const nets = networksOf(all);
   const where = P.aCommune(name);
@@ -136,6 +138,7 @@ function render(ctx) {
       <div class="zp-ctas"><a class="zf-seo-primary" href="${base}/#/fr/estimation?market=FR&amp;mode=owner">Estimer mon bien →</a><a class="zp-secondary" href="${base}${H.hubPath(commune)}">Annonces ${P.esc(where)}</a><a class="zp-secondary" href="${base}${P.communePath(commune)}">Prix au m²</a></div>
     </header>
     ${H.featuredAgencyBlock(base, name, ctx.featuredAgency)}
+    ${focus ? `<section class="zp-section"><h2>Agences autour de Thonon et du Léman</h2><p>${focus.places.length ? `Les agences ${P.esc(P.deCommune(name))} couvrent aussi ${P.esc(F.joinFr(focus.places.map(x => x.n)))}. ` : ''}Voir aussi les agences de ${F.FOCUS.filter(x => x.c !== focus.c).map(x => `<a href="${base}/fr/agences-immobilieres/${P.slugify(x.n)}-${x.c.toLowerCase()}">${P.esc(x.n)}</a>`).join(', ')} et l’<a href="${base}${F.HUB_PATH}">immobilier au bord du Léman</a>.</p></section>` : ''}
     ${nets.length ? `<section class="zp-section"><h2>Réseaux présents</h2><ul class="za-nets">${nets.slice(0, 12).map(n => `<li>${P.esc(n.name)} <b>${n.n}</b></li>`).join('')}</ul></section>` : ''}
     <section class="zp-section"><h2>${P.esc(isCity ? `Agences par arrondissement` : `Les agences ${where}`)}</h2>${listHtml}</section>
     ${a || m ? `<div class="zp-stats">${a ? `<section class="zp-stat"><h2>Appartements</h2><p class="zp-big">${P.eurM2(a.med)}</p><p class="zp-small">Prix médian DVF · <a href="${base}${P.communePath(commune)}">détail</a></p></section>` : ''}${m ? `<section class="zp-stat"><h2>Maisons</h2><p class="zp-big">${P.eurM2(m.med)}</p><p class="zp-small">Prix médian DVF · <a href="${base}${P.communePath(commune)}">détail</a></p></section>` : ''}</div>` : ''}

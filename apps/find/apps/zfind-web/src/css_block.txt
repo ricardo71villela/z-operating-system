@@ -256,7 +256,7 @@ section.block{ padding:76px 0; }
 .trust-chip::before{ content:"●"; color:var(--gold-light); font-size:0.6rem; }
 
 footer.site{ background:var(--gray-900); color:var(--gray-400); padding:60px 0 30px; margin-top:80px; }
-footer.site .cols{ display:grid; grid-template-columns:2fr repeat(5, 1fr); gap:32px; }
+footer.site .cols{ display:grid; grid-template-columns:2fr repeat(6, 1fr); gap:28px; }
 footer.site h5, footer.site .footer-h{ font-family:'DM Sans',sans-serif; font-weight:700;  color:#fff; font-size:0.78rem; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:16px; }
 footer.site a{ display:block; font-size:0.85rem; padding:5px 0; color:var(--gray-400); }
 footer.site a:hover{ color:#fff; }

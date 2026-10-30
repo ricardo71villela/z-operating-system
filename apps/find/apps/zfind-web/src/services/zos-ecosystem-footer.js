@@ -135,7 +135,7 @@
     style.id = STYLE_ID;
     style.textContent = `
       footer.site .cols {
-        grid-template-columns: 1.6fr repeat(5, 1fr);
+        grid-template-columns: 1.6fr repeat(6, 1fr);
         gap: 28px;
       }
       footer.site .footer-about {
