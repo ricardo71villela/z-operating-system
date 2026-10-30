@@ -79,7 +79,7 @@
   async function ownSignup() {
     try {
       const { data, error } = await getSupabaseClient().from('zfind_partner_signups')
-        .select('status, plan, founder_wave, country, role, created_at').maybeSingle();
+        .select('status, plan, founder_wave, country, role, created_at, partner_id').maybeSingle();
       return { data: data || null, error: error || null };
     } catch (e) { return { data: null, error: e }; }
   }

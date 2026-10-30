@@ -67,5 +67,11 @@ global.fetch = async (url, opts) => {
   const team = fs.readFileSync(path.join(PARTNER, 'src', 'team.js'), 'utf8');
   check('création de l’accès : le jeton suit le compte pendant la confirmation de l’e-mail', /zfind_team_invite: token/.test(team) && /emailRedirectTo: `\$\{window\.location\.origin\}\/#invitation=\$\{token\}`/.test(team));
 
+  {
+    const papp = fs.readFileSync(path.join(PARTNER, 'src', 'app.js'), 'utf8');
+    const signup = fs.readFileSync(path.join(PARTNER, 'src', 'signup.js'), 'utf8');
+    check('bandeau d’inscription : seulement celle de l’agence actuelle (compte rattaché ailleurs, collègue invité)',
+      /created_at, partner_id'\)/.test(signup) && /res\.data\.partner_id === current/.test(papp));
+  }
   console.log(`\nPARTNER TEAM: ${passed}/${passed} PASSED`);
 })().catch(e => { console.error('FAIL:', e && e.message); process.exit(1); });

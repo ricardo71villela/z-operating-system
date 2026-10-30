@@ -158,8 +158,12 @@ let partnerCountry = null;
 async function renderSignupBanner() {
   const el = document.getElementById('signup-banner');
   if (!el) return;
-  const res = await window.ZFindServices.partnerSignup.ownSignup();
-  const s = res.data;
+  const [res, prof] = await Promise.all([window.ZFindServices.partnerSignup.ownSignup(), window.ZFindServices.auth.getCurrentProfile()]);
+  // L'inscription lue est celle du compte : elle ne compte que si elle concerne
+  // l'agence actuelle (un compte rattaché ensuite à une autre agence, ou un
+  // collègue invité, n'hérite pas de l'état d'une ancienne inscription).
+  const current = prof && prof.data ? prof.data.partner_id : null;
+  const s = res.data && (!res.data.partner_id || res.data.partner_id === current) ? res.data : null;
   if (s && s.country) partnerCountry = s.country;
   if (!s || s.status === 'verified') { el.style.display = 'none'; return; }
   if (s.status === 'rejected') {
