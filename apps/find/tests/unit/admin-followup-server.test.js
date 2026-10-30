@@ -115,13 +115,17 @@ global.fetch = async (url, opts) => {
   routes['listing_media?listing_id='] = [];
   routes['/rest/v1/listing_media'] = (u) => (u.includes('?') ? [] : null);
   calls.length = 0;
-  const stored = [];
-  const deps = { fetch: okFetch, lookup: lookupPublic, optimize: async f => ({ buffer: f.buffer, type: 'image/jpeg', width: 2048, height: 1365, ext: 'jpg' }), storagePut: async (p, i) => stored.push([p, i.type]) };
+  const fake = (w, h) => ({ buffer: Buffer.from('webp'), type: 'image/webp', ext: 'webp', width: w, height: h, bytes: 4 });
+  const deps = { fetch: okFetch, lookup: lookupPublic, optimize: async () => ({ input: { bytes: 7 }, display: fake(2560, 1707), card: fake(800, 533) }) };
   const assetId = await P.attach({ id: 'q1', listing_id: 'lst-1', url: 'https://photos.agence.test/a.jpg', position: 0, attempts: 1 }, deps);
   const assetCall = calls.find(c => c.url.endsWith('/rest/v1/media_assets'));
+  const variantCall = calls.find(c => c.url.endsWith('/rest/v1/media_variants'));
   const linkCall = calls.find(c => c.url.endsWith('/rest/v1/listing_media') && c.method === 'POST');
-  check('attached like a manual upload: storage path, asset with size, link as cover', assetId === 'asset-1' && stored[0][0].startsWith('listings/lst-1/') && stored[0][0].endsWith('-import-0.jpg')
-    && assetCall.body.original_storage_path === stored[0][0] && assetCall.body.width === 2048 && assetCall.body.visibility === 'public'
+  const writes = calls.filter(c => c.method === 'POST' && c.url.includes('/storage/v1/object/listing-media/listings/lst-1/'));
+  check('attached like a manual upload: WebP display + card variant, asset with size, link as cover', assetId === 'asset-1' && writes.length === 2
+    && writes[0].url.endsWith('.webp') && writes[1].url.endsWith('-card.webp')
+    && assetCall.body.original_storage_path.startsWith('listings/lst-1/') && assetCall.body.mime_type === 'image/webp' && assetCall.body.width === 2560 && assetCall.body.visibility === 'public'
+    && variantCall.body.variant_type === 'card' && variantCall.body.width === 800
     && linkCall.body.listing_id === 'lst-1' && linkCall.body.media_asset_id === 'asset-1' && linkCall.body.is_cover === true && linkCall.body.position === 0);
   routes['listing_media?listing_id='] = [{ media_asset_id: 'existing' }];
   routes['/rest/v1/listing_media'] = (u) => (u.includes('?') ? [{ media_asset_id: 'existing' }] : null);
@@ -135,12 +139,15 @@ global.fetch = async (url, opts) => {
   await P.finish({ id: 'q5', attempts: 1 }, { assetId: 'asset-9' });
   const pat = calls.filter(c => c.method === 'PATCH');
   check('queue: retry while attempts remain, then failed; done with the asset', pat[0].body.status === 'pending' && pat[1].body.status === 'failed' && pat[2].body.status === 'done' && pat[2].body.media_asset_id === 'asset-9' && pat[0].url.includes('id=eq.q3'));
+  calls.length = 0;
+  await P.finish({ id: 'q6', attempts: 1 }, { error: '20 photos au maximum par annonce.' });
+  check('queue: 20 photos reached → failed at once (no useless retry)', calls.find(c => c.method === 'PATCH').body.status === 'failed');
 
   const sharp = (() => { try { return require('sharp'); } catch (_) { return null; } })();
   if (sharp) {
     const big = await sharp({ create: { width: 4000, height: 3000, channels: 3, background: '#8a6a36' } }).png().toBuffer();
     const o = await P.optimize({ buffer: big, type: 'image/png' });
-    check('optimise: max 2048 px, JPEG', o.type === 'image/jpeg' && o.width === 2048 && o.height === 1536 && o.buffer.length < big.length);
+    check('optimise (photo-pipeline): WebP ≤ 2560 px + 800 px card', o.display.type === 'image/webp' && o.display.width === 2560 && o.display.height === 1920 && o.card.width === 800 && o.display.bytes < big.length);
   } else {
     console.log('(sharp not installed here: resize check skipped)');
   }

@@ -1287,24 +1287,23 @@ async function loadPartnerListingWorkspace(kind, assetId) {
       Photos
     </div>
 
-    <div
-      style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;"
-    >
-      <input
-        id="partner-media-file"
-        type="file"
-        accept="image/*"
-      >
-      <button
-        type="button"
-        class="btn btn-primary"
-        onclick="uploadPartnerWorkspaceMedia(
-          '${kind}',
-          '${assetId}',
-          '${listing.id}'
-        )"
-      >Ajouter la photo</button>
+    <div class="pmedia-add">
+      <label class="btn btn-primary pmedia-pick">
+        <input
+          id="partner-media-file"
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/avif,image/heic,image/heif"
+          multiple
+          onchange="uploadPartnerWorkspaceMedia(
+            '${kind}',
+            '${assetId}',
+            '${listing.id}'
+          )"
+        >Ajouter des photos</label>
+      <span class="pmedia-count" id="partner-media-count"></span>
+      <p class="pmedia-hint">Jusqu’à 20 photos par annonce. Envoyez-les telles quelles, même lourdes : Z Find les redimensionne et les allège sans perte visible, et retire la position GPS des photos.</p>
     </div>
+    <div id="partner-media-progress" class="pmedia-progress" aria-live="polite"></div>
 
     <div
       id="partner-media-grid"
@@ -1453,6 +1452,7 @@ async function loadPartnerWorkspaceMedia(
       (a.position || 0) - (b.position || 0)
   );
   submissionSetPhotos(items.length); // « Au moins une photo » in the checklist
+  pmediaSetCount(items.length);
 
   if (!items.length) {
     grid.innerHTML =
@@ -1549,66 +1549,61 @@ async function loadPartnerWorkspaceMedia(
   }).join('');
 }
 
-async function uploadPartnerWorkspaceMedia(
-  kind,
-  assetId,
-  listingId
-) {
-  const input = document.getElementById(
-    'partner-media-file'
-  );
+const PMEDIA_MAX = 20;
 
-  const file =
-    input &&
-    input.files &&
-    input.files[0];
+function pmediaSetCount(n) {
+  const el = document.getElementById('partner-media-count');
+  if (el) el.textContent = `${n} / ${PMEDIA_MAX} photos`;
+  const pick = document.querySelector('.pmedia-pick');
+  if (pick) pick.classList.toggle('disabled', n >= PMEDIA_MAX);
+  const input = document.getElementById('partner-media-file');
+  if (input) input.disabled = n >= PMEDIA_MAX;
+}
 
-  if (!file) {
-    showStatus('error', 'Choisissez d’abord une image.');
-    return;
-  }
-
-  const mediaKind =
-    kind === 'development'
-      ? 'development'
-      : 'listing';
-
-  const ownerId =
-    mediaKind === 'development'
-      ? assetId
-      : listingId;
-
+/* Plusieurs photos à la fois, envoyées une par une : chacune est traitée
+   par le serveur (/api/media/photo : WebP, 2560 px max, vignette, GPS
+   retiré), dans la limite de 20 par annonce. */
+async function uploadPartnerWorkspaceMedia(kind, assetId, listingId) {
+  const input = document.getElementById('partner-media-file');
+  const files = input && input.files ? Array.from(input.files) : [];
+  if (!files.length) return;
+  const progress = document.getElementById('partner-media-progress');
+  const opt = window.ZFindServices.imageOptimize;
+  const mediaKind = kind === 'development' ? 'development' : 'listing';
+  const ownerId = mediaKind === 'development' ? assetId : listingId;
   const fns = _partnerWorkspaceMediaFns(kind);
-
-  const count = document.querySelectorAll(
-    '#partner-media-grid [data-partner-media-id]'
-  ).length;
-
-  const result = await fns.upload(
-    ownerId,
-    file,
-    {
-      position: count,
-      isCover: count === 0
+  let count = document.querySelectorAll('#partner-media-grid [data-partner-media-id]').length;
+  const room = Math.max(0, PMEDIA_MAX - count);
+  const queue = files.slice(0, room);
+  const refused = files.length - queue.length;
+  input.disabled = true;
+  const rows = queue.map((f, i) => `<li id="pmedia-row-${i}"><span class="pmedia-name">${escapeHtmlPartner(f.name || 'photo')}</span><span class="pmedia-state">en attente</span></li>`).join('');
+  if (progress) progress.innerHTML = `<ul>${rows}</ul>${refused ? `<p class="pmedia-warn">${refused} photo${refused > 1 ? 's' : ''} non envoyée${refused > 1 ? 's' : ''} : ${PMEDIA_MAX} photos au maximum par annonce.</p>` : ''}`;
+  let ok = 0, before = 0, after = 0;
+  for (let i = 0; i < queue.length; i++) {
+    const row = document.getElementById(`pmedia-row-${i}`);
+    const state = row && row.querySelector('.pmedia-state');
+    if (state) state.textContent = 'optimisation…';
+    const result = await fns.upload(ownerId, queue[i], { isCover: count === 0 });
+    if (result.error) {
+      if (state) { state.textContent = result.error.message || 'échec'; row.classList.add('bad'); }
+      if (result.error.code === 'media_limit') break;
+      continue;
     }
-  );
-
-  if (result.error) {
-    showStatus(
-      'error',
-      result.error.message || 'Impossible d’envoyer la photo.'
-    );
-    return;
+    ok += 1; count += 1;
+    const d = result.data || {};
+    const outBytes = d.output && d.output.bytes ? d.output.bytes : null;
+    before += queue[i].size; after += outBytes || 0;
+    if (state) { state.textContent = outBytes ? `${opt.formatBytes(queue[i].size)} → ${opt.formatBytes(outBytes)}` : 'ajoutée'; row.classList.add('good'); }
+    pmediaSetCount(count);
   }
-
   input.value = '';
-  showStatus('success', 'Photo ajoutée.');
-
-  await loadPartnerWorkspaceMedia(
-    kind,
-    assetId,
-    listingId
-  );
+  input.disabled = count >= PMEDIA_MAX;
+  if (progress && ok > 1 && after) {
+    progress.insertAdjacentHTML('beforeend', `<p class="pmedia-sum">${ok} photos ajoutées : ${opt.formatBytes(before)} envoyés, ${opt.formatBytes(after)} conservés.</p>`);
+  }
+  if (ok) showStatus('success', ok > 1 ? `${ok} photos ajoutées.` : 'Photo ajoutée.');
+  await loadPartnerWorkspaceMedia(kind, assetId, listingId);
 }
 
 async function movePartnerWorkspaceMedia(

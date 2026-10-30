@@ -468,7 +468,7 @@ async function resolveSearchCardImageUrl(
   if (!asset) return null;
 
   const storagePath =
-    pickMediaStoragePath(asset);
+    pickMediaStoragePath(asset, 'card');
 
   if (!storagePath) return null;
 
@@ -808,20 +808,21 @@ async function loadHomeCards(lang) {
   return { properties: propertyCards, developments: developmentCards, error: null };
 }
 
-/** Picks the best storage path to display for a media asset: a
-    'large' variant if present (a web-optimized derivative — the whole
-    point of media_variants existing), else any other variant, else
-    the immutable original as a last resort. Shared by Property and
-    Development — one rule, not two copies of it. Returns the raw
-    storage PATH, not yet a usable URL — resolving that is a separate,
-    async step (see supabaseClient.js's resolveMediaUrl), because the
-    'listing-media' bucket is private and a bare path is never
-    directly fetchable. */
-function pickMediaStoragePath(mediaAsset) {
+/** Picks the storage path to display for a media asset.
+    purpose 'card' (search grid, featured slots): the 800 px 'card'
+    variant made by the server (api/_lib/photo-pipeline.js), else a
+    'large' variant, else the main image. Default (detail page, gallery):
+    a 'large' variant if present, else the main image — never the small
+    card. Returns the raw storage PATH (the 'listing-media' bucket is
+    private: see supabaseClient.js's resolveMediaUrl). */
+function pickMediaStoragePath(mediaAsset, purpose) {
   const variants = mediaAsset.media_variants || [];
   const large = variants.find(v => v.variant_type === 'large');
-  const anyVariant = variants[0];
-  return (large || anyVariant || {}).storage_path || mediaAsset.original_storage_path || null;
+  if (purpose === 'card') {
+    const card = variants.find(v => v.variant_type === 'card');
+    return (card || large || {}).storage_path || mediaAsset.original_storage_path || null;
+  }
+  return (large || {}).storage_path || mediaAsset.original_storage_path || null;
 }
 
 /* Matches partners.enquiry_policy's own column default in migration

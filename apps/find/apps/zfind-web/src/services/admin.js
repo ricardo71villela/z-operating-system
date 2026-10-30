@@ -610,35 +610,47 @@ async function setRepresentationStatus(representationId, status) {
    kind of avoidable duplication the brief asks not to introduce. */
 function _mediaOps(table, ownerColumn, pathPrefix) {
   async function upload(ownerId, file, opts) {
-    const options = opts || {};
     const client = getSupabaseClient();
-
-    // Real problem found while investigating this: a partner-uploaded
-    // photo went straight to storage as-is, and media_assets.width/
-    // height were always null — nothing ever measured or optimized
-    // it. See services/image-optimize.js's header for the exact scope
-    // decision (client-side resize+recompress, not a server pipeline).
-    const optimized = await imageOptimizeModule.optimizeImage(file);
-    const uploadBlob = optimized.blob;
-    const uploadContentType = optimized.skipped ? file.type : 'image/jpeg';
-    const uploadFileName = optimized.skipped ? file.name : file.name.replace(/\.[^.]+$/, '') + '.jpg';
-
-    const path = `${pathPrefix}/${ownerId}/${Date.now()}-${uploadFileName}`;
-    const uploadResult = await safeQuery(() => client.storage.from('listing-media').upload(path, uploadBlob, { contentType: uploadContentType }), `admin.${table}.upload:storage`, { allowNullData: true });
-    if (uploadResult.error) return uploadResult;
-
-    const asset = await safeQuery(
-      () => client.from('media_assets').insert({ media_type: 'image', visibility: 'public', original_storage_path: path, mime_type: uploadContentType, width: optimized.width, height: optimized.height }).select().single(),
-      `admin.${table}.upload:asset`
-    );
-    if (asset.error) return asset;
-
-    const existing = await safeQuery(() => client.from(table).select('position').eq(ownerColumn, ownerId).order('position', { ascending: false }).limit(1), `admin.${table}.upload:position`);
-    const nextPosition = (existing.data && existing.data[0] ? existing.data[0].position + 1 : 0);
-
-    const link = { media_asset_id: asset.data.id, position: nextPosition, is_cover: !!options.isCover };
+    const kind = table === 'listing_media' ? 'listing' : 'development';
+    // 2026-10-30 : the server does the definitive treatment of every photo
+    // (api/_lib/photo-pipeline.js: WebP <= 2560 px + 800 px card, metadata
+    // and GPS removed, 20 photos max). The browser only lightens very large
+    // files so that a phone uploads quickly (services/image-optimize.js).
+    const prepared = await imageOptimizeModule.prepareForUpload(file);
+    if (prepared.blob && prepared.blob.size > imageOptimizeModule.MAX_UPLOAD_BYTES) {
+      return { data: null, error: { type: 'validation', message: 'Photo trop lourde (30 Mo au maximum).' } };
+    }
+    const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const sourcePath = `${pathPrefix}/${ownerId}/src/${stamp}.${prepared.ext}`;
+    const uploadResult = await safeQuery(() => client.storage.from('listing-media').upload(sourcePath, prepared.blob, { contentType: prepared.type, upsert: false }), `admin.${table}.upload:storage`, { allowNullData: true });
+    if (uploadResult.error) {
+      const msg = String((uploadResult.error && uploadResult.error.message) || '');
+      if (/mime|type/i.test(msg)) return { data: null, error: { type: 'validation', message: 'Format non pris en charge : envoyez une photo JPEG, PNG ou WebP.' } };
+      if (/size|large|exceed/i.test(msg)) return { data: null, error: { type: 'validation', message: 'Photo trop lourde (30 Mo au maximum).' } };
+      return uploadResult;
+    }
+    let session = null;
+    try { const r = await client.auth.getSession(); session = r && r.data && r.data.session; } catch (_) { session = null; }
+    if (!session) return { data: null, error: { type: 'authorization_failure', message: 'Votre session a expiré : reconnectez-vous.' } };
+    const api = (typeof window !== 'undefined' && /(^|\.)zfind\.online$/.test(window.location.hostname) && !/^(partner|admin)\./.test(window.location.hostname))
+      ? '/api/media/photo' : 'https://zfind.online/api/media/photo';
+    let res, out;
+    try {
+      res = await fetch(api, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind, ownerId, sourcePath, isCover: !!(opts && opts.isCover) })
+      });
+      out = await res.json().catch(() => ({}));
+    } catch (_) {
+      return { data: null, error: { type: 'network_failure', message: 'Connexion impossible. Vérifiez votre réseau et réessayez.' } };
+    }
+    if (!res.ok || !out || !out.ok) {
+      return { data: null, error: { type: out && out.error === 'media_limit' ? 'limit' : 'validation', code: out && out.error, message: (out && out.message) || 'La photo n’a pas pu être enregistrée. Réessayez dans un instant.' } };
+    }
+    const link = { media_asset_id: out.assetId, is_cover: !!out.isCover, input: out.input, output: out.output, count: out.count, max: out.max };
     link[ownerColumn] = ownerId;
-    return safeQuery(() => client.from(table).insert(link).select().single(), `admin.${table}.upload:link`);
+    return { data: link, error: null };
   }
 
   async function list(ownerId) {
@@ -648,7 +660,11 @@ function _mediaOps(table, ownerColumn, pathPrefix) {
       `admin.${table}.list`
     );
     if (result.error) return result;
-    const withUrls = await Promise.all((result.data || []).map(async m => Object.assign({}, m, { url: await resolveMediaUrl(m.media_assets.original_storage_path) })));
+    // Thumbnail: the 800 px card variant when readable (Admin), else the main image.
+    const withUrls = await Promise.all((result.data || []).map(async m => {
+      const card = ((m.media_assets && m.media_assets.media_variants) || []).find(v => v.variant_type === 'card');
+      return Object.assign({}, m, { url: await resolveMediaUrl(card ? card.storage_path : m.media_assets.original_storage_path) });
+    }));
     return { data: withUrls, error: null };
   }
 
@@ -685,7 +701,9 @@ function _mediaOps(table, ownerColumn, pathPrefix) {
     const client = getSupabaseClient();
     const unlink = await safeQuery(() => client.from(table).delete().eq('media_asset_id', mediaAssetId).eq(ownerColumn, ownerId), `admin.${table}.delete:unlink`, { allowNullData: true });
     if (unlink.error) return unlink;
-    if (storagePath) await safeQuery(() => client.storage.from('listing-media').remove([storagePath]), `admin.${table}.delete:storage`, { allowNullData: true });
+    // The 800 px card variant sits next to the main image (photo-pipeline: x.webp → x-card.webp).
+    const paths = storagePath ? [storagePath].concat(/\.webp$/.test(storagePath) ? [storagePath.replace(/\.webp$/, '-card.webp')] : []) : [];
+    if (paths.length) await safeQuery(() => client.storage.from('listing-media').remove(paths), `admin.${table}.delete:storage`, { allowNullData: true });
     return { data: null, error: null };
   }
 
